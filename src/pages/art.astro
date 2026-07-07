@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Gallery from '../components/Gallery.astro';
+
+// Loads every image in src/assets/art/ — just drop files in that folder to add them here.
+const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/art/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+const images = Object.values(files).map((file) => file.default);
+---
+
+<Layout title="Art — Your Name" showLogo={true}>
+  <div class="page-content-wrapper">
+    <Gallery images={images} alt="Art piece" />
+  </div>
+</Layout>
+
+<style>
+  .page-content-wrapper {
+    padding: 150px 40px 40px;
+  }
+
+  @media (max-width: 768px) {
+    .page-content-wrapper {
+      padding: 80px 20px 40px;
+    }
+  }
+</style>

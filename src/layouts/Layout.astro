@@ -1,0 +1,120 @@
+---
+// Import your universal navigation component
+import Navigation from '../components/Navigation.astro';
+
+interface Props {
+	title: string;
+	showLogo?: boolean;
+}
+
+const { title, showLogo = false } = Astro.props;
+
+// Your name/brand, shown as the logo at the top of the page. Change it here.
+const SITE_NAME = 'Your Name';
+
+// Astro serves the site under this base path (set in astro.config.mjs). Joining
+// links to it keeps them working both locally and on GitHub Pages (in a subfolder).
+const base = import.meta.env.BASE_URL;
+const withBase = (path = '') => `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+const favicon = withBase('favicon.svg');
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Portfolio" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href={favicon} />
+		<link rel="apple-touch-icon" href={favicon} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content="Portfolio" />
+		<meta property="og:image" content={favicon} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content={favicon} />
+		<title>{title}</title>
+	</head>
+	<body>
+		{showLogo && (
+			<div class="header-logo-container">
+				<a href={withBase()} class="header-logo">{SITE_NAME}</a>
+			</div>
+		)}
+		<main class="portfolio-container">
+			<!-- Your menu lives here permanently -->
+			<nav class="sidebar">
+				<Navigation />
+			</nav>
+			
+			<!-- This slot dynamically injects the unique content of each page -->
+			<section class="content-view">
+				<slot />
+			</section>
+		</main>
+	</body>
+</html>
+
+<style is:global>
+	/* Global CSS foundations */
+	html, body {
+		margin: 0;
+		padding: 0;
+		width: 100%;
+		height: 100%;
+		background-color: #fafafa;
+		font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	}
+
+	.portfolio-container {
+		display: flex;
+		width: 100%;
+		min-height: 100vh;
+	}
+
+	.sidebar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 1000;
+		display: flex;
+		align-items: flex-start; /* Aligns the menu to the top */
+		padding-left: 40px;
+		padding-top: 40px; /* Provides space from the top edge */
+	}
+
+	.content-view {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		padding: 0;
+	}
+
+	.header-logo-container {
+		position: absolute;
+		top: 40px; /* Align with sidebar padding-top */
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 1000;
+		pointer-events: auto; /* So the link is clickable */
+	}
+
+	.header-logo {
+		display: block;
+		font-size: 2rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+		color: #111;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	@media (max-width: 768px) {
+		.header-logo-container {
+			top: 20px;
+		}
+		.header-logo {
+			font-size: 1.1rem;
+		}
+	}
+</style>

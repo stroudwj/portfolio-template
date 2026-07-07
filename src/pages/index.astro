@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Gallery from '../components/Gallery.astro';
+
+// Loads every image in src/assets/selected-works/ — just drop files in that
+// folder to add them here. Newest-named files show first (remove .reverse() to flip).
+const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/selected-works/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+const images = Object.values(files).reverse().map((file) => file.default);
+---
+
+<Layout title="Your Name — Selected Works" showLogo={true}>
+  <div class="page-header">
+    <h1 class="page-title">Selected Works</h1>
+  </div>
+
+  <div class="collage-container">
+    <Gallery images={images} alt="Selected work" />
+  </div>
+</Layout>
+
+<style>
+  .page-header {
+    padding: 70px;
+    margin-bottom: 0;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111;
+    margin: 0;
+    letter-spacing: -0.02em;
+    text-align: right;
+  }
+
+  .collage-container {
+    padding: 20px 40px 60px;
+  }
+
+  @media (max-width: 768px) {
+    .page-header {
+      padding: 60px 20px;
+    }
+    .collage-container {
+      padding: 80px 20px 40px;
+    }
+  }
+</style>
