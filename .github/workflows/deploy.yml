@@ -10,6 +10,11 @@ permissions:
   pages: write
   id-token: write
 
+# Allow one deploy at a time; don't cancel an in-progress run.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +22,7 @@ jobs:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
       - name: Install, build, and upload your site
-        uses: withastro/action@v3
+        uses: withastro/action@v5
         with:
           node-version: 22
 
