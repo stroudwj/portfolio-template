@@ -1,0 +1,66 @@
+{
+  "site": {
+    "name": "Your Name",
+    "description": "Portfolio",
+    "favicon": "favicon.svg"
+  },
+  "theme": {
+    "backgroundColor": "#fafafa",
+    "textColor": "#111111",
+    "mutedTextColor": "#666666",
+    "accentColor": "#000000",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
+  },
+  "nav": [
+    { "path": "", "label": "Home" },
+    { "path": "art", "label": "Art" },
+    { "path": "photography", "label": "Photography" },
+    { "path": "bio", "label": "About" }
+  ],
+  "profile": {
+    "image": "placeholder.png",
+    "bio": "Born in Somewhere.\nLives and works in Your City.\n\nArtist. Designer. Photographer."
+  },
+  "contact": {
+    "email": "you@example.com"
+  },
+  "social": [
+    { "label": "Instagram", "url": "https://instagram.com/yourhandle" },
+    { "label": "LinkedIn", "url": "https://linkedin.com/in/yourhandle" }
+  ],
+  "resume": {
+    "label": "Résumé",
+    "url": "resume.pdf"
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Selected Works",
+      "heading": "Selected Works",
+      "gallery": { "folder": "selected-works", "alt": "Selected work", "order": "desc" }
+    },
+    "art": {
+      "title": "Art — {name}",
+      "gallery": { "folder": "art", "alt": "Art piece", "order": "asc" }
+    },
+    "photography": {
+      "title": "Photography — {name}",
+      "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc" }
+    },
+    "bio": {
+      "title": "About — {name}"
+    }
+  },
+  "galleries": {
+    "selected-works": { "items": {} },
+    "art": { "items": {} },
+    "photography": {
+      "items": {
+        "placeholder.png": {
+          "title": "Sample piece",
+          "description": "Optional caption shown in the lightbox.",
+          "link": ""
+        }
+      }
+    }
+  }
+}

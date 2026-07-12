@@ -3,27 +3,38 @@
 //
 // Each page passes in its own list of images. You usually don't need to edit
 // this file — to change what appears in a gallery, just add or remove image
-// files in that page's assets folder.
+// files in that page's assets folder. Optional per-image captions (shown in the
+// lightbox) come from src/data/content.json under `galleries.<folder>.items`.
 import { Image } from 'astro:assets';
+import type { GalleryImage } from '../lib/galleries';
 
 interface Props {
-  images: ImageMetadata[];
+  items: GalleryImage[];
   alt?: string;
 }
 
-const { images, alt = 'Portfolio piece' } = Astro.props;
+const { items, alt = 'Portfolio piece' } = Astro.props;
+
+// Only emit caption data attributes that actually have a value, so images
+// without metadata stay clean and the lightbox shows no caption for them.
+const captionAttrs = (item: GalleryImage) => ({
+  ...(item.title ? { 'data-title': item.title } : {}),
+  ...(item.description ? { 'data-description': item.description } : {}),
+  ...(item.link ? { 'data-link': item.link } : {}),
+});
 ---
 
-{images.length > 0 ? (
+{items.length > 0 ? (
   <div class="masonry-grid">
-    {images.map((img) => (
+    {items.map((item) => (
       <div class="masonry-item">
         <Image
-          src={img}
-          alt={alt}
+          src={item.image}
+          alt={item.title || alt}
           width={800}
           class="lightbox-trigger"
-          data-full-src={img.src}
+          data-full-src={item.image.src}
+          {...captionAttrs(item)}
         />
       </div>
     ))}
@@ -37,6 +48,11 @@ const { images, alt = 'Portfolio piece' } = Astro.props;
 <div id="image-modal" class="modal" role="dialog" aria-hidden="true">
   <span class="close-btn">&times;</span>
   <img id="modal-img" src="" alt="Full resolution portfolio piece" />
+  <figcaption id="modal-caption" class="modal-caption" hidden>
+    <span class="modal-caption-title"></span>
+    <span class="modal-caption-description"></span>
+    <a class="modal-caption-link" href="" target="_blank" rel="noopener">View project ↗</a>
+  </figcaption>
 </div>
 
 <style>
@@ -77,7 +93,7 @@ const { images, alt = 'Portfolio piece' } = Astro.props;
 
   .gallery-empty {
     padding: 3rem 0;
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 1rem;
   }
 
@@ -122,6 +138,35 @@ const { images, alt = 'Portfolio piece' } = Astro.props;
 
   .modal.show img { transform: scale(1); }
 
+  .modal-caption {
+    position: absolute;
+    left: 50%;
+    bottom: 4vh;
+    transform: translateX(-50%);
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    pointer-events: auto;
+  }
+
+  .modal-caption[hidden] { display: none; }
+
+  .modal-caption-title { font-weight: 700; }
+
+  .modal-caption-description { color: rgba(255, 255, 255, 0.7); }
+
+  .modal-caption-link {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
   .close-btn {
     position: absolute;
     top: 25px;
@@ -145,13 +190,36 @@ const { images, alt = 'Portfolio piece' } = Astro.props;
   function setupLightbox() {
     const modal = document.getElementById('image-modal');
     const modalImg = document.getElementById('modal-img') as HTMLImageElement | null;
+    const caption = document.getElementById('modal-caption') as HTMLElement | null;
     const closeBtn = document.querySelector('.close-btn');
     const triggers = document.querySelectorAll('.lightbox-trigger');
 
     if (!modal || !modalImg || !closeBtn) return;
 
-    const openModal = (src: string) => {
+    const captionTitle = caption?.querySelector('.modal-caption-title') as HTMLElement | null;
+    const captionDesc = caption?.querySelector('.modal-caption-description') as HTMLElement | null;
+    const captionLink = caption?.querySelector('.modal-caption-link') as HTMLAnchorElement | null;
+
+    const setCaption = (title: string, description: string, link: string) => {
+      if (!caption) return;
+      if (captionTitle) {
+        captionTitle.textContent = title;
+        captionTitle.hidden = !title;
+      }
+      if (captionDesc) {
+        captionDesc.textContent = description;
+        captionDesc.hidden = !description;
+      }
+      if (captionLink) {
+        captionLink.href = link;
+        captionLink.hidden = !link;
+      }
+      caption.hidden = !(title || description || link);
+    };
+
+    const openModal = (src: string, title = '', description = '', link = '') => {
       modalImg.src = src;
+      setCaption(title, description, link);
       modal.classList.add('show');
       modal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
@@ -170,7 +238,14 @@ const { images, alt = 'Portfolio piece' } = Astro.props;
       img.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLImageElement;
         const fullSrc = target.getAttribute('data-full-src');
-        if (fullSrc) openModal(fullSrc);
+        if (fullSrc) {
+          openModal(
+            fullSrc,
+            target.getAttribute('data-title') ?? '',
+            target.getAttribute('data-description') ?? '',
+            target.getAttribute('data-link') ?? '',
+          );
+        }
       });
     });
 

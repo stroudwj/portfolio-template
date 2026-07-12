@@ -1,12 +1,9 @@
 ---
-// The site's menu. To add, remove, or rename a page, edit this list — set `path`
-// to the page's file name in src/pages/ (use '' for the Home page, index.astro).
-const navItems = [
-	{ path: '', label: 'Home' },
-	{ path: 'art', label: 'Art' },
-	{ path: 'photography', label: 'Photography' },
-	{ path: 'bio', label: 'About' },
-];
+// The site's menu. To add, remove, or rename a page, edit the `nav` list in
+// src/data/content.json — set `path` to the page's file name in src/pages/
+// (use '' for the Home page, index.astro).
+import { content } from '../lib/content';
+const navItems = content.nav;
 
 // Astro serves the site under this base path (set in astro.config.mjs). We build
 // links from it and compare against the current URL so highlighting works whether
@@ -75,7 +72,7 @@ const links = navItems.map((item) => ({
 }
 
 .mobile-nav[open] {
-  background: #fafafa;
+  background: var(--color-bg);
   padding: 6px 8px 8px;
 }
 
@@ -98,7 +95,7 @@ const links = navItems.map((item) => ({
   display: block;
   width: 24px;
   height: 2px;
-  background: #000;
+  background: var(--color-accent);
   border-radius: 999px;
 }
 
@@ -116,10 +113,10 @@ const links = navItems.map((item) => ({
 }
 
 .mobile-nav-link {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #111;
+  color: var(--color-text);
   text-decoration: none;
 }
 
@@ -140,7 +137,7 @@ const links = navItems.map((item) => ({
 }
 
 .dock-item {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--font-family);
   font-size: 0.7rem;        
   font-weight: 700;         
   color: #333333;           
@@ -159,7 +156,7 @@ const links = navItems.map((item) => ({
   bottom: -2px;
   width: 100%;
   height: 2px;
-  background-color: #000000;
+  background-color: var(--color-accent);
   transform: scaleX(0);
   transition: transform 0.2s ease;
   transform-origin: left center;
@@ -168,10 +165,10 @@ const links = navItems.map((item) => ({
 /* Active page gets underlined globally */
 .dock-link.active .dock-item::after {
   transform: scaleX(1);
-  background-color: #000000;
+  background-color: var(--color-accent);
 }
 .dock-link.active .dock-item {
-  color: #000000;
+  color: var(--color-accent);
 }
 
 /* Desktop Styles (Devices with hover capability) */
@@ -196,7 +193,7 @@ const links = navItems.map((item) => ({
   
   /* Ensure text color changes on tap */
   .dock-link:active .dock-item {
-    color: #000000;
+    color: var(--color-accent);
   }
   
   /* Active page stays underlined (overriding just in case) */

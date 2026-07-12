@@ -66,42 +66,54 @@ Accepted image types: **.jpg, .jpeg, .png, .gif, .webp**. Tip: name files so the
 
 If you empty a folder completely, the page simply shows a friendly "add images here" note until you add some.
 
-### Change your name / the logo
+### Edit your text and links — all in one file
 
-The name shown at the top of the site lives in one place: open **`src/layouts/Layout.astro`** and edit this line near the top:
+Everything the site *says* — your name, the About text, your email, the menu,
+social links, résumé, and colors — lives in a single file:
+**`src/data/content.json`**. Open it in your text editor, change the values inside
+the quotes, and save. The browser updates instantly, and you never have to touch
+the page or component files.
 
-```js
-const SITE_NAME = 'Your Name';
-```
+Here's what each part controls:
 
-### Change the page titles (the browser tab text)
-
-Each page file in `src/pages/` has a line like `title="Art — Your Name"`. Change the text inside the quotes.
-
-### Change the About page
-
-Open **`src/pages/bio.astro`** and edit the text between the `<p class="bio-text">` tags — your name, city, and email.
-
-### Change the menu (add, remove, or rename pages)
-
-Open **`src/components/Navigation.astro`**. Near the top is the menu list:
-
-```js
-const navItems = [
-	{ path: '', label: 'Home' },
-	{ path: 'art', label: 'Art' },
-	{ path: 'photography', label: 'Photography' },
-	{ path: 'bio', label: 'About' },
-];
-```
-
-- **Rename** a menu item: change its `label`.
-- **Remove** a page: delete its line here, and delete the matching file in `src/pages/`.
-- **Add** a page: copy `src/pages/art.astro` to a new name (e.g. `src/pages/paintings.astro`), point it at a new folder, then add a line here where `path` is the new file's name without `.astro`.
+- **`site`** — your `name` (shown as the logo and used in every browser-tab title),
+  the `description` used for search/social previews, and the `favicon` file name.
+  Change your `name` in this one spot and it updates everywhere. (Optional: add a
+  `logo` here to show different text as the logo than your name.)
+- **`theme`** — the site's colors and font. Change `backgroundColor`, `textColor`,
+  or `fontFamily` to restyle the whole site at once.
+- **`nav`** — the menu. Each entry has a `label` (what visitors see) and a `path`
+  (the page's file name in `src/pages/`, or `""` for Home). Rename by changing a
+  `label`; reorder by moving lines.
+- **`profile`** — your `image` (a file in `src/assets/`, shown on the About page)
+  and your `bio` (the About text; `\n` is a line break, `\n\n` is a blank line).
+- **`contact`** — your `email`, shown on the About page.
+- **`social`** — a list of links (each with a `label` and `url`) shown on the About
+  page. Add or remove entries freely, or leave it empty (`[]`) to hide the row.
+- **`resume`** — a `label` and `url` for a résumé link on the About page. Put a PDF
+  at `public/resume.pdf` and set `url` to `"resume.pdf"`, or set `url` to `""` to
+  hide the link.
+- **`pages`** — per-page settings: the browser-tab `title` (write `{name}` and it's
+  filled in from `site.name`), the Home `heading`, and each gallery's source
+  `folder`, image `alt` text, and `order` (`"asc"` or `"desc"`).
+- **`galleries`** — optional captions for gallery images. Under a folder's `items`,
+  add an entry keyed by the image's file name with a `title`, `description`, and/or
+  `link`; it appears in the full-screen view when that image is clicked. Images
+  without an entry simply have no caption.
 
 ### Change the favicon (the little icon in the browser tab)
 
-Replace **`public/favicon.svg`** with your own icon (keep the same file name).
+Replace **`public/favicon.svg`** with your own icon and keep the same file name (or
+point `site.favicon` in `content.json` at a different file).
+
+### Add a page
+
+1. Copy `src/pages/art.astro` to a new name, e.g. `src/pages/paintings.astro`.
+2. In `content.json`, add a matching entry under `pages` (a `title` plus a
+   `gallery` pointing at a new folder), a `nav` entry whose `path` is the new file's
+   name without `.astro`, and — if you want captions — a `galleries` entry for the
+   folder.
+3. Create the folder `src/assets/paintings/` and drop your images in.
 
 ---
 

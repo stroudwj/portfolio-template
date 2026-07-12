@@ -1,15 +1,19 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Gallery from '../components/Gallery.astro';
+import { content, pageTitle } from '../lib/content';
+import { getGallery } from '../lib/galleries';
 
-// Loads every image in src/assets/art/ — just drop files in that folder to add them here.
-const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/art/*.{jpeg,jpg,png,gif,webp}', { eager: true });
-const images = Object.values(files).map((file) => file.default);
+// All content for this page comes from src/data/content.json — to add images,
+// drop files in the folder named there (src/assets/art/ by default).
+const page = content.pages.art;
+const gallery = page.gallery!;
+const items = getGallery(gallery.folder, gallery.order, content.galleries[gallery.folder]?.items);
 ---
 
-<Layout title="Art — Your Name" showLogo={true}>
+<Layout title={pageTitle(page.title)} showLogo={true}>
   <div class="page-content-wrapper">
-    <Gallery images={images} alt="Art piece" />
+    <Gallery items={items} alt={gallery.alt} />
   </div>
 </Layout>
 

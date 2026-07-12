@@ -1,20 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Gallery from '../components/Gallery.astro';
+import { content, pageTitle } from '../lib/content';
+import { getGallery } from '../lib/galleries';
 
-// Loads every image in src/assets/selected-works/ — just drop files in that
-// folder to add them here. Newest-named files show first (remove .reverse() to flip).
-const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/selected-works/*.{jpeg,jpg,png,gif,webp}', { eager: true });
-const images = Object.values(files).reverse().map((file) => file.default);
+// All content for this page comes from src/data/content.json — to add images,
+// drop files in the folder named there (src/assets/selected-works/ by default).
+const page = content.pages.home;
+const gallery = page.gallery!;
+const items = getGallery(gallery.folder, gallery.order, content.galleries[gallery.folder]?.items);
 ---
 
-<Layout title="Your Name — Selected Works" showLogo={true}>
+<Layout title={pageTitle(page.title)} showLogo={true}>
   <div class="page-header">
-    <h1 class="page-title">Selected Works</h1>
+    <h1 class="page-title">{page.heading}</h1>
   </div>
 
   <div class="collage-container">
-    <Gallery images={images} alt="Selected work" />
+    <Gallery items={items} alt={gallery.alt} />
   </div>
 </Layout>
 
@@ -27,7 +30,7 @@ const images = Object.values(files).reverse().map((file) => file.default);
   .page-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #111;
+    color: var(--color-text);
     margin: 0;
     letter-spacing: -0.02em;
     text-align: right;
