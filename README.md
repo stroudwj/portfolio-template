@@ -169,6 +169,12 @@ minute to build — refresh if it isn't up yet.
 **updates the same site** (new images added, deleted ones removed). No new repository is
 created.
 
+**Edit from any device.** Your work autosaves in the browser you're using, but that draft
+doesn't follow you to another computer. To edit your *live* site from anywhere, open the
+editor, **Connect GitHub**, then choose **Edit my published site** on the start screen — it
+pulls your current text and images straight from your published site so you can change them
+and publish again. (It finds your site automatically once you're signed in.)
+
 > **About your token (please read).** The token is stored only in your own browser and is
 > sent nowhere except GitHub; **Sign out** deletes it. Because a fresh site can't be
 > created by a token limited to one repository, the first token needs access to *all*

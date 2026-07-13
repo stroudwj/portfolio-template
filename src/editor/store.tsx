@@ -26,6 +26,8 @@ export interface EditorContextValue {
 	startExisting(): void;
 	resumeDraft(): Promise<void>;
 	importContent(content: Content): void;
+	/** Open a fully-formed document (e.g. one loaded from GitHub, assets already registered). */
+	openDoc(doc: EditorDoc): void;
 	reset(): Promise<void>;
 	// profile / contact
 	setName(value: string): void;
@@ -88,6 +90,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			else setDoc(existingDoc());
 		},
 		importContent: (content: Content) => setDoc(initDocFromContent(content)),
+		openDoc: (next: EditorDoc) => {
+			setHasDraft(true);
+			setDoc(next);
+		},
 		reset: async () => {
 			await clearPersisted();
 			setHasDraft(false);

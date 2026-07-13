@@ -1,10 +1,18 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import type { Content } from '../../lib/content';
+import { useGitHub } from './useGitHub';
+import ConnectGitHubModal from './ConnectGitHubModal';
+import LoadPublishedModal from './LoadPublishedModal';
 
 export default function StartScreen() {
-	const { startBlank, startExisting, resumeDraft, importContent, hasDraft } = useEditor();
+	const { startBlank, startExisting, resumeDraft, importContent, openDoc, hasDraft } = useEditor();
+	const gh = useGitHub();
 	const fileRef = useRef<HTMLInputElement>(null);
+	const [showConnect, setShowConnect] = useState(false);
+	const [showLoad, setShowLoad] = useState(false);
+
+	const connected = gh.status === 'connected';
 
 	const onImport = (file: File) => {
 		const reader = new FileReader();
@@ -20,27 +28,64 @@ export default function StartScreen() {
 	};
 
 	// Starting fresh throws away the autosaved draft — confirm first so a stray click
-	// can't wipe someone's work (the exact thing that surprised people before).
+	// can't wipe someone's work (only matters when a draft actually exists).
 	const startOver = () => {
-		if (confirm('Start over from the template? This will discard your saved changes.')) startExisting();
+		if (!hasDraft || confirm('Start over from the template? This will discard your saved changes.')) startExisting();
 	};
 	const startFresh = () => {
-		if (confirm('Start from a blank portfolio? This will discard your saved changes.')) startBlank();
+		if (!hasDraft || confirm('Start from a blank portfolio? This will discard your saved changes.')) startBlank();
 	};
 
 	return (
 		<div className="start">
 			<div className="start-card">
 				<h1>Portfolio Editor</h1>
-				{hasDraft ? (
+
+				{connected ? (
+					<>
+						<p>
+							Signed in as <strong>@{gh.user?.login}</strong>. Load your live portfolio to edit it from any device — your
+							changes go back to the same website when you publish.
+						</p>
+						<div className="start-actions">
+							<button type="button" className="btn-primary" onClick={() => setShowLoad(true)}>
+								Edit my published site
+							</button>
+							{hasDraft && (
+								<button type="button" className="btn-secondary" onClick={() => resumeDraft()}>
+									Continue local draft
+								</button>
+							)}
+						</div>
+						<div className="start-links">
+							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
+								Import a content.json…
+							</button>
+							<button type="button" className="btn-link" onClick={startOver}>
+								Start over from the template
+							</button>
+							<button type="button" className="btn-link" onClick={startFresh}>
+								Start from blank
+							</button>
+						</div>
+					</>
+				) : hasDraft ? (
 					<>
 						<p>Welcome back — your work was saved automatically. Pick up right where you left off.</p>
 						<div className="start-actions">
 							<button type="button" className="btn-primary" onClick={() => resumeDraft()}>
-								Continue editing
+								Continue editing <span className="btn-sub">(this browser)</span>
 							</button>
 						</div>
 						<div className="start-links">
+							<button
+								type="button"
+								className="btn-link"
+								onClick={() => setShowConnect(true)}
+								disabled={gh.status === 'checking'}
+							>
+								{gh.status === 'checking' ? 'Checking GitHub…' : 'Connect GitHub to edit your published site'}
+							</button>
 							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
 								Import a content.json…
 							</button>
@@ -64,12 +109,21 @@ export default function StartScreen() {
 							</button>
 						</div>
 						<div className="start-links">
+							<button
+								type="button"
+								className="btn-link"
+								onClick={() => setShowConnect(true)}
+								disabled={gh.status === 'checking'}
+							>
+								{gh.status === 'checking' ? 'Checking GitHub…' : 'Already published? Connect GitHub to edit your live site'}
+							</button>
 							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
 								Import a content.json…
 							</button>
 						</div>
 					</>
 				)}
+
 				<input
 					ref={fileRef}
 					type="file"
@@ -82,6 +136,18 @@ export default function StartScreen() {
 					}}
 				/>
 			</div>
+
+			{showConnect && (
+				<ConnectGitHubModal
+					connect={gh.connect}
+					onClose={() => setShowConnect(false)}
+					onConnected={() => {
+						setShowConnect(false);
+						setShowLoad(true);
+					}}
+				/>
+			)}
+			{showLoad && <LoadPublishedModal onClose={() => setShowLoad(false)} onLoaded={openDoc} />}
 		</div>
 	);
 }
