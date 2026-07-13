@@ -1,0 +1,35 @@
+---
+// The browser-based editor. A local, no-index tool — delete this file to keep it
+// out of a public deploy. Rendered client-only (it uses uploads, IndexedDB, etc.).
+import EditorApp from '../editor/EditorApp';
+import { withBase } from '../portfolio/types';
+
+const base = import.meta.env.BASE_URL;
+const favicon = withBase(base, 'favicon.svg');
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<link rel="icon" type="image/svg+xml" href={favicon} />
+		<title>Portfolio Editor</title>
+	</head>
+	<body>
+		<EditorApp client:only="react" base={base} />
+	</body>
+</html>
+
+<style is:global>
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+	}
+	* {
+		box-sizing: border-box;
+	}
+</style>

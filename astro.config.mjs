@@ -1,6 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
+import react from '@astrojs/react';
+
 // https://astro.build/config
 //
 // When you publish to GitHub Pages, change the two lines below to match YOUR
@@ -11,4 +13,5 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://stroudwj.github.io',
   base: '/portfolio-template',
+  integrations: [react()],
 });

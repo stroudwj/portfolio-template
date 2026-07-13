@@ -1,30 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Gallery from '../components/Gallery.astro';
+import PortfolioPage from '../portfolio/PortfolioPage';
 import { content, pageTitle } from '../lib/content';
-import { getGallery } from '../lib/galleries';
+import { resolveGallery } from '../lib/resolveImages';
 
-// All content for this page comes from src/data/content.json — to add images,
-// drop files in the folder named there (src/assets/photography/ by default).
 const page = content.pages.photography;
-const gallery = page.gallery!;
-const items = getGallery(gallery.folder, gallery.order, content.galleries[gallery.folder]?.items);
+const folder = page.gallery!.folder;
+const galleries = { [folder]: await resolveGallery(folder) };
+const base = import.meta.env.BASE_URL;
 ---
 
 <Layout title={pageTitle(page.title)} showLogo={true}>
-  <div class="page-content-wrapper">
-    <Gallery items={items} alt={gallery.alt} />
-  </div>
+	<PortfolioPage client:visible page="photography" content={content} galleries={galleries} base={base} />
 </Layout>
-
-<style>
-  .page-content-wrapper {
-    padding: 170px 40px 40px;
-  }
-
-  @media (max-width: 768px) {
-    .page-content-wrapper {
-      padding: 80px 20px 40px;
-    }
-  }
-</style>

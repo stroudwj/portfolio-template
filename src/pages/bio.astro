@@ -1,90 +1,15 @@
 ---
-import { Image } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
+import PortfolioPage from '../portfolio/PortfolioPage';
 import { content, pageTitle } from '../lib/content';
-import { getAsset } from '../lib/galleries';
+import { resolveProfileImage } from '../lib/resolveImages';
 
-// All About-page content comes from src/data/content.json (profile, contact,
-// social, resume). Edit it there — not this file.
+// The About page is static (no interactivity), so it renders without hydration.
 const page = content.pages.bio;
-const { profile, contact, social, resume } = content;
-const profileImage = getAsset(profile.image);
-
-// The bio body: "\n" is a line break, "\n\n" is a blank line.
-const bioLines = profile.bio.split('\n');
-
-// Join links to the site's base path so a resume file in public/ resolves both
-// locally and on GitHub Pages (in a subfolder).
+const profile = await resolveProfileImage();
 const base = import.meta.env.BASE_URL;
-const withBase = (path = '') => `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
 ---
 
 <Layout title={pageTitle(page.title)} showLogo={true}>
-  <div class="bio-container">
-    {profileImage && (
-      <Image src={profileImage} alt={content.site.name} width={320} class="profile-image" />
-    )}
-    <p class="bio-text">{content.site.name}<br /><br /><br />{bioLines.flatMap((line, i) => (i === 0 ? [line] : [<br />, line]))}<br /><br />{contact.email}</p>
-    {(social.length > 0 || resume.url) && (
-      <div class="bio-links">
-        {social.map((s) => (
-          <a href={s.url} target="_blank" rel="noopener">{s.label}</a>
-        ))}
-        {resume.url && (
-          <a href={withBase(resume.url)}>{resume.label}</a>
-        )}
-      </div>
-    )}
-  </div>
+	<PortfolioPage page="bio" content={content} galleries={{}} profileImageSrc={profile.src} base={base} />
 </Layout>
-
-<style>
-  .bio-container {
-    padding: 25vh 0px 0px;
-    margin-left: 25vw;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 24px;
-    width: 33.333%;
-    min-width: 300px;
-    font-weight: 500;
-
-  }
-
-  .profile-image {
-    width: 160px;
-    height: auto;
-    display: block;
-  }
-
-  .bio-text {
-    text-align: left;
-    line-height: 1.6;
-    text-wrap: pretty;
-    margin: 0;
-  }
-
-  .bio-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    font-size: 0.9rem;
-  }
-
-  .bio-links a {
-    color: var(--color-text);
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-  }
-
-  @media (max-width: 900px) {
-    .bio-container {
-      padding: 220px 30px 40px;
-      margin-left: 0;
-      width: 100%;
-      max-width: 600px;
-      min-width: 0;
-    }
-  }
-</style>

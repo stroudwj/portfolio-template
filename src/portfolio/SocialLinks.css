@@ -1,0 +1,12 @@
+.bio-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	font-size: 0.9rem;
+}
+
+.bio-links a {
+	color: var(--color-text);
+	text-decoration: underline;
+	text-underline-offset: 0.18em;
+}

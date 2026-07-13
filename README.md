@@ -43,6 +43,28 @@ Leave that terminal window open while you work — the site updates automaticall
 
 ## Part 2 — Make it yours
 
+You can build your portfolio two ways: with the **visual editor** (no code), or by
+editing the content file directly.
+
+### Option A — the visual editor (no code) ⭐
+
+With the site running (`npm run dev`), open **http://localhost:4321/portfolio-template/editor**.
+It's a website-builder-style screen with a live preview:
+
+1. Choose **Edit current portfolio** (or **Start from blank**).
+2. Fill in your name, bio, and email; **upload** a profile photo, project images, and
+   gallery images; drag to **reorder**; add **social links**. The preview updates as you type.
+3. **Publish it.** The easiest way is **Connect GitHub → Publish website** — it puts your
+   site online in one step (see [Part 3](#part-3--publish-it-online-for-free)). Prefer to
+   do it by hand? Click **Export ZIP** and unzip the download over this project folder (it
+   drops your `content.json` and images into the right places), then run `npm run build`.
+
+Your work autosaves in the browser, so you can close the tab and come back later. The
+editor is a local tool; it isn't part of your published site (delete `src/pages/editor.astro`
+if you want to remove it entirely).
+
+### Option B — edit the content file by hand
+
 You edit the site by opening its files in a text editor. **[VS Code](https://code.visualstudio.com)** is a free, friendly one. Save a file and your browser updates instantly.
 
 ### Add your own images ⭐ (the main thing)
@@ -117,9 +139,47 @@ point `site.favicon` in `content.json` at a different file).
 
 ---
 
-## Part 3 — Publish it online for free (GitHub Pages)
+## Part 3 — Publish it online for free
 
-This template can deploy itself automatically using **GitHub Pages**. Every time you upload changes, your live site updates.
+Your site is hosted on **GitHub Pages** — free, and it re-deploys itself every time you
+publish. There are two ways to publish: one click from the editor, or by hand.
+
+### Option A — Publish from the editor (one click) ⭐
+
+In the editor (`/editor`), use the **Connect GitHub** and **Publish website** buttons in
+the top-right. You never touch Git, the terminal, or GitHub's website beyond one sign-in.
+
+**1. Connect GitHub (once).** Click **Connect GitHub**. It walks you through creating a
+*personal access token* — a private key GitHub gives you:
+
+- Click the link to open GitHub's token page (sign in / create a free account if needed).
+- Set **Repository access** to **All repositories** *(required so the editor can create
+  your site the first time)*.
+- Under **Repository permissions**, set these three to **Read and write**:
+  **Administration** (create your site's repository), **Contents** (upload your text and
+  images), and **Pages** (turn the website on).
+- Click **Generate token**, copy it, and paste it back into the editor.
+
+**2. Publish.** Click **Publish website**, pick a name for your site the first time
+(this becomes part of the address), and watch the progress. When it finishes you get a
+live link like `https://YOUR-USERNAME.github.io/YOUR-SITE-NAME`. A brand-new site takes a
+minute to build — refresh if it isn't up yet.
+
+**3. Edit and publish again.** Change anything and click **Publish website** again — it
+**updates the same site** (new images added, deleted ones removed). No new repository is
+created.
+
+> **About your token (please read).** The token is stored only in your own browser and is
+> sent nowhere except GitHub; **Sign out** deletes it. Because a fresh site can't be
+> created by a token limited to one repository, the first token needs access to *all*
+> repositories. **Once your site exists**, you can make it safer: create a new
+> fine-grained token scoped to **only your portfolio repository** with just **Contents**
+> and **Pages** = Read and write, then Sign out and reconnect with it. Future publishes
+> only need those two.
+
+### Option B — Publish by hand
+
+Prefer to set it up yourself (or not use a token)?
 
 1. **Create a free GitHub account** at https://github.com if you don't have one.
 2. **Create a new repository** (a home for your project's files) on GitHub. Note your username and the repository name.
@@ -139,7 +199,7 @@ That's it. A minute or two after each upload, your site is live at:
 https://YOUR-USERNAME.github.io/YOUR-REPO-NAME
 ```
 
-(The automatic deploy is already set up for you in `.github/workflows/deploy.yml` — you don't need to touch it.)
+(The automatic deploy is already set up for you in `.github/workflows/deploy.yml` — you don't need to touch it. The one-click publisher in Option A does exactly these steps for you.)
 
 > **Using your own domain name?** In `astro.config.mjs`, set `site` to your domain and delete the `base` line, then set up the domain under **Settings → Pages** on GitHub.
 
