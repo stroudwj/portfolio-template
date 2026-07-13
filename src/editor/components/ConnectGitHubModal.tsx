@@ -1,6 +1,7 @@
-// Guides a non-technical user through creating a fine-grained token and pasting it.
-// No OAuth: the token IS the connection. Copy here mirrors GitHub's own UI labels so
-// the steps are followable without prior GitHub knowledge.
+// Connect the user's GitHub. Two ways in, same result: one-click OAuth (preferred, when
+// configured) or a hand-made fine-grained token (always available — and the only option for
+// local dev, where the OAuth callback can't come back to localhost). Token copy mirrors
+// GitHub's own UI labels so the steps are followable without prior GitHub knowledge.
 import { useState } from 'react';
 import { Modal } from './ui/Modal';
 import { GitHubError } from '../lib/github/client';
@@ -11,10 +12,14 @@ export default function ConnectGitHubModal({
 	onClose,
 	onConnected,
 	connect,
+	authorize,
+	oauthEnabled,
 }: {
 	onClose: () => void;
 	onConnected: (user: GitHubUser) => void;
 	connect: (token: string) => Promise<GitHubUser>;
+	authorize: () => void;
+	oauthEnabled: boolean;
 }) {
 	const [token, setToken] = useState('');
 	const [busy, setBusy] = useState(false);
@@ -34,27 +39,8 @@ export default function ConnectGitHubModal({
 		}
 	};
 
-	return (
-		<Modal
-			title="Connect GitHub"
-			onClose={onClose}
-			dismissable={!busy}
-			footer={
-				<>
-					<button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>
-						Cancel
-					</button>
-					<button type="button" className="btn-primary" onClick={submit} disabled={busy || !token.trim()}>
-						{busy ? 'Connecting…' : 'Connect'}
-					</button>
-				</>
-			}
-		>
-			<p className="modal-lead">
-				Publishing puts your site on your own GitHub account. Connect it once with a personal access token — a private
-				key you create in a couple of clicks.
-			</p>
-
+	const tokenSteps = (
+		<>
 			<ol className="steps">
 				<li>
 					<a className="btn-secondary btn-inline" href={NEW_TOKEN_URL} target="_blank" rel="noopener noreferrer">
@@ -93,10 +79,57 @@ export default function ConnectGitHubModal({
 				/>
 				{error && <span className="field-error">{error}</span>}
 			</label>
+		</>
+	);
+
+	const connectBtn = (
+		<button type="button" className="btn-primary" onClick={submit} disabled={busy || !token.trim()}>
+			{busy ? 'Connecting…' : 'Connect with token'}
+		</button>
+	);
+
+	return (
+		<Modal
+			title="Connect GitHub"
+			onClose={onClose}
+			dismissable={!busy}
+			footer={
+				<>
+					<button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>
+						Cancel
+					</button>
+					{!oauthEnabled && connectBtn}
+				</>
+			}
+		>
+			{oauthEnabled ? (
+				<>
+					<p className="modal-lead">
+						Publishing puts your site on your own GitHub account. Connect it in one click — you’ll approve on GitHub and
+						come right back.
+					</p>
+					<button type="button" className="btn-primary btn-authorize" onClick={authorize}>
+						Authorize with GitHub ↗
+					</button>
+					<details className="advanced">
+						<summary>Prefer a personal access token? (advanced)</summary>
+						{tokenSteps}
+						<div className="advanced-actions">{connectBtn}</div>
+					</details>
+				</>
+			) : (
+				<>
+					<p className="modal-lead">
+						Publishing puts your site on your own GitHub account. Connect it once with a personal access token — a private
+						key you create in a couple of clicks.
+					</p>
+					{tokenSteps}
+				</>
+			)}
 
 			<p className="modal-note">
-				Your token is stored only in this browser and is never sent anywhere except GitHub. You can remove it anytime with
-				“Sign out”. Once your site exists, you can swap in a token limited to just that one repository — see the README.
+				Your connection is stored only in this browser and is never sent anywhere except GitHub. You can remove it anytime
+				with “Sign out”.
 			</p>
 		</Modal>
 	);

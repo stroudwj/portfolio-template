@@ -4,6 +4,7 @@ import type { Content } from '../../lib/content';
 import { useGitHub } from './useGitHub';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LoadPublishedModal from './LoadPublishedModal';
+import { isLicenseGateEnabled } from '../lib/license/config';
 
 export default function StartScreen() {
 	const { startBlank, startExisting, resumeDraft, importContent, openDoc, hasDraft } = useEditor();
@@ -13,6 +14,7 @@ export default function StartScreen() {
 	const [showLoad, setShowLoad] = useState(false);
 
 	const connected = gh.status === 'connected';
+	const licenseGated = isLicenseGateEnabled();
 
 	const onImport = (file: File) => {
 		const reader = new FileReader();
@@ -40,6 +42,8 @@ export default function StartScreen() {
 		<div className="start">
 			<div className="start-card">
 				<h1>Portfolio Editor</h1>
+
+				{!connected && gh.error && <p className="field-error start-error">{gh.error}</p>}
 
 				{connected ? (
 					<>
@@ -99,15 +103,26 @@ export default function StartScreen() {
 					</>
 				) : (
 					<>
-						<p>Build your portfolio without writing code. Fill in your details, upload images, drag to reorder, watch the live preview, then publish a ready-to-go site.</p>
+						<p>
+							Build your portfolio right here in your browser — no code, no setup. Add your work and watch the live
+							preview, then publish it to your own website on GitHub. You keep the site and its code forever.
+						</p>
 						<div className="start-actions">
 							<button type="button" className="btn-primary" onClick={startExisting}>
-								Edit current portfolio
+								Start building
 							</button>
 							<button type="button" className="btn-secondary" onClick={startBlank}>
 								Start from blank
 							</button>
 						</div>
+						<ol className="how-it-works">
+							<li>Add your details, images, and links — the preview updates as you go.</li>
+							<li>Authorize GitHub in one click{licenseGated ? ' and unlock with your license' : ''}.</li>
+							<li>
+								Publish — your site goes live at your own <code>github.io</code> address.
+							</li>
+							<li>Come back anytime, from any device, to edit and publish again.</li>
+						</ol>
 						<div className="start-links">
 							<button
 								type="button"
@@ -140,6 +155,8 @@ export default function StartScreen() {
 			{showConnect && (
 				<ConnectGitHubModal
 					connect={gh.connect}
+					authorize={gh.authorize}
+					oauthEnabled={gh.oauthEnabled}
 					onClose={() => setShowConnect(false)}
 					onConnected={() => {
 						setShowConnect(false);

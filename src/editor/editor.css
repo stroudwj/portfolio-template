@@ -402,6 +402,25 @@
 .start-actions .btn-secondary {
 	padding: 12px 20px;
 }
+.how-it-works {
+	margin: 22px auto 4px;
+	max-width: 30rem;
+	padding-left: 1.4em;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 0.86rem;
+	line-height: 1.5;
+	color: var(--ui-muted);
+}
+.how-it-works code {
+	font-size: 0.85em;
+	background: var(--ui-bg);
+	border: 1px solid var(--ui-border);
+	border-radius: 4px;
+	padding: 0 4px;
+}
 .start-links {
 	margin-top: 18px;
 	display: flex;
@@ -533,6 +552,43 @@
 .btn-inline {
 	display: inline-block;
 	text-decoration: none;
+}
+
+/* ---- Connect GitHub: one-click authorize + advanced token fallback ---- */
+.btn-authorize {
+	display: block;
+	width: 100%;
+	padding: 11px 16px;
+	font-size: 0.95rem;
+	text-align: center;
+}
+.advanced {
+	margin-top: 16px;
+	border-top: 1px solid var(--ui-border);
+	padding-top: 12px;
+}
+.advanced > summary {
+	cursor: pointer;
+	font-size: 0.82rem;
+	color: var(--ui-muted);
+	list-style: revert;
+	user-select: none;
+}
+.advanced[open] > summary {
+	margin-bottom: 12px;
+}
+.advanced-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+.gh-error-chip {
+	color: var(--ui-danger);
+	border-color: var(--ui-danger);
+	padding: 6px 12px;
+	max-width: 320px;
+}
+.start-error {
+	margin: 0 0 12px;
 }
 
 /* ---- Publish progress ---- */

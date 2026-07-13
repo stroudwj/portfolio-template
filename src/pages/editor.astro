@@ -1,6 +1,7 @@
 ---
-// The browser-based editor. A local, no-index tool — delete this file to keep it
-// out of a public deploy. Rendered client-only (it uses uploads, IndexedDB, etc.).
+// The browser-based editor — the no-code builder people use to create and publish their
+// site. It's deployed with the site (but noindex) so it works from any device; it's never
+// part of a visitor-facing page. Rendered client-only (uploads, IndexedDB, OAuth redirect).
 import EditorApp from '../editor/EditorApp';
 import { withBase } from '../portfolio/types';
 // The preview renders the portfolio components inside a client:only island, whose

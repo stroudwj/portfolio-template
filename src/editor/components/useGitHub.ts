@@ -1,7 +1,11 @@
 // React state for the GitHub connection. There's no server session — this just tracks
-// whether the stored token still works and who it belongs to.
+// whether the stored token still works and who it belongs to. The token can arrive two
+// ways: pasted (personal access token) or minted by the one-click OAuth flow; both end at
+// the same stored-token state.
 import { useCallback, useEffect, useState } from 'react';
 import { getToken, setToken, clearToken, validateToken, type GitHubUser } from '../lib/github/session';
+import { completeOAuthRedirect, startOAuth } from '../lib/oauth/flow';
+import { isOAuthConfigured } from '../lib/oauth/config';
 
 export type ConnectionStatus = 'checking' | 'idle' | 'connected';
 
@@ -10,28 +14,47 @@ export interface GitHubSession {
 	user: GitHubUser | null;
 	/** Validate + store a pasted token. Throws GitHubError if the token is bad. */
 	connect(token: string): Promise<GitHubUser>;
+	/** Start the one-click OAuth flow (redirects to GitHub). */
+	authorize(): void;
 	signOut(): void;
+	/** Whether the OAuth App + Worker are configured (else only the token flow is offered). */
+	oauthEnabled: boolean;
+	/** A message from a failed OAuth return, for the UI to surface. */
+	error: string | null;
 }
 
 export function useGitHub(): GitHubSession {
 	const [status, setStatus] = useState<ConnectionStatus>('checking');
 	const [user, setUser] = useState<GitHubUser | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
-	// On load, silently re-validate any stored token (this is the "expired token" path).
+	// On load: if we're returning from GitHub's consent screen, finish the OAuth exchange
+	// and store the token first; then silently re-validate whatever token we now hold (this
+	// also covers the "stored token expired" path).
 	useEffect(() => {
-		const token = getToken();
-		if (!token) {
-			setStatus('idle');
-			return;
-		}
 		let alive = true;
-		validateToken(token)
-			.then((u) => alive && (setUser(u), setStatus('connected')))
-			.catch(() => {
+		void (async () => {
+			const oauth = await completeOAuthRedirect(); // memoized — safe across hook instances
+			if (!alive) return;
+			if (oauth.error) setError(oauth.error);
+			if (oauth.token) setToken(oauth.token);
+
+			const token = getToken();
+			if (!token) {
+				setStatus('idle');
+				return;
+			}
+			try {
+				const u = await validateToken(token);
+				if (!alive) return;
+				setUser(u);
+				setStatus('connected');
+			} catch {
 				if (!alive) return;
 				clearToken();
 				setStatus('idle');
-			});
+			}
+		})();
 		return () => {
 			alive = false;
 		};
@@ -42,7 +65,12 @@ export function useGitHub(): GitHubSession {
 		setToken(token);
 		setUser(u);
 		setStatus('connected');
+		setError(null);
 		return u;
+	}, []);
+
+	const authorize = useCallback(() => {
+		startOAuth(); // navigates away
 	}, []);
 
 	const signOut = useCallback(() => {
@@ -51,5 +79,5 @@ export function useGitHub(): GitHubSession {
 		setStatus('idle');
 	}, []);
 
-	return { status, user, connect, signOut };
+	return { status, user, connect, authorize, signOut, oauthEnabled: isOAuthConfigured(), error };
 }
