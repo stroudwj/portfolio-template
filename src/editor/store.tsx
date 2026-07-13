@@ -55,7 +55,7 @@ export function useEditor(): EditorContextValue {
 
 export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const [doc, setDoc] = useState<EditorDoc | null>(null);
-	const [hasDraft] = useState<boolean>(() => hasSavedDoc());
+	const [hasDraft, setHasDraft] = useState<boolean>(() => hasSavedDoc());
 
 	// Autosave (debounced) whenever the document changes.
 	const timer = useRef<number | undefined>(undefined);
@@ -90,6 +90,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		importContent: (content: Content) => setDoc(initDocFromContent(content)),
 		reset: async () => {
 			await clearPersisted();
+			setHasDraft(false);
 			setDoc(null);
 		},
 
