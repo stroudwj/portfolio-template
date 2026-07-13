@@ -5,7 +5,7 @@ compatibility_date = "2024-11-01"
 # Public, non-secret values. Fill these in for your deploy:
 [vars]
 # The OAuth App client id (public). Same value the editor uses to start the flow.
-GITHUB_CLIENT_ID = "REPLACE_WITH_OAUTH_APP_CLIENT_ID"
+GITHUB_CLIENT_ID = "Ov23liWlyP2MLmoVBnKF"
 # CORS + caller lock. The origin the hosted editor is served from (no trailing slash).
 ALLOWED_ORIGIN = "https://stroudwj.github.io"
 

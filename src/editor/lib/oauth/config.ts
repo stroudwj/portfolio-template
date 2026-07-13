@@ -4,8 +4,8 @@
 // Worker (see oauth-proxy/README.md). Until BOTH are set, `isOAuthConfigured()` is false
 // and the editor cleanly falls back to the manual personal-access-token flow — so the app
 // keeps working before OAuth is wired up.
-export const OAUTH_CLIENT_ID = ''; // OAuth App "Client ID"
-export const WORKER_TOKEN_URL = ''; // deployed Cloudflare Worker URL (its POST endpoint)
+export const OAUTH_CLIENT_ID = 'Ov23liWlyP2MLmoVBnKF'; // OAuth App "Client ID"
+export const WORKER_TOKEN_URL = 'https://portfolio-oauth-proxy.simpleportfolioeditor.workers.dev'; // deployed Cloudflare Worker URL (its POST endpoint)
 
 /** GitHub's authorize endpoint (where we send the user to grant access). */
 export const AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
