@@ -3,6 +3,10 @@
 // out of a public deploy. Rendered client-only (it uses uploads, IndexedDB, etc.).
 import EditorApp from '../editor/EditorApp';
 import { withBase } from '../portfolio/types';
+// The preview renders the portfolio components inside a client:only island, whose
+// code-split CSS Astro can't discover without an SSR pass. Import the styles at the
+// page level so they're linked in the production build. See preview.css for details.
+import '../portfolio/preview.css';
 
 const base = import.meta.env.BASE_URL;
 const favicon = withBase(base, 'favicon.svg');

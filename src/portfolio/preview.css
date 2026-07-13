@@ -1,0 +1,22 @@
+/* Aggregate of every portfolio component stylesheet.
+
+   Each component imports its own CSS (`import './X.css'`), which is all the Astro
+   SITE needs: it server-renders the components (hydrating Nav and PortfolioPage as
+   islands), so Astro discovers and links their CSS automatically.
+
+   The editor's live preview renders those SAME components, but inside a
+   `client:only` React island. `client:only` skips server rendering, so Astro never
+   gets a chance to discover the CSS of the code-split island chunks (Nav, Gallery,
+   Hero, About, SocialLinks) and leaves it out of the editor page. The gap only
+   shows in a production build — `astro dev` injects every stylesheet as a <style>
+   regardless of chunking, so it looks fine on localhost and breaks once published.
+
+   editor.astro imports this file so the editor PAGE depends on all portfolio styles
+   directly, which forces Astro to link them in production too. */
+@import './frame.css';
+@import './Logo.css';
+@import './Nav.css';
+@import './Hero.css';
+@import './Gallery.css';
+@import './About.css';
+@import './SocialLinks.css';
