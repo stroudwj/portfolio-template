@@ -19,6 +19,14 @@ export async function generateFromTemplate(client: GitHubClient, owner: string, 
 	return { owner, repo: name, branch: data.default_branch || 'main' };
 }
 
+/** Every image file currently under src/assets/ in the repo (blobs only). */
+export async function listAssetPaths(client: GitHubClient, ref: RepoRef): Promise<string[]> {
+	const { data } = await client.request<{ tree: { path: string; type: string }[] }>(
+		`/repos/${ref.owner}/${ref.repo}/git/trees/${ref.branch}?recursive=1`,
+	);
+	return data.tree.filter((t) => t.type === 'blob' && t.path.startsWith('src/assets/')).map((t) => t.path);
+}
+
 /** Look up an existing repo. Returns null on 404 (e.g. the user deleted it). */
 export async function getRepo(client: GitHubClient, owner: string, repo: string): Promise<RepoRef | null> {
 	const { status, data } = await client.request<{ default_branch: string }>(`/repos/${owner}/${repo}`, {
@@ -35,18 +43,17 @@ export async function isRepoNameAvailable(client: GitHubClient, owner: string, n
 }
 
 /**
- * A generated repo isn't populated instantly. Poll a file read until it appears, then
- * return the current astro.config.mjs source rewritten for `owner`/`repo`'s Pages URL.
+ * A generated repo isn't populated instantly. Poll a file read until it appears and
+ * return the current astro.config.mjs source. Doubles as a readiness gate on first
+ * publish (a successful read means the repo's initial commit exists).
  */
-export async function patchedAstroConfig(client: GitHubClient, ref: RepoRef): Promise<string> {
-	let source = '';
+export async function readAstroConfig(client: GitHubClient, ref: RepoRef): Promise<string> {
 	for (let attempt = 0; attempt < 10; attempt++) {
 		try {
 			const { data } = await client.request<{ content: string; encoding: string }>(
 				`/repos/${ref.owner}/${ref.repo}/contents/${ASTRO_CONFIG_PATH}`,
 			);
-			source = decodeBase64Utf8(data.content);
-			break;
+			return decodeBase64Utf8(data.content);
 		} catch (err) {
 			if (err instanceof GitHubError && err.status === 404 && attempt < 9) {
 				await sleep(1500);
@@ -55,17 +62,19 @@ export async function patchedAstroConfig(client: GitHubClient, ref: RepoRef): Pr
 			throw err;
 		}
 	}
-	return rewriteSiteAndBase(source, ref.owner, ref.repo);
+	throw new GitHubError(404, 'Could not read the new repository’s configuration.');
 }
 
 /**
- * Replace the `site` and `base` values so links/assets resolve at
- * https://{owner}.github.io/{repo}. Only the two string literals are touched.
+ * Replace the real `site`/`base` values so links/assets resolve at
+ * https://{owner}.github.io/{repo}. Anchored to the start of a line (multiline flag) so
+ * it edits the actual `defineConfig` lines and NOT the example lines in the top comment
+ * (which begin with `//`). `[ \t]*` keeps the match on a single line.
  */
 export function rewriteSiteAndBase(source: string, owner: string, repo: string): string {
 	return source
-		.replace(/(site:\s*)['"][^'"]*['"]/, `$1'https://${owner}.github.io'`)
-		.replace(/(base:\s*)['"][^'"]*['"]/, `$1'/${repo}'`);
+		.replace(/^([ \t]*site:[ \t]*)['"][^'"]*['"]/m, `$1'https://${owner}.github.io'`)
+		.replace(/^([ \t]*base:[ \t]*)['"][^'"]*['"]/m, `$1'/${repo}'`);
 }
 
 /** Turn Pages on with the Actions workflow builder. Tolerates "already enabled". */

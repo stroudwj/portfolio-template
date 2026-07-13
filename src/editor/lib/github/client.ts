@@ -34,8 +34,11 @@ export class GitHubClient {
 	async request<T = unknown>(path: string, opts: RequestOptions = {}): Promise<{ status: number; data: T }> {
 		const url = path.startsWith('http') ? path : GITHUB_API + path;
 		let res: Response;
+		// Call through a bare local, NOT `this.fetchImpl(...)`: native fetch throws
+		// "Illegal invocation" in browsers when invoked with `this` set to this client.
+		const doFetch = this.fetchImpl;
 		try {
-			res = await this.fetchImpl(url, {
+			res = await doFetch(url, {
 				method: opts.method ?? 'GET',
 				headers: {
 					Authorization: `Bearer ${this.token}`,
@@ -45,8 +48,15 @@ export class GitHubClient {
 				},
 				body: opts.body ? JSON.stringify(opts.body) : undefined,
 			});
-		} catch {
-			throw new GitHubError(0, "Couldn't reach GitHub. Check your internet connection and try again.");
+		} catch (err) {
+			// fetch() rejected — the request never reached GitHub. GitHub's API is
+			// CORS-open, so this is almost always a browser extension (ad/privacy blocker)
+			// or a network/VPN/firewall blocking api.github.com, not a real outage.
+			console.error('[GitHub] request was blocked before reaching GitHub:', url, err);
+			throw new GitHubError(
+				0,
+				'Couldn’t reach GitHub. The request was blocked before leaving your browser — usually an ad/privacy blocker (uBlock, Brave Shields, Ghostery…) or a VPN/firewall blocking api.github.com. Try a private window with extensions disabled, or a different network. (See the browser console for details.)',
+			);
 		}
 
 		const text = await res.text();

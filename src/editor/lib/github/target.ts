@@ -9,7 +9,9 @@ import { commitFiles, type CommitFile } from './gitdata';
 import {
 	generateFromTemplate,
 	getRepo,
-	patchedAstroConfig,
+	readAstroConfig,
+	rewriteSiteAndBase,
+	listAssetPaths,
 	enablePages,
 	waitForPages,
 	pagesUrl,
@@ -41,27 +43,35 @@ export class GitHubTarget implements PublishTarget {
 		// Resolve the target repo: reuse the saved one, or create it from the template.
 		let ref: RepoRef | null = saved ? await getRepo(client, saved.owner, saved.repo) : null;
 		const firstPublish = ref === null;
-		let configFile: CommitFile | null = null;
 
 		if (!ref) {
 			const name = this.opts.desiredRepoName?.trim();
 			if (!name) throw new Error('A repository name is required for the first publish.');
 			report('Creating your repository…', name);
 			ref = await generateFromTemplate(client, login, name);
-			// Rewrite site/base for the new URL (also confirms the repo is populated).
-			configFile = { path: ASTRO_CONFIG_PATH, text: await patchedAstroConfig(client, ref) };
 		}
 
-		// Assemble the files for this commit and the manifest we'll diff against next time.
+		// Make sure astro.config's site/base point at THIS repo's Pages URL, or nav links
+		// and image URLs resolve under the wrong path. Idempotent + only committed when it
+		// actually changes, so it self-heals a repo published before this was correct.
+		const currentConfig = await readAstroConfig(client, ref);
+		const desiredConfig = rewriteSiteAndBase(currentConfig, ref.owner, ref.repo);
+		const configFile: CommitFile | null =
+			desiredConfig !== currentConfig ? { path: ASTRO_CONFIG_PATH, text: desiredConfig } : null;
+
+		// Assemble the files for this commit.
 		const files: CommitFile[] = [{ path: CONTENT_JSON_PATH, text: contentJsonString(bundle.contentJson) }];
 		for (const f of bundle.files) files.push({ path: f.path, bytes: f.bytes });
 		if (configFile) files.push(configFile);
 
-		// astro.config.mjs is a one-time write, not lifecycle content — keep it out of the
-		// manifest so a later publish never tries to delete it.
+		// The editor fully owns src/assets/: whatever it isn't writing shouldn't be there.
+		// This removes the template's placeholder.png files (and any image deleted in the
+		// editor) — but we always KEEP the file content.json points at, so an unset profile
+		// picture (which still references the template placeholder) doesn't 404.
+		const keep = new Set(files.map((f) => f.path));
+		if (bundle.contentJson.profile.image) keep.add(`src/assets/${bundle.contentJson.profile.image}`);
+		const deletions = (await listAssetPaths(client, ref)).filter((p) => !keep.has(p));
 		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((f) => f.path)];
-		// Only an update prunes files; a freshly created repo has nothing of ours to delete.
-		const deletions = firstPublish ? [] : (saved?.lastManifest ?? []).filter((p) => !newManifest.includes(p));
 
 		report('Uploading your images…', `0 of ${files.length}`);
 		await commitFiles(
