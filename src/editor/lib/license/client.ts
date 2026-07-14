@@ -1,7 +1,6 @@
 // Thin wrapper over the Lemon Squeezy License API (activate / validate). It's a public API
 // authenticated by the license key itself — no store API key in the browser — and it's
 // CORS-enabled, so the editor talks to it directly, the same way it talks to GitHub.
-// `fetch` is injectable so this can be unit-tested offline.
 import {
 	INSTANCE_NAME,
 	LEMONSQUEEZY_PRODUCT_ID,
@@ -9,8 +8,6 @@ import {
 	LEMONSQUEEZY_VARIANT_ID,
 	LICENSE_API,
 } from './config';
-
-export type FetchFn = typeof fetch;
 
 /** A license error carrying a friendly, user-facing message. */
 export class LicenseError extends Error {
@@ -33,11 +30,10 @@ interface LicenseResponse {
 	meta?: LicenseMeta;
 }
 
-async function post(path: string, params: Record<string, string>, fetchImpl: FetchFn = fetch): Promise<LicenseResponse> {
-	const doFetch = fetchImpl; // bare local — see github/client.ts for why
+async function post(path: string, params: Record<string, string>): Promise<LicenseResponse> {
 	let res: Response;
 	try {
-		res = await doFetch(LICENSE_API + path, {
+		res = await fetch(LICENSE_API + path, {
 			method: 'POST',
 			headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: new URLSearchParams(params).toString(),
@@ -58,8 +54,8 @@ function belongsToProduct(meta: LicenseMeta | undefined): boolean {
 }
 
 /** Activate a key (first unlock). Returns the instance id to store. Throws LicenseError. */
-export async function activateLicense(key: string, fetchImpl?: FetchFn): Promise<{ instanceId: string }> {
-	const data = await post('/licenses/activate', { license_key: key, instance_name: INSTANCE_NAME }, fetchImpl);
+export async function activateLicense(key: string): Promise<{ instanceId: string }> {
+	const data = await post('/licenses/activate', { license_key: key, instance_name: INSTANCE_NAME });
 	if (!data.activated) {
 		if (/activation limit/i.test(data.error || '')) {
 			throw new LicenseError('This license has reached its device limit. Deactivate it on another device, or buy another license.');
@@ -76,7 +72,7 @@ export async function activateLicense(key: string, fetchImpl?: FetchFn): Promise
 }
 
 /** Re-check a stored key+instance on load. Returns true if still valid for this product. */
-export async function validateLicense(key: string, instanceId: string, fetchImpl?: FetchFn): Promise<boolean> {
-	const data = await post('/licenses/validate', { license_key: key, instance_id: instanceId }, fetchImpl);
+export async function validateLicense(key: string, instanceId: string): Promise<boolean> {
+	const data = await post('/licenses/validate', { license_key: key, instance_id: instanceId });
 	return Boolean(data.valid && belongsToProduct(data.meta));
 }

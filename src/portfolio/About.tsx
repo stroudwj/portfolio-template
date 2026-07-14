@@ -10,7 +10,6 @@ export interface AboutProps {
 	email: string;
 	social: SocialLink[];
 	profileImageSrc?: string;
-	profileImageSrcSet?: string;
 	resume?: { label: string; href: string } | null;
 }
 
@@ -18,7 +17,7 @@ export interface AboutProps {
  * The About column. The bio text reproduces the exact Phase 1 break pattern:
  * name + 3 line breaks + the bio body + 2 line breaks + email.
  */
-export default function About({ name, bio, email, social, profileImageSrc, profileImageSrcSet, resume }: AboutProps) {
+export default function About({ name, bio, email, social, profileImageSrc, resume }: AboutProps) {
 	const bioLines = bio.split('\n');
 	const bioNodes = bioLines.flatMap((line, i) =>
 		i === 0
@@ -29,7 +28,7 @@ export default function About({ name, bio, email, social, profileImageSrc, profi
 	return (
 		<div className="bio-container">
 			{profileImageSrc && (
-				<img className="profile-image" src={profileImageSrc} srcSet={profileImageSrcSet} alt={name} />
+				<img className="profile-image" src={profileImageSrc} alt={name} />
 			)}
 			<p className="bio-text">
 				{name}

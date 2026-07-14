@@ -1,5 +1,4 @@
 import Hero from './Hero';
-import Projects from './Projects';
 import Gallery from './Gallery';
 import About from './About';
 import { withBase, type PortfolioData } from './types';
@@ -41,7 +40,7 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 			<>
 				<Hero heading={content.pages[page]?.heading} />
 				<div className="collage-container">
-					<Projects images={images} alt={alt} />
+					<Gallery images={images} alt={alt} />
 				</div>
 			</>
 		);

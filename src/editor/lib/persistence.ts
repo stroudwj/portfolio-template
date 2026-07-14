@@ -3,33 +3,21 @@
 // restore everything the user was working on.
 import { get, set, del, keys } from 'idb-keyval';
 import type { EditorDoc } from './types';
+import { readJson, writeJson, hasKey } from './storage';
 
 const DOC_KEY = 'portfolio-editor:doc';
 const ASSET_PREFIX = 'portfolio-editor:asset:';
 
 export function saveDoc(doc: EditorDoc): void {
-	try {
-		localStorage.setItem(DOC_KEY, JSON.stringify(doc));
-	} catch {
-		/* quota or unavailable — non-fatal */
-	}
+	writeJson(DOC_KEY, doc);
 }
 
 export function loadDoc(): EditorDoc | null {
-	try {
-		const raw = localStorage.getItem(DOC_KEY);
-		return raw ? (JSON.parse(raw) as EditorDoc) : null;
-	} catch {
-		return null;
-	}
+	return readJson<EditorDoc>(DOC_KEY);
 }
 
 export function hasSavedDoc(): boolean {
-	try {
-		return localStorage.getItem(DOC_KEY) != null;
-	} catch {
-		return false;
-	}
+	return hasKey(DOC_KEY);
 }
 
 export async function persistAssetBlob(id: string, blob: Blob, filename: string): Promise<void> {

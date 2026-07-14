@@ -3,6 +3,7 @@
 import type { GitHubClient } from './client';
 import { GitHubError } from './client';
 import { TEMPLATE_REPO, ASTRO_CONFIG_PATH } from './config';
+import { base64ToUtf8 } from './base64';
 
 export interface RepoRef {
 	owner: string;
@@ -19,12 +20,23 @@ export async function generateFromTemplate(client: GitHubClient, owner: string, 
 	return { owner, repo: name, branch: data.default_branch || 'main' };
 }
 
-/** Every image file currently under src/assets/ in the repo (blobs only). */
-export async function listAssetPaths(client: GitHubClient, ref: RepoRef): Promise<string[]> {
-	const { data } = await client.request<{ tree: { path: string; type: string }[] }>(
+export interface TreeItem {
+	path: string;
+	type: string;
+	sha: string;
+}
+
+/** All blob (file) entries in the repo, recursively. */
+export async function getTree(client: GitHubClient, ref: RepoRef): Promise<TreeItem[]> {
+	const { data } = await client.request<{ tree: TreeItem[] }>(
 		`/repos/${ref.owner}/${ref.repo}/git/trees/${ref.branch}?recursive=1`,
 	);
-	return data.tree.filter((t) => t.type === 'blob' && t.path.startsWith('src/assets/')).map((t) => t.path);
+	return data.tree.filter((t) => t.type === 'blob');
+}
+
+/** Every image file currently under src/assets/ in the repo (blobs only). */
+export async function listAssetPaths(client: GitHubClient, ref: RepoRef): Promise<string[]> {
+	return (await getTree(client, ref)).map((t) => t.path).filter((p) => p.startsWith('src/assets/'));
 }
 
 /** Look up an existing repo. Returns null on 404 (e.g. the user deleted it). */
@@ -53,7 +65,7 @@ export async function readAstroConfig(client: GitHubClient, ref: RepoRef): Promi
 			const { data } = await client.request<{ content: string; encoding: string }>(
 				`/repos/${ref.owner}/${ref.repo}/contents/${ASTRO_CONFIG_PATH}`,
 			);
-			return decodeBase64Utf8(data.content);
+			return base64ToUtf8(data.content);
 		} catch (err) {
 			if (err instanceof GitHubError && err.status === 404 && attempt < 9) {
 				await sleep(1500);
@@ -116,11 +128,4 @@ export async function waitForPages(client: GitHubClient, ref: RepoRef, timeoutMs
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((r) => setTimeout(r, ms));
-}
-
-function decodeBase64Utf8(base64: string): string {
-	const binary = atob(base64.replace(/\n/g, ''));
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-	return new TextDecoder().decode(bytes);
 }

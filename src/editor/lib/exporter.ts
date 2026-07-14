@@ -42,7 +42,6 @@ export interface PublishResult {
  * so the editor never learns which target it is using.
  */
 export interface PublishTarget {
-	readonly name: string;
 	publish(bundle: PortfolioBundle, onProgress?: (p: PublishProgress) => void): Promise<PublishResult>;
 }
 
@@ -117,8 +116,6 @@ function downloadBlob(blob: Blob, filename: string): void {
 
 /** Delivers the bundle as a .zip that unzips straight over the Astro project. */
 export class ZipTarget implements PublishTarget {
-	readonly name = 'Download ZIP';
-
 	async publish(bundle: PortfolioBundle): Promise<PublishResult> {
 		const tree: Record<string, Uint8Array> = {
 			'src/data/content.json': strToU8(contentJsonString(bundle.contentJson)),

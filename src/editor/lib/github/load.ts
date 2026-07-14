@@ -9,25 +9,12 @@
 // content.json only supplies optional captions on top.
 import type { GitHubClient } from './client';
 import { CONTENT_JSON_PATH, TEMPLATE_REPO } from './config';
-import { getRepo, type RepoRef } from './repo';
+import { getRepo, getTree, type RepoRef, type TreeItem } from './repo';
 import type { Content, EditorDoc, ImageEntry } from '../types';
 import type { PublishProgress } from '../exporter';
 import { initDocFromContent } from '../content-init';
 import { registerAsset, uid } from '../assets';
-
-export interface TreeItem {
-	path: string;
-	type: string;
-	sha: string;
-}
-
-/** All blob (file) entries in the repo, recursively. */
-export async function getTree(client: GitHubClient, ref: RepoRef): Promise<TreeItem[]> {
-	const { data } = await client.request<{ tree: TreeItem[] }>(
-		`/repos/${ref.owner}/${ref.repo}/git/trees/${ref.branch}?recursive=1`,
-	);
-	return data.tree.filter((t) => t.type === 'blob');
-}
+import { base64ToBytes } from './base64';
 
 /** Read a blob's raw bytes by sha. The Blobs API base64-encodes files of any size. */
 export async function readBlobBytes(client: GitHubClient, ref: RepoRef, sha: string): Promise<Uint8Array> {
@@ -35,13 +22,6 @@ export async function readBlobBytes(client: GitHubClient, ref: RepoRef, sha: str
 		`/repos/${ref.owner}/${ref.repo}/git/blobs/${sha}`,
 	);
 	return base64ToBytes(data.content);
-}
-
-export function base64ToBytes(base64: string): Uint8Array {
-	const binary = atob(base64.replace(/\s/g, ''));
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-	return bytes;
 }
 
 /** Drop a single leading order prefix ("03-photo.jpg" -> "photo.jpg") so a re-publish

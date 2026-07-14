@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Content, SocialLink } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent } from './lib/content-init';
-import { registerAsset, restoreAsset } from './lib/assets';
+import { registerAsset, restoreAsset, uid } from './lib/assets';
 import {
 	saveDoc,
 	loadDoc as loadSavedDoc,
@@ -120,7 +120,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			patchGallery(folder, (entries) => [
 				...entries,
 				...files.map((file) => ({
-					id: `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+					id: uid('e'),
 					filename: file.name,
 					meta: { title: '', description: '', link: '' },
 					assetId: registerAsset(file, file.name),

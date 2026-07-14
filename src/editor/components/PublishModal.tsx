@@ -11,6 +11,7 @@ import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
 import { localRepoStore, loadRepoInfo } from '../lib/github/store';
 import { isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
+import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'configure' | 'publishing' | 'success' | 'error';
 
@@ -23,16 +24,6 @@ function slugify(s: string): string {
 			.replace(/^[-.]+|[-.]+$/g, '')
 			.slice(0, 90) || 'my-portfolio'
 	);
-}
-
-/** Append a progress step, or update the detail of the current one, for the checklist. */
-function appendStep(log: PublishProgress[], p: PublishProgress): PublishProgress[] {
-	if (log.length && log[log.length - 1].step === p.step) {
-		const next = log.slice();
-		next[next.length - 1] = p;
-		return next;
-	}
-	return [...log, p];
 }
 
 export default function PublishModal({ user, onClose }: { user: GitHubUser; onClose: () => void }) {
@@ -128,20 +119,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	if (phase === 'publishing') {
 		return (
 			<Modal title="Publishing…" onClose={onClose} dismissable={false}>
-				<ul className="progress-list">
-					{log.map((p, i) => {
-						const last = i === log.length - 1;
-						return (
-							<li key={p.step} className={last ? 'active' : 'done'}>
-								<span className="progress-mark">{last ? '◐' : '✓'}</span>
-								<span>
-									{p.step}
-									{p.detail ? <span className="progress-detail"> {p.detail}</span> : null}
-								</span>
-							</li>
-						);
-					})}
-				</ul>
+				<ProgressList log={log} />
 			</Modal>
 		);
 	}

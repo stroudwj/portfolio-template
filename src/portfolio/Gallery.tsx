@@ -6,11 +6,10 @@ export interface GalleryProps {
 	images: ResolvedImage[];
 	/** Fallback alt text for images without their own title. */
 	alt?: string;
-	emptyMessage?: React.ReactNode;
 }
 
 /** Responsive image grid + click-to-zoom lightbox (ported from Gallery.astro). */
-export default function Gallery({ images, alt = 'Portfolio piece', emptyMessage }: GalleryProps) {
+export default function Gallery({ images, alt = 'Portfolio piece' }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
 
@@ -30,12 +29,10 @@ export default function Gallery({ images, alt = 'Portfolio piece', emptyMessage 
 	if (images.length === 0) {
 		return (
 			<div className="gallery-empty">
-				{emptyMessage ?? (
-					<p>
-						No images yet. Add photos to this page's folder in <code>src/assets/</code> and they'll appear here
-						automatically.
-					</p>
-				)}
+				<p>
+					No images yet. Add photos to this page's folder in <code>src/assets/</code> and they'll appear here
+					automatically.
+				</p>
 			</div>
 		);
 	}

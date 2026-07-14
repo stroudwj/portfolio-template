@@ -9,7 +9,6 @@ export interface PortfolioFrameProps {
 	base: string;
 	/** Current page path, stripped ('' = Home). */
 	current: string;
-	showLogo?: boolean;
 	onNavigate?: (path: string) => void;
 	children: React.ReactNode;
 }
@@ -20,13 +19,12 @@ export default function PortfolioFrame({
 	logo,
 	base,
 	current,
-	showLogo = true,
 	onNavigate,
 	children,
 }: PortfolioFrameProps) {
 	return (
 		<>
-			{showLogo && <Logo logo={logo} href={withBase(base)} onNavigate={onNavigate} />}
+			<Logo logo={logo} href={withBase(base)} onNavigate={onNavigate} />
 			<div className="portfolio-container">
 				<nav className="sidebar">
 					<Nav items={nav} base={base} current={current} onNavigate={onNavigate} />

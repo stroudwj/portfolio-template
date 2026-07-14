@@ -29,8 +29,6 @@ export interface GitHubTargetOptions {
 }
 
 export class GitHubTarget implements PublishTarget {
-	readonly name = 'Publish to GitHub';
-
 	constructor(private opts: GitHubTargetOptions) {}
 
 	async publish(bundle: PortfolioBundle, onProgress?: (p: PublishProgress) => void): Promise<PublishResult> {

@@ -1,6 +1,8 @@
 // Remembers which repo a portfolio was published to, plus the set of files the last
 // publish wrote. On the next publish we diff against `lastManifest` to delete whatever
 // the user removed, and we skip repo creation because we already have one.
+import { readJson, writeJson } from '../storage';
+
 export interface RepoInfo {
 	owner: string;
 	repo: string;
@@ -13,31 +15,16 @@ export interface RepoInfo {
 const REPO_KEY = 'portfolio-editor:gh-repo';
 
 export function loadRepoInfo(): RepoInfo | null {
-	try {
-		const raw = localStorage.getItem(REPO_KEY);
-		return raw ? (JSON.parse(raw) as RepoInfo) : null;
-	} catch {
-		return null;
-	}
+	return readJson<RepoInfo>(REPO_KEY);
 }
 
 export function saveRepoInfo(info: RepoInfo): void {
-	try {
-		localStorage.setItem(REPO_KEY, JSON.stringify(info));
-	} catch {
-		/* non-fatal */
-	}
+	writeJson(REPO_KEY, info);
 }
 
-export function clearRepoInfo(): void {
-	try {
-		localStorage.removeItem(REPO_KEY);
-	} catch {
-		/* non-fatal */
-	}
-}
-
-/** Injectable so the target can be unit-tested without touching localStorage. */
+// Injectable store so GitHubTarget can run outside the browser — the Node publish
+// dry-run (scripts/gh-publish-dryrun.mts) has no localStorage and supplies an in-memory
+// store so its "re-publish UPDATES the repo" check works across two publishes.
 export interface RepoStore {
 	load(): RepoInfo | null;
 	save(info: RepoInfo): void;

@@ -41,8 +41,8 @@ export function clearToken(): void {
 }
 
 /** Confirm a token works and return the account it belongs to. Throws GitHubError on 401. */
-export async function validateToken(token: string, fetchImpl?: typeof fetch): Promise<GitHubUser> {
-	const client = new GitHubClient(token, fetchImpl);
+export async function validateToken(token: string): Promise<GitHubUser> {
+	const client = new GitHubClient(token);
 	const { data } = await client.request<{ login: string; name: string | null; avatar_url: string }>('/user');
 	return { login: data.login, name: data.name, avatarUrl: data.avatar_url };
 }

@@ -3,6 +3,7 @@
 // This lets a single publish add, replace, AND remove files together — exactly what we
 // need so deleting an image in the editor deletes it from the live site.
 import type { GitHubClient } from './client';
+import { bytesToBase64 } from './base64';
 
 /** A file to write in the commit. `text` is UTF-8; `bytes` is binary (images). */
 export interface CommitFile {
@@ -22,16 +23,6 @@ export interface CommitArgs {
 }
 
 const BLOB_MODE = '100644';
-
-/** Base64-encode bytes in chunks (avoids call-stack limits on large images). */
-export function bytesToBase64(bytes: Uint8Array): string {
-	let binary = '';
-	const chunk = 0x8000;
-	for (let i = 0; i < bytes.length; i += chunk) {
-		binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-	}
-	return btoa(binary);
-}
 
 interface TreeEntry {
 	path: string;

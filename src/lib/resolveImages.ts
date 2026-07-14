@@ -32,9 +32,9 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 }
 
 /** Optimized profile image src (undefined if the file isn't found). */
-export async function resolveProfileImage(): Promise<{ src?: string; srcSet?: string }> {
+export async function resolveProfileImage(): Promise<{ src?: string }> {
 	const image = getAsset(content.profile.image);
 	if (!image) return {};
 	const optimized = await getImage({ src: image, width: 320 });
-	return { src: optimized.src, srcSet: optimized.srcSet?.attribute || undefined };
+	return { src: optimized.src };
 }

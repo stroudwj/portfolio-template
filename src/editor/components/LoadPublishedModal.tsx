@@ -11,6 +11,7 @@ import { getToken } from '../lib/github/session';
 import { loadPublishedPortfolio } from '../lib/github/load';
 import { loadRepoInfo, saveRepoInfo } from '../lib/github/store';
 import { pagesUrl, type RepoRef } from '../lib/github/repo';
+import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'loading' | 'error';
 
@@ -97,30 +98,7 @@ export default function LoadPublishedModal({
 
 	return (
 		<Modal title="Opening your published site…" onClose={onClose} dismissable={false}>
-			<ul className="progress-list">
-				{log.map((p, i) => {
-					const last = i === log.length - 1;
-					return (
-						<li key={p.step} className={last ? 'active' : 'done'}>
-							<span className="progress-mark">{last ? '◐' : '✓'}</span>
-							<span>
-								{p.step}
-								{p.detail ? <span className="progress-detail"> {p.detail}</span> : null}
-							</span>
-						</li>
-					);
-				})}
-			</ul>
+			<ProgressList log={log} />
 		</Modal>
 	);
-}
-
-/** Append a new step, or update the detail of the current one, for the checklist. */
-function appendStep(log: PublishProgress[], p: PublishProgress): PublishProgress[] {
-	if (log.length && log[log.length - 1].step === p.step) {
-		const next = log.slice();
-		next[next.length - 1] = p;
-		return next;
-	}
-	return [...log, p];
 }

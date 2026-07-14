@@ -5,6 +5,8 @@
 // technical user can edit localStorage or the bundle. That's fine for this audience: it
 // stops casual link-sharing, and Lemon Squeezy's per-key activation limits do the rest.
 // Same pragmatic philosophy as keeping the GitHub token in localStorage.
+import { readJson, writeJson, removeKey } from '../storage';
+
 const LICENSE_KEY = 'portfolio-editor:license';
 
 export interface StoredLicense {
@@ -13,26 +15,13 @@ export interface StoredLicense {
 }
 
 export function getLicense(): StoredLicense | null {
-	try {
-		const raw = localStorage.getItem(LICENSE_KEY);
-		return raw ? (JSON.parse(raw) as StoredLicense) : null;
-	} catch {
-		return null;
-	}
+	return readJson<StoredLicense>(LICENSE_KEY);
 }
 
 export function setLicense(license: StoredLicense): void {
-	try {
-		localStorage.setItem(LICENSE_KEY, JSON.stringify(license));
-	} catch {
-		/* quota/unavailable — non-fatal */
-	}
+	writeJson(LICENSE_KEY, license);
 }
 
 export function clearLicense(): void {
-	try {
-		localStorage.removeItem(LICENSE_KEY);
-	} catch {
-		/* non-fatal */
-	}
+	removeKey(LICENSE_KEY);
 }

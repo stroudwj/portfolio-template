@@ -39,7 +39,3 @@ export function getAssetUrl(id?: string | null): string | undefined {
 export function getAssetBlob(id?: string | null): Blob | undefined {
 	return id ? registry.get(id)?.blob : undefined;
 }
-
-export function getAssetFilename(id?: string | null): string | undefined {
-	return id ? registry.get(id)?.filename : undefined;
-}

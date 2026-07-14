@@ -1,9 +1,7 @@
 // A thin wrapper over the GitHub REST API for the browser. `api.github.com` sends CORS
 // headers for token-authenticated requests, so the editor talks to GitHub directly with
-// no proxy. `fetch` is injectable so the whole publish flow can be unit-tested offline.
+// no proxy.
 import { GITHUB_API } from './config';
-
-export type FetchFn = typeof fetch;
 
 /** A GitHub API error carrying the HTTP status and a friendly, user-facing message. */
 export class GitHubError extends Error {
@@ -25,20 +23,14 @@ export interface RequestOptions {
 }
 
 export class GitHubClient {
-	constructor(
-		private token: string,
-		private fetchImpl: FetchFn = fetch,
-	) {}
+	constructor(private token: string) {}
 
 	/** Perform a request; parse JSON; throw a friendly GitHubError on failure. */
 	async request<T = unknown>(path: string, opts: RequestOptions = {}): Promise<{ status: number; data: T }> {
 		const url = path.startsWith('http') ? path : GITHUB_API + path;
 		let res: Response;
-		// Call through a bare local, NOT `this.fetchImpl(...)`: native fetch throws
-		// "Illegal invocation" in browsers when invoked with `this` set to this client.
-		const doFetch = this.fetchImpl;
 		try {
-			res = await doFetch(url, {
+			res = await fetch(url, {
 				method: opts.method ?? 'GET',
 				headers: {
 					Authorization: `Bearer ${this.token}`,
