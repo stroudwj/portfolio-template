@@ -7,6 +7,7 @@ import GalleryEditor from './components/GalleryEditor';
 import SocialLinksEditor from './components/SocialLinksEditor';
 import PreviewPanel from './components/PreviewPanel';
 import GitHubControls from './components/GitHubControls';
+import { useLicense } from './components/useLicense';
 import { buildBundle, ZipTarget, downloadContentJson } from './lib/exporter';
 import { collectIssues } from './lib/validation';
 import './editor.css';
@@ -16,6 +17,9 @@ function Shell({ base }: { base: string }) {
 	const [busy, setBusy] = useState(false);
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const issues = useMemo(() => (doc ? collectIssues(doc) : []), [doc]);
+	// Held at the top level so the auto-unlock-after-purchase handler runs even on the Start
+	// screen (a buyer usually lands there returning from checkout, before the editor mounts).
+	const license = useLicense();
 
 	if (!doc) return <StartScreen />;
 
@@ -60,7 +64,7 @@ function Shell({ base }: { base: string }) {
 				<button type="button" className="btn-secondary" onClick={exportZip} disabled={busy}>
 					{busy ? 'Exporting…' : 'Export ZIP'}
 				</button>
-				<GitHubControls />
+				<GitHubControls license={license} />
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>

@@ -2,14 +2,13 @@
 // plus the primary "Publish website" call to action. Owns the two modals' open state.
 import { useState } from 'react';
 import { useGitHub } from './useGitHub';
-import { useLicense } from './useLicense';
+import type { LicenseSession } from './useLicense';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 
-export default function GitHubControls() {
+export default function GitHubControls({ license }: { license: LicenseSession }) {
 	const gh = useGitHub();
-	const license = useLicense();
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLicense, setShowLicense] = useState(false);
 	const [showPublish, setShowPublish] = useState(false);

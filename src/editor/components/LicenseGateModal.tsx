@@ -69,11 +69,8 @@ export default function LicenseGateModal({
 
 			{CHECKOUT_URL && (
 				<p className="modal-note">
-					Don’t have a key yet?{' '}
-					<a href={CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
-						Buy a license ↗
-					</a>{' '}
-					— then come back and paste it here.
+					Don’t have a key yet? <a href={CHECKOUT_URL}>Buy a license</a> — after checkout you’ll be brought right
+					back here and unlocked automatically. Your work is saved.
 				</p>
 			)}
 		</Modal>

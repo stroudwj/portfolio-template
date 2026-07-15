@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { activateLicense, validateLicense } from '../lib/license/client';
 import { clearLicense, getLicense, setLicense } from '../lib/license/session';
 import { isLicenseGateEnabled } from '../lib/license/config';
+import { completeLicenseRedirect } from '../lib/license/flow';
 
 export type LicenseStatus = 'checking' | 'unlicensed' | 'licensed';
 
@@ -21,30 +22,53 @@ export function useLicense(): LicenseSession {
 	const required = isLicenseGateEnabled();
 	const [status, setStatus] = useState<LicenseStatus>(required ? 'checking' : 'licensed');
 
-	// On load, re-validate a stored key (only when the gate is on).
+	// On load (only when the gate is on): first handle a return from checkout — Lemon Squeezy
+	// sends the buyer back with `?license_key=` in the URL — then otherwise re-validate a stored key.
 	useEffect(() => {
 		if (!required) return;
-		const stored = getLicense();
-		if (!stored) {
-			setStatus('unlicensed');
-			return;
-		}
 		let alive = true;
-		validateLicense(stored.key, stored.instanceId)
-			.then((ok) => {
-				if (!alive) return;
-				if (ok) {
+
+		const revalidateStored = () => {
+			const stored = getLicense();
+			if (!stored) {
+				if (alive) setStatus('unlicensed');
+				return;
+			}
+			validateLicense(stored.key, stored.instanceId)
+				.then((ok) => {
+					if (!alive) return;
+					if (ok) {
+						setStatus('licensed');
+					} else {
+						clearLicense();
+						setStatus('unlicensed');
+					}
+				})
+				.catch(() => {
+					// Network hiccup — don't lock someone out of a key they already activated;
+					// treat as licensed for this session and re-check next load.
+					if (alive) setStatus('licensed');
+				});
+		};
+
+		// Always call this (it scrubs the key from the URL); only auto-activate when the buyer
+		// isn't already licensed on this device, so revisiting the link doesn't burn activations.
+		const redirectKey = completeLicenseRedirect();
+		if (redirectKey && !getLicense()) {
+			activateLicense(redirectKey)
+				.then(({ instanceId }) => {
+					if (!alive) return;
+					setLicense({ key: redirectKey, instanceId });
 					setStatus('licensed');
-				} else {
-					clearLicense();
-					setStatus('unlicensed');
-				}
-			})
-			.catch(() => {
-				// Network hiccup — don't lock someone out of a key they already activated;
-				// treat as licensed for this session and re-check next load.
-				if (alive) setStatus('licensed');
-			});
+				})
+				.catch(() => {
+					// Bad/duplicate key from the URL — fall back to any stored key, else unlicensed.
+					if (alive) revalidateStored();
+				});
+		} else {
+			revalidateStored();
+		}
+
 		return () => {
 			alive = false;
 		};
