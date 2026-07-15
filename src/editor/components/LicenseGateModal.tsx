@@ -18,6 +18,14 @@ export default function LicenseGateModal({
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Open the Lemon Squeezy checkout as an on-page overlay (lemon.js, loaded in editor.astro).
+	// Falls back to a full-page navigation if the script was blocked or hasn't loaded.
+	const buyLicense = () => {
+		const ls = window.LemonSqueezy;
+		if (ls?.Url?.Open) ls.Url.Open(CHECKOUT_URL);
+		else window.location.assign(CHECKOUT_URL);
+	};
+
 	const submit = async () => {
 		if (!key.trim()) return;
 		setBusy(true);
@@ -69,8 +77,11 @@ export default function LicenseGateModal({
 
 			{CHECKOUT_URL && (
 				<p className="modal-note">
-					Don’t have a key yet? <a href={CHECKOUT_URL}>Buy a license</a> — after checkout you’ll be brought right
-					back here and unlocked automatically. Your work is saved.
+					Don’t have a key yet?{' '}
+					<button type="button" className="btn-link" onClick={buyLicense}>
+						Buy a license
+					</button>{' '}
+					— a secure checkout opens right here, and you’ll be unlocked automatically after paying. Your work is saved.
 				</p>
 			)}
 		</Modal>

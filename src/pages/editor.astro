@@ -21,6 +21,12 @@ const favicon = withBase(base, 'favicon.svg');
 		<meta name="robots" content="noindex" />
 		<link rel="icon" type="image/svg+xml" href={favicon} />
 		<title>Portfolio Editor</title>
+		<!-- Lemon Squeezy checkout overlay: opens the license purchase in a modal over the
+		     editor instead of navigating away. LicenseGateModal calls window.LemonSqueezy.Url.Open. -->
+		<script src="https://assets.lemonsqueezy.com/lemon.js" defer is:inline></script>
+		<script is:inline>
+			window.addEventListener('load', () => window.createLemonSqueezy?.());
+		</script>
 	</head>
 	<body>
 		<EditorApp client:only="react" base={base} />
