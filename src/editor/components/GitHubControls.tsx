@@ -54,7 +54,9 @@ export default function GitHubControls() {
 					onClose={() => setShowConnect(false)}
 					onConnected={() => {
 						setShowConnect(false);
-						setShowPublish(true);
+						// Honor the license gate on this path too — an unlicensed user who reaches
+						// Publish via Connect must still see LicenseGateModal, not PublishModal.
+						onPublishClick();
 					}}
 				/>
 			)}
