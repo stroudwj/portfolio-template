@@ -1,7 +1,7 @@
 // Drives a publish end to end: pick a repo name (first time only), watch progress, then
 // see the live URL. All GitHub specifics live behind GitHubTarget — this component only
 // builds the bundle, calls target.publish(bundle, onProgress), and renders the result.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from './ui/Modal';
 import { useEditor } from '../store';
 import { buildBundle, type PublishProgress, type PublishResult } from '../lib/exporter';
@@ -9,8 +9,8 @@ import { collectIssues } from '../lib/validation';
 import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
-import { localRepoStore, loadRepoInfo } from '../lib/github/store';
-import { isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
+import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
+import { getRepo, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
 import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'configure' | 'publishing' | 'success' | 'error';
@@ -28,7 +28,8 @@ function slugify(s: string): string {
 
 export default function PublishModal({ user, onClose }: { user: GitHubUser; onClose: () => void }) {
 	const { doc } = useEditor();
-	const [saved] = useState(() => loadRepoInfo());
+	const [saved, setSaved] = useState(() => loadRepoInfo());
+	const [verifying, setVerifying] = useState(() => loadRepoInfo() != null);
 	const firstPublish = !saved;
 
 	const [repoName, setRepoName] = useState(() => saved?.repo ?? slugify(doc?.content.site.name || user.login + '-portfolio'));
@@ -39,9 +40,44 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	const [error, setError] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 
+	// The saved repo pointer lives in localStorage and can go stale — e.g. the user deleted the
+	// repo on GitHub. Verify it still exists on open; if it's gone (404), drop the pointer and
+	// fall back to a first publish, so we show the name field instead of offering to "update" a
+	// site that no longer exists.
+	useEffect(() => {
+		const info = loadRepoInfo();
+		if (!info) return;
+		let alive = true;
+		getRepo(new GitHubClient(getToken() ?? ''), info.owner, info.repo)
+			.then((ref) => {
+				if (!alive) return;
+				if (!ref) {
+					clearRepoInfo();
+					setSaved(null);
+				}
+				setVerifying(false);
+			})
+			.catch(() => {
+				// Network/permission hiccup — don't wrongly downgrade to a first publish.
+				if (alive) setVerifying(false);
+			});
+		return () => {
+			alive = false;
+		};
+	}, []);
+
 	if (!doc) return null;
 	const issues = collectIssues(doc);
 	const targetUrl = pagesUrl(user.login, repoName);
+
+	// ---- Verifying the saved repo still exists (avoids flashing "update" for a deleted site) ----
+	if (verifying) {
+		return (
+			<Modal title="Publish website" onClose={onClose}>
+				<p className="modal-note">Checking your published site…</p>
+			</Modal>
+		);
+	}
 
 	const checkName = async () => {
 		if (!firstPublish || !repoName.trim()) return;

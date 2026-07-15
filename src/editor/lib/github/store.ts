@@ -1,7 +1,7 @@
 // Remembers which repo a portfolio was published to, plus the set of files the last
 // publish wrote. On the next publish we diff against `lastManifest` to delete whatever
 // the user removed, and we skip repo creation because we already have one.
-import { readJson, writeJson } from '../storage';
+import { readJson, writeJson, removeKey } from '../storage';
 
 export interface RepoInfo {
 	owner: string;
@@ -20,6 +20,11 @@ export function loadRepoInfo(): RepoInfo | null {
 
 export function saveRepoInfo(info: RepoInfo): void {
 	writeJson(REPO_KEY, info);
+}
+
+/** Forget the saved repo — e.g. it was deleted on GitHub, so the pointer is stale. */
+export function clearRepoInfo(): void {
+	removeKey(REPO_KEY);
 }
 
 // Injectable store so GitHubTarget can run outside the browser — the Node publish
