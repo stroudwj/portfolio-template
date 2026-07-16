@@ -78,15 +78,16 @@ export async function readAstroConfig(client: GitHubClient, ref: RepoRef): Promi
 }
 
 /**
- * Replace the real `site`/`base` values so links/assets resolve at
- * https://{owner}.github.io/{repo}. Anchored to the start of a line (multiline flag) so
- * it edits the actual `defineConfig` lines and NOT the example lines in the top comment
- * (which begin with `//`). `[ \t]*` keeps the match on a single line.
+ * Replace the real `site`/`base` values so links/assets resolve at the given URL —
+ * https://{owner}.github.io + /{repo} normally, or https://{domain} + / when a custom
+ * domain is set. Anchored to the start of a line (multiline flag) so it edits the actual
+ * `defineConfig` lines and NOT the example lines in the top comment (which begin with
+ * `//`). `[ \t]*` keeps the match on a single line.
  */
-export function rewriteSiteAndBase(source: string, owner: string, repo: string): string {
+export function rewriteSiteAndBase(source: string, siteUrl: string, basePath: string): string {
 	return source
-		.replace(/^([ \t]*site:[ \t]*)['"][^'"]*['"]/m, `$1'https://${owner}.github.io'`)
-		.replace(/^([ \t]*base:[ \t]*)['"][^'"]*['"]/m, `$1'/${repo}'`);
+		.replace(/^([ \t]*site:[ \t]*)['"][^'"]*['"]/m, `$1'${siteUrl}'`)
+		.replace(/^([ \t]*base:[ \t]*)['"][^'"]*['"]/m, `$1'${basePath}'`);
 }
 
 /** Turn Pages on with the Actions workflow builder. Tolerates "already enabled". */
@@ -95,6 +96,66 @@ export async function enablePages(client: GitHubClient, ref: RepoRef): Promise<v
 		method: 'POST',
 		body: { build_type: 'workflow' },
 		allow: [409, 422], // 409/422 = a Pages site already exists
+	});
+}
+
+export interface PagesInfo {
+	/** The custom domain configured in the repo's Pages settings, if any. */
+	cname: string | null;
+	httpsEnforced: boolean;
+}
+
+/** The repo's Pages settings, or null when Pages isn't enabled yet (first publish). */
+export async function getPagesInfo(client: GitHubClient, ref: RepoRef): Promise<PagesInfo | null> {
+	const { status, data } = await client.request<{ cname: string | null; https_enforced: boolean }>(
+		`/repos/${ref.owner}/${ref.repo}/pages`,
+		{ allow: [404] },
+	);
+	if (status === 404) return null;
+	return { cname: data.cname ?? null, httpsEnforced: Boolean(data.https_enforced) };
+}
+
+/** Point the repo's Pages site at a custom domain (422 = GitHub rejected the domain). */
+export async function setCustomDomain(client: GitHubClient, ref: RepoRef, domain: string): Promise<void> {
+	await client.request(`/repos/${ref.owner}/${ref.repo}/pages`, { method: 'PUT', body: { cname: domain } });
+}
+
+/** Clear the custom domain, returning the site to {owner}.github.io/{repo}. */
+export async function removeCustomDomain(client: GitHubClient, ref: RepoRef): Promise<void> {
+	await client.request(`/repos/${ref.owner}/${ref.repo}/pages`, { method: 'PUT', body: { cname: null } });
+}
+
+export type DomainHealth = 'live' | 'pending' | 'unknown';
+
+/**
+ * Whether the custom domain's DNS points at GitHub yet. This endpoint does live DNS
+ * lookups (can be slow) and some tokens can't call it at all, so every failure mode
+ * maps to 'unknown' — callers show a soft "may still be propagating" message and must
+ * never block on it.
+ */
+export async function getDomainHealth(client: GitHubClient, ref: RepoRef): Promise<DomainHealth> {
+	try {
+		const { status, data } = await client.request<{ domain?: { is_valid?: boolean } }>(
+			`/repos/${ref.owner}/${ref.repo}/pages/health`,
+			{ allow: [403, 404, 422] },
+		);
+		if (status !== 200 || !data?.domain) return 'unknown';
+		return data.domain.is_valid ? 'live' : 'pending';
+	} catch {
+		return 'unknown';
+	}
+}
+
+/**
+ * Best-effort HTTPS enforcement once DNS is live. 422 = the certificate isn't issued
+ * yet — expected right after DNS starts resolving; GitHub enables it automatically
+ * once the cert is ready, so callers just ignore the outcome.
+ */
+export async function enforceHttps(client: GitHubClient, ref: RepoRef): Promise<void> {
+	await client.request(`/repos/${ref.owner}/${ref.repo}/pages`, {
+		method: 'PUT',
+		body: { https_enforced: true },
+		allow: [422],
 	});
 }
 

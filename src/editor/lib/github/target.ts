@@ -4,13 +4,14 @@
 import type { PortfolioBundle, PublishProgress, PublishResult, PublishTarget } from '../exporter';
 import { contentJsonString } from '../exporter';
 import { GitHubClient } from './client';
-import { CONTENT_JSON_PATH, ASTRO_CONFIG_PATH } from './config';
+import { CONTENT_JSON_PATH, ASTRO_CONFIG_PATH, TEMPLATE_REPO, PRODUCT_SITE_FLAG_PATH, PRODUCT_SITE_FLAG_OFF } from './config';
 import { commitFiles, type CommitFile } from './gitdata';
 import {
 	generateFromTemplate,
 	getRepo,
 	readAstroConfig,
 	rewriteSiteAndBase,
+	getPagesInfo,
 	listAssetPaths,
 	enablePages,
 	pagesUrl,
@@ -48,16 +49,33 @@ export class GitHubTarget implements PublishTarget {
 			ref = await generateFromTemplate(client, login, name);
 		}
 
-		// Make sure astro.config's site/base point at THIS repo's Pages URL, or nav links
-		// and image URLs resolve under the wrong path. Idempotent + only committed when it
+		// Publishing into the template repo itself would flip its product-site flag off and
+		// replace the landing with a portfolio — only possible for the template's owner, but
+		// catastrophic enough to hard-stop.
+		if (ref.owner === TEMPLATE_REPO.owner && ref.repo === TEMPLATE_REPO.repo) {
+			throw new Error('This is the template repository itself — publish to a different repository name.');
+		}
+
+		// Make sure astro.config's site/base point at this repo's Pages URL — or, when the
+		// repo's Pages settings have a custom domain (set in the editor or manually on
+		// GitHub), at that domain with base '/'. The Pages cname is the source of truth, so
+		// a publish never clobbers a configured domain. Idempotent + only committed when it
 		// actually changes, so it self-heals a repo published before this was correct.
 		const currentConfig = await readAstroConfig(client, ref);
-		const desiredConfig = rewriteSiteAndBase(currentConfig, ref.owner, ref.repo);
+		const domain = (await getPagesInfo(client, ref))?.cname ?? null; // null = no Pages yet (first publish)
+		const desiredConfig = domain
+			? rewriteSiteAndBase(currentConfig, `https://${domain}`, '/')
+			: rewriteSiteAndBase(currentConfig, `https://${ref.owner}.github.io`, `/${ref.repo}`);
 		const configFile: CommitFile | null =
 			desiredConfig !== currentConfig ? { path: ASTRO_CONFIG_PATH, text: desiredConfig } : null;
 
-		// Assemble the files for this commit.
-		const files: CommitFile[] = [{ path: CONTENT_JSON_PATH, text: contentJsonString(bundle.contentJson) }];
+		// Assemble the files for this commit. The product-site flag is committed verbatim on
+		// every publish (identical content = git no-op) so the published root is always the
+		// owner's portfolio, never the template's sales landing.
+		const files: CommitFile[] = [
+			{ path: CONTENT_JSON_PATH, text: contentJsonString(bundle.contentJson) },
+			{ path: PRODUCT_SITE_FLAG_PATH, text: PRODUCT_SITE_FLAG_OFF },
+		];
 		for (const f of bundle.files) files.push({ path: f.path, bytes: f.bytes });
 		if (configFile) files.push(configFile);
 
@@ -90,8 +108,15 @@ export class GitHubTarget implements PublishTarget {
 		// Don't block on the Pages build (the first one takes 1–2 min): the commit is done and
 		// Pages is enabled. Returning the commit sha lets the success screen poll the build and
 		// show "building…" until the site is actually live, without holding up the publish.
-		const url = pagesUrl(ref.owner, ref.repo);
-		store.save({ owner: ref.owner, repo: ref.repo, branch: ref.branch, pagesUrl: url, lastManifest: newManifest });
+		const url = domain ? `https://${domain}/` : pagesUrl(ref.owner, ref.repo);
+		store.save({
+			owner: ref.owner,
+			repo: ref.repo,
+			branch: ref.branch,
+			pagesUrl: url,
+			customDomain: domain ?? undefined,
+			lastManifest: newManifest,
+		});
 
 		return { url, repoUrl: `https://github.com/${ref.owner}/${ref.repo}`, owner: ref.owner, repo: ref.repo, commitSha };
 	}

@@ -8,7 +8,7 @@
 //
 // Routes (both POST):
 //   /        — exchange { code } for an access token
-//   /revoke  — revoke { token } on sign-out (DELETE /applications/{client_id}/token needs
+//   /revoke  — revoke { token } on sign-out (DELETE /applications/{client_id}/grant needs
 //              the client secret, so it has to happen here, not in the browser)
 //
 // Deploy: see README.md in this folder. Required config:
@@ -85,8 +85,11 @@ async function exchange(request, env, corsOrigin) {
 	return json({ access_token: ghData.access_token, scope: ghData.scope, token_type: ghData.token_type }, 200, corsOrigin);
 }
 
-/** Invalidate an OAuth token on GitHub (sign-out). Best-effort: a 404 just means the token
- *  wasn't minted by this app (e.g. a pasted PAT) or was already revoked. */
+/** Revoke the app's entire OAuth grant on GitHub (sign-out). Deleting the GRANT (not just
+ *  this one token) invalidates all of the app's tokens for that user and removes the app
+ *  from their "Authorized OAuth Apps" list — a clean, complete disconnect; reconnecting
+ *  shows GitHub's consent screen again. Best-effort: a 404 just means the token wasn't
+ *  minted by this app (e.g. a pasted PAT) or the grant was already revoked. */
 async function revoke(request, env, corsOrigin) {
 	let token;
 	try {
@@ -99,7 +102,7 @@ async function revoke(request, env, corsOrigin) {
 	}
 
 	try {
-		const res = await fetch(`https://api.github.com/applications/${env.GITHUB_CLIENT_ID}/token`, {
+		const res = await fetch(`https://api.github.com/applications/${env.GITHUB_CLIENT_ID}/grant`, {
 			method: 'DELETE',
 			headers: {
 				Authorization: 'Basic ' + btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`),

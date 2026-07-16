@@ -11,6 +11,20 @@ export const CONTENT_JSON_PATH = 'src/data/content.json';
 export const ASTRO_CONFIG_PATH = 'astro.config.mjs';
 
 /**
+ * The template's product-site marker: true makes the root render the sales landing and
+ * /demo the portfolio. Every publish commits the OFF version below verbatim, so a
+ * published repo's root is the owner's portfolio. Committing the identical content every
+ * time is a no-op for git (same blob → unchanged tree entry), and it self-heals repos
+ * generated before the flag existed.
+ */
+export const PRODUCT_SITE_FLAG_PATH = 'src/lib/productSite.ts';
+export const PRODUCT_SITE_FLAG_OFF = `// Build-time marker: false on published sites — the root page is the owner's
+// portfolio, and no landing/demo pages are emitted. The publisher rewrites this
+// ENTIRE file on every publish; keep it single-purpose.
+export const IS_PRODUCT_SITE = false;
+`;
+
+/**
  * Pre-filled fine-grained token page. We can't pre-select permissions/repos via URL for
  * fine-grained tokens (GitHub only supports scope pre-fill for classic tokens), so the
  * modal spells out exactly what to grant; this link just opens the right page with a name.

@@ -16,6 +16,8 @@ import type { RepoInfo, RepoStore } from '../src/editor/lib/github/store.ts';
 import { validateToken } from '../src/editor/lib/github/session.ts';
 import type { PortfolioBundle } from '../src/editor/lib/exporter.ts';
 import { blankContent } from '../src/editor/lib/content-init.ts';
+import { ASTRO_CONFIG_PATH, PRODUCT_SITE_FLAG_PATH } from '../src/editor/lib/github/config.ts';
+import { base64ToUtf8 } from '../src/editor/lib/github/base64.ts';
 
 const token = process.env.GH_TOKEN;
 if (!token) {
@@ -56,6 +58,21 @@ async function main() {
 	console.log('Second publish (adds an image; should UPDATE, not recreate):');
 	const second = await mk().publish(bundle(true), log);
 	console.log(`\n✅ Updated: ${second.url}`);
+
+	// The published repo must NOT be a product site: flag flipped off, config rewritten.
+	const client = new GitHubClient(token!);
+	const read = async (path: string) => {
+		const { data } = await client.request<{ content: string }>(
+			`/repos/${user.login}/${repoName}/contents/${path}`,
+		);
+		return base64ToUtf8(data.content);
+	};
+	const flag = await read(PRODUCT_SITE_FLAG_PATH);
+	if (!flag.includes('IS_PRODUCT_SITE = false')) throw new Error(`${PRODUCT_SITE_FLAG_PATH} was not flipped to false`);
+	const config = await read(ASTRO_CONFIG_PATH);
+	if (!config.includes(`site: 'https://${user.login}.github.io'`) || !config.includes(`base: '/${repoName}'`))
+		throw new Error('astro.config.mjs site/base were not rewritten for the published repo');
+	console.log('✅ Published repo checks: product-site flag off, site/base rewritten.');
 	console.log('\nDone. Verify the site loads, then delete the repo from GitHub if this was a test.');
 }
 main().catch((e) => {

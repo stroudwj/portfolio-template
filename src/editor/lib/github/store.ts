@@ -8,6 +8,8 @@ export interface RepoInfo {
 	repo: string;
 	branch: string;
 	pagesUrl?: string;
+	/** Custom domain configured in the repo's Pages settings (mirrors GitHub, which is the source of truth). */
+	customDomain?: string;
 	/** Managed paths written by the last publish (content.json + image paths). */
 	lastManifest: string[];
 }

@@ -13,12 +13,13 @@ import '../portfolio/frame.css';
 interface Props {
 	title: string;
 	showLogo?: boolean;
+	/** Link prefix for nav/logo/favicon — override so /demo pages link within /demo. */
+	base?: string;
+	noindex?: boolean;
 }
 
-const { title, showLogo = false } = Astro.props;
+const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = false } = Astro.props;
 const { site, theme, nav } = content;
-
-const base = import.meta.env.BASE_URL;
 const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
@@ -38,6 +39,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<meta charset="UTF-8" />
 		<meta name="description" content={site.description} />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		{noindex && <meta name="robots" content="noindex" />}
 		<link rel="icon" type="image/svg+xml" href={favicon} />
 		<link rel="apple-touch-icon" href={favicon} />
 		<meta property="og:type" content="website" />
@@ -52,6 +54,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<title>{title}</title>
 	</head>
 	<body>
+		<slot name="banner" />
 		{showLogo && <Logo logo={logo} href={withBase(base)} />}
 		<div class="portfolio-container">
 			<!-- The menu lives here permanently; hydrated for the hover-magnify. -->

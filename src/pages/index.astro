@@ -1,17 +1,25 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PortfolioPage from '../portfolio/PortfolioPage';
+import Landing from '../components/Landing.astro';
 import { content, pageTitle } from '../lib/content';
 import { resolveGallery } from '../lib/resolveImages';
+import { IS_PRODUCT_SITE } from '../lib/productSite';
 
-// All content comes from src/data/content.json; images are read from the folder
-// named there (src/assets/selected-works/ by default) and optimized here.
+// The root page is two different things: on the product site it's the sales landing
+// (the portfolio demo lives under /demo), and on every published site it's the owner's
+// portfolio home. Published repos get IS_PRODUCT_SITE flipped to false by the publisher.
 const page = content.pages.home;
 const folder = page.gallery!.folder;
-const galleries = { [folder]: await resolveGallery(folder) };
+const galleries = IS_PRODUCT_SITE ? {} : { [folder]: await resolveGallery(folder) };
 const base = import.meta.env.BASE_URL;
 ---
 
-<Layout title={pageTitle(page.title)} showLogo={true}>
-	<PortfolioPage client:visible page="home" content={content} galleries={galleries} base={base} />
-</Layout>
+{IS_PRODUCT_SITE && <Landing />}
+{
+	!IS_PRODUCT_SITE && (
+		<Layout title={pageTitle(page.title)} showLogo={true}>
+			<PortfolioPage client:visible page="home" content={content} galleries={galleries} base={base} />
+		</Layout>
+	)
+}

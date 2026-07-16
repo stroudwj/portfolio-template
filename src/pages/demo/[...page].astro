@@ -1,0 +1,59 @@
+---
+// The live demo of the portfolio template, product site only (buyer repos emit no
+// /demo pages). Same components as the real portfolio, but every link is rebased
+// under /demo so visitors stay inside the demo, and the pages are noindex — the demo
+// duplicates the template's placeholder content and shouldn't compete with the landing.
+import Layout from '../../layouts/Layout.astro';
+import PortfolioPage from '../../portfolio/PortfolioPage';
+import { content, pageTitle } from '../../lib/content';
+import { resolveGallery, resolveProfileImage } from '../../lib/resolveImages';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { withBase } from '../../portfolio/types';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return content.nav.map((item) => ({ params: { page: item.path || undefined } }));
+}
+
+const pageKey = Astro.params.page || 'home';
+const page = content.pages[pageKey];
+const gallery = page.gallery;
+const galleries = gallery ? { [gallery.folder]: await resolveGallery(gallery.folder) } : {};
+const profile = gallery ? {} : await resolveProfileImage();
+
+const siteBase = import.meta.env.BASE_URL;
+const base = withBase(siteBase, 'demo');
+---
+
+<Layout title={`Demo — ${pageTitle(page.title)}`} showLogo={true} base={base} noindex={true}>
+	<a slot="banner" class="demo-banner" href={withBase(siteBase)}>
+		This is a demo — <strong>build yours for $19 →</strong>
+	</a>
+	{
+		gallery ? (
+			<PortfolioPage client:visible page={pageKey} content={content} galleries={galleries} base={base} />
+		) : (
+			<PortfolioPage page={pageKey} content={content} galleries={{}} profileImageSrc={profile.src} base={base} />
+		)
+	}
+</Layout>
+
+<style>
+	.demo-banner {
+		position: fixed;
+		bottom: 1rem;
+		right: 1rem;
+		z-index: 100;
+		background: #16181d;
+		color: #fff;
+		text-decoration: none;
+		font-family: ui-sans-serif, system-ui, sans-serif;
+		font-size: 0.9rem;
+		padding: 0.6rem 1rem;
+		border-radius: 999px;
+		box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+	}
+	.demo-banner:hover {
+		background: #2f6df6;
+	}
+</style>

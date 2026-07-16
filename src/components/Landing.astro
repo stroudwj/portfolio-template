@@ -1,0 +1,387 @@
+---
+// The product site's sales page, rendered at the root ONLY when IS_PRODUCT_SITE is
+// true (see src/pages/index.astro). It's a full standalone document on purpose:
+// Layout.astro carries the portfolio's theme, og:image and description from
+// content.json, none of which belong on a marketing page. No lemon.js here either —
+// the checkout overlay is editor-only.
+import { withBase } from '../portfolio/types';
+
+const base = import.meta.env.BASE_URL;
+const editorUrl = withBase(base, 'editor/');
+const demoUrl = withBase(base, 'demo/');
+const title = 'Simple Portfolio — your portfolio website, live in minutes';
+const description =
+	'Build your portfolio in the browser and publish it to free GitHub hosting. No code, no subscription — $19 once, yours forever.';
+const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="icon" type="image/svg+xml" href={withBase(base, 'favicon.svg')} />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Simple Portfolio" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="topbar">
+			<span class="brand">Simple Portfolio</span>
+			<nav class="topnav">
+				<a href={demoUrl}>Demo</a>
+				<a href="#pricing">Pricing</a>
+				<a href="#faq">FAQ</a>
+				<a class="btn btn-small" href={editorUrl}>Start building</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+				<h1>Your portfolio website.<br />Live today.</h1>
+				<p class="lede">
+					Build it right in your browser, publish it to free GitHub hosting, and keep it forever.
+					No code. No subscription. <strong>$19, once.</strong>
+				</p>
+				<div class="cta-row">
+					<a class="btn btn-primary" href={editorUrl}>Start building — it's free to try</a>
+					<a class="btn btn-ghost" href={demoUrl}>See a live demo</a>
+				</div>
+				<p class="hero-note">You only pay when you're ready to publish.</p>
+			</section>
+
+			<section class="steps">
+				<h2>How it works</h2>
+				<ol>
+					<li>
+						<h3>1 · Build in the editor</h3>
+						<p>Add your images, write your bio, pick your colors — and watch the live preview update as you go.</p>
+					</li>
+					<li>
+						<h3>2 · Connect GitHub</h3>
+						<p>One guided click. A free GitHub account gives you free hosting and a repository that belongs to you.</p>
+					</li>
+					<li>
+						<h3>3 · Publish</h3>
+						<p>
+							Your site goes live at <code>yourname.github.io/your-site</code> — or on your own custom domain.
+							Come back anytime, from any device, to edit and publish again.
+						</p>
+					</li>
+				</ol>
+			</section>
+
+			<section class="benefits">
+				<h2>What you get</h2>
+				<ul>
+					<li><strong>You own everything.</strong> The site, the code, and the repository live in your GitHub account — not ours.</li>
+					<li><strong>Free hosting, forever.</strong> GitHub Pages serves your site at no cost. No hosting bill, ever.</li>
+					<li><strong>Update anytime.</strong> Open the editor, change what you want, publish again. From any device.</li>
+					<li><strong>Your own domain.</strong> Connect a custom domain right from the editor — no GitHub settings to dig through.</li>
+					<li><strong>No lock-in.</strong> If you outgrow the editor, the code is yours to take anywhere.</li>
+				</ul>
+			</section>
+
+			<section class="pricing" id="pricing">
+				<h2>Pricing</h2>
+				<div class="price-card">
+					<div class="price">$19</div>
+					<div class="price-sub">one-time — own it forever</div>
+					<ul>
+						<li>Unlimited edits and re-publishes</li>
+						<li>Free hosting on GitHub Pages</li>
+						<li>Custom domain support</li>
+						<li>No subscription, no renewal, no upsell</li>
+					</ul>
+					<a class="btn btn-primary" href={editorUrl}>Start building</a>
+				</div>
+			</section>
+
+			<section class="faq" id="faq">
+				<h2>Questions</h2>
+				<dl>
+					<dt>Do I need to know how to code?</dt>
+					<dd>No. You build everything visually in the editor, and publishing is one button.</dd>
+					<dt>Is the hosting really free?</dt>
+					<dd>Yes — your site is served by GitHub Pages, GitHub's free hosting for personal sites.</dd>
+					<dt>Do I need a GitHub account?</dt>
+					<dd>Yes, a free one — the editor walks you through connecting it. That account is what makes the site yours.</dd>
+					<dt>Can I use my own domain?</dt>
+					<dd>Yes. Add it in the editor and we'll show you exactly which DNS records to set with your registrar.</dd>
+					<dt>What about refunds?</dt>
+					<dd>
+						Payments are handled by Lemon Squeezy. If something isn't working for you, email
+						<a href="mailto:william.stroud100@gmail.com">william.stroud100@gmail.com</a> and we'll make it right.
+					</dd>
+				</dl>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<span>Simple Portfolio</span>
+			<nav>
+				<a href={demoUrl}>Demo</a>
+				<a href={editorUrl}>Editor</a>
+				<a href="mailto:william.stroud100@gmail.com">Support</a>
+			</nav>
+			<span class="footer-note">Payments &amp; refunds handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style>
+	:root {
+		--ink: #16181d;
+		--muted: #5c6370;
+		--accent: #2f6df6;
+		--accent-dark: #1f55cc;
+		--bg: #ffffff;
+		--bg-soft: #f4f6fa;
+		--border: #e3e7ee;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--bg);
+		color: var(--ink);
+		font-family:
+			ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+		line-height: 1.6;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	main {
+		display: block;
+	}
+	code {
+		background: var(--bg-soft);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 0.1em 0.4em;
+		font-size: 0.9em;
+	}
+	a {
+		color: var(--accent);
+	}
+
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 60rem;
+		margin: 0 auto;
+		padding: 1.1rem 1.5rem;
+	}
+	.brand {
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+	.topnav {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+	}
+	.topnav a {
+		color: var(--ink);
+		text-decoration: none;
+		font-size: 0.95rem;
+	}
+	.topnav a:hover {
+		color: var(--accent);
+	}
+
+	.btn {
+		display: inline-block;
+		border-radius: 10px;
+		padding: 0.7rem 1.3rem;
+		font-weight: 600;
+		text-decoration: none;
+		border: 1px solid transparent;
+	}
+	.btn-small {
+		padding: 0.45rem 0.9rem;
+		background: var(--accent);
+		color: #fff !important;
+	}
+	.btn-primary {
+		background: var(--accent);
+		color: #fff;
+	}
+	.btn-primary:hover {
+		background: var(--accent-dark);
+	}
+	.btn-ghost {
+		border-color: var(--border);
+		color: var(--ink);
+	}
+	.btn-ghost:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.hero {
+		max-width: 46rem;
+		margin: 0 auto;
+		padding: 4.5rem 1.5rem 3rem;
+		text-align: center;
+	}
+	.hero h1 {
+		font-size: clamp(2.2rem, 6vw, 3.4rem);
+		line-height: 1.12;
+		letter-spacing: -0.02em;
+		margin: 0 0 1rem;
+	}
+	.lede {
+		font-size: 1.2rem;
+		color: var(--muted);
+		margin: 0 0 1.8rem;
+	}
+	.lede strong {
+		color: var(--ink);
+	}
+	.cta-row {
+		display: flex;
+		gap: 0.8rem;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+	.hero-note {
+		margin-top: 1rem;
+		font-size: 0.9rem;
+		color: var(--muted);
+	}
+
+	section h2 {
+		font-size: 1.6rem;
+		letter-spacing: -0.01em;
+		margin: 0 0 1.5rem;
+		text-align: center;
+	}
+	.steps,
+	.benefits,
+	.pricing,
+	.faq {
+		max-width: 60rem;
+		margin: 0 auto;
+		padding: 3rem 1.5rem;
+	}
+	.steps ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+		gap: 1.2rem;
+	}
+	.steps li {
+		background: var(--bg-soft);
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		padding: 1.4rem;
+	}
+	.steps h3 {
+		margin: 0 0 0.5rem;
+		font-size: 1.05rem;
+	}
+	.steps p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.95rem;
+	}
+
+	.benefits ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-width: 40rem;
+		margin-inline: auto;
+		display: grid;
+		gap: 0.9rem;
+	}
+	.benefits li {
+		padding-left: 1.6rem;
+		position: relative;
+		color: var(--muted);
+	}
+	.benefits li::before {
+		content: '✓';
+		position: absolute;
+		left: 0;
+		color: var(--accent);
+		font-weight: 700;
+	}
+	.benefits strong {
+		color: var(--ink);
+	}
+
+	.price-card {
+		max-width: 22rem;
+		margin: 0 auto;
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		padding: 2rem;
+		text-align: center;
+		box-shadow: 0 10px 30px rgb(22 24 29 / 0.06);
+	}
+	.price {
+		font-size: 3rem;
+		font-weight: 800;
+		letter-spacing: -0.03em;
+	}
+	.price-sub {
+		color: var(--muted);
+		margin-bottom: 1.2rem;
+	}
+	.price-card ul {
+		list-style: none;
+		margin: 0 0 1.5rem;
+		padding: 0;
+		display: grid;
+		gap: 0.4rem;
+		color: var(--muted);
+		font-size: 0.95rem;
+	}
+
+	.faq dl {
+		max-width: 40rem;
+		margin: 0 auto;
+	}
+	.faq dt {
+		font-weight: 600;
+		margin-top: 1.2rem;
+	}
+	.faq dd {
+		margin: 0.3rem 0 0;
+		color: var(--muted);
+	}
+
+	.footer {
+		border-top: 1px solid var(--border);
+		margin-top: 3rem;
+		padding: 1.6rem 1.5rem 2.2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.6rem;
+		font-size: 0.9rem;
+		color: var(--muted);
+	}
+	.footer nav {
+		display: flex;
+		gap: 1.2rem;
+	}
+	.footer a {
+		color: var(--muted);
+	}
+	.footer a:hover {
+		color: var(--accent);
+	}
+</style>

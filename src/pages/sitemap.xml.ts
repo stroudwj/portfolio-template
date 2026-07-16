@@ -6,14 +6,16 @@
 import type { APIRoute } from 'astro';
 import { content } from '../lib/content';
 import { withBase } from '../portfolio/types';
+import { IS_PRODUCT_SITE } from '../lib/productSite';
 
 export const GET: APIRoute = () => {
 	const site = import.meta.env.SITE;
 	const base = import.meta.env.BASE_URL;
-	const urls = content.nav
-		.map((item) => new URL(withBase(base, item.path && `${item.path}/`), site).href)
-		.map((loc) => `\t<url><loc>${loc}</loc></url>`)
-		.join('\n');
+	// Product site: just the landing — /demo is noindex and shouldn't be listed.
+	const locs = IS_PRODUCT_SITE
+		? [new URL(withBase(base), site).href]
+		: content.nav.map((item) => new URL(withBase(base, item.path && `${item.path}/`), site).href);
+	const urls = locs.map((loc) => `\t<url><loc>${loc}</loc></url>`).join('\n');
 	const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 	return new Response(xml, { headers: { 'Content-Type': 'application/xml' } });
 };

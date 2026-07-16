@@ -12,6 +12,7 @@ import { GitHubTarget } from '../lib/github/target';
 import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
 import { getRepo, getBuildStatus, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
 import { ProgressList, appendStep } from './ui/ProgressList';
+import CustomDomainModal from './CustomDomainModal';
 
 type Phase = 'configure' | 'publishing' | 'success' | 'error';
 // After the commit lands, the Pages build still takes ~1 min. 'building' polls the
@@ -44,6 +45,13 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	const [build, setBuild] = useState<BuildState>('building');
 	const [error, setError] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [showDomain, setShowDomain] = useState(false);
+
+	// The domain modal edits the saved repo info (pagesUrl/customDomain) — re-read on close.
+	const closeDomainModal = () => {
+		setShowDomain(false);
+		setSaved(loadRepoInfo());
+	};
 
 	// The saved repo pointer lives in localStorage and can go stale — e.g. the user deleted the
 	// repo on GitHub. Verify it still exists on open; if it's gone (404), drop the pointer and
@@ -105,6 +113,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	}, [phase, result]);
 
 	if (!doc) return null;
+	if (showDomain) return <CustomDomainModal onClose={closeDomainModal} />;
 	const issues = collectIssues(doc);
 	const targetUrl = pagesUrl(user.login, repoName);
 
@@ -202,6 +211,9 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						<button type="button" className="btn-secondary" onClick={copyUrl}>
 							{copied ? 'Copied!' : 'Copy URL'}
 						</button>
+						<button type="button" className="btn-ghost" onClick={() => setShowDomain(true)}>
+							Custom domain…
+						</button>
 						{result.repoUrl && (
 							<a className="btn-ghost" href={result.repoUrl} target="_blank" rel="noopener noreferrer">
 								View repository ↗
@@ -298,13 +310,18 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 					</p>
 				</>
 			) : (
-				<p className="url-preview">
-					Updating your existing site at <strong>{saved?.pagesUrl || targetUrl}</strong> (repository{' '}
-					<strong>
-						{saved?.owner}/{saved?.repo}
-					</strong>
-					).
-				</p>
+				<>
+					<p className="url-preview">
+						Updating your existing site at <strong>{saved?.pagesUrl || targetUrl}</strong> (repository{' '}
+						<strong>
+							{saved?.owner}/{saved?.repo}
+						</strong>
+						).
+					</p>
+					<button type="button" className="btn-link" onClick={() => setShowDomain(true)}>
+						{saved?.customDomain ? `Custom domain: ${saved.customDomain}` : 'Use a custom domain…'}
+					</button>
+				</>
 			)}
 		</Modal>
 	);
