@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getToken, setToken, clearToken, validateToken, type GitHubUser } from '../lib/github/session';
 import { completeOAuthRedirect, startOAuth } from '../lib/oauth/flow';
-import { isOAuthConfigured } from '../lib/oauth/config';
+import { isOAuthConfigured, WORKER_REVOKE_URL } from '../lib/oauth/config';
 
 export type ConnectionStatus = 'checking' | 'idle' | 'connected';
 
@@ -74,6 +74,19 @@ export function useGitHub(): GitHubSession {
 	}, []);
 
 	const signOut = useCallback(() => {
+		// Best-effort: actually invalidate the token on GitHub (via the Worker, which holds
+		// the client secret), not just forget it locally. Fire-and-forget — a pasted PAT
+		// isn't this app's token (the Worker treats GitHub's 404 as success), and a network
+		// failure shouldn't block signing out of the editor.
+		const token = getToken();
+		if (token && WORKER_REVOKE_URL) {
+			void fetch(WORKER_REVOKE_URL, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ token }),
+				keepalive: true,
+			}).catch(() => {});
+		}
 		clearToken();
 		setUser(null);
 		setStatus('idle');

@@ -7,16 +7,21 @@
 export const OAUTH_CLIENT_ID = 'Ov23liWlyP2MLmoVBnKF'; // OAuth App "Client ID"
 export const WORKER_TOKEN_URL = 'https://portfolio-oauth-proxy.simpleportfolioeditor.workers.dev'; // deployed Cloudflare Worker URL (its POST endpoint)
 
+/** The Worker's token-revocation route (used on sign-out). Empty when OAuth isn't configured. */
+export const WORKER_REVOKE_URL = WORKER_TOKEN_URL ? `${WORKER_TOKEN_URL}/revoke` : '';
+
 /** GitHub's authorize endpoint (where we send the user to grant access). */
 export const AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 
 /**
  * Scopes the publish flow needs:
- *  - `repo`     — create the site repository and read/write its contents.
- *  - `workflow` — the template ships .github/workflows/deploy.yml, and GitHub refuses to
- *                 create/update repos carrying workflow files without this scope.
+ *  - `public_repo` — create the (always public) site repository and read/write its
+ *                    contents + Pages. Deliberately NOT `repo`, which would also grant
+ *                    access to all of the user's private repositories.
+ *  - `workflow`    — the template ships .github/workflows/deploy.yml, and GitHub refuses
+ *                    to create/update repos carrying workflow files without this scope.
  */
-export const SCOPES = 'repo workflow';
+export const SCOPES = 'public_repo workflow';
 
 /**
  * Where GitHub sends the user back. Must match the OAuth App's registered callback URL.

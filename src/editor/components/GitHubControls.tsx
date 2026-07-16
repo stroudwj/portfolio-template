@@ -76,6 +76,7 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 			{showLicense && (
 				<LicenseGateModal
 					activate={license.activate}
+					revalidate={license.revalidate}
 					onClose={() => setShowLicense(false)}
 					onUnlocked={() => {
 						setShowLicense(false);

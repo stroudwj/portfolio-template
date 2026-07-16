@@ -15,6 +15,12 @@ export interface LicenseSession {
 	required: boolean;
 	/** Activate + store a pasted key. Throws LicenseError on failure. */
 	activate(key: string): Promise<void>;
+	/**
+	 * Re-validate the stored key (the gate's "Retry" after a network failure). Resolves true
+	 * and flips to licensed when valid; clears a definitively-invalid key. Throws LicenseError
+	 * when the license service is unreachable.
+	 */
+	revalidate(): Promise<boolean>;
 	clear(): void;
 }
 
@@ -45,9 +51,12 @@ export function useLicense(): LicenseSession {
 					}
 				})
 				.catch(() => {
-					// Network hiccup — don't lock someone out of a key they already activated;
-					// treat as licensed for this session and re-check next load.
-					if (alive) setStatus('licensed');
+					// Couldn't reach the license service — fail CLOSED. Publishing needs the
+					// network anyway (GitHub API), so this blocks no one who could otherwise
+					// publish; failing open would let anyone unlock by blocking the license
+					// host + forging localStorage. Keep the stored key: the gate modal offers
+					// a "Retry" that re-validates it.
+					if (alive) setStatus('unlicensed');
 				});
 		};
 
@@ -80,10 +89,23 @@ export function useLicense(): LicenseSession {
 		setStatus('licensed');
 	}, []);
 
+	const revalidate = useCallback(async () => {
+		const stored = getLicense();
+		if (!stored) return false;
+		const ok = await validateLicense(stored.key, stored.instanceId); // throws LicenseError offline
+		if (ok) {
+			setStatus('licensed');
+			return true;
+		}
+		clearLicense(); // definitive answer: the key is no longer valid on this device
+		setStatus('unlicensed');
+		return false;
+	}, []);
+
 	const clear = useCallback(() => {
 		clearLicense();
 		setStatus(required ? 'unlicensed' : 'licensed');
 	}, [required]);
 
-	return { status, required, activate, clear };
+	return { status, required, activate, revalidate, clear };
 }

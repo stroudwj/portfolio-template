@@ -7,9 +7,10 @@ export const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.
 export const isUrl = (value: string): boolean => {
 	if (!value.trim()) return false;
 	try {
-		// eslint-disable-next-line no-new
-		new URL(value);
-		return true;
+		// Only web links: anything else (javascript:, data:, file:, …) would ship verbatim
+		// as an href on the published site — a script-injection vector, not a portfolio link.
+		const { protocol } = new URL(value);
+		return protocol === 'http:' || protocol === 'https:';
 	} catch {
 		return false;
 	}

@@ -1,4 +1,5 @@
 import type { SocialLink } from './types';
+import { safeHref } from './safeHref';
 import './SocialLinks.css';
 
 export interface SocialLinksProps {
@@ -13,11 +14,11 @@ export default function SocialLinks({ social, resume }: SocialLinksProps) {
 	return (
 		<div className="bio-links">
 			{social.map((s, i) => (
-				<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noopener">
+				<a key={`${s.url}-${i}`} href={safeHref(s.url)} target="_blank" rel="noopener">
 					{s.label}
 				</a>
 			))}
-			{resume && <a href={resume.href}>{resume.label}</a>}
+			{resume && <a href={safeHref(resume.href)}>{resume.label}</a>}
 		</div>
 	);
 }
