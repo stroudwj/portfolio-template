@@ -98,6 +98,25 @@ export async function enablePages(client: GitHubClient, ref: RepoRef): Promise<v
 	});
 }
 
+export type BuildStatus = 'pending' | 'success' | 'failure';
+
+/**
+ * Whether the Pages deploy for one specific commit has finished. Filtering runs by
+ * `head_sha` pins the check to OUR publish commit (ignoring the template-generation
+ * commit's run on first publish), and the run only completes after both the build and
+ * deploy-pages jobs finish — so 'success' means the site is actually live. The run
+ * takes a few seconds to appear after the ref moves; until then there are no runs
+ * for the sha, which is just 'pending'.
+ */
+export async function getBuildStatus(client: GitHubClient, owner: string, repo: string, sha: string): Promise<BuildStatus> {
+	const { data } = await client.request<{ workflow_runs: { status: string; conclusion: string | null }[] }>(
+		`/repos/${owner}/${repo}/actions/runs?head_sha=${sha}&per_page=1`,
+	);
+	const run = data.workflow_runs?.[0];
+	if (!run || run.status !== 'completed') return 'pending';
+	return run.conclusion === 'success' ? 'success' : 'failure';
+}
+
 /** The canonical project-site URL for a repo. */
 export function pagesUrl(owner: string, repo: string): string {
 	return `https://${owner}.github.io/${repo}`;

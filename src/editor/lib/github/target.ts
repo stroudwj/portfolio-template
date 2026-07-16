@@ -71,7 +71,7 @@ export class GitHubTarget implements PublishTarget {
 		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((f) => f.path)];
 
 		report('Uploading your images…', `0 of ${files.length}`);
-		await commitFiles(
+		const commitSha = await commitFiles(
 			client,
 			{
 				owner: ref.owner,
@@ -87,12 +87,12 @@ export class GitHubTarget implements PublishTarget {
 		report('Publishing your website…');
 		await enablePages(client, ref);
 
-		// Don't block on the Pages build (the first one takes 1–2 min): the commit is done and Pages
-		// is enabled, so the site will go live shortly. The success screen tells the user to give a
-		// brand-new site a minute. Subsequent edits publish just as fast.
+		// Don't block on the Pages build (the first one takes 1–2 min): the commit is done and
+		// Pages is enabled. Returning the commit sha lets the success screen poll the build and
+		// show "building…" until the site is actually live, without holding up the publish.
 		const url = pagesUrl(ref.owner, ref.repo);
 		store.save({ owner: ref.owner, repo: ref.repo, branch: ref.branch, pagesUrl: url, lastManifest: newManifest });
 
-		return { url, repoUrl: `https://github.com/${ref.owner}/${ref.repo}` };
+		return { url, repoUrl: `https://github.com/${ref.owner}/${ref.repo}`, owner: ref.owner, repo: ref.repo, commitSha };
 	}
 }

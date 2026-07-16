@@ -31,6 +31,21 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 	);
 }
 
+/**
+ * Best available social-card image: the profile photo, else the home gallery's
+ * first image (in that gallery's display order). Most platforms won't render an
+ * SVG card, so the favicon is never used; undefined means "emit no og:image".
+ */
+export async function resolveOgImage(): Promise<string | undefined> {
+	const home = content.pages.home?.gallery;
+	const image =
+		getAsset(content.profile.image) ??
+		(home ? getGallery(home.folder, home.order)[0]?.image : undefined);
+	if (!image) return undefined;
+	const optimized = await getImage({ src: image, width: 1200 });
+	return optimized.src;
+}
+
 /** Optimized profile image src (undefined if the file isn't found). */
 export async function resolveProfileImage(): Promise<{ src?: string }> {
 	const image = getAsset(content.profile.image);

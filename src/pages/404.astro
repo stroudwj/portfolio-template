@@ -1,0 +1,39 @@
+---
+// GitHub Pages serves dist/404.html automatically for unknown URLs, so this page
+// gives broken links the site's own shell instead of GitHub's default 404.
+import Layout from '../layouts/Layout.astro';
+import { content } from '../lib/content';
+import { withBase } from '../portfolio/types';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title={`Page not found — ${content.site.name}`} showLogo={true}>
+	<div class="not-found">
+		<h1>Page not found</h1>
+		<p>The page you're looking for doesn't exist or has moved.</p>
+		<a href={withBase(base)}>Back to home</a>
+	</div>
+</Layout>
+
+<style>
+	.not-found {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		min-height: 60vh;
+		color: var(--color-text);
+	}
+	.not-found h1 {
+		font-size: 1.5rem;
+		font-weight: 500;
+		margin: 0 0 0.5rem;
+	}
+	.not-found p {
+		color: var(--color-text-muted);
+		margin: 0 0 1.5rem;
+	}
+	.not-found a {
+		color: var(--color-accent);
+	}
+</style>

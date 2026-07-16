@@ -10,10 +10,14 @@ import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
 import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
-import { getRepo, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
+import { getRepo, getBuildStatus, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
 import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'configure' | 'publishing' | 'success' | 'error';
+// After the commit lands, the Pages build still takes ~1 min. 'building' polls the
+// build; 'timeout' is the graceful degradation (old optimistic screen) when we can't
+// tell — polling error, no commit sha, or >3 min without completion.
+type BuildState = 'building' | 'live' | 'timeout' | 'failed';
 
 function slugify(s: string): string {
 	return (
@@ -37,6 +41,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	const [phase, setPhase] = useState<Phase>('configure');
 	const [log, setLog] = useState<PublishProgress[]>([]);
 	const [result, setResult] = useState<PublishResult | null>(null);
+	const [build, setBuild] = useState<BuildState>('building');
 	const [error, setError] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 
@@ -66,6 +71,39 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		};
 	}, []);
 
+	// Poll the Pages build for the publish commit so "live" means actually live (a
+	// brand-new site 404s for ~1 min after publish, which reads as a failure).
+	useEffect(() => {
+		if (phase !== 'success' || !result) return;
+		const { owner, repo, commitSha } = result;
+		if (!owner || !repo || !commitSha) {
+			setBuild('timeout');
+			return;
+		}
+		const client = new GitHubClient(getToken() ?? '');
+		const started = Date.now();
+		let alive = true;
+		let timer: ReturnType<typeof setTimeout>;
+		const tick = async () => {
+			let status;
+			try {
+				status = await getBuildStatus(client, owner, repo, commitSha);
+			} catch {
+				status = null; // can't tell — fall back to the optimistic screen
+			}
+			if (!alive) return;
+			if (status === 'success') setBuild('live');
+			else if (status === 'failure') setBuild('failed');
+			else if (status === null || Date.now() - started > 3 * 60_000) setBuild('timeout');
+			else timer = setTimeout(tick, 5000);
+		};
+		timer = setTimeout(tick, 5000);
+		return () => {
+			alive = false;
+			clearTimeout(timer);
+		};
+	}, [phase, result]);
+
 	if (!doc) return null;
 	const issues = collectIssues(doc);
 	const targetUrl = pagesUrl(user.login, repoName);
@@ -94,6 +132,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		setPhase('publishing');
 		setLog([]);
 		setError(null);
+		setBuild('building');
 		try {
 			const bundle = await buildBundle(doc);
 			const target = new GitHubTarget({
@@ -124,15 +163,38 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 
 	// ---- Success screen ----
 	if (phase === 'success' && result) {
+		if (build === 'building') {
+			return (
+				<Modal title="Almost there…" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
+					<div className="publish-success">
+						<div className="success-emoji">⏳</div>
+						<h3>Building your site…</h3>
+						<span className="live-url">{result.url}</span>
+						<p className="modal-note">This usually takes about a minute — the link goes live the moment it’s done.</p>
+					</div>
+				</Modal>
+			);
+		}
 		return (
 			<Modal title="Published" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
 				<div className="publish-success">
-					<div className="success-emoji">✅</div>
-					<h3>Your portfolio is live!</h3>
+					<div className="success-emoji">{build === 'failed' ? '⚠️' : '✅'}</div>
+					<h3>{build === 'failed' ? 'Published, but the site build hit a problem' : 'Your portfolio is live!'}</h3>
 					<a className="live-url" href={result.url} target="_blank" rel="noopener noreferrer">
 						{result.url}
 					</a>
-					<p className="modal-note">It can take a minute for a brand-new site to finish building. Refresh if it isn’t up yet.</p>
+					{build === 'timeout' && (
+						<p className="modal-note">It can take a minute for a brand-new site to finish building. Refresh if it isn’t up yet.</p>
+					)}
+					{build === 'failed' && result.repoUrl && (
+						<p className="modal-note">
+							The site build reported an error — check the{' '}
+							<a href={`${result.repoUrl}/actions`} target="_blank" rel="noopener noreferrer">
+								repository’s Actions tab
+							</a>
+							.
+						</p>
+					)}
 					<div className="success-actions">
 						<a className="btn-primary" href={result.url} target="_blank" rel="noopener noreferrer">
 							Open website ↗

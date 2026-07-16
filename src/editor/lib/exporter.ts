@@ -34,6 +34,10 @@ export interface PublishResult {
 	url?: string;
 	/** A link to where the project now lives (e.g. the GitHub repo). */
 	repoUrl?: string;
+	/** Set by targets that build remotely, so the UI can poll for build completion. */
+	owner?: string;
+	repo?: string;
+	commitSha?: string;
 }
 
 /**

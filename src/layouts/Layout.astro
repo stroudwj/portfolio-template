@@ -3,6 +3,7 @@
 // from the shared portfolio component system in src/portfolio/, so the site and
 // the editor preview always render the exact same components.
 import { content } from '../lib/content';
+import { resolveOgImage } from '../lib/resolveImages';
 import { themeToRootCss } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
@@ -22,6 +23,13 @@ const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
 const themeCss = themeToRootCss(theme);
+
+// Social cards need an ABSOLUTE image URL (getImage's src is base-prefixed but
+// site-relative), and og:image can't be the favicon SVG — most platforms won't
+// render an SVG card, so with no usable image we omit the tags entirely.
+const ogImage = await resolveOgImage();
+const ogImageUrl = ogImage && Astro.site ? new URL(ogImage, Astro.site).href : undefined;
+const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 ---
 
 <!doctype html>
@@ -29,14 +37,17 @@ const themeCss = themeToRootCss(theme);
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="description" content={site.description} />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" type="image/svg+xml" href={favicon} />
 		<link rel="apple-touch-icon" href={favicon} />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content={site.name} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={site.description} />
-		<meta property="og:image" content={favicon} />
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:image" content={favicon} />
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+		{ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
 		<style is:global set:html={themeCss}></style>
 		<title>{title}</title>
 	</head>

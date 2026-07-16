@@ -32,6 +32,11 @@ function Shell({ base }: { base: string }) {
 
 	if (!doc) return <StartScreen />;
 
+	const resetAll = () => {
+		if (confirm('Reset the editor? This permanently deletes your draft and every image saved in this browser.'))
+			void reset();
+	};
+
 	const exportZip = async () => {
 		setBusy(true);
 		try {
@@ -64,7 +69,7 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<div className="topbar-spacer" />
-				<button type="button" className="btn-ghost" onClick={() => reset()}>
+				<button type="button" className="btn-ghost" onClick={resetAll}>
 					Reset
 				</button>
 				<button type="button" className="btn-ghost" onClick={exportJson}>
