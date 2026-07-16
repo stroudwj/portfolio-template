@@ -98,32 +98,9 @@ export async function enablePages(client: GitHubClient, ref: RepoRef): Promise<v
 	});
 }
 
-export interface PagesStatus {
-	url: string;
-	built: boolean;
-}
-
 /** The canonical project-site URL for a repo. */
 export function pagesUrl(owner: string, repo: string): string {
 	return `https://${owner}.github.io/${repo}`;
-}
-
-/**
- * Poll the Pages site until the first build finishes (status 'built'), up to a timeout.
- * Resolves with the URL regardless — a still-building site becomes live shortly after.
- */
-export async function waitForPages(client: GitHubClient, ref: RepoRef, timeoutMs = 120000): Promise<PagesStatus> {
-	const url = pagesUrl(ref.owner, ref.repo);
-	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
-		const { status, data } = await client.request<{ status: string | null; html_url: string }>(
-			`/repos/${ref.owner}/${ref.repo}/pages`,
-			{ allow: [404] },
-		);
-		if (status !== 404 && data?.status === 'built') return { url: data.html_url || url, built: true };
-		await sleep(4000);
-	}
-	return { url, built: false };
 }
 
 function sleep(ms: number): Promise<void> {

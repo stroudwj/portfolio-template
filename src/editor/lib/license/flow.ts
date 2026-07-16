@@ -31,3 +31,32 @@ export function completeLicenseRedirect(): string | null {
 	cachedKey = key.trim();
 	return cachedKey;
 }
+
+// The buyer usually clicks Buy from inside the Publish flow. Checkout redirects back with a full
+// page reload, which drops the in-memory editor state — so we leave a breadcrumb (set when they
+// open checkout) and, once they return and auto-unlock, resume their draft and reopen Publish.
+const RESUME_KEY = 'portfolio-editor:resume-publish';
+
+export function markResumePublish(): void {
+	try {
+		sessionStorage.setItem(RESUME_KEY, '1');
+	} catch {
+		/* private mode — resume is a nicety, not required */
+	}
+}
+
+export function shouldResumePublish(): boolean {
+	try {
+		return sessionStorage.getItem(RESUME_KEY) === '1';
+	} catch {
+		return false;
+	}
+}
+
+export function clearResumePublish(): void {
+	try {
+		sessionStorage.removeItem(RESUME_KEY);
+	} catch {
+		/* ignore */
+	}
+}

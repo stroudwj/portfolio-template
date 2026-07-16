@@ -1,8 +1,9 @@
 // Topbar GitHub area: a "Connect GitHub" button until connected, then a connection chip
 // plus the primary "Publish website" call to action. Owns the two modals' open state.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGitHub } from './useGitHub';
 import type { LicenseSession } from './useLicense';
+import { shouldResumePublish, clearResumePublish } from '../lib/license/flow';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
@@ -12,6 +13,19 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLicense, setShowLicense] = useState(false);
 	const [showPublish, setShowPublish] = useState(false);
+
+	// After a checkout round-trip (buyer clicked Buy, paid, and got auto-unlocked on reload),
+	// reopen Publish right where they left off. Wait until GitHub is connected AND the license has
+	// activated; if activation didn't land, just drop the breadcrumb rather than reopening the gate.
+	useEffect(() => {
+		if (!shouldResumePublish()) return;
+		if (gh.status === 'connected' && license.status === 'licensed') {
+			clearResumePublish();
+			setShowPublish(true);
+		} else if (license.status === 'unlicensed') {
+			clearResumePublish();
+		}
+	}, [gh.status, license.status]);
 
 	if (gh.status === 'checking') {
 		return <span className="gh-chip muted-chip">Checking GitHub…</span>;

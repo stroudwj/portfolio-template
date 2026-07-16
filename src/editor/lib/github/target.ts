@@ -13,7 +13,6 @@ import {
 	rewriteSiteAndBase,
 	listAssetPaths,
 	enablePages,
-	waitForPages,
 	pagesUrl,
 	type RepoRef,
 } from './repo';
@@ -87,9 +86,11 @@ export class GitHubTarget implements PublishTarget {
 
 		report('Publishing your website…');
 		await enablePages(client, ref);
-		const pages = await waitForPages(client, ref);
 
-		const url = pages.url || pagesUrl(ref.owner, ref.repo);
+		// Don't block on the Pages build (the first one takes 1–2 min): the commit is done and Pages
+		// is enabled, so the site will go live shortly. The success screen tells the user to give a
+		// brand-new site a minute. Subsequent edits publish just as fast.
+		const url = pagesUrl(ref.owner, ref.repo);
 		store.save({ owner: ref.owner, repo: ref.repo, branch: ref.branch, pagesUrl: url, lastManifest: newManifest });
 
 		return { url, repoUrl: `https://github.com/${ref.owner}/${ref.repo}` };
