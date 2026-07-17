@@ -1,7 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import type { ResolvedImage } from './types';
 import { safeHref } from './safeHref';
 import './Gallery.css';
+
+export const GRID_MAX_SPAN = 4;
+
+const clampSpan = (value: number | undefined): number =>
+	Math.min(Math.max(Math.round(value ?? 1), 1), GRID_MAX_SPAN);
+
+/** Per-image grid placement as CSS variables Gallery.css turns into spans. */
+const spanVars = (img: ResolvedImage): CSSProperties =>
+	({ '--w': String(clampSpan(img.w)), '--h': String(clampSpan(img.h)) }) as CSSProperties;
 
 export interface GalleryProps {
 	images: ResolvedImage[];
@@ -42,7 +51,7 @@ export default function Gallery({ images, alt = 'Portfolio piece' }: GalleryProp
 		<>
 			<div className="masonry-grid">
 				{images.map((img, i) => (
-					<div className="masonry-item" key={img.id ?? `${img.src}-${i}`}>
+					<div className="masonry-item" style={spanVars(img)} key={img.id ?? `${img.src}-${i}`}>
 						<img
 							src={img.src}
 							srcSet={img.srcSet}

@@ -26,6 +26,8 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 				title: entry.title,
 				description: entry.description,
 				link: entry.link,
+				w: entry.w,
+				h: entry.h,
 			} satisfies ResolvedImage;
 		}),
 	);

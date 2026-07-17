@@ -46,3 +46,16 @@ export function getGallery(
 export function getAsset(path: string): ImageMetadata | undefined {
 	return assets[`/src/assets/${path}`]?.default;
 }
+
+// Uploaded fonts live under src/assets/fonts/ so publishing manages them like images.
+// `?url` gives the built, hashed URL for the @font-face src.
+const fonts = import.meta.glob<string>('/src/assets/fonts/*.{woff,woff2,ttf,otf}', {
+	eager: true,
+	query: '?url',
+	import: 'default',
+});
+
+/** Built URL for a custom font's `file` path (e.g. "fonts/my-font.woff2"). */
+export function getFontUrl(file: string): string | undefined {
+	return fonts[`/src/assets/${file}`];
+}

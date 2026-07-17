@@ -40,6 +40,10 @@ function mimeFromName(name: string): string {
 		webp: 'image/webp',
 		avif: 'image/avif',
 		svg: 'image/svg+xml',
+		woff2: 'font/woff2',
+		woff: 'font/woff',
+		ttf: 'font/ttf',
+		otf: 'font/otf',
 	};
 	return map[ext] ?? 'application/octet-stream';
 }
@@ -105,6 +109,15 @@ export async function loadDocFromRepo(
 	const profilePath = profileName ? `src/assets/${profileName}` : '';
 	const hasProfileFile = !!profilePath && shaByPath.has(profilePath);
 	if (hasProfileFile) imagePaths.push(profilePath);
+	// Custom font files ride along so a later publish can re-write them.
+	const fontPathByName = new Map<string, string>();
+	for (const font of content.theme.customFonts ?? []) {
+		const path = `src/assets/${font.file}`;
+		if (shaByPath.has(path)) {
+			fontPathByName.set(font.name, path);
+			imagePaths.push(path);
+		}
+	}
 
 	// Download each blob and register it as an editor asset, reporting progress.
 	const assetIdByPath = new Map<string, string>();
@@ -130,7 +143,7 @@ export async function loadDocFromRepo(
 			return {
 				id: uid('e'),
 				filename: stripOrderPrefix(fullName),
-				meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '' },
+				meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '', w: meta.w, h: meta.h },
 				assetId: assetIdByPath.get(path) ?? null,
 			};
 		});
@@ -141,6 +154,12 @@ export async function loadDocFromRepo(
 		: { filename: profileName || '', assetId: null };
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+		};
+	}
+	for (const [name, path] of fontPathByName) {
+		doc.fonts[name] = {
 			filename: path.slice(path.lastIndexOf('/') + 1),
 			assetId: assetIdByPath.get(path) ?? null,
 		};

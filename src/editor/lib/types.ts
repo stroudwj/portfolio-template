@@ -9,6 +9,10 @@ export interface ImageMeta {
 	title: string;
 	description: string;
 	link: string;
+	/** Grid width in columns (1–4; unset = 1). */
+	w?: number;
+	/** Grid height in row units (1–4; unset = 1). */
+	h?: number;
 }
 
 /** One image in a gallery (or the profile image), in the editor's working state. */
@@ -40,4 +44,6 @@ export interface EditorDoc {
 	profileImage: SingleImage;
 	/** page key -> its sub-page card thumbnail. */
 	pageThumbs: Record<string, SingleImage>;
+	/** custom font name (content.theme.customFonts) -> its uploaded file. */
+	fonts: Record<string, SingleImage>;
 }

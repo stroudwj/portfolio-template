@@ -1,12 +1,13 @@
 import { Fragment } from 'react';
+import type { TextAlign } from '../lib/content';
 import './TextBlock.css';
 
 /** A free-text page block. "\n" is a line break, "\n\n" a blank line (like the bio). */
-export default function TextBlock({ text }: { text: string }) {
+export default function TextBlock({ text, align }: { text: string; align?: TextAlign }) {
 	if (!text.trim()) return null;
 	const lines = text.split('\n');
 	return (
-		<div className="text-block">
+		<div className="text-block" style={align && align !== 'left' ? { textAlign: align } : undefined}>
 			<p>
 				{lines.flatMap((line, i) =>
 					i === 0

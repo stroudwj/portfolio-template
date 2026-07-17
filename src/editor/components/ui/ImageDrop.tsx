@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { isImageFile, MAX_IMAGE_BYTES } from '../../lib/validation';
+import { isImageFile, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from '../../lib/validation';
 
 export function ImageDrop({
 	onFiles,
@@ -19,7 +19,7 @@ export function ImageDrop({
 		const all = Array.from(fileList);
 		const valid = all.filter((f) => isImageFile(f) && f.size <= MAX_IMAGE_BYTES);
 		const rejected = all.length - valid.length;
-		setError(rejected > 0 ? `${rejected} file(s) skipped (must be an image under 10 MB).` : null);
+		setError(rejected > 0 ? `${rejected} file(s) skipped (must be an image under ${MAX_IMAGE_MB} MB).` : null);
 		if (valid.length) onFiles(multiple ? valid : valid.slice(0, 1));
 	};
 

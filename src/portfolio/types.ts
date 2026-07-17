@@ -19,6 +19,10 @@ export interface ResolvedImage {
 	title?: string;
 	description?: string;
 	link?: string;
+	/** Grid width in columns (1–4, default 1). */
+	w?: number;
+	/** Grid height in row units (1–4, default 1). */
+	h?: number;
 }
 
 /** Everything the portfolio needs to render, with images already resolved. */
@@ -30,6 +34,8 @@ export interface PortfolioData {
 	profileImageSrc?: string;
 	/** Page key -> resolved thumbnail URL, for rendering sub-page cards. */
 	pageThumbs?: Record<string, string>;
+	/** Custom fonts with resolved URLs (the editor preview passes blob: URLs). */
+	fontFaces?: Array<{ name: string; url: string }>;
 }
 
 export type PageKey = string;

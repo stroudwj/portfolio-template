@@ -49,7 +49,7 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 		galleries[folder] = Object.entries(data.items).map(([filename, meta]) => ({
 			id: uid('e'),
 			filename,
-			meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '' },
+			meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '', w: meta.w, h: meta.h },
 			assetId: null,
 		}));
 	}
@@ -69,11 +69,16 @@ export function initDocFromContent(content: Content): EditorDoc {
 			pageThumbs[key] = { filename, assetId: null };
 		}
 	}
+	const fonts: EditorDoc['fonts'] = {};
+	for (const font of cloned.theme.customFonts ?? []) {
+		fonts[font.name] = { filename: font.file.slice(font.file.lastIndexOf('/') + 1), assetId: null };
+	}
 	return {
 		content: cloned,
 		galleries: entriesFromContent(cloned),
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
 		pageThumbs,
+		fonts,
 	};
 }
 
@@ -82,7 +87,7 @@ export const existingDoc = (): EditorDoc => initDocFromContent(bundledContent);
 
 /** Upgrade a document saved by an older editor: migrate content, backfill new fields. */
 export function upgradeDoc(doc: EditorDoc): EditorDoc {
-	return { ...doc, content: migrateContent(doc.content), pageThumbs: doc.pageThumbs ?? {} };
+	return { ...doc, content: migrateContent(doc.content), pageThumbs: doc.pageThumbs ?? {}, fonts: doc.fonts ?? {} };
 }
 
 /** Live document -> resolved data the shared portfolio components can render. */
@@ -96,6 +101,8 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			title: e.meta.title || undefined,
 			description: e.meta.description || undefined,
 			link: e.meta.link || undefined,
+			w: e.meta.w,
+			h: e.meta.h,
 		}));
 	}
 	const uploaded = getAssetUrl(doc.profileImage.assetId);
@@ -112,5 +119,13 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		}
 		if (src) pageThumbs[key] = src;
 	}
-	return { content: doc.content, galleries, profileImageSrc, pageThumbs };
+
+	// Uploaded fonts render in the preview from their blob URLs; fonts referenced
+	// but not uploaded this session simply fall back to the next family in the stack.
+	const fontFaces = (doc.content.theme.customFonts ?? []).flatMap((font) => {
+		const url = getAssetUrl(doc.fonts[font.name]?.assetId);
+		return url ? [{ name: font.name, url }] : [];
+	});
+
+	return { content: doc.content, galleries, profileImageSrc, pageThumbs, fontFaces };
 }

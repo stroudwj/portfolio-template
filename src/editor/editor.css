@@ -305,6 +305,11 @@
 	opacity: 0.4;
 	cursor: default;
 }
+.btn-icon.active {
+	background: var(--ui-accent);
+	border-color: var(--ui-accent);
+	color: #fff;
+}
 .btn-icon.danger:hover {
 	color: var(--ui-danger);
 	border-color: var(--ui-danger);
@@ -331,30 +336,10 @@
 	height: 100%;
 	min-height: 0;
 }
-.preview-tabs {
-	display: flex;
-	gap: 4px;
-	padding: 10px 12px;
-	flex-shrink: 0;
-}
-.preview-tab {
-	border: 1px solid var(--ui-border);
-	background: #fff;
-	border-radius: 999px;
-	padding: 5px 14px;
-	font-size: 0.8rem;
-	cursor: pointer;
-	color: var(--ui-muted);
-}
-.preview-tab.active {
-	background: var(--ui-text);
-	color: #fff;
-	border-color: var(--ui-text);
-}
 .preview-surface {
 	flex: 1;
 	min-height: 0;
-	margin: 0 12px 12px;
+	margin: 12px;
 	border: 1px solid var(--ui-border);
 	border-radius: 12px;
 	overflow: auto;
@@ -702,6 +687,67 @@
 .block-controls {
 	display: flex;
 	gap: 2px;
+}
+.align-toggle {
+	display: flex;
+	gap: 2px;
+	margin-left: auto;
+	margin-right: 6px;
+}
+.align-toggle .btn-icon {
+	font-size: 0.72rem;
+	font-weight: 700;
+}
+
+/* ---- Image grid size (W/H) steppers ---- */
+.size-steppers {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.stepper-caption {
+	font-size: 0.75rem;
+	color: var(--ui-muted);
+}
+.stepper {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.stepper-label {
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--ui-muted);
+}
+.stepper-value {
+	font-size: 0.8rem;
+	min-width: 12px;
+	text-align: center;
+}
+.stepper .btn-icon {
+	width: 22px;
+	height: 22px;
+	font-size: 0.75rem;
+}
+
+/* ---- Uploaded font rows ---- */
+.font-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: var(--ui-bg);
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	padding: 6px 10px;
+	margin-bottom: 8px;
+}
+.font-row-name {
+	flex: 1;
+	font-size: 0.95rem;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .block-adders {
 	display: flex;

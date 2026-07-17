@@ -7,7 +7,14 @@ import { Field, TextInput, TextArea, Section } from './ui/controls';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetUrl } from '../lib/assets';
-import type { PageBlock } from '../../lib/content';
+import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import type { PageBlock, TextAlign } from '../../lib/content';
+
+const ALIGNMENTS: Array<{ value: TextAlign; label: string; title: string }> = [
+	{ value: 'left', label: 'L', title: 'Align left' },
+	{ value: 'center', label: 'C', title: 'Align center' },
+	{ value: 'right', label: 'R', title: 'Align right' },
+];
 
 export default function PageEditor({ pageKey, nested = false }: { pageKey: string; nested?: boolean }) {
 	const editor = useEditor();
@@ -63,11 +70,27 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 
 	const renderBlock = (block: PageBlock, index: number) => {
 		switch (block.type) {
-			case 'text':
+			case 'text': {
+				const align = block.align ?? 'left';
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
 							<span className="block-label">Text</span>
+							<div className="align-toggle" role="group" aria-label="Text alignment">
+								{ALIGNMENTS.map((a) => (
+									<button
+										key={a.value}
+										type="button"
+										className={`btn-icon ${align === a.value ? 'active' : ''}`}
+										title={a.title}
+										aria-label={a.title}
+										aria-pressed={align === a.value}
+										onClick={() => editor.setTextAlign(pageKey, block.id, a.value)}
+									>
+										{a.label}
+									</button>
+								))}
+							</div>
 							{controls(index, block, true)}
 						</div>
 						<TextArea
@@ -78,6 +101,29 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						/>
 					</div>
 				);
+			}
+			case 'embed': {
+				const invalid = !!block.url.trim() && !videoEmbedSrc(block.url);
+				return (
+					<div className="block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label">Video</span>
+							{controls(index, block, true)}
+						</div>
+						<input
+							className={`text-input ${invalid ? 'invalid' : ''}`}
+							placeholder="Paste a YouTube or Vimeo link (https://…)"
+							value={block.url}
+							onChange={(e) => editor.updateEmbedBlock(pageKey, block.id, e.target.value)}
+						/>
+						{invalid ? (
+							<span className="field-error">That doesn’t look like a YouTube or Vimeo link.</span>
+						) : (
+							<p className="muted">The video plays right on your page.</p>
+						)}
+					</div>
+				);
+			}
 			case 'gallery':
 				return (
 					<div className="block" key={block.id}>
@@ -152,6 +198,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 
 	return (
 		<Section
+			sectionKey={pageKey}
 			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? 'Page: Home' : `Page: ${page.label ?? pageKey}`}
 			action={
 				!isHome ? (
@@ -179,6 +226,9 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 			<div className="block-adders">
 				<button type="button" className="btn-link" onClick={() => editor.addTextBlock(pageKey)}>
 					＋ Add text
+				</button>
+				<button type="button" className="btn-link" onClick={() => editor.addEmbedBlock(pageKey)}>
+					＋ Add video
 				</button>
 				{!nested && (
 					<button type="button" className="btn-link" onClick={addChild}>

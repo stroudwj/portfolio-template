@@ -4,7 +4,8 @@
 // the editor preview always render the exact same components.
 import { content } from '../lib/content';
 import { resolveOgImage } from '../lib/resolveImages';
-import { themeToRootCss } from '../portfolio/theme';
+import { getFontUrl } from '../lib/galleries';
+import { themeToRootCss, fontFacesCss } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
 import { withBase, stripSlashes } from '../portfolio/types';
@@ -23,7 +24,12 @@ const { site, theme, nav } = content;
 const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
-const themeCss = themeToRootCss(theme);
+// Uploaded fonts become @font-face rules ahead of the theme variables that use them.
+const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
+	const url = getFontUrl(font.file);
+	return url ? [{ name: font.name, url }] : [];
+});
+const themeCss = fontFacesCss(fontFaces) + themeToRootCss(theme);
 
 // Social cards need an ABSOLUTE image URL (getImage's src is base-prefixed but
 // site-relative), and og:image can't be the favicon SVG — most platforms won't

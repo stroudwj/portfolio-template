@@ -8,6 +8,29 @@ import { SortableList, SortableItem } from './ui/Sortable';
 import { getAssetUrl } from '../lib/assets';
 import { PLACEHOLDER_IMAGE } from '../lib/content-init';
 import { isUrl } from '../lib/validation';
+import { GRID_MAX_SPAN } from '../../portfolio/Gallery';
+
+/** Compact 1–4 stepper for an image's grid width/height. */
+function SpanStepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+	return (
+		<span className="stepper" title={`${label === 'W' ? 'Width' : 'Height'} on the grid`}>
+			<span className="stepper-label">{label}</span>
+			<button type="button" className="btn-icon" disabled={value <= 1} onClick={() => onChange(value - 1)} aria-label={`Decrease ${label}`}>
+				−
+			</button>
+			<span className="stepper-value">{value}</span>
+			<button
+				type="button"
+				className="btn-icon"
+				disabled={value >= GRID_MAX_SPAN}
+				onClick={() => onChange(value + 1)}
+				aria-label={`Increase ${label}`}
+			>
+				＋
+			</button>
+		</span>
+	);
+}
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -33,6 +56,8 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 			{entries.length === 0 ? (
 				<p className="muted">{emptyLabel}</p>
 			) : (
+				<>
+				<p className="muted">Images tile onto a grid — drag ⠿ to place them, W/H to resize.</p>
 				<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
 					<div className="card-list">
 						{entries.map((entry, idx) => {
@@ -77,6 +102,19 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 														/>
 													</>
 												)}
+												<div className="size-steppers">
+													<span className="stepper-caption">Size</span>
+													<SpanStepper
+														label="W"
+														value={entry.meta.w ?? 1}
+														onChange={(w) => updateGalleryMeta(folder, entry.id, { w })}
+													/>
+													<SpanStepper
+														label="H"
+														value={entry.meta.h ?? 1}
+														onChange={(h) => updateGalleryMeta(folder, entry.id, { h })}
+													/>
+												</div>
 											</div>
 											<div className="card-actions">
 												<button
@@ -113,6 +151,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 						})}
 					</div>
 				</SortableList>
+				</>
 			)}
 		</>
 	);

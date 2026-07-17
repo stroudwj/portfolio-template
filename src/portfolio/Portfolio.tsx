@@ -1,6 +1,6 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
-import { themeToVars } from './theme';
+import { themeToVars, fontFacesCss } from './theme';
 import type { PortfolioData } from './types';
 
 export interface PortfolioProps extends PortfolioData {
@@ -14,10 +14,11 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, pageThumbs, base, onNavigate }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, pageThumbs, fontFaces, base, onNavigate }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	return (
 		<div className="portfolio-root" style={themeToVars(content.theme)}>
+			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
 			<PortfolioFrame
 				nav={content.nav}
 				logo={content.site.logo || content.site.name}

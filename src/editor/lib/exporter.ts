@@ -54,6 +54,9 @@ function metaObject(meta: ImageMeta): Partial<ImageMeta> | null {
 	if (meta.title) out.title = meta.title;
 	if (meta.description) out.description = meta.description;
 	if (meta.link) out.link = meta.link;
+	// Grid spans: 1 is the default, so only larger sizes are worth recording.
+	if (meta.w && meta.w > 1) out.w = meta.w;
+	if (meta.h && meta.h > 1) out.h = meta.h;
 	return Object.keys(out).length ? out : null;
 }
 
@@ -113,6 +116,24 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	// Thumbs removed in the editor: the doc no longer tracks them, so drop the reference.
 	for (const [key, page] of Object.entries(content.pages)) {
 		if (page.thumbnail && !doc.pageThumbs[key]) page.thumbnail = undefined;
+	}
+
+	// Custom fonts, written under src/assets/fonts/. A font with no blob was loaded
+	// from the repo without re-download — keep its reference; the publish target
+	// preserves the file (same rule as the profile image).
+	const customFonts = content.theme.customFonts ?? [];
+	if (customFonts.length) {
+		const kept: typeof customFonts = [];
+		for (const font of customFonts) {
+			const slot = doc.fonts[font.name];
+			const blob = getAssetBlob(slot?.assetId);
+			if (blob) {
+				const file = `fonts/${sanitizeFilename(slot.filename || font.name)}`;
+				files.push({ path: `src/assets/${file}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+				kept.push({ name: font.name, file });
+			} else if (font.file) kept.push(font);
+		}
+		content.theme.customFonts = kept.length ? kept : undefined;
 	}
 
 	return { contentJson: content, files };

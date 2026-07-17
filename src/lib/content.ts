@@ -17,12 +17,20 @@ export interface Site {
 	favicon: string;
 }
 
+/** A user-uploaded font: `file` is a path under src/assets/ (e.g. "fonts/my-font.woff2"). */
+export interface CustomFont {
+	name: string;
+	file: string;
+}
+
 export interface Theme {
 	backgroundColor: string;
 	textColor: string;
 	mutedTextColor: string;
 	accentColor: string;
 	fontFamily: string;
+	/** Fonts uploaded in the editor, available alongside the factory list. */
+	customFonts?: CustomFont[];
 }
 
 export interface NavItem {
@@ -62,13 +70,17 @@ export interface GalleryConfig {
 	order: 'asc' | 'desc';
 }
 
+export type TextAlign = 'left' | 'center' | 'right';
+
 /**
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
- * 'gallery' renders the page's gallery; 'children' renders the page's sub-pages as
- * thumbnail cards; 'about' renders the profile section (bio, email, social links).
+ * 'embed' is a YouTube/Vimeo video; 'gallery' renders the page's gallery;
+ * 'children' renders the page's sub-pages as thumbnail cards; 'about' renders
+ * the profile section (bio, email, social links).
  */
 export type PageBlock =
-	| { id: string; type: 'text'; text: string }
+	| { id: string; type: 'text'; text: string; align?: TextAlign }
+	| { id: string; type: 'embed'; url: string }
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'children' }
 	| { id: string; type: 'about' };
@@ -94,6 +106,10 @@ export interface ImageMeta {
 	title?: string;
 	description?: string;
 	link?: string;
+	/** Grid width in columns (1–4, default 1). */
+	w?: number;
+	/** Grid height in row units (1–4, default 1). */
+	h?: number;
 }
 
 export interface GalleryData {

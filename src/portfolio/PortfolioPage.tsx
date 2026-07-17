@@ -2,6 +2,7 @@ import Hero from './Hero';
 import Gallery from './Gallery';
 import About from './About';
 import TextBlock from './TextBlock';
+import Embed from './Embed';
 import ChildPages from './ChildPages';
 import { withBase, type PortfolioData } from './types';
 import type { PageBlock } from '../lib/content';
@@ -29,7 +30,9 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 	const renderBlock = (block: PageBlock) => {
 		switch (block.type) {
 			case 'text':
-				return <TextBlock key={block.id} text={block.text} />;
+				return <TextBlock key={block.id} text={block.text} align={block.align} />;
+			case 'embed':
+				return <Embed key={block.id} url={block.url} />;
 			case 'about': {
 				const resume =
 					content.resume && content.resume.url

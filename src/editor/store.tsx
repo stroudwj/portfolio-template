@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { Content, SocialLink, Theme, PageBlock, PageConfig } from '../lib/content';
+import type { Content, SocialLink, Theme, PageBlock, PageConfig, TextAlign } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, upgradeDoc } from './lib/content-init';
 import { registerAsset, restoreAsset, uid } from './lib/assets';
+import { sanitizeFilename } from './lib/validation';
 import {
 	saveDoc,
 	loadDoc as loadSavedDoc,
@@ -39,6 +40,17 @@ function uniquePageKey(desired: string, pages: Record<string, PageConfig>): stri
 	return key;
 }
 
+/** "my-font_bold.woff2" -> "My Font Bold" — a readable, CSS-safe font-family name. */
+function fontNameFromFile(filename: string): string {
+	const base = filename.replace(/\.[^.]+$/, '');
+	const words = base
+		.replace(/["\\]/g, '')
+		.split(/[-_\s]+/)
+		.filter(Boolean)
+		.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+	return words.join(' ') || 'Custom Font';
+}
+
 export interface EditorContextValue {
 	doc: EditorDoc | null;
 	hasDraft: boolean;
@@ -57,6 +69,9 @@ export interface EditorContextValue {
 	removeProfileImage(): void;
 	// theme
 	setTheme(patch: Partial<Theme>): void;
+	/** Register an uploaded font file and select it as the site font. */
+	addCustomFont(file: File): void;
+	removeCustomFont(name: string): void;
 	// social
 	addSocial(): void;
 	updateSocial(index: number, patch: Partial<SocialLink>): void;
@@ -74,6 +89,9 @@ export interface EditorContextValue {
 	// page blocks
 	addTextBlock(key: string): void;
 	updateTextBlock(key: string, blockId: string, text: string): void;
+	setTextAlign(key: string, blockId: string, align: TextAlign): void;
+	addEmbedBlock(key: string): void;
+	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	removeBlock(key: string, blockId: string): void;
 	moveBlock(key: string, from: number, to: number): void;
 	// galleries
@@ -160,6 +178,50 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		removeProfileImage: () => setDoc((prev) => (prev ? { ...prev, profileImage: { filename: '', assetId: null } } : prev)),
 
 		setTheme: (patch) => patchContent((c) => ({ ...c, theme: { ...c.theme, ...patch } })),
+
+		addCustomFont: (file) => {
+			const name = fontNameFromFile(file.name);
+			const assetId = registerAsset(file, file.name);
+			setDoc((prev) => {
+				if (!prev) return prev;
+				const entry = { name, file: `fonts/${sanitizeFilename(file.name)}` };
+				const others = (prev.content.theme.customFonts ?? []).filter((f) => f.name !== name);
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						theme: {
+							...prev.content.theme,
+							customFonts: [...others, entry],
+							fontFamily: `"${name}", sans-serif`,
+						},
+					},
+					fonts: { ...prev.fonts, [name]: { filename: file.name, assetId } },
+				};
+			});
+		},
+		removeCustomFont: (name) =>
+			setDoc((prev) => {
+				if (!prev) return prev;
+				const customFonts = (prev.content.theme.customFonts ?? []).filter((f) => f.name !== name);
+				const fonts = { ...prev.fonts };
+				delete fonts[name];
+				const usesIt = prev.content.theme.fontFamily.includes(`"${name}"`);
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						theme: {
+							...prev.content.theme,
+							customFonts: customFonts.length ? customFonts : undefined,
+							fontFamily: usesIt
+								? '"Helvetica Neue", Helvetica, Arial, sans-serif'
+								: prev.content.theme.fontFamily,
+						},
+					},
+					fonts,
+				};
+			}),
 
 		addSocial: () => patchContent((c) => ({ ...c, social: [...c.social, { label: '', url: '' }] })),
 		updateSocial: (index, patch) =>
@@ -300,6 +362,15 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		addTextBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('t'), type: 'text', text: '' }]),
 		updateTextBlock: (key, blockId, text) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'text' ? { ...b, text } : b))),
+		setTextAlign: (key, blockId, align) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) =>
+					b.id === blockId && b.type === 'text' ? { ...b, align: align === 'left' ? undefined : align } : b,
+				),
+			),
+		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
+		updateEmbedBlock: (key, blockId, url) =>
+			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),
 		removeBlock: (key, blockId) => patchBlocks(key, (blocks) => blocks.filter((b) => b.id !== blockId)),
 		moveBlock: (key, from, to) => patchBlocks(key, (blocks) => arrayMove(blocks, from, to)),
 

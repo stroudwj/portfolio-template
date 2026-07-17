@@ -30,9 +30,20 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea className="text-area" {...props} />;
 }
 
-export function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+export function Section({
+	title,
+	children,
+	action,
+	sectionKey,
+}: {
+	title: string;
+	children: ReactNode;
+	action?: ReactNode;
+	/** Marks the section as a scroll target (e.g. the preview nav scrolls to a page's editor). */
+	sectionKey?: string;
+}) {
 	return (
-		<section className="editor-section">
+		<section className="editor-section" data-section={sectionKey}>
 			<header className="editor-section-head">
 				<h2>{title}</h2>
 				{action}

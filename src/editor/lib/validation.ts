@@ -1,5 +1,6 @@
 // Small, dependency-free validators used for live inline feedback and the
 // pre-export summary.
+import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import type { EditorDoc } from './types';
 
 export const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -16,9 +17,19 @@ export const isUrl = (value: string): boolean => {
 	}
 };
 
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+// GitHub's blob API (the publish path) accepts files up to 100 MB; 50 MB leaves
+// comfortable headroom for the base64 upload while allowing full-res photos.
+export const MAX_IMAGE_BYTES = 50 * 1024 * 1024; // 50 MB
+export const MAX_IMAGE_MB = MAX_IMAGE_BYTES / (1024 * 1024);
 
 export const isImageFile = (file: File): boolean => /^image\//.test(file.type);
+
+export const FONT_EXTENSIONS = ['woff2', 'woff', 'ttf', 'otf'];
+export const MAX_FONT_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/** Font files often have an empty MIME type, so check the extension. */
+export const isFontFile = (file: File): boolean =>
+	FONT_EXTENSIONS.includes(file.name.toLowerCase().split('.').pop() ?? '');
 
 /** Make a user file name safe for a URL/path, preserving the extension. */
 export function sanitizeFilename(name: string): string {
@@ -44,6 +55,14 @@ export function collectIssues(doc: EditorDoc): string[] {
 			if (e.meta.link && !isUrl(e.meta.link))
 				issues.push(`A ${folder} item link (“${e.meta.title || e.filename}”) is not a valid URL.`);
 		});
+	}
+	for (const [key, page] of Object.entries(doc.content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type !== 'embed') continue;
+			if (!block.url.trim()) issues.push(`A video on “${page.label ?? key}” has no link yet.`);
+			else if (!videoEmbedSrc(block.url))
+				issues.push(`A video link on “${page.label ?? key}” isn’t a YouTube or Vimeo URL.`);
+		}
 	}
 	return issues;
 }

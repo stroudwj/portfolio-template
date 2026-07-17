@@ -88,6 +88,7 @@ export class GitHubTarget implements PublishTarget {
 		for (const page of Object.values(bundle.contentJson.pages)) {
 			if (page.thumbnail) keep.add(`src/assets/${page.thumbnail}`);
 		}
+		for (const font of bundle.contentJson.theme.customFonts ?? []) keep.add(`src/assets/${font.file}`);
 		const deletions = (await listAssetPaths(client, ref)).filter((p) => !keep.has(p));
 		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((f) => f.path)];
 
