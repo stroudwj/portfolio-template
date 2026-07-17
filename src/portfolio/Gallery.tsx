@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import type { CanvasText, GalleryConfig, ImageLayout, ResolvedImage, TextLayout } from './types';
+import type { CanvasEmbed, CanvasText, GalleryConfig, ImageLayout, ResolvedImage, TextLayout } from './types';
 import { safeHref } from './safeHref';
 import CanvasGallery from './CanvasGallery';
 import './Gallery.css';
@@ -35,12 +35,16 @@ export interface GalleryProps {
 	settings?: GalleryConfig;
 	/** Text blocks pinned to the freeform canvas. */
 	texts?: CanvasText[];
+	/** Video embeds pinned to the freeform canvas. */
+	embeds?: CanvasEmbed[];
 	/** Editor preview: images become movable/resizable instead of zoomable. */
 	editable?: boolean;
 	/** Reports a finished move/resize per image (editor only). */
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
 	/** Reports a finished move/resize per pinned text (editor only). */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
+	/** Reports a finished move/resize per pinned video embed (editor only). */
+	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
 }
 
 /**
@@ -56,9 +60,11 @@ export default function Gallery({
 	alt = 'Portfolio piece',
 	settings,
 	texts,
+	embeds,
 	editable = false,
 	onLayoutChange,
 	onTextLayout,
+	onEmbedLayout,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
@@ -76,7 +82,7 @@ export default function Gallery({
 		};
 	}, [openIndex]);
 
-	if (images.length === 0 && !texts?.length) {
+	if (images.length === 0 && !texts?.length && !embeds?.length) {
 		return (
 			<div className="gallery-empty">
 				<p>This page is empty… add some images, text, or videos.</p>
@@ -85,7 +91,8 @@ export default function Gallery({
 	}
 
 	const uniformMode = settings?.layout === 'grid';
-	const canvasMode = !uniformMode && (editable || images.some((img) => img.layout) || !!texts?.length);
+	const canvasMode =
+		!uniformMode && (editable || images.some((img) => img.layout) || !!texts?.length || !!embeds?.length);
 	const cols = uniformColumns(settings?.columns);
 	const cellAr = parseAspect(settings?.aspect);
 
@@ -114,10 +121,12 @@ export default function Gallery({
 				<CanvasGallery
 					images={images}
 					texts={texts}
+					embeds={embeds}
 					alt={alt}
 					editable={editable}
 					onLayoutChange={onLayoutChange}
 					onTextLayout={onTextLayout}
+					onEmbedLayout={onEmbedLayout}
 					onOpen={editable ? undefined : setOpenIndex}
 				/>
 			) : (

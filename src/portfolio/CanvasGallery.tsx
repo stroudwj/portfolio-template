@@ -1,21 +1,25 @@
 // Freeform canvas — the modern replacement for the span grid. Each image sits
 // at its stored {x, y, w} (percentages of the canvas width, y included, so the
 // whole composition scales proportionally) with height fixed by its aspect
-// ratio; text blocks pinned to the canvas render the same way with automatic
-// height. On the published site it renders static; in the editor preview the
-// same component turns interactive: drag to move, drag the corner handle to
-// resize, with an optional grid overlay and snap-to-grid. Every change reports
-// back through onLayoutChange / onTextLayout. Images without a stored layout
-// yet are auto-flowed into rows (flowMissing) and, in the editor, committed
-// once their real aspect ratio is measured.
+// ratio; text blocks and video embeds pinned to the canvas render the same way
+// (texts with automatic height, videos at 16:9). On the published site it
+// renders static; in the editor preview the same component turns interactive:
+// drag to move, drag the corner handle to resize, with an optional grid overlay
+// and snap-to-grid (both controlled from the editor panel via gridPrefs).
+// Every change reports back through onLayoutChange / onTextLayout /
+// onEmbedLayout. Images without a stored layout yet are auto-flowed into rows
+// (flowMissing) and, in the editor, committed once their real aspect ratio is
+// measured.
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { CanvasText, ImageLayout, ResolvedImage, TextLayout } from './types';
+import type { CanvasEmbed, CanvasText, ImageLayout, ResolvedImage, TextLayout } from './types';
 import {
+	bottomOf,
 	canvasHeight,
 	clampLayout,
 	clampTextLayout,
 	DEFAULT_AR,
 	flowMissing,
+	MIN_EMBED_W,
 	MIN_TEXT_W,
 	MIN_W,
 	roundLayout,
@@ -23,37 +27,18 @@ import {
 	snapTo,
 	textBottom,
 } from './canvasLayout';
+import { useGridPrefs } from './gridPrefs';
+import { videoEmbedSrc } from './videoEmbed';
+import { safeHref } from './safeHref';
 import { TextLines } from './TextBlock';
 import './Gallery.css';
-
-/** Grid overlay density choices (vertical columns across the canvas); 0 = off. */
-const GRID_OPTIONS = [0, 8, 12, 16] as const;
-
-/** Editor preference, shared across galleries and sessions (never published). */
-const GRID_PREFS_KEY = 'portfolio-editor.canvas-grid';
-
-interface GridPrefs {
-	cols: number;
-	snap: boolean;
-}
-
-function loadGridPrefs(): GridPrefs {
-	if (typeof window === 'undefined') return { cols: 0, snap: true };
-	try {
-		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs>;
-		return {
-			cols: (GRID_OPTIONS as readonly number[]).includes(parsed.cols ?? -1) ? (parsed.cols as number) : 0,
-			snap: parsed.snap !== false,
-		};
-	} catch {
-		return { cols: 0, snap: true };
-	}
-}
 
 export interface CanvasGalleryProps {
 	images: ResolvedImage[];
 	/** Text blocks pinned to the canvas, rendered inside the composition. */
 	texts?: CanvasText[];
+	/** Video embeds pinned to the canvas, rendered inside the composition. */
+	embeds?: CanvasEmbed[];
 	/** Fallback alt text for images without their own title. */
 	alt?: string;
 	/** Editor preview: enables move/resize instead of the lightbox. */
@@ -62,6 +47,8 @@ export interface CanvasGalleryProps {
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
 	/** Reports a finished move/resize (and height re-measures) per pinned text. */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
+	/** Reports a finished move/resize per pinned video embed. */
+	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
 	/** Published site: open the lightbox for image i. */
 	onOpen?: (index: number) => void;
 }
@@ -69,14 +56,16 @@ export interface CanvasGalleryProps {
 export default function CanvasGallery({
 	images,
 	texts = [],
+	embeds = [],
 	alt = 'Portfolio piece',
 	editable = false,
 	onLayoutChange,
 	onTextLayout,
+	onEmbedLayout,
 	onOpen,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
-	/** Live position of the image being dragged, keyed by id (committed on release). */
+	/** Live position of the item being dragged, keyed by id (committed on release). */
 	const [drafts, setDrafts] = useState<Record<string, ImageLayout>>({});
 	const draftsRef = useRef(drafts);
 	draftsRef.current = drafts;
@@ -88,12 +77,7 @@ export default function CanvasGallery({
 	const [measured, setMeasured] = useState<Record<string, number>>({});
 	const [dragId, setDragId] = useState<string | null>(null);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
-	const [gridPrefs, setGridPrefs] = useState<GridPrefs>(loadGridPrefs);
-
-	useEffect(() => {
-		if (!editable || typeof window === 'undefined') return;
-		window.localStorage.setItem(GRID_PREFS_KEY, JSON.stringify(gridPrefs));
-	}, [editable, gridPrefs]);
+	const gridPrefs = useGridPrefs();
 
 	/** Snap increment in canvas-width % (0 = snapping off). */
 	const snapStep = editable && gridPrefs.cols > 0 && gridPrefs.snap ? 100 / gridPrefs.cols : 0;
@@ -111,13 +95,21 @@ export default function CanvasGallery({
 		(img, i) => drafts[keyOf(img, i)] ?? img.layout ?? flowed.get(i) ?? { x: 0, y: 0, w: 30, ar: DEFAULT_AR },
 	);
 	const textLayouts = shownTexts.map((t) => textDrafts[t.id] ?? t.layout);
-	const height = Math.max(canvasHeight(layouts), ...textLayouts.map(textBottom), 1);
+	const embedLayouts = embeds.map((v) => drafts[v.id] ?? v.layout);
+	const height = Math.max(
+		canvasHeight(layouts),
+		...textLayouts.map(textBottom),
+		...embedLayouts.map(bottomOf),
+		1,
+	);
 
-	// Phones stack the canvas as one column — interleave images and texts by their
-	// vertical position so the stacking follows the composition, not the DOM order.
+	// Phones stack the canvas as one column — interleave images, texts and videos
+	// by their vertical position so the stacking follows the composition, not the
+	// DOM order.
 	const stacked = [
 		...images.map((img, i) => ({ key: `i${keyOf(img, i)}`, y: layouts[i].y })),
 		...shownTexts.map((t, i) => ({ key: `t${t.id}`, y: textLayouts[i].y })),
+		...embeds.map((v, i) => ({ key: `v${v.id}`, y: embedLayouts[i].y })),
 	];
 	const orderOf = new Map(stacked.sort((a, b) => a.y - b.y).map((e, rank) => [e.key, rank]));
 
@@ -161,15 +153,22 @@ export default function CanvasGallery({
 		}
 	});
 
-	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize') => {
-		if (!editable || !img.id || e.button !== 0) return;
+	/** Shared move/resize wiring for images and embeds (both use ImageLayout). */
+	const startItemDrag = (
+		e: React.PointerEvent,
+		id: string,
+		from: ImageLayout,
+		mode: 'move' | 'resize',
+		minW: number,
+		commit: (id: string, layout: ImageLayout) => void,
+	) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 		e.preventDefault();
 		e.stopPropagation();
-		const id = img.id;
+		// Inside the phone-preview iframe the drag must listen on THAT window.
+		const win = canvas.ownerDocument.defaultView ?? window;
 		const scale = 100 / canvas.getBoundingClientRect().width; // px -> canvas-width %
-		const from = layouts[index];
 		const startX = e.clientX;
 		const startY = e.clientY;
 		setDragId(id);
@@ -180,26 +179,36 @@ export default function CanvasGallery({
 			if (mode === 'move') {
 				next = { ...from, x: snapTo(from.x + dx, snapStep), y: snapTo(from.y + dy, snapStep) };
 			} else {
-				// Snap the RIGHT edge to the grid so resized images line up with columns.
+				// Snap the RIGHT edge to the grid so resized items line up with columns.
 				const w = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
-				next = { ...from, w: Math.max(snapTo(from.x + w, snapStep) - from.x, MIN_W) };
+				next = { ...from, w: Math.max(snapTo(from.x + w, snapStep) - from.x, minW) };
 			}
 			setDrafts((d) => ({ ...d, [id]: clampLayout(next) }));
 		};
 		const up = () => {
-			window.removeEventListener('pointermove', move);
-			window.removeEventListener('pointerup', up);
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
 			setDragId(null);
 			const done = draftsRef.current[id];
-			if (done && onLayoutChange) onLayoutChange(id, roundLayout(done));
+			if (done) commit(id, roundLayout(done));
 			setDrafts((d) => {
 				const rest = { ...d };
 				delete rest[id];
 				return rest;
 			});
 		};
-		window.addEventListener('pointermove', move);
-		window.addEventListener('pointerup', up);
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+	};
+
+	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize') => {
+		if (!editable || !img.id || e.button !== 0 || !onLayoutChange) return;
+		startItemDrag(e, img.id, layouts[index], mode, MIN_W, onLayoutChange);
+	};
+
+	const startEmbedDrag = (e: React.PointerEvent, embed: CanvasEmbed, index: number, mode: 'move' | 'resize') => {
+		if (!editable || e.button !== 0 || !onEmbedLayout) return;
+		startItemDrag(e, embed.id, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout);
 	};
 
 	const startTextDrag = (e: React.PointerEvent, text: CanvasText, index: number, mode: 'move' | 'resize') => {
@@ -209,6 +218,7 @@ export default function CanvasGallery({
 		e.preventDefault();
 		e.stopPropagation();
 		const id = text.id;
+		const win = canvas.ownerDocument.defaultView ?? window;
 		const scale = 100 / canvas.getBoundingClientRect().width;
 		const from = textLayouts[index];
 		const startX = e.clientX;
@@ -224,8 +234,8 @@ export default function CanvasGallery({
 			setTextDrafts((d) => ({ ...d, [id]: clampTextLayout(next) }));
 		};
 		const up = () => {
-			window.removeEventListener('pointermove', move);
-			window.removeEventListener('pointerup', up);
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
 			setDragId(null);
 			const done = textDraftsRef.current[id];
 			if (done && onTextLayout) onTextLayout(id, roundTextLayout(done));
@@ -235,11 +245,11 @@ export default function CanvasGallery({
 				return rest;
 			});
 		};
-		window.addEventListener('pointermove', move);
-		window.addEventListener('pointerup', up);
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
 	};
 
-	const canvas = (
+	return (
 		<div
 			ref={canvasRef}
 			className={`canvas-gallery ${editable ? 'editable' : ''}`}
@@ -297,6 +307,56 @@ export default function CanvasGallery({
 					</div>
 				);
 			})}
+			{embeds.map((embed, i) => {
+				const l = embedLayouts[i];
+				const vars = {
+					'--x': String(l.x),
+					'--y': String((l.y / height) * 100),
+					'--w': String(l.w),
+					'--ar': String(l.ar),
+					order: orderOf.get(`v${embed.id}`),
+				} as CSSProperties;
+				const src = videoEmbedSrc(embed.url);
+				const href = src ? null : safeHref(embed.url);
+				return (
+					<div
+						key={embed.id}
+						className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`}
+						style={vars}
+						onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
+					>
+						{src ? (
+							<iframe
+								src={src}
+								title="Embedded video"
+								loading="lazy"
+								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+								allowFullScreen
+							/>
+						) : (
+							<div className="canvas-embed-fallback">
+								{href && /^https?:/.test(href) && !editable ? (
+									<a href={href} target="_blank" rel="noopener">
+										Watch video ↗
+									</a>
+								) : (
+									<span>Video</span>
+								)}
+							</div>
+						)}
+						{/* The iframe swallows pointer events; this shield keeps the video
+						    draggable in the editor (the published site renders it playable). */}
+						{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
+						{editable && (
+							<span
+								className="canvas-resize"
+								onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')}
+								aria-hidden="true"
+							/>
+						)}
+					</div>
+				);
+			})}
 			{shownTexts.map((t, i) => {
 				const l = textLayouts[i];
 				const vars = {
@@ -328,37 +388,6 @@ export default function CanvasGallery({
 					</div>
 				);
 			})}
-		</div>
-	);
-
-	if (!editable) return canvas;
-
-	return (
-		<div className="canvas-editor">
-			<div className="canvas-toolbar">
-				<span className="canvas-toolbar-label">Grid</span>
-				{GRID_OPTIONS.map((n) => (
-					<button
-						key={n}
-						type="button"
-						className={`canvas-tool ${gridPrefs.cols === n ? 'active' : ''}`}
-						onClick={() => setGridPrefs((p) => ({ ...p, cols: n }))}
-						title={n === 0 ? 'Hide the grid overlay' : `Overlay a ${n}-column grid`}
-					>
-						{n === 0 ? 'Off' : String(n)}
-					</button>
-				))}
-				<label className={`canvas-snap ${gridPrefs.cols === 0 ? 'disabled' : ''}`}>
-					<input
-						type="checkbox"
-						checked={gridPrefs.snap && gridPrefs.cols > 0}
-						disabled={gridPrefs.cols === 0}
-						onChange={(e) => setGridPrefs((p) => ({ ...p, snap: e.target.checked }))}
-					/>
-					Snap to grid
-				</label>
-			</div>
-			{canvas}
 		</div>
 	);
 }

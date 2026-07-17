@@ -27,6 +27,11 @@ export function clampLayout(l: ImageLayout): ImageLayout {
 /** Smallest width a canvas text can be resized to, in canvas-width %. */
 export const MIN_TEXT_W = 10;
 
+/** Aspect ratio of an embedded video player pinned to the canvas. */
+export const EMBED_AR = 16 / 9;
+/** Smallest width a canvas video can be resized to, in canvas-width %. */
+export const MIN_EMBED_W = 15;
+
 /** Fallback height for a canvas text whose real height hasn't been measured yet. */
 const TEXT_H_GUESS = 6;
 

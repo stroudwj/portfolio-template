@@ -4,9 +4,31 @@ import { useGitHub } from './useGitHub';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LoadPublishedModal from './LoadPublishedModal';
 import { isLicenseGateEnabled } from '../lib/license/config';
+import { SITE_TEMPLATES, type SiteTemplate } from '../lib/templates';
+
+/** A clickable template card: name, tagline, and the template's own colors/type. */
+function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t: SiteTemplate) => void }) {
+	const { theme } = template.content;
+	return (
+		<button
+			type="button"
+			className="template-card"
+			style={{ background: theme.backgroundColor, color: theme.textColor, fontFamily: theme.fontFamily }}
+			onClick={() => onPick(template)}
+		>
+			<span className="template-sample" style={{ color: theme.accentColor }}>
+				Aa
+			</span>
+			<strong className="template-name">{template.name}</strong>
+			<span className="template-tagline" style={{ color: theme.mutedTextColor }}>
+				{template.tagline}
+			</span>
+		</button>
+	);
+}
 
 export default function StartScreen() {
-	const { startBlank, startExisting, resumeDraft, openDoc, hasDraft } = useEditor();
+	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft } = useEditor();
 	const gh = useGitHub();
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
@@ -22,6 +44,18 @@ export default function StartScreen() {
 	const startFresh = () => {
 		if (!hasDraft || confirm('Start from a blank portfolio? This will discard your saved changes.')) startBlank();
 	};
+	const pickTemplate = (t: SiteTemplate) => {
+		if (!hasDraft || confirm(`Start fresh with the ${t.name} template? This will discard your saved changes.`))
+			startTemplate(t.content);
+	};
+
+	const templatePicker = (
+		<div className="template-grid">
+			{SITE_TEMPLATES.map((t) => (
+				<TemplateCard key={t.id} template={t} onPick={pickTemplate} />
+			))}
+		</div>
+	);
 
 	return (
 		<div className="start">
@@ -46,9 +80,11 @@ export default function StartScreen() {
 								</button>
 							)}
 						</div>
+						<p className="template-lead">Or start fresh with a different look:</p>
+						{templatePicker}
 						<div className="start-links">
 							<button type="button" className="btn-link" onClick={startOver}>
-								Start over from the template
+								Start over from the classic template
 							</button>
 							<button type="button" className="btn-link" onClick={startFresh}>
 								Start from blank
@@ -63,6 +99,8 @@ export default function StartScreen() {
 								Continue editing <span className="btn-sub">(this browser)</span>
 							</button>
 						</div>
+						<p className="template-lead">Or start fresh with a different look:</p>
+						{templatePicker}
 						<div className="start-links">
 							<button
 								type="button"
@@ -73,7 +111,7 @@ export default function StartScreen() {
 								{gh.status === 'checking' ? 'Checking GitHub…' : 'Connect GitHub to edit your published site'}
 							</button>
 							<button type="button" className="btn-link" onClick={startOver}>
-								Start over from the template
+								Start over from the classic template
 							</button>
 							<button type="button" className="btn-link" onClick={startFresh}>
 								Start from blank
@@ -94,6 +132,8 @@ export default function StartScreen() {
 								Start from blank
 							</button>
 						</div>
+						<p className="template-lead">Or pick a different look to start from:</p>
+						{templatePicker}
 						<ol className="how-it-works">
 							<li>Add your details, images, and links — the preview updates as you go.</li>
 							<li>Authorize GitHub in one click{licenseGated ? ' and unlock with your license' : ''}.</li>

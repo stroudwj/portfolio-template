@@ -48,4 +48,6 @@ export interface EditorDoc {
 	pageThumbs: Record<string, SingleImage>;
 	/** custom font name (content.theme.customFonts) -> its uploaded file. */
 	fonts: Record<string, SingleImage>;
+	/** The résumé PDF linked from the About section (empty filename = none). */
+	resumeFile: SingleImage;
 }

@@ -17,6 +17,13 @@ export interface CanvasText {
 	layout: TextLayout;
 }
 
+/** A video embed placed on the freeform canvas (its `layout` is present). */
+export interface CanvasEmbed {
+	id: string;
+	url: string;
+	layout: ImageLayout;
+}
+
 /** An image ready to render: a resolved URL plus its optional caption metadata. */
 export interface ResolvedImage {
 	/** Stable key for React lists (optional). */
@@ -48,6 +55,8 @@ export interface PortfolioData {
 	pageThumbs?: Record<string, string>;
 	/** Custom fonts with resolved URLs (the editor preview passes blob: URLs). */
 	fontFaces?: Array<{ name: string; url: string }>;
+	/** Resolved resume URL override (the editor preview passes a blob: URL). */
+	resumeHref?: string;
 }
 
 export type PageKey = string;

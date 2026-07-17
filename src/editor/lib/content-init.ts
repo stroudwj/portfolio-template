@@ -80,12 +80,14 @@ export function initDocFromContent(content: Content): EditorDoc {
 	for (const font of cloned.theme.customFonts ?? []) {
 		fonts[font.name] = { filename: font.file.slice(font.file.lastIndexOf('/') + 1), assetId: null };
 	}
+	const resumeUrl = cloned.resume?.url ?? '';
 	return {
 		content: cloned,
 		galleries: entriesFromContent(cloned),
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
 		pageThumbs,
 		fonts,
+		resumeFile: { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
 	};
 }
 
@@ -94,7 +96,14 @@ export const existingDoc = (): EditorDoc => initDocFromContent(bundledContent);
 
 /** Upgrade a document saved by an older editor: migrate content, backfill new fields. */
 export function upgradeDoc(doc: EditorDoc): EditorDoc {
-	return { ...doc, content: migrateContent(doc.content), pageThumbs: doc.pageThumbs ?? {}, fonts: doc.fonts ?? {} };
+	const resumeUrl = doc.content.resume?.url ?? '';
+	return {
+		...doc,
+		content: migrateContent(doc.content),
+		pageThumbs: doc.pageThumbs ?? {},
+		fonts: doc.fonts ?? {},
+		resumeFile: doc.resumeFile ?? { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
+	};
 }
 
 /** Live document -> resolved data the shared portfolio components can render. */
@@ -135,5 +144,8 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		return url ? [{ name: font.name, url }] : [];
 	});
 
-	return { content: doc.content, galleries, profileImageSrc, pageThumbs, fontFaces };
+	// A résumé uploaded this session opens from its blob URL in the preview.
+	const resumeHref = getAssetUrl(doc.resumeFile?.assetId);
+
+	return { content: doc.content, galleries, profileImageSrc, pageThumbs, fontFaces, resumeHref };
 }

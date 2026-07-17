@@ -3,6 +3,7 @@ import { EditorProvider, useEditor } from './store';
 import StartScreen from './components/StartScreen';
 import ProfileEditor from './components/ProfileEditor';
 import ThemeEditor from './components/ThemeEditor';
+import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
 import AddPageButton from './components/AddPageButton';
 import SocialLinksEditor from './components/SocialLinksEditor';
@@ -73,6 +74,7 @@ function Shell({ base }: { base: string }) {
 					)}
 					<ProfileEditor />
 					<ThemeEditor />
+					<LayoutEditor />
 					{doc.content.nav.map((item) => (
 						<PageEditor key={item.path || 'home'} pageKey={item.path || 'home'} />
 					))}

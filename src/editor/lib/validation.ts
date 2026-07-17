@@ -27,6 +27,13 @@ export const isImageFile = (file: File): boolean => /^image\//.test(file.type);
 export const FONT_EXTENSIONS = ['woff2', 'woff', 'ttf', 'otf'];
 export const MAX_FONT_BYTES = 5 * 1024 * 1024; // 5 MB
 
+export const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
+export const MAX_PDF_MB = MAX_PDF_BYTES / (1024 * 1024);
+
+/** Résumé uploads: a PDF by MIME type or, failing that, by extension. */
+export const isPdfFile = (file: File): boolean =>
+	file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
 /** Font files often have an empty MIME type, so check the extension. */
 export const isFontFile = (file: File): boolean =>
 	FONT_EXTENSIONS.includes(file.name.toLowerCase().split('.').pop() ?? '');

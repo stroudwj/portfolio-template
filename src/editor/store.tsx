@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { Content, GalleryConfig, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
+import type { Content, GalleryConfig, ImageLayout, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
-import { blankDoc, existingDoc, upgradeDoc } from './lib/content-init';
+import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
 import { registerAsset, restoreAsset, uid } from './lib/assets';
 import { sanitizeFilename } from './lib/validation';
 import {
@@ -57,6 +57,8 @@ export interface EditorContextValue {
 	// lifecycle
 	startBlank(): void;
 	startExisting(): void;
+	/** Start a fresh document from one of the bundled site templates. */
+	startTemplate(content: Content): void;
 	resumeDraft(): Promise<void>;
 	/** Open a fully-formed document (e.g. one loaded from GitHub, assets already registered). */
 	openDoc(doc: EditorDoc): void;
@@ -67,6 +69,10 @@ export interface EditorContextValue {
 	setEmail(value: string): void;
 	setProfileImage(file: File): void;
 	removeProfileImage(): void;
+	/** Upload the résumé PDF linked from the About section. */
+	setResumeFile(file: File): void;
+	/** Remove the résumé entirely (no link shown on the site). */
+	removeResume(): void;
 	// theme
 	setTheme(patch: Partial<Theme>): void;
 	/** Register an uploaded font file and select it as the site font. */
@@ -96,6 +102,8 @@ export interface EditorContextValue {
 	setGalleryConfig(key: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>): void;
 	addEmbedBlock(key: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
+	/** Pin a video embed to the page canvas (or undefined to return it to the flow). */
+	setEmbedLayout(key: string, blockId: string, layout: ImageLayout | undefined): void;
 	removeBlock(key: string, blockId: string): void;
 	moveBlock(key: string, from: number, to: number): void;
 	// galleries
@@ -154,6 +162,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
 		startBlank: () => setDoc(blankDoc()),
 		startExisting: () => setDoc(existingDoc()),
+		startTemplate: (content) => setDoc(initDocFromContent(content)),
 		resumeDraft: async () => {
 			const stored = await loadAllAssetBlobs();
 			for (const a of stored) restoreAsset(a.id, a.blob, a.filename);
@@ -180,6 +189,32 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			setDoc((prev) => (prev ? { ...prev, profileImage: { filename: file.name, assetId } } : prev));
 		},
 		removeProfileImage: () => setDoc((prev) => (prev ? { ...prev, profileImage: { filename: '', assetId: null } } : prev)),
+
+		setResumeFile: (file) => {
+			const assetId = registerAsset(file, file.name);
+			setDoc((prev) =>
+				prev
+					? {
+							...prev,
+							resumeFile: { filename: file.name, assetId },
+							content: {
+								...prev.content,
+								resume: { label: prev.content.resume?.label || 'Résumé', url: sanitizeFilename(file.name) },
+							},
+						}
+					: prev,
+			);
+		},
+		removeResume: () =>
+			setDoc((prev) =>
+				prev
+					? {
+							...prev,
+							resumeFile: { filename: '', assetId: null },
+							content: { ...prev.content, resume: { label: prev.content.resume?.label || 'Résumé', url: '' } },
+						}
+					: prev,
+			),
 
 		setTheme: (patch) => patchContent((c) => ({ ...c, theme: { ...c.theme, ...patch } })),
 
@@ -381,6 +416,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),
+		setEmbedLayout: (key, blockId, layout) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, layout } : b)),
+			),
 		removeBlock: (key, blockId) => patchBlocks(key, (blocks) => blocks.filter((b) => b.id !== blockId)),
 		moveBlock: (key, from, to) => patchBlocks(key, (blocks) => arrayMove(blocks, from, to)),
 

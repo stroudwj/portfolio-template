@@ -95,6 +95,21 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		if (pageKey && content.pages[pageKey].gallery) content.pages[pageKey].gallery!.order = 'asc';
 	}
 
+	// Résumé PDF, served from public/ at the site root. Uploaded this session ->
+	// write the file and point resume.url at it; loaded from the repo without
+	// re-upload -> the existing public/ file stays (publish only manages
+	// src/assets/), so keep the reference; removed -> clear the reference.
+	if (doc.resumeFile?.filename) {
+		const resumeBlob = getAssetBlob(doc.resumeFile.assetId);
+		if (resumeBlob) {
+			const finalName = sanitizeFilename(doc.resumeFile.filename);
+			files.push({ path: `public/${finalName}`, bytes: new Uint8Array(await resumeBlob.arrayBuffer()) });
+			content.resume = { label: content.resume?.label || 'Résumé', url: finalName };
+		}
+	} else if (content.resume) {
+		content.resume = { ...content.resume, url: '' };
+	}
+
 	// Profile image.
 	const profileBlob = getAssetBlob(doc.profileImage.assetId);
 	if (profileBlob) {

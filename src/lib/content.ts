@@ -29,6 +29,8 @@ export interface Theme {
 	mutedTextColor: string;
 	accentColor: string;
 	fontFamily: string;
+	/** Extra space (px) between the site header and the page content. Absent = 0. */
+	contentGap?: number;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
 }
@@ -96,13 +98,14 @@ export interface TextLayout {
 
 /**
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
- * 'embed' is a YouTube/Vimeo video; 'gallery' renders the page's gallery;
- * 'children' renders the page's sub-pages as thumbnail cards; 'about' renders
- * the profile section (bio, email, social links).
+ * 'embed' is a YouTube/Vimeo video (its optional `layout` pins the player onto
+ * the page's freeform canvas, like images); 'gallery' renders the page's
+ * gallery; 'children' renders the page's sub-pages as thumbnail cards; 'about'
+ * renders the profile section (bio, email, social links).
  */
 export type PageBlock =
 	| { id: string; type: 'text'; text: string; align?: TextAlign; layout?: TextLayout }
-	| { id: string; type: 'embed'; url: string }
+	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'children' }
 	| { id: string; type: 'about' };

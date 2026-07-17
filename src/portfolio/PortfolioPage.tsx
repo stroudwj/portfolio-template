@@ -5,8 +5,8 @@ import About from './About';
 import TextBlock from './TextBlock';
 import Embed from './Embed';
 import ChildPages from './ChildPages';
-import { withBase, type CanvasText, type PortfolioData, type TextLayout } from './types';
-import { clampTextLayout, MIN_TEXT_W, roundTextLayout } from './canvasLayout';
+import { withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
+import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
 
 export interface PortfolioPageProps extends PortfolioData {
@@ -19,14 +19,33 @@ export interface PortfolioPageProps extends PortfolioData {
 	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
 	/** Editor preview: reports a text block placed/moved on the page canvas. */
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
+	/** Editor preview: reports a video embed placed/moved on the page canvas. */
+	onEmbedLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+}
+
+/** Where a flow block was released, in canvas-width % of the page's canvas. */
+interface DropBox {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
 }
 
 /**
- * Editor-only wrapper that lets a flow text block be dragged onto the page's
- * freeform canvas: it follows the pointer, and dropping it inside the canvas
- * reports an equivalent canvas placement (same spot the text was released).
+ * Editor-only wrapper that lets a flow block (text or video) be dragged onto the
+ * page's freeform canvas: it follows the pointer, and dropping it inside the
+ * canvas reports an equivalent canvas placement (same spot it was released).
  */
-function DraggableFlowText({ children, onPlace }: { children: React.ReactNode; onPlace: (layout: TextLayout) => void }) {
+function DraggableFlowBlock({
+	children,
+	boxSelector,
+	onPlace,
+}: {
+	children: React.ReactNode;
+	/** The visible box inside the wrapper (the wrapper spans full width). */
+	boxSelector: string;
+	onPlace: (box: DropBox) => void;
+}) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [delta, setDelta] = useState<{ x: number; y: number } | null>(null);
 
@@ -38,6 +57,7 @@ function DraggableFlowText({ children, onPlace }: { children: React.ReactNode; o
 		const canvas = (el.closest('.portfolio-root') ?? document).querySelector('.canvas-gallery');
 		if (!canvas) return;
 		e.preventDefault();
+		const win = el.ownerDocument.defaultView ?? window;
 		const startX = e.clientX;
 		const startY = e.clientY;
 		let moved = false;
@@ -48,8 +68,8 @@ function DraggableFlowText({ children, onPlace }: { children: React.ReactNode; o
 			setDelta({ x: dx, y: dy });
 		};
 		const up = (ev: PointerEvent) => {
-			window.removeEventListener('pointermove', move);
-			window.removeEventListener('pointerup', up);
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
 			setDelta(null);
 			if (!moved) return;
 			const rect = canvas.getBoundingClientRect();
@@ -57,22 +77,17 @@ function DraggableFlowText({ children, onPlace }: { children: React.ReactNode; o
 			// Only pin when the pointer lets go inside the canvas; otherwise snap back.
 			if (ev.clientX < rect.left || ev.clientX > rect.right || ev.clientY < rect.top || ev.clientY > rect.bottom)
 				return;
-			// The paragraph is the visible text box (the wrapper spans full width).
-			const box = (el.querySelector('p') ?? el).getBoundingClientRect();
+			const box = (el.querySelector(boxSelector) ?? el).getBoundingClientRect();
 			const scale = 100 / rect.width; // px -> canvas-width %
-			onPlace(
-				roundTextLayout(
-					clampTextLayout({
-						x: (box.left - rect.left) * scale,
-						y: (box.top - rect.top) * scale,
-						w: Math.min(Math.max(box.width * scale, MIN_TEXT_W), 100),
-						h: box.height * scale,
-					}),
-				),
-			);
+			onPlace({
+				x: (box.left - rect.left) * scale,
+				y: (box.top - rect.top) * scale,
+				w: box.width * scale,
+				h: box.height * scale,
+			});
 		};
-		window.addEventListener('pointermove', move);
-		window.addEventListener('pointerup', up);
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
 	};
 
 	return (
@@ -93,7 +108,7 @@ function DraggableFlowText({ children, onPlace }: { children: React.ReactNode; o
  * so the page composition lives in exactly one place. Content is always migrated
  * (migrateContent) before it gets here, so `blocks` is present.
  */
-export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, base, onNavigate, onImageLayout, onTextLayout }: PortfolioPageProps) {
+export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioPageProps) {
 	const config = content.pages[page];
 	if (!config) return null;
 	const gallery = config.gallery;
@@ -101,14 +116,18 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 	const onLayoutChange =
 		onImageLayout && gallery ? (id: string, layout: ImageLayout) => onImageLayout(gallery.folder, id, layout) : undefined;
 	const textLayoutChange = onTextLayout ? (id: string, layout: TextLayout) => onTextLayout(page, id, layout) : undefined;
+	const embedLayoutChange = onEmbedLayout ? (id: string, layout: ImageLayout) => onEmbedLayout(page, id, layout) : undefined;
 
-	// Text pins to the canvas only when the page renders one (freeform gallery).
+	// Text and videos pin to the canvas only when the page renders one (freeform gallery).
 	const blocks = config.blocks ?? [];
 	const hasCanvas = !!gallery && gallery.layout !== 'grid' && blocks.some((b) => b.type === 'gallery');
 	const canvasTexts: CanvasText[] = hasCanvas
 		? blocks.flatMap((b) =>
 				b.type === 'text' && b.layout ? [{ id: b.id, text: b.text, align: b.align, layout: b.layout }] : [],
 			)
+		: [];
+	const canvasEmbeds: CanvasEmbed[] = hasCanvas
+		? blocks.flatMap((b) => (b.type === 'embed' && b.layout ? [{ id: b.id, url: b.url, layout: b.layout }] : []))
 		: [];
 
 	const renderBlock = (block: PageBlock) => {
@@ -117,18 +136,48 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				// Pinned texts render inside the canvas instead of the page flow.
 				if (hasCanvas && block.layout) return null;
 				return textLayoutChange && hasCanvas ? (
-					<DraggableFlowText key={block.id} onPlace={(layout) => textLayoutChange(block.id, layout)}>
+					<DraggableFlowBlock
+						key={block.id}
+						boxSelector="p"
+						onPlace={(box) =>
+							textLayoutChange(
+								block.id,
+								roundTextLayout(
+									clampTextLayout({ x: box.x, y: box.y, w: Math.min(Math.max(box.w, MIN_TEXT_W), 100), h: box.h }),
+								),
+							)
+						}
+					>
 						<TextBlock text={block.text} align={block.align} />
-					</DraggableFlowText>
+					</DraggableFlowBlock>
 				) : (
 					<TextBlock key={block.id} text={block.text} align={block.align} />
 				);
 			case 'embed':
-				return <Embed key={block.id} url={block.url} />;
+				// Pinned videos render inside the canvas instead of the page flow.
+				if (hasCanvas && block.layout) return null;
+				return embedLayoutChange && hasCanvas && block.url.trim() ? (
+					<DraggableFlowBlock
+						key={block.id}
+						boxSelector="iframe, .embed-fallback"
+						onPlace={(box) =>
+							embedLayoutChange(
+								block.id,
+								roundLayout(
+									clampLayout({ x: box.x, y: box.y, w: Math.min(Math.max(box.w, MIN_EMBED_W), 100), ar: EMBED_AR }),
+								),
+							)
+						}
+					>
+						<Embed url={block.url} />
+					</DraggableFlowBlock>
+				) : (
+					<Embed key={block.id} url={block.url} />
+				);
 			case 'about': {
 				const resume =
-					content.resume && content.resume.url
-						? { label: content.resume.label, href: withBase(base, content.resume.url) }
+					resumeHref || (content.resume && content.resume.url)
+						? { label: content.resume?.label || 'Résumé', href: resumeHref ?? withBase(base, content.resume.url) }
 						: null;
 				return (
 					<About
@@ -158,9 +207,11 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 						alt={gallery?.alt}
 						settings={gallery}
 						texts={canvasTexts}
+						embeds={canvasEmbeds}
 						editable={!!onLayoutChange}
 						onLayoutChange={onLayoutChange}
 						onTextLayout={textLayoutChange}
+						onEmbedLayout={embedLayoutChange}
 					/>
 				);
 				// Home keeps its collage layout; other pages the standard wrapper (the

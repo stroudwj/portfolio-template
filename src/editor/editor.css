@@ -339,7 +339,7 @@
 .preview-surface {
 	flex: 1;
 	min-height: 0;
-	margin: 12px;
+	margin: 8px 12px 12px;
 	border: 1px solid var(--ui-border);
 	border-radius: 12px;
 	overflow: auto;
@@ -347,6 +347,194 @@
 	/* Contain the portfolio's fixed sidebar within this pane, not the viewport. */
 	transform: translateZ(0);
 	background: #fff;
+}
+
+/* Toolbar above the preview: device toggle + fullscreen. */
+.preview-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 12px 12px 0;
+	flex-shrink: 0;
+}
+.device-toggle {
+	display: flex;
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--ui-surface);
+}
+.device-toggle button {
+	border: 0;
+	background: transparent;
+	padding: 5px 12px;
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+	color: var(--ui-muted);
+}
+.device-toggle button.active {
+	background: var(--ui-accent);
+	color: #fff;
+}
+.preview-hint {
+	flex: 1;
+	font-size: 0.78rem;
+	color: var(--ui-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.preview-expand {
+	white-space: nowrap;
+	background: var(--ui-surface);
+}
+
+/* Fullscreen: the preview takes over the whole browser window (published look). */
+.preview.preview-fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 300;
+	background: var(--ui-bg);
+}
+
+/* Phone preview: a real iframe viewport at phone width inside a device frame. */
+.preview-surface.phone-surface {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--ui-bg);
+	transform: none;
+	overflow: auto;
+	padding: 16px 0;
+}
+.phone-frame {
+	width: 390px;
+	max-width: calc(100% - 24px);
+	height: min(844px, 100%);
+	min-height: 320px;
+	border: 10px solid #1c2024;
+	border-radius: 34px;
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+.device-frame {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	background: #fff;
+}
+
+/* ---- Layout section: canvas grid + header gap ---- */
+.grid-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.grid-snap {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-left: 10px;
+	font-size: 0.8rem;
+	color: var(--ui-muted);
+	cursor: pointer;
+	user-select: none;
+}
+.grid-snap.disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+.grid-snap input {
+	accent-color: var(--ui-accent);
+	margin: 0;
+}
+.gap-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.gap-row input[type='range'] {
+	flex: 1;
+	accent-color: var(--ui-accent);
+	cursor: ew-resize;
+}
+.gap-input {
+	width: 72px;
+	flex: none;
+	text-align: right;
+}
+.gap-unit {
+	font-size: 0.8rem;
+	color: var(--ui-muted);
+}
+
+/* ---- Profile: résumé row ---- */
+.resume-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.resume-name {
+	font-size: 0.85rem;
+	color: var(--ui-text);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
+}
+a.resume-name {
+	color: var(--ui-accent);
+}
+
+/* ---- Start screen: template picker ---- */
+.template-lead {
+	color: var(--ui-muted);
+	font-size: 0.85rem;
+	margin: 22px 0 10px;
+}
+.template-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+.template-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	text-align: left;
+	border: 1px solid var(--ui-border);
+	border-radius: 12px;
+	padding: 14px 16px;
+	cursor: pointer;
+	transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.template-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.template-sample {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1;
+}
+.template-name {
+	font-size: 0.95rem;
+}
+.template-tagline {
+	font-size: 0.76rem;
+	line-height: 1.45;
+}
+@media (max-width: 560px) {
+	.template-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 /* ---- Start screen ---- */

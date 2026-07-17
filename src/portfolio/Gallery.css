@@ -168,57 +168,42 @@
 	box-shadow: inset -1px -1px 0 rgba(37, 99, 235, 0.22);
 }
 
-/* Editor toolbar above the canvas: grid density + snap. */
-.canvas-toolbar {
+/* Video embeds pinned to the canvas: the iframe fills the 16:9 item box. */
+.canvas-item.canvas-embed-item iframe {
+	width: 100%;
+	height: 100%;
+	border: 0;
+	display: block;
+	background: #000;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Invalid/unrecognized link: a placeholder box instead of a player. */
+.canvas-embed-fallback {
+	width: 100%;
+	height: 100%;
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	margin-bottom: 8px;
-	font-size: 0.75rem;
+	justify-content: center;
+	background: rgba(127, 127, 127, 0.12);
+	border: 1px dashed rgba(127, 127, 127, 0.4);
 	color: var(--color-text-muted);
-	user-select: none;
+	font-family: var(--font-family);
+	font-size: 0.9rem;
 }
 
-.canvas-toolbar-label {
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	font-weight: 600;
-	margin-right: 2px;
+.canvas-embed-fallback a {
+	color: var(--color-accent);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
 }
 
-.canvas-tool {
-	border: 1px solid rgba(127, 127, 127, 0.35);
-	background: transparent;
-	color: var(--color-text-muted);
-	border-radius: 6px;
-	padding: 2px 8px;
-	font-size: 0.75rem;
-	line-height: 1.4;
-	cursor: pointer;
-}
-
-.canvas-tool.active {
-	background: #2563eb;
-	border-color: #2563eb;
-	color: #fff;
-}
-
-.canvas-snap {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-	margin-left: 10px;
-	cursor: pointer;
-}
-
-.canvas-snap.disabled {
-	opacity: 0.45;
-	cursor: default;
-}
-
-.canvas-snap input {
-	accent-color: #2563eb;
-	margin: 0;
+/* Editor: a transparent layer over the iframe so drags reach the canvas item
+   (iframes swallow pointer events). The published site omits it — playable. */
+.canvas-embed-shield {
+	position: absolute;
+	inset: 0;
+	cursor: grab;
 }
 
 .canvas-gallery:not(.editable) .canvas-item img {
@@ -286,6 +271,10 @@
 	.canvas-gallery:not(.editable) .canvas-item img {
 		height: auto;
 		object-fit: unset;
+	}
+	/* Videos have no intrinsic height — keep the player 16:9 when stacked. */
+	.canvas-gallery:not(.editable) .canvas-item.canvas-embed-item {
+		aspect-ratio: var(--ar, 1.7778);
 	}
 }
 

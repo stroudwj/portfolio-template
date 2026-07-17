@@ -149,6 +149,19 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						/>
 						{invalid ? (
 							<span className="field-error">That doesn’t look like a YouTube or Vimeo link.</span>
+						) : block.layout ? (
+							<p className="muted">
+								Placed on the canvas — drag it to move, drag its corner handle to resize.{' '}
+								<button
+									type="button"
+									className="btn-link"
+									onClick={() => editor.setEmbedLayout(pageKey, block.id, undefined)}
+								>
+									Back to normal flow
+								</button>
+							</p>
+						) : hasFreeCanvas && !!block.url.trim() ? (
+							<p className="muted">Drag this video in the preview to place it anywhere on the canvas.</p>
 						) : (
 							<p className="muted">The video plays right on your page.</p>
 						)}

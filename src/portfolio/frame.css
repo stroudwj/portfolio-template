@@ -32,7 +32,8 @@
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	padding: 0;
+	/* Adjustable gap between the site header and the page content (Layout editor). */
+	padding: var(--content-gap, 0px) 0 0;
 }
 
 /* Per-page body wrappers (ported from the Phase 1 page files). */

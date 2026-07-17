@@ -32,11 +32,16 @@
 	}
 }
 
-/* Editor preview: a flow text block can be dragged onto the page canvas. */
+/* Editor preview: a flow block (text or video) can be dragged onto the page canvas. */
 .flow-text-draggable {
 	cursor: grab;
 	touch-action: none;
 	user-select: none;
+}
+/* The iframe would swallow the drag start — let the wrapper receive it instead
+   (the published site renders the embed without this wrapper, fully playable). */
+.flow-text-draggable iframe {
+	pointer-events: none;
 }
 .flow-text-draggable:hover {
 	outline: 2px dashed rgba(37, 99, 235, 0.5);
