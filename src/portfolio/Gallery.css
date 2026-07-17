@@ -60,6 +60,45 @@
 	font-size: 1rem;
 }
 
+/* ---- Uniform grid (classic auto-arranged layout) ----
+   A plain N-column grid: every image the same width, optionally cropped to one
+   aspect ratio (--cell-ar) so rows line up perfectly. No manual placement. */
+.uniform-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+	gap: 1.25rem;
+	align-items: start;
+}
+
+.uniform-item img {
+	width: 100%;
+	height: auto;
+	display: block;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+}
+
+.uniform-grid.cropped .uniform-item img {
+	aspect-ratio: var(--cell-ar, 1);
+	object-fit: cover;
+}
+
+.uniform-item img.lightbox-trigger {
+	cursor: zoom-in;
+}
+
+.uniform-item img.lightbox-trigger:hover {
+	transform: scale(1.02);
+	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Phones: single column like every other layout. */
+@media (max-width: 639px) {
+	.uniform-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 /* ---- Freeform canvas (the modern image system) ----
    The container's height is data-driven: --ch is the layout's total height in
    canvas-width units, so `aspect-ratio: 100 / var(--ch)` keeps the whole
@@ -86,6 +125,100 @@
 	display: block;
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	transition: box-shadow 0.3s ease;
+}
+
+/* Text pinned to the canvas: width from its layout, height from its content. */
+.canvas-item.canvas-text-item {
+	aspect-ratio: auto;
+	height: auto;
+}
+
+.canvas-text {
+	color: var(--color-text);
+	font-family: var(--font-family);
+	font-size: 1rem;
+	line-height: 1.75;
+	word-wrap: break-word;
+}
+
+.canvas-text.align-center {
+	text-align: center;
+}
+
+.canvas-text.align-right {
+	text-align: right;
+}
+
+.canvas-text-empty {
+	color: var(--color-text-muted);
+	font-size: 0.85rem;
+}
+
+/* Editor grid overlay: --gn columns across, --gh (precomputed) per cell down.
+   Sits above the images (pointer-events off) so lines stay visible for lining
+   things up; the dragged item (z-index 10) still renders above it. */
+.canvas-grid-overlay {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 4;
+	background-image: linear-gradient(to right, rgba(37, 99, 235, 0.22) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(37, 99, 235, 0.22) 1px, transparent 1px);
+	background-size: calc(100% / var(--gn, 12)) var(--gh, 8.333%);
+	box-shadow: inset -1px -1px 0 rgba(37, 99, 235, 0.22);
+}
+
+/* Editor toolbar above the canvas: grid density + snap. */
+.canvas-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 8px;
+	font-size: 0.75rem;
+	color: var(--color-text-muted);
+	user-select: none;
+}
+
+.canvas-toolbar-label {
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-weight: 600;
+	margin-right: 2px;
+}
+
+.canvas-tool {
+	border: 1px solid rgba(127, 127, 127, 0.35);
+	background: transparent;
+	color: var(--color-text-muted);
+	border-radius: 6px;
+	padding: 2px 8px;
+	font-size: 0.75rem;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.canvas-tool.active {
+	background: #2563eb;
+	border-color: #2563eb;
+	color: #fff;
+}
+
+.canvas-snap {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-left: 10px;
+	cursor: pointer;
+}
+
+.canvas-snap.disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.canvas-snap input {
+	accent-color: #2563eb;
+	margin: 0;
 }
 
 .canvas-gallery:not(.editable) .canvas-item img {
@@ -135,11 +268,14 @@
 	opacity: 1;
 }
 
-/* Phones (published site): stack the composition as a single column in list
-   order — absolute placement at phone width would make images unreadably small. */
+/* Phones (published site): stack the composition as a single column — absolute
+   placement at phone width would make images unreadably small. Flex + the
+   per-item `order` (rank by canvas y) keeps top-to-bottom composition order. */
 @media (max-width: 639px) {
 	.canvas-gallery:not(.editable) {
 		aspect-ratio: auto;
+		display: flex;
+		flex-direction: column;
 	}
 	.canvas-gallery:not(.editable) .canvas-item {
 		position: static;

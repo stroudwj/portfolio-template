@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { Content, SocialLink, Theme, PageBlock, PageConfig, TextAlign } from '../lib/content';
+import type { Content, GalleryConfig, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, upgradeDoc } from './lib/content-init';
 import { registerAsset, restoreAsset, uid } from './lib/assets';
@@ -90,6 +90,10 @@ export interface EditorContextValue {
 	addTextBlock(key: string): void;
 	updateTextBlock(key: string, blockId: string, text: string): void;
 	setTextAlign(key: string, blockId: string, align: TextAlign): void;
+	/** Pin a text block to the page canvas (or undefined to return it to the flow). */
+	setTextLayout(key: string, blockId: string, layout: TextLayout | undefined): void;
+	/** Change gallery display settings (freeform/grid, columns, crop aspect). */
+	setGalleryConfig(key: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>): void;
 	addEmbedBlock(key: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	removeBlock(key: string, blockId: string): void;
@@ -368,6 +372,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					b.id === blockId && b.type === 'text' ? { ...b, align: align === 'left' ? undefined : align } : b,
 				),
 			),
+		setTextLayout: (key, blockId, layout) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) => (b.id === blockId && b.type === 'text' ? { ...b, layout } : b)),
+			),
+		setGalleryConfig: (key, patch) =>
+			patchPage(key, (page) => (page.gallery ? { ...page, gallery: { ...page.gallery, ...patch } } : page)),
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),

@@ -8,12 +8,23 @@ import ImageCollectionEditor from './ImageCollectionEditor';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetUrl } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import { uniformColumns } from '../../portfolio/Gallery';
 import type { PageBlock, TextAlign } from '../../lib/content';
 
 const ALIGNMENTS: Array<{ value: TextAlign; label: string; title: string }> = [
 	{ value: 'left', label: 'L', title: 'Align left' },
 	{ value: 'center', label: 'C', title: 'Align center' },
 	{ value: 'right', label: 'R', title: 'Align right' },
+];
+
+const CROP_OPTIONS: Array<{ value: string; label: string }> = [
+	{ value: '', label: 'Original (no crop)' },
+	{ value: '1:1', label: 'Square 1:1' },
+	{ value: '4:3', label: 'Landscape 4:3' },
+	{ value: '3:2', label: 'Landscape 3:2' },
+	{ value: '16:9', label: 'Wide 16:9' },
+	{ value: '3:4', label: 'Portrait 3:4' },
+	{ value: '2:3', label: 'Portrait 2:3' },
 ];
 
 export default function PageEditor({ pageKey, nested = false }: { pageKey: string; nested?: boolean }) {
@@ -24,6 +35,9 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	if (!page) return null;
 	const isHome = pageKey === 'home';
 	const blocks = page.blocks ?? [];
+	const galleryMode = page.gallery?.layout === 'grid' ? 'grid' : 'freeform';
+	/** Text can be dragged onto the canvas only when the page shows a freeform gallery. */
+	const hasFreeCanvas = !!page.gallery && galleryMode === 'freeform' && blocks.some((b) => b.type === 'gallery');
 
 	const removeThisPage = () => {
 		const extra = page.children?.length ? ' and its sub-pages' : '';
@@ -99,6 +113,23 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							placeholder="Write something… One blank line makes a paragraph break."
 							onChange={(e) => editor.updateTextBlock(pageKey, block.id, e.target.value)}
 						/>
+						{block.layout ? (
+							<p className="muted">
+								Placed on the canvas — drag it in the preview.{' '}
+								<button
+									type="button"
+									className="btn-link"
+									onClick={() => editor.setTextLayout(pageKey, block.id, undefined)}
+								>
+									Back to normal flow
+								</button>
+							</p>
+						) : (
+							hasFreeCanvas &&
+							!!block.text.trim() && (
+								<p className="muted">Drag this text in the preview to place it anywhere on the canvas.</p>
+							)
+						)}
 					</div>
 				);
 			}
@@ -129,8 +160,62 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 					<div className="block" key={block.id}>
 						<div className="block-head">
 							<span className="block-label">Images</span>
+							{page.gallery && (
+								<div className="align-toggle" role="group" aria-label="Image layout">
+									<button
+										type="button"
+										className={`btn-icon btn-chip ${galleryMode === 'freeform' ? 'active' : ''}`}
+										title="Freeform canvas — drag images anywhere in the preview"
+										aria-pressed={galleryMode === 'freeform'}
+										onClick={() => editor.setGalleryConfig(pageKey, { layout: undefined })}
+									>
+										Freeform
+									</button>
+									<button
+										type="button"
+										className={`btn-icon btn-chip ${galleryMode === 'grid' ? 'active' : ''}`}
+										title="Auto grid — images arrange themselves in neat rows"
+										aria-pressed={galleryMode === 'grid'}
+										onClick={() => editor.setGalleryConfig(pageKey, { layout: 'grid' })}
+									>
+										Grid
+									</button>
+								</div>
+							)}
 							{controls(index, block, false)}
 						</div>
+						{page.gallery && galleryMode === 'grid' && (
+							<div className="grid-options">
+								<label className="grid-option">
+									Columns
+									<select
+										className="select-input"
+										value={uniformColumns(page.gallery.columns)}
+										onChange={(e) => editor.setGalleryConfig(pageKey, { columns: Number(e.target.value) })}
+									>
+										{[1, 2, 3, 4, 5, 6].map((n) => (
+											<option key={n} value={n}>
+												{n}
+											</option>
+										))}
+									</select>
+								</label>
+								<label className="grid-option">
+									Crop
+									<select
+										className="select-input"
+										value={page.gallery.aspect ?? ''}
+										onChange={(e) => editor.setGalleryConfig(pageKey, { aspect: e.target.value || undefined })}
+									>
+										{CROP_OPTIONS.map((o) => (
+											<option key={o.value} value={o.value}>
+												{o.label}
+											</option>
+										))}
+									</select>
+								</label>
+							</div>
+						)}
 						{page.gallery && (
 							<ImageCollectionEditor
 								embedded
@@ -138,6 +223,11 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 								variant={isHome ? 'projects' : 'gallery'}
 								addLabel="+ Add image(s)"
 								emptyLabel="No images yet."
+								hint={
+									galleryMode === 'grid'
+										? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
+										: undefined
+								}
 							/>
 						)}
 					</div>

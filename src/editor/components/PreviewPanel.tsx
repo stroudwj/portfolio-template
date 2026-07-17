@@ -37,6 +37,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 					base={base}
 					onNavigate={navigate}
 					onImageLayout={(folder, id, layout) => editor.updateGalleryMeta(folder, id, { layout })}
+					onTextLayout={(pageKey, blockId, layout) => editor.setTextLayout(pageKey, blockId, layout)}
 				/>
 			</div>
 		</div>

@@ -61,6 +61,8 @@ export interface Resume {
 	url: string;
 }
 
+export type GalleryLayoutMode = 'freeform' | 'grid';
+
 export interface GalleryConfig {
 	/** Folder name under src/assets/ that holds this gallery's images. */
 	folder: string;
@@ -68,9 +70,29 @@ export interface GalleryConfig {
 	alt: string;
 	/** 'asc' keeps file-name order; 'desc' reverses it (newest-named first). */
 	order: 'asc' | 'desc';
+	/** 'grid' auto-arranges images in uniform rows; absent/'freeform' is the drag-anywhere canvas. */
+	layout?: GalleryLayoutMode;
+	/** Grid mode: images per row (1–6, default 3). */
+	columns?: number;
+	/** Grid mode: crop ratio like "1:1" or "4:3"; absent = original ratios (no crop). */
+	aspect?: string;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';
+
+/**
+ * Freeform placement of a text block on the page canvas. Same coordinate
+ * system as ImageLayout: x, y and w are percentages of the canvas WIDTH.
+ * `h` is the text's rendered height (also in canvas-width %), measured in the
+ * editor so the canvas can reserve room for it; text height doesn't scale
+ * perfectly with viewport width, so it is an estimate, not a crop box.
+ */
+export interface TextLayout {
+	x: number;
+	y: number;
+	w: number;
+	h?: number;
+}
 
 /**
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
@@ -79,7 +101,7 @@ export type TextAlign = 'left' | 'center' | 'right';
  * the profile section (bio, email, social links).
  */
 export type PageBlock =
-	| { id: string; type: 'text'; text: string; align?: TextAlign }
+	| { id: string; type: 'text'; text: string; align?: TextAlign; layout?: TextLayout }
 	| { id: string; type: 'embed'; url: string }
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'children' }

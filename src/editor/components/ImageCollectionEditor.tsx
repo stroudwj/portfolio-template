@@ -17,9 +17,11 @@ export interface ImageCollectionEditorProps {
 	emptyLabel: string;
 	/** Render without the Section wrapper (when embedded inside a PageEditor block). */
 	embedded?: boolean;
+	/** Overrides the default "arrange in the preview" helper line. */
+	hint?: string;
 }
 
-export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded }: ImageCollectionEditorProps) {
+export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded, hint }: ImageCollectionEditorProps) {
 	const { doc, addGalleryImages, removeGalleryImage, moveGalleryImage, updateGalleryMeta } = useEditor();
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
@@ -35,8 +37,8 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 			) : (
 				<>
 				<p className="muted">
-					Arrange images in the live preview — drag one to move it, drag its corner handle to resize. ⠿ here sets
-					the stacking and phone order.
+					{hint ??
+						'Arrange images in the live preview — drag one to move it, drag its corner handle to resize. ⠿ here sets the stacking and phone order.'}
 				</p>
 				<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
 					<div className="card-list">

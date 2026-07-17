@@ -699,6 +699,38 @@
 	font-weight: 700;
 }
 
+/* Chip-sized toggle (e.g. Freeform / Grid) — a btn-icon that fits a word. */
+.btn-icon.btn-chip {
+	width: auto;
+	padding: 0 9px;
+	font-weight: 600;
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+/* Grid-mode options inside the Images block. */
+.grid-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin: 4px 0 10px;
+}
+.grid-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.78rem;
+	color: var(--ui-muted);
+}
+.select-input {
+	border: 1px solid var(--ui-border);
+	background: #fff;
+	border-radius: 6px;
+	padding: 4px 6px;
+	font-size: 0.82rem;
+	color: var(--ui-text);
+}
+
 /* ---- Uploaded font rows ---- */
 .font-row {
 	display: flex;

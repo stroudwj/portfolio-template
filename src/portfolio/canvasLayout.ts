@@ -1,7 +1,7 @@
 // Geometry for the freeform image canvas. All units are percentages of the
 // canvas WIDTH — including y — so a saved layout scales proportionally at any
 // viewport size and the canvas's total height reduces to one aspect ratio.
-import type { ImageLayout } from '../lib/content';
+import type { ImageLayout, TextLayout } from '../lib/content';
 
 export const DEFAULT_AR = 4 / 3;
 /** Smallest width an image can be resized to, in canvas-width %. */
@@ -24,6 +24,25 @@ export function clampLayout(l: ImageLayout): ImageLayout {
 	return { ...l, w, x: Math.min(Math.max(l.x, 0), 100 - w), y: Math.max(l.y, 0) };
 }
 
+/** Smallest width a canvas text can be resized to, in canvas-width %. */
+export const MIN_TEXT_W = 10;
+
+/** Fallback height for a canvas text whose real height hasn't been measured yet. */
+const TEXT_H_GUESS = 6;
+
+/** Bottom edge of a placed text, in canvas-width units. */
+export const textBottom = (t: TextLayout): number => t.y + (t.h ?? TEXT_H_GUESS);
+
+/** Same clamp for text placements (looser minimum width, no aspect ratio). */
+export function clampTextLayout(t: TextLayout): TextLayout {
+	const w = Math.min(Math.max(t.w, MIN_TEXT_W), 100);
+	return { ...t, w, x: Math.min(Math.max(t.x, 0), 100 - w), y: Math.max(t.y, 0) };
+}
+
+/** Snap a value to the nearest multiple of `step` (no-op for step <= 0). */
+export const snapTo = (value: number, step: number): number =>
+	step > 0 ? Math.round(value / step) * step : value;
+
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 /** Two decimals is plenty of precision and keeps content.json readable. */
@@ -32,6 +51,13 @@ export const roundLayout = (l: ImageLayout): ImageLayout => ({
 	y: round2(l.y),
 	w: round2(l.w),
 	ar: round2(l.ar),
+});
+
+export const roundTextLayout = (t: TextLayout): TextLayout => ({
+	x: round2(t.x),
+	y: round2(t.y),
+	w: round2(t.w),
+	...(t.h !== undefined ? { h: round2(t.h) } : {}),
 });
 
 export interface FlowItem {
