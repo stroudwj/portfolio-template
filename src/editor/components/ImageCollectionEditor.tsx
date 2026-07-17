@@ -11,19 +11,21 @@ import { isUrl } from '../lib/validation';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
-	title: string;
+	title?: string;
 	variant: 'projects' | 'gallery';
 	addLabel: string;
 	emptyLabel: string;
+	/** Render without the Section wrapper (when embedded inside a PageEditor block). */
+	embedded?: boolean;
 }
 
-export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel }: ImageCollectionEditorProps) {
+export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded }: ImageCollectionEditorProps) {
 	const { doc, addGalleryImages, removeGalleryImage, moveGalleryImage, updateGalleryMeta } = useEditor();
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
 
-	return (
-		<Section title={title} action={<span className="count">{entries.length}</span>}>
+	const body = (
+		<>
 			<ImageDrop multiple onFiles={(files) => addGalleryImages(folder, files)}>
 				<span>{addLabel}</span>
 			</ImageDrop>
@@ -112,6 +114,13 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 					</div>
 				</SortableList>
 			)}
+		</>
+	);
+
+	if (embedded) return body;
+	return (
+		<Section title={title ?? ''} action={<span className="count">{entries.length}</span>}>
+			{body}
 		</Section>
 	);
 }

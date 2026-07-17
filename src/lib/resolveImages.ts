@@ -46,6 +46,24 @@ export async function resolveOgImage(): Promise<string | undefined> {
 	return optimized.src;
 }
 
+/**
+ * Resolved card images for a page's sub-pages: the child's explicit thumbnail if it
+ * has one, else the first image of its gallery. Children with no image at all are
+ * simply omitted (the card renders an empty placeholder).
+ */
+export async function resolveChildThumbs(pageKey: string): Promise<Record<string, string>> {
+	const out: Record<string, string> = {};
+	for (const childKey of content.pages[pageKey]?.children ?? []) {
+		const child = content.pages[childKey];
+		if (!child) continue;
+		let image = child.thumbnail ? getAsset(child.thumbnail) : undefined;
+		if (!image && child.gallery) image = getGallery(child.gallery.folder, child.gallery.order)[0]?.image;
+		if (!image) continue;
+		out[childKey] = (await getImage({ src: image, width: 640 })).src;
+	}
+	return out;
+}
+
 /** Optimized profile image src (undefined if the file isn't found). */
 export async function resolveProfileImage(): Promise<{ src?: string }> {
 	const image = getAsset(content.profile.image);

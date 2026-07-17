@@ -1,0 +1,31 @@
+.child-pages {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 1.4rem;
+	max-width: 1100px;
+	margin: 1.5rem auto;
+	padding: 0 1.5rem;
+}
+.child-card {
+	display: block;
+	text-decoration: none;
+	color: var(--color-text);
+	font-family: var(--font-family);
+}
+.child-card img,
+.child-card .child-thumb-empty {
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	display: block;
+	border-radius: 4px;
+	background: rgba(127, 127, 127, 0.12);
+}
+.child-card span {
+	display: block;
+	margin-top: 0.55rem;
+	font-size: 0.95rem;
+}
+.child-card:hover span {
+	color: var(--color-accent);
+}

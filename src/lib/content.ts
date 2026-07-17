@@ -62,13 +62,32 @@ export interface GalleryConfig {
 	order: 'asc' | 'desc';
 }
 
+/**
+ * One ordered piece of a page's body. 'text' is free text placeable anywhere;
+ * 'gallery' renders the page's gallery; 'children' renders the page's sub-pages as
+ * thumbnail cards; 'about' renders the profile section (bio, email, social links).
+ */
+export type PageBlock =
+	| { id: string; type: 'text'; text: string }
+	| { id: string; type: 'gallery' }
+	| { id: string; type: 'children' }
+	| { id: string; type: 'about' };
+
 export interface PageConfig {
 	/** Browser-tab title. "{name}" is replaced with site.name by pageTitle(). */
 	title: string;
-	/** Optional on-page heading (Home only, today). */
+	/** Display name — nav entry for top-level pages, card caption for sub-pages. */
+	label?: string;
+	/** Optional on-page heading shown above the body. */
 	heading?: string;
 	/** Present on gallery pages; absent on text-only pages like About. */
 	gallery?: GalleryConfig;
+	/** Ordered body blocks. Filled in by migrateContent() for pre-block content. */
+	blocks?: PageBlock[];
+	/** Ordered sub-page keys, shown as thumbnail cards via the 'children' block. */
+	children?: string[];
+	/** Card image for this page when it appears as a sub-page (path under src/assets/). */
+	thumbnail?: string;
 }
 
 export interface ImageMeta {
@@ -94,7 +113,28 @@ export interface Content {
 	galleries: Record<string, GalleryData>;
 }
 
-export const content = data as Content;
+/**
+ * Upgrade pre-block content in place: every page gets `blocks` (its gallery, or the
+ * About section for the galleryless 'bio' page) and a `label` (from its nav entry).
+ * Idempotent, so already-migrated content passes through untouched. Shared by the
+ * site build, the editor, and the published-site loader — one upgrade path.
+ */
+export function migrateContent(c: Content): Content {
+	const labelByPath = new Map(c.nav.map((item) => [item.path || 'home', item.label]));
+	for (const [key, page] of Object.entries(c.pages)) {
+		if (!page.blocks) {
+			if (page.gallery) page.blocks = [{ id: 'gallery', type: 'gallery' }];
+			else if (key === 'bio') page.blocks = [{ id: 'about', type: 'about' }];
+			else page.blocks = [];
+		}
+		if (page.children?.length && !page.blocks.some((b) => b.type === 'children'))
+			page.blocks.push({ id: 'children', type: 'children' });
+		if (!page.label) page.label = labelByPath.get(key) ?? key;
+	}
+	return c;
+}
+
+export const content = migrateContent(data as Content);
 
 /** Resolve a title template, replacing "{name}" with the site name. */
 export const pageTitle = (template: string): string =>

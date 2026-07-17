@@ -6,20 +6,22 @@
 import Layout from '../../layouts/Layout.astro';
 import PortfolioPage from '../../portfolio/PortfolioPage';
 import { content, pageTitle } from '../../lib/content';
-import { resolveGallery, resolveProfileImage } from '../../lib/resolveImages';
+import { resolveGallery, resolveProfileImage, resolveChildThumbs } from '../../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
 import { withBase } from '../../portfolio/types';
 
 export function getStaticPaths() {
 	if (!IS_PRODUCT_SITE) return [];
-	return content.nav.map((item) => ({ params: { page: item.path || undefined } }));
+	return Object.keys(content.pages).map((key) => ({ params: { page: key === 'home' ? undefined : key } }));
 }
 
 const pageKey = Astro.params.page || 'home';
 const page = content.pages[pageKey];
 const gallery = page.gallery;
 const galleries = gallery ? { [gallery.folder]: await resolveGallery(gallery.folder) } : {};
-const profile = gallery ? {} : await resolveProfileImage();
+const hasAbout = page.blocks?.some((b) => b.type === 'about');
+const profile = hasAbout ? await resolveProfileImage() : {};
+const pageThumbs = await resolveChildThumbs(pageKey);
 
 const siteBase = import.meta.env.BASE_URL;
 const base = withBase(siteBase, 'demo');
@@ -31,9 +33,24 @@ const base = withBase(siteBase, 'demo');
 	</a>
 	{
 		gallery ? (
-			<PortfolioPage client:visible page={pageKey} content={content} galleries={galleries} base={base} />
+			<PortfolioPage
+				client:visible
+				page={pageKey}
+				content={content}
+				galleries={galleries}
+				profileImageSrc={profile.src}
+				pageThumbs={pageThumbs}
+				base={base}
+			/>
 		) : (
-			<PortfolioPage page={pageKey} content={content} galleries={{}} profileImageSrc={profile.src} base={base} />
+			<PortfolioPage
+				page={pageKey}
+				content={content}
+				galleries={{}}
+				profileImageSrc={profile.src}
+				pageThumbs={pageThumbs}
+				base={base}
+			/>
 		)
 	}
 </Layout>

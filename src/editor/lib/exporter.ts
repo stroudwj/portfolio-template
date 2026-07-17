@@ -99,6 +99,22 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		content.profile.image = doc.profileImage.filename;
 	}
 
+	// Page thumbnails (sub-page cards). Written under src/assets/thumbs/, name-prefixed
+	// with the page key so two pages' thumbnails can't collide. A thumb with no blob was
+	// loaded from the repo — its content.pages[].thumbnail path is already correct.
+	for (const [key, thumb] of Object.entries(doc.pageThumbs)) {
+		const page = content.pages[key];
+		const blob = getAssetBlob(thumb.assetId);
+		if (!page || !blob) continue;
+		const finalName = `thumbs/${sanitizeFilename(`${key.replace(/\//g, '-')}-${thumb.filename || 'thumb'}`)}`;
+		files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+		page.thumbnail = finalName;
+	}
+	// Thumbs removed in the editor: the doc no longer tracks them, so drop the reference.
+	for (const [key, page] of Object.entries(content.pages)) {
+		if (page.thumbnail && !doc.pageThumbs[key]) page.thumbnail = undefined;
+	}
+
 	return { contentJson: content, files };
 }
 

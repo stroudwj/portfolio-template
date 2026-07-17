@@ -1,33 +1,18 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useEditor } from '../store';
-import type { Content } from '../../lib/content';
 import { useGitHub } from './useGitHub';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LoadPublishedModal from './LoadPublishedModal';
 import { isLicenseGateEnabled } from '../lib/license/config';
 
 export default function StartScreen() {
-	const { startBlank, startExisting, resumeDraft, importContent, openDoc, hasDraft } = useEditor();
+	const { startBlank, startExisting, resumeDraft, openDoc, hasDraft } = useEditor();
 	const gh = useGitHub();
-	const fileRef = useRef<HTMLInputElement>(null);
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
 
 	const connected = gh.status === 'connected';
 	const licenseGated = isLicenseGateEnabled();
-
-	const onImport = (file: File) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			try {
-				const parsed = JSON.parse(String(reader.result)) as Content;
-				importContent(parsed);
-			} catch {
-				alert('That file isn’t valid JSON.');
-			}
-		};
-		reader.readAsText(file);
-	};
 
 	// Starting fresh throws away the autosaved draft — confirm first so a stray click
 	// can't wipe someone's work (only matters when a draft actually exists).
@@ -62,9 +47,6 @@ export default function StartScreen() {
 							)}
 						</div>
 						<div className="start-links">
-							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
-								Import a content.json…
-							</button>
 							<button type="button" className="btn-link" onClick={startOver}>
 								Start over from the template
 							</button>
@@ -89,9 +71,6 @@ export default function StartScreen() {
 								disabled={gh.status === 'checking'}
 							>
 								{gh.status === 'checking' ? 'Checking GitHub…' : 'Connect GitHub to edit your published site'}
-							</button>
-							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
-								Import a content.json…
 							</button>
 							<button type="button" className="btn-link" onClick={startOver}>
 								Start over from the template
@@ -132,24 +111,9 @@ export default function StartScreen() {
 							>
 								{gh.status === 'checking' ? 'Checking GitHub…' : 'Already published? Connect GitHub to edit your live site'}
 							</button>
-							<button type="button" className="btn-link" onClick={() => fileRef.current?.click()}>
-								Import a content.json…
-							</button>
 						</div>
 					</>
 				)}
-
-				<input
-					ref={fileRef}
-					type="file"
-					accept="application/json,.json"
-					hidden
-					onChange={(e) => {
-						const f = e.target.files?.[0];
-						if (f) onImport(f);
-						e.target.value = '';
-					}}
-				/>
 			</div>
 
 			{showConnect && (

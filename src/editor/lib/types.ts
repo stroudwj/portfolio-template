@@ -22,14 +22,22 @@ export interface ImageEntry {
 	assetId: string | null;
 }
 
+/** A single standalone image slot (profile picture, page thumbnail). */
+export interface SingleImage {
+	filename: string;
+	assetId: string | null;
+}
+
 /**
- * The full working document. `content` holds all text/config; `galleries` and
- * `profileImage` hold the ordered images (the source of truth the exporter turns
- * back into the folder-based Content schema).
+ * The full working document. `content` holds all text/config; `galleries`,
+ * `profileImage` and `pageThumbs` hold the images (the source of truth the exporter
+ * turns back into the folder-based Content schema).
  */
 export interface EditorDoc {
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;
-	profileImage: { filename: string; assetId: string | null };
+	profileImage: SingleImage;
+	/** page key -> its sub-page card thumbnail. */
+	pageThumbs: Record<string, SingleImage>;
 }

@@ -2,20 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { EditorProvider, useEditor } from './store';
 import StartScreen from './components/StartScreen';
 import ProfileEditor from './components/ProfileEditor';
-import ProjectsEditor from './components/ProjectsEditor';
-import GalleryEditor from './components/GalleryEditor';
+import ThemeEditor from './components/ThemeEditor';
+import PageEditor from './components/PageEditor';
+import AddPageButton from './components/AddPageButton';
 import SocialLinksEditor from './components/SocialLinksEditor';
 import PreviewPanel from './components/PreviewPanel';
 import GitHubControls from './components/GitHubControls';
 import { useLicense } from './components/useLicense';
 import { shouldResumePublish } from './lib/license/flow';
-import { buildBundle, ZipTarget, downloadContentJson } from './lib/exporter';
 import { collectIssues } from './lib/validation';
 import './editor.css';
 
 function Shell({ base }: { base: string }) {
 	const { doc, reset, resumeDraft, hasDraft } = useEditor();
-	const [busy, setBusy] = useState(false);
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const issues = useMemo(() => (doc ? collectIssues(doc) : []), [doc]);
 	// Held at the top level so the auto-unlock-after-purchase handler runs even on the Start
@@ -35,21 +34,6 @@ function Shell({ base }: { base: string }) {
 	const resetAll = () => {
 		if (confirm('Reset the editor? This permanently deletes your draft and every image saved in this browser.'))
 			void reset();
-	};
-
-	const exportZip = async () => {
-		setBusy(true);
-		try {
-			const bundle = await buildBundle(doc);
-			await new ZipTarget().publish(bundle);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	const exportJson = async () => {
-		const bundle = await buildBundle(doc);
-		downloadContentJson(bundle.contentJson);
 	};
 
 	return (
@@ -72,12 +56,6 @@ function Shell({ base }: { base: string }) {
 				<button type="button" className="btn-ghost" onClick={resetAll}>
 					Reset
 				</button>
-				<button type="button" className="btn-ghost" onClick={exportJson}>
-					Export JSON
-				</button>
-				<button type="button" className="btn-secondary" onClick={exportZip} disabled={busy}>
-					{busy ? 'Exporting…' : 'Export ZIP'}
-				</button>
 				<GitHubControls license={license} />
 			</header>
 
@@ -94,9 +72,11 @@ function Shell({ base }: { base: string }) {
 						</div>
 					)}
 					<ProfileEditor />
-					<ProjectsEditor />
-					<GalleryEditor folder="art" title="Art gallery" />
-					<GalleryEditor folder="photography" title="Photography gallery" />
+					<ThemeEditor />
+					{doc.content.nav.map((item) => (
+						<PageEditor key={item.path || 'home'} pageKey={item.path || 'home'} />
+					))}
+					<AddPageButton />
 					<SocialLinksEditor />
 				</div>
 				<div className="editor-preview">

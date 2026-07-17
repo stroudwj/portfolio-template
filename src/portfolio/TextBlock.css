@@ -1,0 +1,12 @@
+.text-block {
+	max-width: 640px;
+	margin: 1.5rem auto;
+	padding: 0 1.5rem;
+	color: var(--color-text);
+	font-family: var(--font-family);
+}
+.text-block p {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.75;
+}

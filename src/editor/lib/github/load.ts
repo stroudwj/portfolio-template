@@ -89,8 +89,18 @@ export async function loadDocFromRepo(
 	const folderFiles: Record<string, string[]> = {};
 	for (const folder of folders) folderFiles[folder] = galleryFilesInTree(tree, folder);
 
-	// Every image path we need to download, gallery images first, profile last.
+	// Every image path we need to download: gallery images, then page thumbnails,
+	// then the profile picture.
 	const imagePaths: string[] = folders.flatMap((f) => folderFiles[f]);
+	const thumbPathByPage = new Map<string, string>();
+	for (const [key, page] of Object.entries(content.pages)) {
+		if (!page.thumbnail) continue;
+		const path = `src/assets/${page.thumbnail}`;
+		if (shaByPath.has(path)) {
+			thumbPathByPage.set(key, path);
+			imagePaths.push(path);
+		}
+	}
 	const profileName = content.profile.image;
 	const profilePath = profileName ? `src/assets/${profileName}` : '';
 	const hasProfileFile = !!profilePath && shaByPath.has(profilePath);
@@ -129,6 +139,12 @@ export async function loadDocFromRepo(
 	doc.profileImage = hasProfileFile
 		? { filename: profileName, assetId: assetIdByPath.get(profilePath) ?? null }
 		: { filename: profileName || '', assetId: null };
+	for (const [key, path] of thumbPathByPage) {
+		doc.pageThumbs[key] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+		};
+	}
 
 	const managedPaths = [CONTENT_JSON_PATH, ...tree.map((t) => t.path).filter((p) => p.startsWith('src/assets/'))];
 	return { doc, managedPaths };

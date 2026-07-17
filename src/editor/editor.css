@@ -678,6 +678,91 @@
 	word-break: break-word;
 }
 
+/* ---- Page blocks (text / images / sub-pages / about) ---- */
+.block {
+	border: 1px solid rgba(127, 127, 127, 0.18);
+	border-radius: 10px;
+	padding: 10px 12px;
+	margin: 10px 0;
+}
+.block-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+.block-label {
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ui-muted);
+}
+.block-controls {
+	display: flex;
+	gap: 2px;
+}
+.block-adders {
+	display: flex;
+	gap: 14px;
+	margin-top: 6px;
+}
+.child-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 8px 0;
+}
+.child-row .text-input {
+	flex: 1;
+}
+.child-thumb-picker .imagedrop {
+	width: 72px;
+	min-height: 48px;
+	padding: 2px;
+	font-size: 0.7rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.child-thumb {
+	width: 64px;
+	height: 44px;
+	object-fit: cover;
+	border-radius: 4px;
+	display: block;
+}
+.nested-pages {
+	margin-top: 12px;
+	padding-left: 12px;
+	border-left: 3px solid rgba(127, 127, 127, 0.25);
+}
+.nested-pages .editor-section {
+	padding-left: 0;
+	padding-right: 0;
+}
+.add-page {
+	margin: 4px 16px 20px;
+}
+.color-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.color-field input[type='color'] {
+	width: 40px;
+	height: 32px;
+	padding: 0;
+	border: 1px solid rgba(127, 127, 127, 0.3);
+	border-radius: 6px;
+	background: none;
+	cursor: pointer;
+}
+.color-field .text-input {
+	flex: 1;
+}
+
 /* DNS records shown in the custom-domain modal — copy-paste friendly. */
 .dns-records {
 	background: var(--ui-bg-soft, rgba(127, 127, 127, 0.08));

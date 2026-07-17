@@ -1,6 +1,6 @@
 // Seeds the editor document (blank or from the bundled content.json) and turns a
 // live document into the PortfolioData the shared components render for preview.
-import { content as bundledContent } from '../../lib/content';
+import { content as bundledContent, migrateContent } from '../../lib/content';
 import type { Content } from '../../lib/content';
 import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
@@ -61,16 +61,29 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 }
 
 export function initDocFromContent(content: Content): EditorDoc {
-	const cloned = cloneContent(content);
+	const cloned = migrateContent(cloneContent(content));
+	const pageThumbs: EditorDoc['pageThumbs'] = {};
+	for (const [key, page] of Object.entries(cloned.pages)) {
+		if (page.thumbnail) {
+			const filename = page.thumbnail.slice(page.thumbnail.lastIndexOf('/') + 1);
+			pageThumbs[key] = { filename, assetId: null };
+		}
+	}
 	return {
 		content: cloned,
 		galleries: entriesFromContent(cloned),
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
+		pageThumbs,
 	};
 }
 
 export const blankDoc = (): EditorDoc => initDocFromContent(blankContent);
 export const existingDoc = (): EditorDoc => initDocFromContent(bundledContent);
+
+/** Upgrade a document saved by an older editor: migrate content, backfill new fields. */
+export function upgradeDoc(doc: EditorDoc): EditorDoc {
+	return { ...doc, content: migrateContent(doc.content), pageThumbs: doc.pageThumbs ?? {} };
+}
 
 /** Live document -> resolved data the shared portfolio components can render. */
 export function docToPortfolioData(doc: EditorDoc): PortfolioData {
@@ -87,5 +100,17 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	}
 	const uploaded = getAssetUrl(doc.profileImage.assetId);
 	const profileImageSrc = uploaded ?? (doc.profileImage.filename ? PLACEHOLDER_IMAGE : undefined);
-	return { content: doc.content, galleries, profileImageSrc };
+
+	// Sub-page card images: explicit thumbnail first, else the page's first gallery image.
+	const pageThumbs: Record<string, string> = {};
+	for (const [key, page] of Object.entries(doc.content.pages)) {
+		const thumb = doc.pageThumbs[key];
+		let src = getAssetUrl(thumb?.assetId ?? null) ?? (thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
+		if (!src && page.gallery) {
+			const first = doc.galleries[page.gallery.folder]?.[0];
+			if (first) src = getAssetUrl(first.assetId) ?? PLACEHOLDER_IMAGE;
+		}
+		if (src) pageThumbs[key] = src;
+	}
+	return { content: doc.content, galleries, profileImageSrc, pageThumbs };
 }

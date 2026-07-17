@@ -28,6 +28,8 @@ export interface PortfolioData {
 	galleries: Record<string, ResolvedImage[]>;
 	/** Resolved profile-image URL (undefined = none). */
 	profileImageSrc?: string;
+	/** Page key -> resolved thumbnail URL, for rendering sub-page cards. */
+	pageThumbs?: Record<string, string>;
 }
 
 export type PageKey = string;

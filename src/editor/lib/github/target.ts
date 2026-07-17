@@ -81,10 +81,13 @@ export class GitHubTarget implements PublishTarget {
 
 		// The editor fully owns src/assets/: whatever it isn't writing shouldn't be there.
 		// This removes the template's placeholder.png files (and any image deleted in the
-		// editor) — but we always KEEP the file content.json points at, so an unset profile
-		// picture (which still references the template placeholder) doesn't 404.
+		// editor) — but we always KEEP the files content.json points at (profile picture,
+		// page thumbnails), so references loaded from the repo without re-upload don't 404.
 		const keep = new Set(files.map((f) => f.path));
 		if (bundle.contentJson.profile.image) keep.add(`src/assets/${bundle.contentJson.profile.image}`);
+		for (const page of Object.values(bundle.contentJson.pages)) {
+			if (page.thumbnail) keep.add(`src/assets/${page.thumbnail}`);
+		}
 		const deletions = (await listAssetPaths(client, ref)).filter((p) => !keep.has(p));
 		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((f) => f.path)];
 

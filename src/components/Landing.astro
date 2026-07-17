@@ -35,7 +35,6 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 			<span class="brand">Simple Portfolio</span>
 			<nav class="topnav">
 				<a href={demoUrl}>Demo</a>
-				<a href="#pricing">Pricing</a>
 				<a href="#faq">FAQ</a>
 				<a class="btn btn-small" href={editorUrl}>Start building</a>
 			</nav>
@@ -53,53 +52,6 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 					<a class="btn btn-ghost" href={demoUrl}>See a live demo</a>
 				</div>
 				<p class="hero-note">You only pay when you're ready to publish.</p>
-			</section>
-
-			<section class="steps">
-				<h2>How it works</h2>
-				<ol>
-					<li>
-						<h3>1 · Build in the editor</h3>
-						<p>Add your images, write your bio, pick your colors — and watch the live preview update as you go.</p>
-					</li>
-					<li>
-						<h3>2 · Connect GitHub</h3>
-						<p>One guided click. A free GitHub account gives you free hosting and a repository that belongs to you.</p>
-					</li>
-					<li>
-						<h3>3 · Publish</h3>
-						<p>
-							Your site goes live at <code>yourname.github.io/your-site</code> — or on your own custom domain.
-							Come back anytime, from any device, to edit and publish again.
-						</p>
-					</li>
-				</ol>
-			</section>
-
-			<section class="benefits">
-				<h2>What you get</h2>
-				<ul>
-					<li><strong>You own everything.</strong> The site, the code, and the repository live in your GitHub account — not ours.</li>
-					<li><strong>Free hosting, forever.</strong> GitHub Pages serves your site at no cost. No hosting bill, ever.</li>
-					<li><strong>Update anytime.</strong> Open the editor, change what you want, publish again. From any device.</li>
-					<li><strong>Your own domain.</strong> Connect a custom domain right from the editor — no GitHub settings to dig through.</li>
-					<li><strong>No lock-in.</strong> If you outgrow the editor, the code is yours to take anywhere.</li>
-				</ul>
-			</section>
-
-			<section class="pricing" id="pricing">
-				<h2>Pricing</h2>
-				<div class="price-card">
-					<div class="price">$19</div>
-					<div class="price-sub">one-time — own it forever</div>
-					<ul>
-						<li>Unlimited edits and re-publishes</li>
-						<li>Free hosting on GitHub Pages</li>
-						<li>Custom domain support</li>
-						<li>No subscription, no renewal, no upsell</li>
-					</ul>
-					<a class="btn btn-primary" href={editorUrl}>Start building</a>
-				</div>
 			</section>
 
 			<section class="faq" id="faq">
@@ -265,91 +217,11 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		margin: 0 0 1.5rem;
 		text-align: center;
 	}
-	.steps,
-	.benefits,
-	.pricing,
 	.faq {
 		max-width: 60rem;
 		margin: 0 auto;
 		padding: 3rem 1.5rem;
 	}
-	.steps ol {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-		gap: 1.2rem;
-	}
-	.steps li {
-		background: var(--bg-soft);
-		border: 1px solid var(--border);
-		border-radius: 14px;
-		padding: 1.4rem;
-	}
-	.steps h3 {
-		margin: 0 0 0.5rem;
-		font-size: 1.05rem;
-	}
-	.steps p {
-		margin: 0;
-		color: var(--muted);
-		font-size: 0.95rem;
-	}
-
-	.benefits ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-width: 40rem;
-		margin-inline: auto;
-		display: grid;
-		gap: 0.9rem;
-	}
-	.benefits li {
-		padding-left: 1.6rem;
-		position: relative;
-		color: var(--muted);
-	}
-	.benefits li::before {
-		content: '✓';
-		position: absolute;
-		left: 0;
-		color: var(--accent);
-		font-weight: 700;
-	}
-	.benefits strong {
-		color: var(--ink);
-	}
-
-	.price-card {
-		max-width: 22rem;
-		margin: 0 auto;
-		border: 1px solid var(--border);
-		border-radius: 16px;
-		padding: 2rem;
-		text-align: center;
-		box-shadow: 0 10px 30px rgb(22 24 29 / 0.06);
-	}
-	.price {
-		font-size: 3rem;
-		font-weight: 800;
-		letter-spacing: -0.03em;
-	}
-	.price-sub {
-		color: var(--muted);
-		margin-bottom: 1.2rem;
-	}
-	.price-card ul {
-		list-style: none;
-		margin: 0 0 1.5rem;
-		padding: 0;
-		display: grid;
-		gap: 0.4rem;
-		color: var(--muted);
-		font-size: 0.95rem;
-	}
-
 	.faq dl {
 		max-width: 40rem;
 		margin: 0 auto;
