@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import type { ResolvedImage } from './types';
+import type { ImageLayout, ResolvedImage } from './types';
 import { safeHref } from './safeHref';
+import CanvasGallery from './CanvasGallery';
 import './Gallery.css';
 
 export const GRID_MAX_SPAN = 4;
@@ -16,10 +17,18 @@ export interface GalleryProps {
 	images: ResolvedImage[];
 	/** Fallback alt text for images without their own title. */
 	alt?: string;
+	/** Editor preview: images become movable/resizable instead of zoomable. */
+	editable?: boolean;
+	/** Reports a finished move/resize per image (editor only). */
+	onLayoutChange?: (id: string, layout: ImageLayout) => void;
 }
 
-/** Responsive image grid + click-to-zoom lightbox (ported from Gallery.astro). */
-export default function Gallery({ images, alt = 'Portfolio piece' }: GalleryProps) {
+/**
+ * A page's images + click-to-zoom lightbox. Renders the freeform canvas
+ * (CanvasGallery) whenever any image carries a layout — always in the editor —
+ * and falls back to the legacy span grid for never-rearranged content.
+ */
+export default function Gallery({ images, alt = 'Portfolio piece', editable = false, onLayoutChange }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
 
@@ -39,31 +48,40 @@ export default function Gallery({ images, alt = 'Portfolio piece' }: GalleryProp
 	if (images.length === 0) {
 		return (
 			<div className="gallery-empty">
-				<p>
-					No images yet. Add photos to this page's folder in <code>src/assets/</code> and they'll appear here
-					automatically.
-				</p>
+				<p>This page is empty… add some images, text, or videos.</p>
 			</div>
 		);
 	}
 
+	const canvasMode = editable || images.some((img) => img.layout);
+
 	return (
 		<>
-			<div className="masonry-grid">
-				{images.map((img, i) => (
-					<div className="masonry-item" style={spanVars(img)} key={img.id ?? `${img.src}-${i}`}>
-						<img
-							src={img.src}
-							srcSet={img.srcSet}
-							alt={img.title || alt}
-							className="lightbox-trigger"
-							loading="lazy"
-							decoding="async"
-							onClick={() => setOpenIndex(i)}
-						/>
-					</div>
-				))}
-			</div>
+			{canvasMode ? (
+				<CanvasGallery
+					images={images}
+					alt={alt}
+					editable={editable}
+					onLayoutChange={onLayoutChange}
+					onOpen={editable ? undefined : setOpenIndex}
+				/>
+			) : (
+				<div className="masonry-grid">
+					{images.map((img, i) => (
+						<div className="masonry-item" style={spanVars(img)} key={img.id ?? `${img.src}-${i}`}>
+							<img
+								src={img.src}
+								srcSet={img.srcSet}
+								alt={img.title || alt}
+								className="lightbox-trigger"
+								loading="lazy"
+								decoding="async"
+								onClick={() => setOpenIndex(i)}
+							/>
+						</div>
+					))}
+				</div>
+			)}
 
 			<div
 				className={`modal ${open ? 'show' : ''}`}

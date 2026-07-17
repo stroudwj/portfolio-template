@@ -1,18 +1,20 @@
 // Editor state types. The editor edits the SAME Content schema the site uses
 // (imported from src/lib/content.ts), plus a little extra bookkeeping that the
 // browser needs — ordered image lists and references to uploaded blobs.
-import type { Content } from '../../lib/content';
+import type { Content, ImageLayout } from '../../lib/content';
 
-export type { Content };
+export type { Content, ImageLayout };
 
 export interface ImageMeta {
 	title: string;
 	description: string;
 	link: string;
-	/** Grid width in columns (1–4; unset = 1). */
+	/** Legacy grid width in columns (1–4; unset = 1). Ignored once `layout` exists. */
 	w?: number;
-	/** Grid height in row units (1–4; unset = 1). */
+	/** Legacy grid height in row units (1–4; unset = 1). Ignored once `layout` exists. */
 	h?: number;
+	/** Freeform canvas placement (set the first time the image is arranged). */
+	layout?: ImageLayout;
 }
 
 /** One image in a gallery (or the profile image), in the editor's working state. */

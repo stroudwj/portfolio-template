@@ -5,9 +5,9 @@
 // framework-neutral they never touch Astro's image pipeline — callers resolve
 // images to plain `src` strings first (Astro via getImage(), the editor via
 // object URLs) and pass them in as `ResolvedImage`.
-import type { Content, NavItem, SocialLink } from '../lib/content';
+import type { Content, ImageLayout, NavItem, SocialLink } from '../lib/content';
 
-export type { Content, NavItem, SocialLink };
+export type { Content, ImageLayout, NavItem, SocialLink };
 
 /** An image ready to render: a resolved URL plus its optional caption metadata. */
 export interface ResolvedImage {
@@ -19,10 +19,14 @@ export interface ResolvedImage {
 	title?: string;
 	description?: string;
 	link?: string;
-	/** Grid width in columns (1–4, default 1). */
+	/** Legacy grid width in columns (1–4, default 1). */
 	w?: number;
-	/** Grid height in row units (1–4, default 1). */
+	/** Legacy grid height in row units (1–4, default 1). */
 	h?: number;
+	/** Freeform canvas placement; absent = auto-flowed. */
+	layout?: ImageLayout;
+	/** Natural width/height ratio when the resolver knows it (Astro build does). */
+	ar?: number;
 }
 
 /** Everything the portfolio needs to render, with images already resolved. */

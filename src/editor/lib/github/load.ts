@@ -143,7 +143,14 @@ export async function loadDocFromRepo(
 			return {
 				id: uid('e'),
 				filename: stripOrderPrefix(fullName),
-				meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '', w: meta.w, h: meta.h },
+				meta: {
+					title: meta.title ?? '',
+					description: meta.description ?? '',
+					link: meta.link ?? '',
+					w: meta.w,
+					h: meta.h,
+					layout: meta.layout,
+				},
 				assetId: assetIdByPath.get(path) ?? null,
 			};
 		});

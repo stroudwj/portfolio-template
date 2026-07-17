@@ -49,7 +49,14 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 		galleries[folder] = Object.entries(data.items).map(([filename, meta]) => ({
 			id: uid('e'),
 			filename,
-			meta: { title: meta.title ?? '', description: meta.description ?? '', link: meta.link ?? '', w: meta.w, h: meta.h },
+			meta: {
+				title: meta.title ?? '',
+				description: meta.description ?? '',
+				link: meta.link ?? '',
+				w: meta.w,
+				h: meta.h,
+				layout: meta.layout,
+			},
 			assetId: null,
 		}));
 	}
@@ -103,6 +110,7 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			link: e.meta.link || undefined,
 			w: e.meta.w,
 			h: e.meta.h,
+			layout: e.meta.layout,
 		}));
 	}
 	const uploaded = getAssetUrl(doc.profileImage.assetId);

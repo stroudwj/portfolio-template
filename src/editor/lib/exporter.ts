@@ -54,9 +54,12 @@ function metaObject(meta: ImageMeta): Partial<ImageMeta> | null {
 	if (meta.title) out.title = meta.title;
 	if (meta.description) out.description = meta.description;
 	if (meta.link) out.link = meta.link;
-	// Grid spans: 1 is the default, so only larger sizes are worth recording.
-	if (meta.w && meta.w > 1) out.w = meta.w;
-	if (meta.h && meta.h > 1) out.h = meta.h;
+	// Canvas placement supersedes the legacy grid spans, so write one or the other.
+	if (meta.layout) out.layout = meta.layout;
+	else {
+		if (meta.w && meta.w > 1) out.w = meta.w;
+		if (meta.h && meta.h > 1) out.h = meta.h;
+	}
 	return Object.keys(out).length ? out : null;
 }
 

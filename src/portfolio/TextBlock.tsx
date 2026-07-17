@@ -7,7 +7,7 @@ export default function TextBlock({ text, align }: { text: string; align?: TextA
 	if (!text.trim()) return null;
 	const lines = text.split('\n');
 	return (
-		<div className="text-block" style={align && align !== 'left' ? { textAlign: align } : undefined}>
+		<div className={`text-block align-${align ?? 'left'}`}>
 			<p>
 				{lines.flatMap((line, i) =>
 					i === 0

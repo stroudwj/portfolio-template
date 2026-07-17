@@ -28,6 +28,9 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 				link: entry.link,
 				w: entry.w,
 				h: entry.h,
+				layout: entry.layout,
+				// Natural ratio so auto-flowed canvas items get correct heights at build time.
+				ar: entry.image.width && entry.image.height ? entry.image.width / entry.image.height : undefined,
 			} satisfies ResolvedImage;
 		}),
 	);

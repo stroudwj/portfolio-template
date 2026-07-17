@@ -5,9 +5,11 @@ import { docToPortfolioData } from '../lib/content-init';
 
 /** Live preview — renders the SAME shared portfolio components as the real site.
  *  Navigation happens through the site's own nav (sidebar, logo, sub-page cards);
- *  clicking it also scrolls the editing column to that page's controls. */
+ *  clicking it also scrolls the editing column to that page's controls. Gallery
+ *  images are live here: drag one to move it, drag its corner handle to resize. */
 export default function PreviewPanel({ base }: { base: string }) {
-	const { doc } = useEditor();
+	const editor = useEditor();
+	const { doc } = editor;
 	const [page, setPage] = useState('home');
 	if (!doc) return null;
 
@@ -34,6 +36,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 					fontFaces={data.fontFaces}
 					base={base}
 					onNavigate={navigate}
+					onImageLayout={(folder, id, layout) => editor.updateGalleryMeta(folder, id, { layout })}
 				/>
 			</div>
 		</div>

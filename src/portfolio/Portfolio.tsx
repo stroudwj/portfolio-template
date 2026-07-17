@@ -1,12 +1,14 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
 import { themeToVars, fontFacesCss } from './theme';
-import type { PortfolioData } from './types';
+import type { ImageLayout, PortfolioData } from './types';
 
 export interface PortfolioProps extends PortfolioData {
 	page: string;
 	base: string;
 	onNavigate?: (path: string) => void;
+	/** Editor preview: makes gallery images movable/resizable and reports changes. */
+	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
 }
 
 /**
@@ -14,7 +16,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, pageThumbs, fontFaces, base, onNavigate }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, pageThumbs, fontFaces, base, onNavigate, onImageLayout }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	return (
 		<div className="portfolio-root" style={themeToVars(content.theme)}>
@@ -34,6 +36,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, p
 					pageThumbs={pageThumbs}
 					base={base}
 					onNavigate={onNavigate}
+					onImageLayout={onImageLayout}
 				/>
 			</PortfolioFrame>
 		</div>

@@ -699,37 +699,6 @@
 	font-weight: 700;
 }
 
-/* ---- Image grid size (W/H) steppers ---- */
-.size-steppers {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-.stepper-caption {
-	font-size: 0.75rem;
-	color: var(--ui-muted);
-}
-.stepper {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-}
-.stepper-label {
-	font-size: 0.72rem;
-	font-weight: 700;
-	color: var(--ui-muted);
-}
-.stepper-value {
-	font-size: 0.8rem;
-	min-width: 12px;
-	text-align: center;
-}
-.stepper .btn-icon {
-	width: 22px;
-	height: 22px;
-	font-size: 0.75rem;
-}
-
 /* ---- Uploaded font rows ---- */
 .font-row {
 	display: flex;

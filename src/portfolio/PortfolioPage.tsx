@@ -5,7 +5,7 @@ import TextBlock from './TextBlock';
 import Embed from './Embed';
 import ChildPages from './ChildPages';
 import { withBase, type PortfolioData } from './types';
-import type { PageBlock } from '../lib/content';
+import type { ImageLayout, PageBlock } from '../lib/content';
 
 export interface PortfolioPageProps extends PortfolioData {
 	/** Page key: 'home', a nav path like 'art', or a nested path like 'work/project-a'. */
@@ -13,6 +13,8 @@ export interface PortfolioPageProps extends PortfolioData {
 	base: string;
 	/** Editor preview: switch pages in place instead of following real links. */
 	onNavigate?: (path: string) => void;
+	/** Editor preview: makes gallery images movable/resizable and reports changes. */
+	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
 }
 
 /**
@@ -21,11 +23,13 @@ export interface PortfolioPageProps extends PortfolioData {
  * so the page composition lives in exactly one place. Content is always migrated
  * (migrateContent) before it gets here, so `blocks` is present.
  */
-export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, base, onNavigate }: PortfolioPageProps) {
+export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, base, onNavigate, onImageLayout }: PortfolioPageProps) {
 	const config = content.pages[page];
 	if (!config) return null;
 	const gallery = config.gallery;
 	const images = gallery ? (galleries[gallery.folder] ?? []) : [];
+	const onLayoutChange =
+		onImageLayout && gallery ? (id: string, layout: ImageLayout) => onImageLayout(gallery.folder, id, layout) : undefined;
 
 	const renderBlock = (block: PageBlock) => {
 		switch (block.type) {
@@ -64,11 +68,11 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				// page-photo modifier preserves the original photography page's spacing).
 				return page === 'home' ? (
 					<div key={block.id} className="collage-container">
-						<Gallery images={images} alt={gallery?.alt} />
+						<Gallery images={images} alt={gallery?.alt} editable={!!onLayoutChange} onLayoutChange={onLayoutChange} />
 					</div>
 				) : (
 					<div key={block.id} className={`page-content-wrapper ${page === 'photography' ? 'page-photo' : ''}`}>
-						<Gallery images={images} alt={gallery?.alt} />
+						<Gallery images={images} alt={gallery?.alt} editable={!!onLayoutChange} onLayoutChange={onLayoutChange} />
 					</div>
 				);
 		}

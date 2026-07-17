@@ -1,12 +1,33 @@
+/* Full-width block so L/C/R alignment moves the text relative to the page,
+   not within a hidden centered column. The paragraph stays capped at a
+   readable width; the alignment places that column AND the text inside it. */
 .text-block {
-	max-width: 640px;
-	margin: 1.5rem auto;
-	padding: 0 1.5rem;
+	margin: 1.5rem 0;
+	padding: 0 40px;
 	color: var(--color-text);
 	font-family: var(--font-family);
 }
 .text-block p {
+	max-width: 640px;
 	margin: 0;
 	font-size: 1rem;
 	line-height: 1.75;
+}
+.text-block.align-center {
+	text-align: center;
+}
+.text-block.align-center p {
+	margin-inline: auto;
+}
+.text-block.align-right {
+	text-align: right;
+}
+.text-block.align-right p {
+	margin-left: auto;
+}
+
+@media (max-width: 768px) {
+	.text-block {
+		padding: 0 20px;
+	}
 }

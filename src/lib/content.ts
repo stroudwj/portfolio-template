@@ -102,14 +102,29 @@ export interface PageConfig {
 	thumbnail?: string;
 }
 
+/**
+ * Freeform placement of one image on the page canvas. Every unit — x, y and w —
+ * is a percentage of the canvas WIDTH (y included), so a layout scales
+ * proportionally at any viewport size. `ar` is the image's width/height ratio
+ * and fixes its rendered height.
+ */
+export interface ImageLayout {
+	x: number;
+	y: number;
+	w: number;
+	ar: number;
+}
+
 export interface ImageMeta {
 	title?: string;
 	description?: string;
 	link?: string;
-	/** Grid width in columns (1–4, default 1). */
+	/** Legacy grid width in columns (1–4); ignored once `layout` exists. */
 	w?: number;
-	/** Grid height in row units (1–4, default 1). */
+	/** Legacy grid height in row units (1–4); ignored once `layout` exists. */
 	h?: number;
+	/** Freeform canvas placement. Absent = auto-flowed until first arranged. */
+	layout?: ImageLayout;
 }
 
 export interface GalleryData {
