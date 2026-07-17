@@ -44,6 +44,8 @@ export interface EditorDoc {
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;
 	profileImage: SingleImage;
+	/** The header logo image (empty filename = the text logo renders). */
+	logoImage: SingleImage;
 	/** page key -> its sub-page card thumbnail. */
 	pageThumbs: Record<string, SingleImage>;
 	/** custom font name (content.theme.customFonts) -> its uploaded file. */

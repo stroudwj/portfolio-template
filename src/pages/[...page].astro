@@ -7,7 +7,7 @@
 import Layout from '../layouts/Layout.astro';
 import PortfolioPage from '../portfolio/PortfolioPage';
 import { content, pageTitle } from '../lib/content';
-import { resolveGallery, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
+import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../lib/productSite';
 
 export function getStaticPaths() {
@@ -19,8 +19,8 @@ export function getStaticPaths() {
 
 const pageKey = Astro.params.page!;
 const page = content.pages[pageKey];
-const gallery = page.gallery;
-const galleries = gallery ? { [gallery.folder]: await resolveGallery(gallery.folder) } : {};
+const galleries = await resolvePageGalleries(pageKey);
+const hasImages = Object.keys(galleries).length > 0;
 const hasAbout = page.blocks?.some((b) => b.type === 'about');
 const profile = hasAbout ? await resolveProfileImage() : {};
 const pageThumbs = await resolveChildThumbs(pageKey);
@@ -29,7 +29,7 @@ const base = import.meta.env.BASE_URL;
 
 <Layout title={pageTitle(page.title)} showLogo={true}>
 	{
-		gallery ? (
+		hasImages ? (
 			<PortfolioPage
 				client:visible
 				page={pageKey}

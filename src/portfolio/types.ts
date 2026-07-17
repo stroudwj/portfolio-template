@@ -51,6 +51,8 @@ export interface PortfolioData {
 	galleries: Record<string, ResolvedImage[]>;
 	/** Resolved profile-image URL (undefined = none). */
 	profileImageSrc?: string;
+	/** Resolved header-logo image URL (undefined = text logo). */
+	logoImageSrc?: string;
 	/** Page key -> resolved thumbnail URL, for rendering sub-page cards. */
 	pageThumbs?: Record<string, string>;
 	/** Custom fonts with resolved URLs (the editor preview passes blob: URLs). */

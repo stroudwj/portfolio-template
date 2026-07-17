@@ -3,7 +3,7 @@
 // from the shared portfolio component system in src/portfolio/, so the site and
 // the editor preview always render the exact same components.
 import { content } from '../lib/content';
-import { resolveOgImage } from '../lib/resolveImages';
+import { resolveOgImage, resolveLogoImage } from '../lib/resolveImages';
 import { getFontUrl } from '../lib/galleries';
 import { themeToRootCss, fontFacesCss } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
@@ -23,6 +23,7 @@ const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = fals
 const { site, theme, nav } = content;
 const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
+const logoImageSrc = await resolveLogoImage();
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
 // Uploaded fonts become @font-face rules ahead of the theme variables that use them.
 const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
@@ -61,7 +62,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 	</head>
 	<body>
 		<slot name="banner" />
-		{showLogo && <Logo logo={logo} href={withBase(base)} />}
+		{showLogo && <Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} />}
 		<div class="portfolio-container">
 			<!-- The menu lives here permanently; hydrated for the hover-magnify. -->
 			<nav class="sidebar">

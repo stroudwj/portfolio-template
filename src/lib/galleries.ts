@@ -9,8 +9,8 @@ import type { ImageMeta } from './content';
 
 const assets = import.meta.glob<{ default: ImageMetadata }>(
 	[
-		'/src/assets/*.{jpeg,jpg,png,gif,webp}',
-		'/src/assets/**/*.{jpeg,jpg,png,gif,webp}',
+		'/src/assets/*.{jpeg,jpg,png,gif,webp,svg}',
+		'/src/assets/**/*.{jpeg,jpg,png,gif,webp,svg}',
 	],
 	{ eager: true },
 );

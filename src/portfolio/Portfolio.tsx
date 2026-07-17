@@ -20,7 +20,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, pageThumbs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	return (
 		<div className="portfolio-root" style={themeToVars(content.theme)}>
@@ -28,6 +28,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, p
 			<PortfolioFrame
 				nav={content.nav}
 				logo={content.site.logo || content.site.name}
+				logoImageSrc={logoImageSrc}
 				base={base}
 				current={current}
 				onNavigate={onNavigate}

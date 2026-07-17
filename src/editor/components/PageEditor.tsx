@@ -9,7 +9,7 @@ import { ImageDrop } from './ui/ImageDrop';
 import { getAssetUrl } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import { uniformColumns } from '../../portfolio/Gallery';
-import type { PageBlock, TextAlign } from '../../lib/content';
+import type { GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
 
 const ALIGNMENTS: Array<{ value: TextAlign; label: string; title: string }> = [
 	{ value: 'left', label: 'L', title: 'Align left' },
@@ -26,6 +26,70 @@ const CROP_OPTIONS: Array<{ value: string; label: string }> = [
 	{ value: '3:4', label: 'Portrait 3:4' },
 	{ value: '2:3', label: 'Portrait 2:3' },
 ];
+
+type GalleryPatch = Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>;
+
+/** Freeform/Grid toggle shared by the main gallery block and extra image groups. */
+function LayoutToggle({ mode, onPatch }: { mode: 'freeform' | 'grid'; onPatch: (patch: GalleryPatch) => void }) {
+	return (
+		<div className="align-toggle" role="group" aria-label="Image layout">
+			<button
+				type="button"
+				className={`btn-icon btn-chip ${mode === 'freeform' ? 'active' : ''}`}
+				title="Freeform canvas — drag images anywhere in the preview"
+				aria-pressed={mode === 'freeform'}
+				onClick={() => onPatch({ layout: undefined })}
+			>
+				Freeform
+			</button>
+			<button
+				type="button"
+				className={`btn-icon btn-chip ${mode === 'grid' ? 'active' : ''}`}
+				title="Auto grid — images arrange themselves in neat rows"
+				aria-pressed={mode === 'grid'}
+				onClick={() => onPatch({ layout: 'grid' })}
+			>
+				Grid
+			</button>
+		</div>
+	);
+}
+
+/** Grid-mode settings (columns + crop) shared by the gallery block and image groups. */
+function GridOptions({ config, onPatch }: { config: GalleryConfig; onPatch: (patch: GalleryPatch) => void }) {
+	return (
+		<div className="grid-options">
+			<label className="grid-option">
+				Columns
+				<select
+					className="select-input"
+					value={uniformColumns(config.columns)}
+					onChange={(e) => onPatch({ columns: Number(e.target.value) })}
+				>
+					{[1, 2, 3, 4, 5, 6].map((n) => (
+						<option key={n} value={n}>
+							{n}
+						</option>
+					))}
+				</select>
+			</label>
+			<label className="grid-option">
+				Crop
+				<select
+					className="select-input"
+					value={config.aspect ?? ''}
+					onChange={(e) => onPatch({ aspect: e.target.value || undefined })}
+				>
+					{CROP_OPTIONS.map((o) => (
+						<option key={o.value} value={o.value}>
+							{o.label}
+						</option>
+					))}
+				</select>
+			</label>
+		</div>
+	);
+}
 
 export default function PageEditor({ pageKey, nested = false }: { pageKey: string; nested?: boolean }) {
 	const editor = useEditor();
@@ -174,60 +238,12 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						<div className="block-head">
 							<span className="block-label">Images</span>
 							{page.gallery && (
-								<div className="align-toggle" role="group" aria-label="Image layout">
-									<button
-										type="button"
-										className={`btn-icon btn-chip ${galleryMode === 'freeform' ? 'active' : ''}`}
-										title="Freeform canvas — drag images anywhere in the preview"
-										aria-pressed={galleryMode === 'freeform'}
-										onClick={() => editor.setGalleryConfig(pageKey, { layout: undefined })}
-									>
-										Freeform
-									</button>
-									<button
-										type="button"
-										className={`btn-icon btn-chip ${galleryMode === 'grid' ? 'active' : ''}`}
-										title="Auto grid — images arrange themselves in neat rows"
-										aria-pressed={galleryMode === 'grid'}
-										onClick={() => editor.setGalleryConfig(pageKey, { layout: 'grid' })}
-									>
-										Grid
-									</button>
-								</div>
+								<LayoutToggle mode={galleryMode} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
 							)}
 							{controls(index, block, false)}
 						</div>
 						{page.gallery && galleryMode === 'grid' && (
-							<div className="grid-options">
-								<label className="grid-option">
-									Columns
-									<select
-										className="select-input"
-										value={uniformColumns(page.gallery.columns)}
-										onChange={(e) => editor.setGalleryConfig(pageKey, { columns: Number(e.target.value) })}
-									>
-										{[1, 2, 3, 4, 5, 6].map((n) => (
-											<option key={n} value={n}>
-												{n}
-											</option>
-										))}
-									</select>
-								</label>
-								<label className="grid-option">
-									Crop
-									<select
-										className="select-input"
-										value={page.gallery.aspect ?? ''}
-										onChange={(e) => editor.setGalleryConfig(pageKey, { aspect: e.target.value || undefined })}
-									>
-										{CROP_OPTIONS.map((o) => (
-											<option key={o.value} value={o.value}>
-												{o.label}
-											</option>
-										))}
-									</select>
-								</label>
-							</div>
+							<GridOptions config={page.gallery} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
 						)}
 						{page.gallery && (
 							<ImageCollectionEditor
@@ -245,6 +261,32 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						)}
 					</div>
 				);
+			case 'images': {
+				const groupMode = block.gallery.layout === 'grid' ? 'grid' : 'freeform';
+				const patchGroup = (patch: GalleryPatch) => editor.updateImagesBlock(pageKey, block.id, patch);
+				return (
+					<div className="block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label">Image group</span>
+							<LayoutToggle mode={groupMode} onPatch={patchGroup} />
+							{controls(index, block, true)}
+						</div>
+						{groupMode === 'grid' && <GridOptions config={block.gallery} onPatch={patchGroup} />}
+						<ImageCollectionEditor
+							embedded
+							folder={block.gallery.folder}
+							variant="gallery"
+							addLabel="+ Add image(s)"
+							emptyLabel="No images in this group yet."
+							hint={
+								groupMode === 'grid'
+									? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
+									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking and phone order.'
+							}
+						/>
+					</div>
+				);
+			}
 			case 'about':
 				return (
 					<div className="block" key={block.id}>
@@ -329,6 +371,9 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 			<div className="block-adders">
 				<button type="button" className="btn-link" onClick={() => editor.addTextBlock(pageKey)}>
 					＋ Add text
+				</button>
+				<button type="button" className="btn-link" onClick={() => editor.addImagesBlock(pageKey)}>
+					＋ Add image group
 				</button>
 				<button type="button" className="btn-link" onClick={() => editor.addEmbedBlock(pageKey)}>
 					＋ Add video

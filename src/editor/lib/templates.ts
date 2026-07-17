@@ -96,6 +96,100 @@ const editorialContent: Content = {
 	galleries: { 'selected-works': { items: {} }, projects: { items: {} } },
 };
 
+/** Brutalist index: pure white, typewriter mono, a dense numbered-archive feel —
+ *  a loose 4-across index up front and a tight 6-across square archive behind it. */
+const archiveContent: Content = {
+	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg' },
+	theme: {
+		backgroundColor: '#ffffff',
+		textColor: '#111111',
+		mutedTextColor: '#6f6f6f',
+		accentColor: '#d92b2b',
+		fontFamily: '"Courier New", Courier, monospace',
+		contentGap: 24,
+	},
+	nav: [
+		{ path: '', label: 'Index' },
+		{ path: 'archive', label: 'Archive' },
+		{ path: 'bio', label: 'Info' },
+	],
+	profile: { image: '', bio: '' },
+	contact: { email: '' },
+	social: [],
+	resume: { label: 'Résumé', url: '' },
+	pages: {
+		home: {
+			title: '{name} — Index',
+			heading: 'Index',
+			gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc', layout: 'grid', columns: 4 },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		archive: {
+			title: 'Archive — {name}',
+			heading: 'Archive',
+			gallery: { folder: 'archive', alt: 'Archive piece', order: 'asc', layout: 'grid', columns: 6, aspect: '1:1' },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		bio: {
+			title: 'Info — {name}',
+			blocks: [{ id: 'about', type: 'about' }],
+		},
+	},
+	galleries: { 'selected-works': { items: {} }, archive: { items: {} } },
+};
+
+/** Calm art-gallery look: sage paper, deep green accent, serif headings over a
+ *  sans body, a freeform home collage, and a Collections page built from TWO
+ *  labeled image groups — showing off multiple galleries on one page. */
+const atelierContent: Content = {
+	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg' },
+	theme: {
+		backgroundColor: '#eef0e9',
+		textColor: '#1e2620',
+		mutedTextColor: '#6d7a6e',
+		accentColor: '#3f6d4e',
+		fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+		headingFontFamily: '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
+		contentGap: 32,
+	},
+	nav: [
+		{ path: '', label: 'Home' },
+		{ path: 'collections', label: 'Collections' },
+		{ path: 'bio', label: 'About' },
+	],
+	profile: { image: '', bio: '' },
+	contact: { email: '' },
+	social: [],
+	resume: { label: 'Résumé', url: '' },
+	pages: {
+		home: {
+			title: '{name} — Portfolio',
+			gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc' },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		collections: {
+			title: 'Collections — {name}',
+			heading: 'Collections',
+			gallery: { folder: 'collection-one', alt: 'Collection I', order: 'asc', layout: 'grid', columns: 3 },
+			blocks: [
+				{ id: 'c1-title', type: 'text', text: 'Collection I' },
+				{ id: 'gallery', type: 'gallery' },
+				{ id: 'c2-title', type: 'text', text: 'Collection II' },
+				{
+					id: 'c2-set',
+					type: 'images',
+					gallery: { folder: 'collection-two', alt: 'Collection II', order: 'asc', layout: 'grid', columns: 3 },
+				},
+			],
+		},
+		bio: {
+			title: 'About — {name}',
+			blocks: [{ id: 'about', type: 'about' }],
+		},
+	},
+	galleries: { 'selected-works': { items: {} }, 'collection-one': { items: {} }, 'collection-two': { items: {} } },
+};
+
 export const SITE_TEMPLATES: SiteTemplate[] = [
 	{
 		id: 'studio',
@@ -108,5 +202,17 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
 		name: 'Editorial',
 		tagline: 'Warm paper & serif type — big two-column project spreads.',
 		content: editorialContent,
+	},
+	{
+		id: 'archive',
+		name: 'Archive',
+		tagline: 'Stark white & typewriter mono — a dense numbered-index feel.',
+		content: archiveContent,
+	},
+	{
+		id: 'atelier',
+		name: 'Atelier',
+		tagline: 'Sage paper, serif headings & two labeled collections per page.',
+		content: atelierContent,
 	},
 ];

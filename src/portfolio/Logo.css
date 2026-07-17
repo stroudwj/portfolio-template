@@ -9,6 +9,7 @@
 
 .header-logo {
 	display: block;
+	font-family: var(--font-heading, var(--font-family));
 	font-size: 2rem;
 	font-weight: 800;
 	letter-spacing: -0.02em;
@@ -17,11 +18,22 @@
 	white-space: nowrap;
 }
 
+.header-logo-image {
+	display: block;
+	height: 56px;
+	width: auto;
+	max-width: 70vw;
+	object-fit: contain;
+}
+
 @media (max-width: 768px) {
 	.header-logo-container {
 		top: 20px;
 	}
 	.header-logo {
 		font-size: 1.1rem;
+	}
+	.header-logo-image {
+		height: 34px;
 	}
 }

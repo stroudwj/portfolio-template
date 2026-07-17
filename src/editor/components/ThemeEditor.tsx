@@ -41,6 +41,8 @@ export default function ThemeEditor() {
 		...customFonts.map((f) => ({ label: `${f.name} — your font`, value: customFontValue(f.name) })),
 	];
 	const fontKnown = options.some((f) => f.value === theme.fontFamily);
+	const headingFont = theme.headingFontFamily ?? '';
+	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
 
 	const handleFontFile = (file: File | undefined) => {
 		if (!file) return;
@@ -58,7 +60,7 @@ export default function ThemeEditor() {
 
 	return (
 		<Section title="Fonts & colors">
-			<Field label="Font">
+			<Field label="Body font">
 				<select
 					className="text-input"
 					value={fontKnown ? theme.fontFamily : '__custom'}
@@ -72,6 +74,23 @@ export default function ThemeEditor() {
 						</option>
 					))}
 					{!fontKnown && <option value="__custom">Custom ({theme.fontFamily})</option>}
+				</select>
+			</Field>
+			<Field label="Heading font" hint="Used for page titles and your name in the header.">
+				<select
+					className="text-input"
+					value={headingKnown ? headingFont : '__custom'}
+					onChange={(e) => {
+						if (e.target.value !== '__custom') setTheme({ headingFontFamily: e.target.value || undefined });
+					}}
+				>
+					<option value="">Same as body text</option>
+					{options.map((f) => (
+						<option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+							{f.label}
+						</option>
+					))}
+					{!headingKnown && <option value="__custom">Custom ({headingFont})</option>}
 				</select>
 			</Field>
 			<Field

@@ -249,6 +249,16 @@
 	border-radius: 8px;
 	background: #e4e4e4;
 }
+/* Logos are usually wide — show the whole mark, not a square crop. */
+.image-picker .logo-thumb {
+	width: auto;
+	max-width: 128px;
+	object-fit: contain;
+}
+.imagedrop-folder {
+	margin-top: 4px;
+	font-size: 0.85rem;
+}
 
 /* ---- Buttons ---- */
 .btn-primary,

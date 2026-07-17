@@ -16,7 +16,10 @@ function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t
 			style={{ background: theme.backgroundColor, color: theme.textColor, fontFamily: theme.fontFamily }}
 			onClick={() => onPick(template)}
 		>
-			<span className="template-sample" style={{ color: theme.accentColor }}>
+			<span
+				className="template-sample"
+				style={{ color: theme.accentColor, fontFamily: theme.headingFontFamily || theme.fontFamily }}
+			>
 				Aa
 			</span>
 			<strong className="template-name">{template.name}</strong>

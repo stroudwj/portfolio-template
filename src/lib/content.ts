@@ -11,6 +11,8 @@ export interface Site {
 	name: string;
 	/** Optional logo override; falls back to `name` when omitted or empty. */
 	logo?: string;
+	/** Optional logo image (path under src/assets/); shown in the header instead of the text logo. */
+	logoImage?: string;
 	/** Meta description used for SEO and social cards. */
 	description: string;
 	/** Favicon file name, served from public/. */
@@ -29,6 +31,8 @@ export interface Theme {
 	mutedTextColor: string;
 	accentColor: string;
 	fontFamily: string;
+	/** Font for headings (page titles + the text logo). Absent = same as fontFamily. */
+	headingFontFamily?: string;
 	/** Extra space (px) between the site header and the page content. Absent = 0. */
 	contentGap?: number;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
@@ -100,13 +104,16 @@ export interface TextLayout {
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
  * 'embed' is a YouTube/Vimeo video (its optional `layout` pins the player onto
  * the page's freeform canvas, like images); 'gallery' renders the page's
- * gallery; 'children' renders the page's sub-pages as thumbnail cards; 'about'
- * renders the profile section (bio, email, social links).
+ * gallery; 'images' is an extra self-contained image group (its own folder +
+ * layout settings), so one page can hold several canvases/grids; 'children'
+ * renders the page's sub-pages as thumbnail cards; 'about' renders the profile
+ * section (bio, email, social links).
  */
 export type PageBlock =
 	| { id: string; type: 'text'; text: string; align?: TextAlign; layout?: TextLayout }
 	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
 	| { id: string; type: 'gallery' }
+	| { id: string; type: 'images'; gallery: GalleryConfig }
 	| { id: string; type: 'children' }
 	| { id: string; type: 'about' };
 
@@ -167,6 +174,15 @@ export interface Content {
 	resume: Resume;
 	pages: Record<string, PageConfig>;
 	galleries: Record<string, GalleryData>;
+}
+
+/** Every gallery config a page renders: its main gallery plus any extra image groups. */
+export function pageGalleryConfigs(page: PageConfig): GalleryConfig[] {
+	const configs: GalleryConfig[] = page.gallery ? [page.gallery] : [];
+	for (const block of page.blocks ?? []) {
+		if (block.type === 'images') configs.push(block.gallery);
+	}
+	return configs;
 }
 
 /**

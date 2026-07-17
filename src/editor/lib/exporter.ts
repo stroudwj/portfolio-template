@@ -3,7 +3,8 @@
 //   2. PublishTarget     — delivery: ZipTarget now; a GitHubTarget can slot in later
 // so switching from "download" to "publish" needs no change to the editor.
 import { zipSync, strToU8 } from 'fflate';
-import type { Content } from '../../lib/content';
+import { pageGalleryConfigs } from '../../lib/content';
+import type { Content, GalleryConfig } from '../../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './types';
 import { getAssetBlob } from './assets';
 import { cloneContent } from './content-init';
@@ -74,10 +75,15 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	const content = cloneContent(doc.content);
 	const files: BundleFile[] = [];
 
-	// Which page owns each gallery folder (so we can force order: 'asc').
-	const pageByFolder = new Map<string, string>();
-	for (const [pageKey, page] of Object.entries(content.pages)) {
-		if (page.gallery) pageByFolder.set(page.gallery.folder, pageKey);
+	// Every config that renders a folder — a page's main gallery or an image
+	// group — so each can be forced to order: 'asc' (file names carry the order).
+	const configsByFolder = new Map<string, GalleryConfig[]>();
+	for (const page of Object.values(content.pages)) {
+		for (const config of pageGalleryConfigs(page)) {
+			const list = configsByFolder.get(config.folder) ?? [];
+			list.push(config);
+			configsByFolder.set(config.folder, list);
+		}
 	}
 
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
@@ -91,8 +97,7 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			if (blob) files.push({ path: `src/assets/${folder}/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
 		}
 		content.galleries[folder] = { items } as Content['galleries'][string];
-		const pageKey = pageByFolder.get(folder);
-		if (pageKey && content.pages[pageKey].gallery) content.pages[pageKey].gallery!.order = 'asc';
+		for (const config of configsByFolder.get(folder) ?? []) config.order = 'asc';
 	}
 
 	// Résumé PDF, served from public/ at the site root. Uploaded this session ->
@@ -118,6 +123,18 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		content.profile.image = finalName;
 	} else {
 		content.profile.image = doc.profileImage.filename;
+	}
+
+	// Header logo image, at the assets root with a stable "logo-" prefix so it can't
+	// collide with the profile image (the prefix is applied exactly once per name).
+	const logoBlob = getAssetBlob(doc.logoImage?.assetId);
+	if (logoBlob) {
+		const cleaned = sanitizeFilename(doc.logoImage.filename || 'logo');
+		const finalName = cleaned.startsWith('logo-') ? cleaned : `logo-${cleaned}`;
+		files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await logoBlob.arrayBuffer()) });
+		content.site.logoImage = finalName;
+	} else {
+		content.site.logoImage = doc.logoImage?.filename || undefined;
 	}
 
 	// Page thumbnails (sub-page cards). Written under src/assets/thumbs/, name-prefixed

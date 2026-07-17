@@ -10,6 +10,7 @@
 import type { GitHubClient } from './client';
 import { CONTENT_JSON_PATH, TEMPLATE_REPO } from './config';
 import { getRepo, getTree, type RepoRef, type TreeItem } from './repo';
+import { pageGalleryConfigs } from '../../../lib/content';
 import type { Content, EditorDoc, ImageEntry } from '../types';
 import type { PublishProgress } from '../exporter';
 import { initDocFromContent } from '../content-init';
@@ -61,7 +62,9 @@ export function galleryFilesInTree(tree: TreeItem[], folder: string): string[] {
 export function galleryFolders(content: Content): string[] {
 	const folders = Object.keys(content.galleries);
 	for (const page of Object.values(content.pages)) {
-		if (page.gallery && !folders.includes(page.gallery.folder)) folders.push(page.gallery.folder);
+		for (const config of pageGalleryConfigs(page)) {
+			if (!folders.includes(config.folder)) folders.push(config.folder);
+		}
 	}
 	return folders;
 }
@@ -109,6 +112,10 @@ export async function loadDocFromRepo(
 	const profilePath = profileName ? `src/assets/${profileName}` : '';
 	const hasProfileFile = !!profilePath && shaByPath.has(profilePath);
 	if (hasProfileFile) imagePaths.push(profilePath);
+	const logoName = content.site.logoImage ?? '';
+	const logoPath = logoName ? `src/assets/${logoName}` : '';
+	const hasLogoFile = !!logoPath && shaByPath.has(logoPath);
+	if (hasLogoFile) imagePaths.push(logoPath);
 	// Custom font files ride along so a later publish can re-write them.
 	const fontPathByName = new Map<string, string>();
 	for (const font of content.theme.customFonts ?? []) {
@@ -159,6 +166,9 @@ export async function loadDocFromRepo(
 	doc.profileImage = hasProfileFile
 		? { filename: profileName, assetId: assetIdByPath.get(profilePath) ?? null }
 		: { filename: profileName || '', assetId: null };
+	doc.logoImage = hasLogoFile
+		? { filename: logoName, assetId: assetIdByPath.get(logoPath) ?? null }
+		: { filename: logoName, assetId: null };
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = {
 			filename: path.slice(path.lastIndexOf('/') + 1),

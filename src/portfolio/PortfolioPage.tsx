@@ -53,8 +53,11 @@ function DraggableFlowBlock({
 		if (e.button !== 0) return;
 		const el = ref.current;
 		if (!el) return;
-		// The page's canvas, if it has one (editor preview always sits in .portfolio-root).
-		const canvas = (el.closest('.portfolio-root') ?? document).querySelector('.canvas-gallery');
+		// The page's PRIMARY canvas — extra image groups render their own canvases,
+		// but pinned text/video always lives on the main gallery's canvas.
+		const root = el.closest('.portfolio-root') ?? document;
+		const canvas =
+			root.querySelector('[data-primary-gallery] .canvas-gallery') ?? root.querySelector('.canvas-gallery');
 		if (!canvas) return;
 		e.preventDefault();
 		const win = el.ownerDocument.defaultView ?? window;
@@ -217,12 +220,35 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				// Home keeps its collage layout; other pages the standard wrapper (the
 				// page-photo modifier preserves the original photography page's spacing).
 				return page === 'home' ? (
-					<div key={block.id} className="collage-container">
+					<div key={block.id} className="collage-container" data-primary-gallery>
 						{galleryEl}
 					</div>
 				) : (
-					<div key={block.id} className={`page-content-wrapper ${page === 'photography' ? 'page-photo' : ''}`}>
+					<div
+						key={block.id}
+						className={`page-content-wrapper ${page === 'photography' ? 'page-photo' : ''}`}
+						data-primary-gallery
+					>
 						{galleryEl}
+					</div>
+				);
+			}
+			case 'images': {
+				// An extra self-contained image group: its own folder, layout mode and
+				// (in the editor) its own drag-anywhere canvas. Pinned text/video stays
+				// with the primary gallery above, so this block passes none.
+				const groupImages = galleries[block.gallery.folder] ?? [];
+				return (
+					<div key={block.id} className="page-content-wrapper image-group">
+						<Gallery
+							images={groupImages}
+							alt={block.gallery.alt}
+							settings={block.gallery}
+							editable={!!onImageLayout}
+							onLayoutChange={
+								onImageLayout ? (id, layout) => onImageLayout(block.gallery.folder, id, layout) : undefined
+							}
+						/>
 					</div>
 				);
 			}

@@ -3,16 +3,14 @@ import Layout from '../layouts/Layout.astro';
 import PortfolioPage from '../portfolio/PortfolioPage';
 import Landing from '../components/Landing.astro';
 import { content, pageTitle } from '../lib/content';
-import { resolveGallery, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
+import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../lib/productSite';
 
 // The root page is two different things: on the product site it's the sales landing
 // (the portfolio demo lives under /demo), and on every published site it's the owner's
 // portfolio home. Published repos get IS_PRODUCT_SITE flipped to false by the publisher.
 const page = content.pages.home;
-const gallery = page.gallery;
-const galleries =
-	IS_PRODUCT_SITE || !gallery ? {} : { [gallery.folder]: await resolveGallery(gallery.folder) };
+const galleries = IS_PRODUCT_SITE ? {} : await resolvePageGalleries('home');
 const hasAbout = !IS_PRODUCT_SITE && page.blocks?.some((b) => b.type === 'about');
 const profile = hasAbout ? await resolveProfileImage() : {};
 const pageThumbs = IS_PRODUCT_SITE ? {} : await resolveChildThumbs('home');

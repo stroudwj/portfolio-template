@@ -3,13 +3,22 @@
 // through Astro's optimizer (getImage) and attach its caption metadata.
 import { getImage } from 'astro:assets';
 import { getGallery, getAsset } from './galleries';
-import { content } from './content';
+import { content, pageGalleryConfigs } from './content';
+import type { GalleryConfig } from './content';
 import type { ResolvedImage } from '../portfolio/types';
+
+/** The config that owns a folder — a page's main gallery or one of its image groups. */
+function configForFolder(folder: string): GalleryConfig | undefined {
+	for (const page of Object.values(content.pages)) {
+		const found = pageGalleryConfigs(page).find((g) => g.folder === folder);
+		if (found) return found;
+	}
+	return undefined;
+}
 
 /** Ordered, optimized, caption-carrying images for one gallery folder. */
 export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
-	const page = Object.values(content.pages).find((p) => p.gallery?.folder === folder);
-	const gallery = page?.gallery;
+	const gallery = configForFolder(folder);
 	const order = gallery?.order ?? 'asc';
 	const alt = gallery?.alt ?? '';
 	const items = content.galleries[folder]?.items ?? {};
@@ -34,6 +43,17 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 			} satisfies ResolvedImage;
 		}),
 	);
+}
+
+/** Every gallery a page renders — its main folder plus any extra image groups. */
+export async function resolvePageGalleries(pageKey: string): Promise<Record<string, ResolvedImage[]>> {
+	const page = content.pages[pageKey];
+	const out: Record<string, ResolvedImage[]> = {};
+	if (!page) return out;
+	for (const config of pageGalleryConfigs(page)) {
+		if (!(config.folder in out)) out[config.folder] = await resolveGallery(config.folder);
+	}
+	return out;
 }
 
 /**
@@ -75,4 +95,12 @@ export async function resolveProfileImage(): Promise<{ src?: string }> {
 	if (!image) return {};
 	const optimized = await getImage({ src: image, width: 320 });
 	return { src: optimized.src };
+}
+
+/** Optimized header-logo image src (undefined = the text logo renders instead). */
+export async function resolveLogoImage(): Promise<string | undefined> {
+	if (!content.site.logoImage) return undefined;
+	const image = getAsset(content.site.logoImage);
+	if (!image) return undefined;
+	return (await getImage({ src: image, width: 480 })).src;
 }

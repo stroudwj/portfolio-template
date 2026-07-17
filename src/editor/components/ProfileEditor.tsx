@@ -6,13 +6,24 @@ import { getAssetUrl } from '../lib/assets';
 import { isEmail, isPdfFile, MAX_PDF_BYTES, MAX_PDF_MB } from '../lib/validation';
 
 export default function ProfileEditor() {
-	const { doc, setName, setBio, setEmail, setProfileImage, removeProfileImage, setResumeFile, removeResume } =
-		useEditor();
+	const {
+		doc,
+		setName,
+		setBio,
+		setEmail,
+		setProfileImage,
+		removeProfileImage,
+		setLogoImage,
+		removeLogoImage,
+		setResumeFile,
+		removeResume,
+	} = useEditor();
 	const resumeInputRef = useRef<HTMLInputElement>(null);
 	const [resumeError, setResumeError] = useState<string | null>(null);
 	if (!doc) return null;
 	const c = doc.content;
 	const profileUrl = getAssetUrl(doc.profileImage.assetId);
+	const logoUrl = getAssetUrl(doc.logoImage?.assetId);
 	const emailError = c.contact.email && !isEmail(c.contact.email) ? 'Enter a valid email address.' : undefined;
 	const resumeName = doc.resumeFile?.filename ?? '';
 	const resumeUrl = getAssetUrl(doc.resumeFile?.assetId);
@@ -35,6 +46,19 @@ export default function ProfileEditor() {
 		<Section title="Profile">
 			<Field label="Name">
 				<TextInput value={c.site.name} placeholder="Your name" onChange={(e) => setName(e.target.value)} />
+			</Field>
+			<Field label="Header logo (optional)" hint="Shown at the top of every page instead of your name.">
+				<div className="image-picker">
+					{logoUrl && <img className="thumb logo-thumb" src={logoUrl} alt="" />}
+					<ImageDrop onFiles={(files) => setLogoImage(files[0])}>
+						<span>{logoUrl ? 'Replace logo' : 'Click or drop a logo image'}</span>
+					</ImageDrop>
+					{(logoUrl || doc.logoImage?.filename) && (
+						<button type="button" className="btn-ghost" onClick={removeLogoImage}>
+							Remove
+						</button>
+					)}
+				</div>
 			</Field>
 			<Field label="Bio" hint="One blank line makes a paragraph break.">
 				<TextArea rows={6} value={c.profile.bio} placeholder="Write a short bio…" onChange={(e) => setBio(e.target.value)} />

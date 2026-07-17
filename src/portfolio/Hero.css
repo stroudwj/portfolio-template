@@ -4,6 +4,7 @@
 }
 
 .page-title {
+	font-family: var(--font-heading, var(--font-family));
 	font-size: 2rem;
 	font-weight: 700;
 	color: var(--color-text);

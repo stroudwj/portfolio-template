@@ -1,6 +1,6 @@
 // Seeds the editor document (blank or from the bundled content.json) and turns a
 // live document into the PortfolioData the shared components render for preview.
-import { content as bundledContent, migrateContent } from '../../lib/content';
+import { content as bundledContent, migrateContent, pageGalleryConfigs } from '../../lib/content';
 import type { Content } from '../../lib/content';
 import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
@@ -60,9 +60,12 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 			assetId: null,
 		}));
 	}
-	// Ensure every folder a page points at has a (possibly empty) list.
+	// Ensure every folder a page points at — main gallery or image group — has a
+	// (possibly empty) list.
 	for (const page of Object.values(content.pages)) {
-		if (page.gallery && !galleries[page.gallery.folder]) galleries[page.gallery.folder] = [];
+		for (const config of pageGalleryConfigs(page)) {
+			if (!galleries[config.folder]) galleries[config.folder] = [];
+		}
 	}
 	return galleries;
 }
@@ -85,6 +88,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 		content: cloned,
 		galleries: entriesFromContent(cloned),
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
+		logoImage: { filename: cloned.site.logoImage || '', assetId: null },
 		pageThumbs,
 		fonts,
 		resumeFile: { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
@@ -100,6 +104,7 @@ export function upgradeDoc(doc: EditorDoc): EditorDoc {
 	return {
 		...doc,
 		content: migrateContent(doc.content),
+		logoImage: doc.logoImage ?? { filename: doc.content.site.logoImage || '', assetId: null },
 		pageThumbs: doc.pageThumbs ?? {},
 		fonts: doc.fonts ?? {},
 		resumeFile: doc.resumeFile ?? { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
@@ -125,6 +130,10 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	const uploaded = getAssetUrl(doc.profileImage.assetId);
 	const profileImageSrc = uploaded ?? (doc.profileImage.filename ? PLACEHOLDER_IMAGE : undefined);
 
+	// Header logo: only a real uploaded image replaces the text logo (a gray
+	// placeholder up there would look broken, so fall back to text instead).
+	const logoImageSrc = getAssetUrl(doc.logoImage?.assetId) ?? undefined;
+
 	// Sub-page card images: explicit thumbnail first, else the page's first gallery image.
 	const pageThumbs: Record<string, string> = {};
 	for (const [key, page] of Object.entries(doc.content.pages)) {
@@ -147,5 +156,5 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	// A résumé uploaded this session opens from its blob URL in the preview.
 	const resumeHref = getAssetUrl(doc.resumeFile?.assetId);
 
-	return { content: doc.content, galleries, profileImageSrc, pageThumbs, fontFaces, resumeHref };
+	return { content: doc.content, galleries, profileImageSrc, logoImageSrc, pageThumbs, fontFaces, resumeHref };
 }

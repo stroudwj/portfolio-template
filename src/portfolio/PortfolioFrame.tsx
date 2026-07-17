@@ -6,6 +6,8 @@ import './frame.css';
 export interface PortfolioFrameProps {
 	nav: NavItem[];
 	logo: string;
+	/** Resolved logo image URL; replaces the text logo when present. */
+	logoImageSrc?: string;
 	base: string;
 	/** Current page path, stripped ('' = Home). */
 	current: string;
@@ -17,6 +19,7 @@ export interface PortfolioFrameProps {
 export default function PortfolioFrame({
 	nav,
 	logo,
+	logoImageSrc,
 	base,
 	current,
 	onNavigate,
@@ -24,7 +27,7 @@ export default function PortfolioFrame({
 }: PortfolioFrameProps) {
 	return (
 		<>
-			<Logo logo={logo} href={withBase(base)} onNavigate={onNavigate} />
+			<Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} onNavigate={onNavigate} />
 			<div className="portfolio-container">
 				<nav className="sidebar">
 					<Nav items={nav} base={base} current={current} onNavigate={onNavigate} />

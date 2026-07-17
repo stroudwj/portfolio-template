@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { pageGalleryConfigs } from '../lib/content';
 import type { Content, GalleryConfig, ImageLayout, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
@@ -40,6 +41,17 @@ function uniquePageKey(desired: string, pages: Record<string, PageConfig>): stri
 	return key;
 }
 
+/** A gallery folder that collides with nothing the document already uses. */
+function uniqueFolder(desired: string, doc: EditorDoc): string {
+	// 'fonts' and 'thumbs' are special src/assets/ subfolders the exporter owns.
+	const taken = new Set(['fonts', 'thumbs', ...Object.keys(doc.content.galleries), ...Object.keys(doc.galleries)]);
+	for (const page of Object.values(doc.content.pages))
+		for (const config of pageGalleryConfigs(page)) taken.add(config.folder);
+	let folder = desired;
+	for (let n = 2; taken.has(folder); n++) folder = `${desired}-${n}`;
+	return folder;
+}
+
 /** "my-font_bold.woff2" -> "My Font Bold" — a readable, CSS-safe font-family name. */
 function fontNameFromFile(filename: string): string {
 	const base = filename.replace(/\.[^.]+$/, '');
@@ -69,6 +81,9 @@ export interface EditorContextValue {
 	setEmail(value: string): void;
 	setProfileImage(file: File): void;
 	removeProfileImage(): void;
+	/** Upload a header logo image (replaces the text logo on every page). */
+	setLogoImage(file: File): void;
+	removeLogoImage(): void;
 	/** Upload the résumé PDF linked from the About section. */
 	setResumeFile(file: File): void;
 	/** Remove the résumé entirely (no link shown on the site). */
@@ -100,6 +115,10 @@ export interface EditorContextValue {
 	setTextLayout(key: string, blockId: string, layout: TextLayout | undefined): void;
 	/** Change gallery display settings (freeform/grid, columns, crop aspect). */
 	setGalleryConfig(key: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>): void;
+	/** Add an extra image group (its own folder + canvas/grid) to the page. */
+	addImagesBlock(key: string): void;
+	/** Change an image group's display settings (freeform/grid, columns, crop aspect). */
+	updateImagesBlock(key: string, blockId: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>): void;
 	addEmbedBlock(key: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	/** Pin a video embed to the page canvas (or undefined to return it to the flow). */
@@ -190,6 +209,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		},
 		removeProfileImage: () => setDoc((prev) => (prev ? { ...prev, profileImage: { filename: '', assetId: null } } : prev)),
 
+		setLogoImage: (file) => {
+			const assetId = registerAsset(file, file.name);
+			setDoc((prev) => (prev ? { ...prev, logoImage: { filename: file.name, assetId } } : prev));
+		},
+		removeLogoImage: () =>
+			setDoc((prev) =>
+				prev
+					? {
+							...prev,
+							logoImage: { filename: '', assetId: null },
+							content: { ...prev.content, site: { ...prev.content.site, logoImage: undefined } },
+						}
+					: prev,
+			),
+
 		setResumeFile: (file) => {
 			const assetId = registerAsset(file, file.name);
 			setDoc((prev) =>
@@ -246,6 +280,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const fonts = { ...prev.fonts };
 				delete fonts[name];
 				const usesIt = prev.content.theme.fontFamily.includes(`"${name}"`);
+				const headingUsesIt = prev.content.theme.headingFontFamily?.includes(`"${name}"`) ?? false;
 				return {
 					...prev,
 					content: {
@@ -256,6 +291,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 							fontFamily: usesIt
 								? '"Helvetica Neue", Helvetica, Arial, sans-serif'
 								: prev.content.theme.fontFamily,
+							headingFontFamily: headingUsesIt ? undefined : prev.content.theme.headingFontFamily,
 						},
 					},
 					fonts,
@@ -332,9 +368,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			setDoc((prev) => {
 				if (!prev || key === 'home' || !prev.content.pages[key]) return prev;
 				const doomed = [key, ...(prev.content.pages[key].children ?? [])];
-				const doomedFolders = doomed
-					.map((k) => prev.content.pages[k]?.gallery?.folder)
-					.filter((f): f is string => !!f);
+				const doomedFolders = doomed.flatMap((k) => {
+					const page = prev.content.pages[k];
+					return page ? pageGalleryConfigs(page).map((g) => g.folder) : [];
+				});
 
 				const pages: Record<string, PageConfig> = {};
 				for (const [k, page] of Object.entries(prev.content.pages)) {
@@ -413,6 +450,33 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			),
 		setGalleryConfig: (key, patch) =>
 			patchPage(key, (page) => (page.gallery ? { ...page, gallery: { ...page.gallery, ...patch } } : page)),
+		addImagesBlock: (key) =>
+			setDoc((prev) => {
+				if (!prev) return prev;
+				const page = prev.content.pages[key];
+				if (!page) return prev;
+				const folder = uniqueFolder(`${key.replace(/\//g, '-')}-set`, prev);
+				const block: PageBlock = {
+					id: uid('g'),
+					type: 'images',
+					gallery: { folder, alt: page.label ?? key, order: 'asc' },
+				};
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						pages: { ...prev.content.pages, [key]: { ...page, blocks: [...(page.blocks ?? []), block] } },
+						galleries: { ...prev.content.galleries, [folder]: { items: {} } },
+					},
+					galleries: { ...prev.galleries, [folder]: [] },
+				};
+			}),
+		updateImagesBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) =>
+					b.id === blockId && b.type === 'images' ? { ...b, gallery: { ...b.gallery, ...patch } } : b,
+				),
+			),
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),
@@ -420,7 +484,28 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, layout } : b)),
 			),
-		removeBlock: (key, blockId) => patchBlocks(key, (blocks) => blocks.filter((b) => b.id !== blockId)),
+		removeBlock: (key, blockId) =>
+			setDoc((prev) => {
+				if (!prev) return prev;
+				const page = prev.content.pages[key];
+				if (!page) return prev;
+				const target = (page.blocks ?? []).find((b) => b.id === blockId);
+				const blocks = (page.blocks ?? []).filter((b) => b.id !== blockId);
+				const next = {
+					...prev,
+					content: { ...prev.content, pages: { ...prev.content.pages, [key]: { ...page, blocks } } },
+				};
+				// Removing an image group takes its folder (and images) off the site too.
+				if (target?.type === 'images') {
+					const contentGalleries = { ...next.content.galleries };
+					delete contentGalleries[target.gallery.folder];
+					next.content = { ...next.content, galleries: contentGalleries };
+					const docGalleries = { ...prev.galleries };
+					delete docGalleries[target.gallery.folder];
+					next.galleries = docGalleries;
+				}
+				return next;
+			}),
 		moveBlock: (key, from, to) => patchBlocks(key, (blocks) => arrayMove(blocks, from, to)),
 
 		addGalleryImages: (folder, files) =>
