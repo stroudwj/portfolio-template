@@ -15,7 +15,7 @@ Click any image to view it full-screen. It looks good on phones and computers.
 This is the whole thing, and it happens in one browser tab.
 
 **1. Open the editor.** Go to
-**https://stroudwj.github.io/portfolio-template/editor/**. You'll see a website-builder-style
+**https://simpleportfolioeditor.pages.dev/editor/**. You'll see a website-builder-style
 screen with a live preview.
 
 **2. Start building.** Click **Start building** (or **Start from blank**). Fill in your name,
