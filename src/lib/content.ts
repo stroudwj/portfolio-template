@@ -19,6 +19,8 @@ export interface Site {
 	favicon: string;
 	/** Hand-drawn signature, signed at the foot of every page. Absent = none. */
 	signature?: SignatureData;
+	/** Footer line(s) shown at the bottom of every page. "\n" is a line break; absent/empty = no footer. */
+	footer?: string;
 }
 
 /**

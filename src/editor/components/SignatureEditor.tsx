@@ -53,7 +53,7 @@ export default function SignatureEditor() {
 	const shown = draft ? [...strokes, draft] : strokes;
 
 	return (
-		<Section title="Signature">
+		<Section title="Signature" sectionKey="_signature">
 			<Field
 				label="Sign your site"
 				hint="Draw with your mouse, pen or finger — your signature is signed at the bottom of every page, in your site’s text color."

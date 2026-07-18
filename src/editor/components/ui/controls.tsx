@@ -1,4 +1,5 @@
 // Tiny form primitives shared by every editor section.
+import { useEffect, useState } from 'react';
 import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
 export function Field({
@@ -30,25 +31,88 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea className="text-area" {...props} />;
 }
 
+/** Collapsed/expanded choices survive reloads — one localStorage map for all sections. */
+const COLLAPSE_STORE = 'portfolio-editor-collapsed';
+const EXPAND_EVENT = 'editor-expand-section';
+
+function loadCollapsed(): Record<string, boolean> {
+	try {
+		return JSON.parse(localStorage.getItem(COLLAPSE_STORE) ?? '{}') as Record<string, boolean>;
+	} catch {
+		return {};
+	}
+}
+
+function storeCollapsed(key: string, collapsed: boolean) {
+	try {
+		localStorage.setItem(COLLAPSE_STORE, JSON.stringify({ ...loadCollapsed(), [key]: collapsed }));
+	} catch {
+		/* storage blocked/full — the toggle still works for this session */
+	}
+}
+
+/** Expand the section registered under `key` (e.g. before scrolling the panel to it). */
+export function expandSection(key: string) {
+	window.dispatchEvent(new CustomEvent(EXPAND_EVENT, { detail: key }));
+}
+
 export function Section({
 	title,
 	children,
 	action,
 	sectionKey,
+	defaultCollapsed = false,
 }: {
 	title: string;
 	children: ReactNode;
 	action?: ReactNode;
-	/** Marks the section as a scroll target (e.g. the preview nav scrolls to a page's editor). */
+	/**
+	 * Stable id: scroll target (the preview nav scrolls to a page's editor),
+	 * expandSection() address, and collapse-memory key. Sections without one
+	 * don't collapse.
+	 */
 	sectionKey?: string;
+	defaultCollapsed?: boolean;
 }) {
+	const [collapsed, setCollapsed] = useState(
+		() => (sectionKey ? (loadCollapsed()[sectionKey] ?? defaultCollapsed) : false),
+	);
+
+	useEffect(() => {
+		if (!sectionKey) return;
+		const onExpand = (e: Event) => {
+			if ((e as CustomEvent<string>).detail !== sectionKey) return;
+			setCollapsed(false);
+			storeCollapsed(sectionKey, false);
+		};
+		window.addEventListener(EXPAND_EVENT, onExpand);
+		return () => window.removeEventListener(EXPAND_EVENT, onExpand);
+	}, [sectionKey]);
+
+	const toggle = () => {
+		if (!sectionKey) return;
+		setCollapsed(!collapsed);
+		storeCollapsed(sectionKey, !collapsed);
+	};
+
 	return (
-		<section className="editor-section" data-section={sectionKey}>
+		<section className={`editor-section ${collapsed ? 'collapsed' : ''}`} data-section={sectionKey}>
 			<header className="editor-section-head">
-				<h2>{title}</h2>
+				{sectionKey ? (
+					<h2>
+						<button type="button" className="section-toggle" onClick={toggle} aria-expanded={!collapsed}>
+							<span className="section-chevron" aria-hidden="true">
+								{collapsed ? '▸' : '▾'}
+							</span>
+							{title}
+						</button>
+					</h2>
+				) : (
+					<h2>{title}</h2>
+				)}
 				{action}
 			</header>
-			{children}
+			{!collapsed && children}
 		</section>
 	);
 }

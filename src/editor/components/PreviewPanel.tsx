@@ -4,6 +4,7 @@ import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
 import { GRID_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
+import { expandSection } from './ui/controls';
 
 /** Canvas grid overlay + snap controls. Lives in the preview toolbar so they're
  *  reachable no matter how far down the editing column is scrolled. */
@@ -116,11 +117,18 @@ export default function PreviewPanel({ base }: { base: string }) {
 	const navigate = (path: string) => {
 		const key = path === '' ? 'home' : path;
 		setPage(key);
-		// Bring that page's editing section into view alongside the preview.
-		if (!fullscreen)
+		if (fullscreen) return;
+		// Bring that page's editing section into view alongside the preview. A collapsed
+		// section (or a sub-page inside a collapsed parent) must expand first, or the
+		// scroll target doesn't exist / has no height yet.
+		const parent = Object.entries(doc.content.pages).find(([, p]) => p.children?.includes(key))?.[0];
+		if (parent) expandSection(parent);
+		expandSection(key);
+		requestAnimationFrame(() => {
 			document
 				.querySelector(`.editor-controls [data-section="${CSS.escape(key)}"]`)
 				?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
 	};
 
 	const portfolio = (

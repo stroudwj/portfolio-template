@@ -18,7 +18,7 @@ export default function LayoutEditor() {
 	};
 
 	return (
-		<Section title="Layout">
+		<Section title="Layout" sectionKey="_layout">
 			<Field label="Gap between header and content" hint="Pushes every page’s content down from the top of the site. The canvas grid toggle lives above the preview.">
 				<div className="gap-row">
 					<input

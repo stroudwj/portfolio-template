@@ -103,6 +103,8 @@ export interface EditorContextValue {
 	addChildPage(parentKey: string, label: string): void;
 	removePage(key: string): void;
 	movePage(from: number, to: number): void;
+	/** Reorder a page's sub-pages (changes their card order on the site too). */
+	moveChildPage(parentKey: string, from: number, to: number): void;
 	renamePage(key: string, label: string): void;
 	setPageHeading(key: string, heading: string): void;
 	setPageThumb(key: string, file: File): void;
@@ -125,6 +127,8 @@ export interface EditorContextValue {
 	setChildrenStyle(key: string, blockId: string, style: ChildrenStyle): void;
 	/** Store the hand-drawn signature (undefined clears it off the site). */
 	setSignature(data: SignatureData | undefined): void;
+	/** Footer text shown at the bottom of every page (empty removes the footer). */
+	setFooter(value: string): void;
 	addEmbedBlock(key: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	/** Pin a video embed to the page canvas (or undefined to return it to the flow). */
@@ -418,6 +422,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
 		movePage: (from, to) => patchContent((c) => ({ ...c, nav: arrayMove(c.nav, from, to) })),
 
+		moveChildPage: (parentKey, from, to) =>
+			patchPage(parentKey, (page) => ({ ...page, children: arrayMove(page.children ?? [], from, to) })),
+
 		renamePage: (key, label) =>
 			patchContent((c) => {
 				// The home page's nav entry uses path '' — map the key back to it.
@@ -505,6 +512,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				),
 			),
 		setSignature: (data) => patchContent((c) => ({ ...c, site: { ...c.site, signature: data } })),
+		setFooter: (value) => patchContent((c) => ({ ...c, site: { ...c.site, footer: value || undefined } })),
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),

@@ -12,6 +12,7 @@ export default function SocialLinksEditor() {
 	return (
 		<Section
 			title="Social links"
+			sectionKey="_social"
 			action={
 				<button type="button" className="btn-ghost" onClick={addSocial}>
 					+ Add

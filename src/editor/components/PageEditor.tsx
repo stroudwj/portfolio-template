@@ -331,7 +331,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							</select>
 							{controls(index, block, false)}
 						</div>
-						{(page.children ?? []).map((childKey) => {
+						{(page.children ?? []).map((childKey, childIndex, childList) => {
 							const child = doc.content.pages[childKey];
 							const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[childKey]?.assetId ?? null);
 							return (
@@ -348,6 +348,24 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 									/>
 									<button
 										type="button"
+										className="btn-icon"
+										disabled={childIndex === 0}
+										onClick={() => editor.moveChildPage(pageKey, childIndex, childIndex - 1)}
+										aria-label="Move sub-page up"
+									>
+										↑
+									</button>
+									<button
+										type="button"
+										className="btn-icon"
+										disabled={childIndex === childList.length - 1}
+										onClick={() => editor.moveChildPage(pageKey, childIndex, childIndex + 1)}
+										aria-label="Move sub-page down"
+									>
+										↓
+									</button>
+									<button
+										type="button"
 										className="btn-icon danger"
 										onClick={() => {
 											if (confirm(`Delete the “${child?.label ?? childKey}” sub-page?`)) editor.removePage(childKey);
@@ -360,8 +378,8 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							);
 						})}
 						<p className="muted">
-							Each sub-page is its own page with images and text — edit them below. Without a thumbnail, the card uses
-							the sub-page’s first image.
+							Each sub-page is its own page with images and text — edit them below. ↑↓ sets their order on the page.
+							Without a thumbnail, the card uses the sub-page’s first image.
 						</p>
 					</div>
 				);
@@ -371,6 +389,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	return (
 		<Section
 			sectionKey={pageKey}
+			defaultCollapsed={nested}
 			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? `Page: ${page.label || 'Home'}` : `Page: ${page.label ?? pageKey}`}
 			action={
 				!isHome ? (

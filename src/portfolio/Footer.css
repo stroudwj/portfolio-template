@@ -1,0 +1,27 @@
+/* The site footer, shown at the bottom of every page. The content-view is a
+   flex column, so margin-top: auto sinks it even on short pages; when a
+   signature is present, the signature carries the auto margin and the footer
+   simply follows underneath it. */
+.site-footer {
+	margin-top: auto;
+	padding: 2.5rem 40px 1.75rem;
+	color: var(--color-text-muted);
+	font-size: 0.78rem;
+	line-height: 1.6;
+	text-align: center;
+}
+
+.site-footer p {
+	margin: 0;
+}
+
+.site-signature + .site-footer {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+@media (max-width: 768px) {
+	.site-footer {
+		padding: 2rem 20px 1.25rem;
+	}
+}

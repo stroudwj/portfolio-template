@@ -59,7 +59,7 @@ export default function ThemeEditor() {
 	};
 
 	return (
-		<Section title="Fonts & colors">
+		<Section title="Fonts & colors" sectionKey="_theme">
 			<Field label="Body font">
 				<select
 					className="text-input"

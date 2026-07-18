@@ -50,7 +50,7 @@ export default function ProfileEditor() {
 	};
 
 	return (
-		<Section title="Profile">
+		<Section title="Profile" sectionKey="_profile">
 			<Field label="Name">
 				<TextInput value={c.site.name} placeholder="Your name" onChange={(e) => setName(e.target.value)} />
 			</Field>
