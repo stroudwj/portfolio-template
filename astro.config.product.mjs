@@ -13,7 +13,7 @@ import react from '@astrojs/react';
 //
 // Keep `site` in sync with the Worker's ALLOWED_ORIGIN in oauth-proxy/wrangler.toml.
 export default defineConfig({
-	site: 'https://simpleportfolioeditor.pages.dev',
+	site: 'https://portfolio-template-9p2.pages.dev',
 	// No `base`: Cloudflare Pages serves the site at the domain root.
 	integrations: [react()],
 });

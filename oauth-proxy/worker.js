@@ -14,7 +14,7 @@
 // Deploy: see README.md in this folder. Required config:
 //   - var    GITHUB_CLIENT_ID      (public; the OAuth App's client id)
 //   - secret GITHUB_CLIENT_SECRET  (`wrangler secret put GITHUB_CLIENT_SECRET`)
-//   - var    ALLOWED_ORIGIN        (e.g. https://simpleportfolioeditor.pages.dev) — CORS is locked to this
+//   - var    ALLOWED_ORIGIN        (e.g. https://portfolio-template-9p2.pages.dev) — CORS is locked to this
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
