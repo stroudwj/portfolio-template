@@ -17,6 +17,7 @@ export default function ProfileEditor() {
 		removeLogoImage,
 		setResumeFile,
 		removeResume,
+		setTheme,
 	} = useEditor();
 	const resumeInputRef = useRef<HTMLInputElement>(null);
 	const [resumeError, setResumeError] = useState<string | null>(null);
@@ -27,6 +28,12 @@ export default function ProfileEditor() {
 	const emailError = c.contact.email && !isEmail(c.contact.email) ? 'Enter a valid email address.' : undefined;
 	const resumeName = doc.resumeFile?.filename ?? '';
 	const resumeUrl = getAssetUrl(doc.resumeFile?.assetId);
+	const logoScale = c.theme.logoScale ?? 100;
+
+	const applyLogoScale = (value: number) => {
+		const clamped = Math.max(50, Math.min(Math.round(value), 200));
+		setTheme({ logoScale: clamped === 100 ? undefined : clamped });
+	};
 
 	const handleResumeFile = (file: File | undefined) => {
 		if (!file) return;
@@ -56,6 +63,25 @@ export default function ProfileEditor() {
 					{(logoUrl || doc.logoImage?.filename) && (
 						<button type="button" className="btn-ghost" onClick={removeLogoImage}>
 							Remove
+						</button>
+					)}
+				</div>
+			</Field>
+			<Field label="Logo size" hint="Scales the header logo — your name or the uploaded image.">
+				<div className="gap-row">
+					<input
+						type="range"
+						min={50}
+						max={200}
+						step={5}
+						value={logoScale}
+						onChange={(e) => applyLogoScale(Number(e.target.value))}
+						aria-label="Logo size"
+					/>
+					<span className="gap-unit">{logoScale}%</span>
+					{logoScale !== 100 && (
+						<button type="button" className="btn-icon btn-chip" onClick={() => applyLogoScale(100)} title="Back to the default size">
+							Reset
 						</button>
 					)}
 				</div>

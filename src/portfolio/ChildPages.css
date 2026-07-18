@@ -1,13 +1,18 @@
+/* Sub-page links on the parent page, in four styles (child-style-*):
+   cards (default grid), large (big covers), list (thumb rows), index (text only).
+   min(220px, 100%) keeps the card grid from ever forcing a track wider than the
+   container, so narrow viewports reflow instead of overflowing. */
 .child-pages {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-	gap: 1.4rem;
 	max-width: 1100px;
 	margin: 1.5rem auto;
 	padding: 0 1.5rem;
+	box-sizing: border-box;
+	width: 100%;
 }
+
 .child-card {
 	display: block;
+	min-width: 0;
 	text-decoration: none;
 	color: var(--color-text);
 	font-family: var(--font-family);
@@ -15,6 +20,7 @@
 .child-card img,
 .child-card .child-thumb-empty {
 	width: 100%;
+	max-width: 100%;
 	aspect-ratio: 4 / 3;
 	object-fit: cover;
 	display: block;
@@ -25,7 +31,86 @@
 	display: block;
 	margin-top: 0.55rem;
 	font-size: 0.95rem;
+	overflow-wrap: break-word;
 }
 .child-card:hover span {
 	color: var(--color-accent);
+}
+
+/* ---- cards (default): auto-filling grid of thumbnail cards ---- */
+.child-style-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+	gap: 1.4rem;
+}
+
+/* ---- large: big editorial covers, two across ---- */
+.child-style-large {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 2.2rem;
+}
+.child-style-large .child-card img,
+.child-style-large .child-card .child-thumb-empty {
+	aspect-ratio: 3 / 2;
+}
+.child-style-large .child-card span {
+	margin-top: 0.75rem;
+	font-size: 1.15rem;
+}
+
+/* ---- list: compact rows with a small square thumb ---- */
+.child-style-list {
+	display: flex;
+	flex-direction: column;
+}
+.child-style-list .child-card {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.65rem 0;
+	border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+}
+.child-style-list .child-card:first-child {
+	border-top: 1px solid rgba(127, 127, 127, 0.2);
+}
+.child-style-list .child-card img,
+.child-style-list .child-card .child-thumb-empty {
+	width: 72px;
+	flex-shrink: 0;
+	aspect-ratio: 1 / 1;
+}
+.child-style-list .child-card span {
+	margin-top: 0;
+	flex: 1;
+	min-width: 0;
+}
+
+/* ---- index: a typographic list, no images ---- */
+.child-style-index {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+.child-style-index .child-card span {
+	margin-top: 0;
+	font-family: var(--font-heading, var(--font-family));
+	font-size: 1.6rem;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+/* Phones: explicit narrow layouts so any number of sub-pages reflows cleanly. */
+@media (max-width: 639px) {
+	.child-style-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+	}
+	.child-style-large {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.6rem;
+	}
+	.child-style-index .child-card span {
+		font-size: 1.25rem;
+	}
 }

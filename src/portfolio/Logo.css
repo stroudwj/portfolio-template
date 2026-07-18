@@ -7,10 +7,11 @@
 	pointer-events: auto; /* So the link is clickable */
 }
 
+/* --logo-scale (theme.logoScale / 100) sizes the text and image logo alike. */
 .header-logo {
 	display: block;
 	font-family: var(--font-heading, var(--font-family));
-	font-size: 2rem;
+	font-size: calc(2rem * var(--logo-scale, 1));
 	font-weight: 800;
 	letter-spacing: -0.02em;
 	color: var(--color-text);
@@ -20,7 +21,7 @@
 
 .header-logo-image {
 	display: block;
-	height: 56px;
+	height: calc(56px * var(--logo-scale, 1));
 	width: auto;
 	max-width: 70vw;
 	object-fit: contain;
@@ -31,9 +32,9 @@
 		top: 20px;
 	}
 	.header-logo {
-		font-size: 1.1rem;
+		font-size: calc(1.1rem * var(--logo-scale, 1));
 	}
 	.header-logo-image {
-		height: 34px;
+		height: calc(34px * var(--logo-scale, 1));
 	}
 }

@@ -113,6 +113,15 @@ export default function CanvasGallery({
 	];
 	const orderOf = new Map(stacked.sort((a, b) => a.y - b.y).map((e, rank) => [e.key, rank]));
 
+	// Overlap (z) order matches the editor panel like a layers list: the TOP image
+	// there sits in FRONT here, so z-index descends down the list. Pinned videos
+	// and texts keep stacking above every image (as their DOM order always had it).
+	// The dragged item jumps above everything, including the grid overlay (5000).
+	const DRAG_Z = 6000;
+	const imageZ = (i: number) => images.length - i;
+	const embedZ = (i: number) => images.length + embeds.length - i;
+	const textZ = (i: number) => images.length + embeds.length + shownTexts.length - i;
+
 	const measure = (key: string, el: HTMLImageElement) => {
 		if (el.naturalWidth && el.naturalHeight)
 			setMeasured((m) => (m[key] ? m : { ...m, [key]: el.naturalWidth / el.naturalHeight }));
@@ -278,6 +287,7 @@ export default function CanvasGallery({
 					'--w': String(l.w),
 					'--ar': String(l.ar),
 					order: orderOf.get(`i${key}`),
+					zIndex: dragId === img.id ? DRAG_Z : imageZ(i),
 				} as CSSProperties;
 				return (
 					<div
@@ -315,6 +325,7 @@ export default function CanvasGallery({
 					'--w': String(l.w),
 					'--ar': String(l.ar),
 					order: orderOf.get(`v${embed.id}`),
+					zIndex: dragId === embed.id ? DRAG_Z : embedZ(i),
 				} as CSSProperties;
 				const src = videoEmbedSrc(embed.url);
 				const href = src ? null : safeHref(embed.url);
@@ -364,6 +375,7 @@ export default function CanvasGallery({
 					'--y': String((l.y / height) * 100),
 					'--w': String(l.w),
 					order: orderOf.get(`t${t.id}`),
+					zIndex: dragId === t.id ? DRAG_Z : textZ(i),
 				} as CSSProperties;
 				return (
 					<div

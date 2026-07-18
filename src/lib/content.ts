@@ -17,6 +17,17 @@ export interface Site {
 	description: string;
 	/** Favicon file name, served from public/. */
 	favicon: string;
+	/** Hand-drawn signature, signed at the foot of every page. Absent = none. */
+	signature?: SignatureData;
+}
+
+/**
+ * A signature drawn in the editor's pad: strokes of [x, y] points in a fixed
+ * 300×120 coordinate space (SIGNATURE_VIEW). Rendered as inline SVG polylines
+ * in the site's text color.
+ */
+export interface SignatureData {
+	strokes: number[][][];
 }
 
 /** A user-uploaded font: `file` is a path under src/assets/ (e.g. "fonts/my-font.woff2"). */
@@ -35,6 +46,8 @@ export interface Theme {
 	headingFontFamily?: string;
 	/** Extra space (px) between the site header and the page content. Absent = 0. */
 	contentGap?: number;
+	/** Header logo size as a percentage (50–200) of the default. Absent = 100. */
+	logoScale?: number;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
 }
@@ -86,6 +99,9 @@ export interface GalleryConfig {
 
 export type TextAlign = 'left' | 'center' | 'right';
 
+/** How a page's sub-pages are presented by the 'children' block. */
+export type ChildrenStyle = 'cards' | 'large' | 'list' | 'index';
+
 /**
  * Freeform placement of a text block on the page canvas. Same coordinate
  * system as ImageLayout: x, y and w are percentages of the canvas WIDTH.
@@ -113,8 +129,8 @@ export type PageBlock =
 	| { id: string; type: 'text'; text: string; align?: TextAlign; layout?: TextLayout }
 	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
 	| { id: string; type: 'gallery' }
-	| { id: string; type: 'images'; gallery: GalleryConfig }
-	| { id: string; type: 'children' }
+	| { id: string; type: 'images'; gallery: GalleryConfig; /** Editor-only display name so groups are tellable apart. */ name?: string }
+	| { id: string; type: 'children'; /** Presentation of the sub-page cards; absent = 'cards'. */ style?: ChildrenStyle }
 	| { id: string; type: 'about' };
 
 export interface PageConfig {

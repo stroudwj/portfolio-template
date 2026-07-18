@@ -1,3 +1,4 @@
+import type { ChildrenStyle } from '../lib/content';
 import './ChildPages.css';
 
 export interface ChildPageItem {
@@ -9,18 +10,25 @@ export interface ChildPageItem {
 	thumbSrc?: string;
 }
 
-/** A page's sub-pages as a grid of thumbnail cards linking into each one. */
+/**
+ * A page's sub-pages linking into each one, in one of four presentations:
+ * 'cards' (default) — a grid of thumbnail cards; 'large' — big two-column
+ * covers; 'list' — compact rows with a small square thumb; 'index' — a pure
+ * typographic list, no images.
+ */
 export default function ChildPages({
 	items,
+	style = 'cards',
 	onNavigate,
 }: {
 	items: ChildPageItem[];
+	style?: ChildrenStyle;
 	/** Editor preview: switch pages in place instead of following the link. */
 	onNavigate?: (path: string) => void;
 }) {
 	if (!items.length) return null;
 	return (
-		<div className="child-pages">
+		<div className={`child-pages child-style-${style}`}>
 			{items.map((item) => (
 				<a
 					key={item.key}
@@ -35,7 +43,8 @@ export default function ChildPages({
 							: undefined
 					}
 				>
-					{item.thumbSrc ? <img src={item.thumbSrc} alt={item.label} /> : <div className="child-thumb-empty" />}
+					{style !== 'index' &&
+						(item.thumbSrc ? <img src={item.thumbSrc} alt={item.label} /> : <div className="child-thumb-empty" />)}
 					<span>{item.label}</span>
 				</a>
 			))}

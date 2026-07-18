@@ -1,0 +1,33 @@
+/* The hand-drawn signature, signed at the foot of every page. The content-view
+   is a flex column, so margin-top: auto sinks it to the bottom even on short
+   pages — like signing the corner of a finished piece. */
+.site-signature {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: auto;
+	padding: 2.5rem 40px 2rem;
+}
+
+.site-signature svg {
+	width: 170px;
+	max-width: 45vw;
+	height: auto;
+	overflow: visible;
+}
+
+.site-signature polyline {
+	fill: none;
+	stroke: var(--color-text);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+@media (max-width: 768px) {
+	.site-signature {
+		padding: 2rem 20px 1.5rem;
+	}
+	.site-signature svg {
+		width: 130px;
+	}
+}

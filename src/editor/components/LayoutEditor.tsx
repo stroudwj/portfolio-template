@@ -1,16 +1,14 @@
-// Site-wide layout tools: the canvas grid overlay + snap (an editor preference,
-// shared by every freeform gallery in the preview) and the theme's header/content
-// gap (published with the site). Lives in the editor panel so the tools are in
-// one predictable place instead of floating above each gallery.
+// Site-wide layout tools published with the site (currently the header/content
+// gap). The canvas grid overlay + snap moved to the preview toolbar
+// (PreviewPanel's GridTools) so they stay reachable while scrolled deep into a
+// page's controls.
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
-import { GRID_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
 
 const MAX_GAP = 400;
 
 export default function LayoutEditor() {
 	const { doc, setTheme } = useEditor();
-	const gridPrefs = useGridPrefs();
 	if (!doc) return null;
 	const gap = doc.content.theme.contentGap ?? 0;
 
@@ -21,31 +19,7 @@ export default function LayoutEditor() {
 
 	return (
 		<Section title="Layout">
-			<Field label="Canvas grid" hint="An overlay in the preview for lining things up — never shown on your site.">
-				<div className="grid-toolbar">
-					{GRID_OPTIONS.map((n) => (
-						<button
-							key={n}
-							type="button"
-							className={`btn-icon btn-chip ${gridPrefs.cols === n ? 'active' : ''}`}
-							onClick={() => setGridPrefs({ cols: n })}
-							title={n === 0 ? 'Hide the grid overlay' : `Overlay a ${n}-column grid`}
-						>
-							{n === 0 ? 'Off' : String(n)}
-						</button>
-					))}
-					<label className={`grid-snap ${gridPrefs.cols === 0 ? 'disabled' : ''}`}>
-						<input
-							type="checkbox"
-							checked={gridPrefs.snap && gridPrefs.cols > 0}
-							disabled={gridPrefs.cols === 0}
-							onChange={(e) => setGridPrefs({ snap: e.target.checked })}
-						/>
-						Snap to grid
-					</label>
-				</div>
-			</Field>
-			<Field label="Gap between header and content" hint="Pushes every page’s content down from the top of the site.">
+			<Field label="Gap between header and content" hint="Pushes every page’s content down from the top of the site. The canvas grid toggle lives above the preview.">
 				<div className="gap-row">
 					<input
 						type="range"

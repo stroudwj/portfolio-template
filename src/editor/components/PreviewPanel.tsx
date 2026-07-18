@@ -3,6 +3,40 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
+import { GRID_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
+
+/** Canvas grid overlay + snap controls. Lives in the preview toolbar so they're
+ *  reachable no matter how far down the editing column is scrolled. */
+function GridTools() {
+	const gridPrefs = useGridPrefs();
+	return (
+		<div className="grid-toolbar preview-grid-tools" role="group" aria-label="Canvas grid overlay">
+			<span className="grid-tools-label" title="Grid overlay for lining things up — never shown on your site.">
+				Grid
+			</span>
+			{GRID_OPTIONS.map((n) => (
+				<button
+					key={n}
+					type="button"
+					className={`btn-icon btn-chip ${gridPrefs.cols === n ? 'active' : ''}`}
+					onClick={() => setGridPrefs({ cols: n })}
+					title={n === 0 ? 'Hide the grid overlay' : `Overlay a ${n}-column grid`}
+				>
+					{n === 0 ? 'Off' : String(n)}
+				</button>
+			))}
+			<label className={`grid-snap ${gridPrefs.cols === 0 ? 'disabled' : ''}`}>
+				<input
+					type="checkbox"
+					checked={gridPrefs.snap && gridPrefs.cols > 0}
+					disabled={gridPrefs.cols === 0}
+					onChange={(e) => setGridPrefs({ snap: e.target.checked })}
+				/>
+				Snap
+			</label>
+		</div>
+	);
+}
 
 /**
  * Renders the portfolio inside a real iframe — its own document AND viewport —
@@ -124,6 +158,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 						Phone
 					</button>
 				</div>
+				{editable && <GridTools />}
 				<span className="preview-hint">
 					{editable ? 'Drag images, videos & text to arrange them.' : 'Exactly how your published site will look.'}
 				</span>

@@ -7,6 +7,7 @@ import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
 import AddPageButton from './components/AddPageButton';
 import SocialLinksEditor from './components/SocialLinksEditor';
+import SignatureEditor from './components/SignatureEditor';
 import PreviewPanel from './components/PreviewPanel';
 import GitHubControls from './components/GitHubControls';
 import { useLicense } from './components/useLicense';
@@ -80,6 +81,7 @@ function Shell({ base }: { base: string }) {
 					))}
 					<AddPageButton />
 					<SocialLinksEditor />
+					<SignatureEditor />
 				</div>
 				<div className="editor-preview">
 					<PreviewPanel base={base} />

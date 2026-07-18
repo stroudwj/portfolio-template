@@ -188,6 +188,44 @@
 	flex-shrink: 0;
 	background: #e4e4e4;
 }
+/* Thumb + its file name, stacked. */
+.card-media {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	width: 56px;
+	flex-shrink: 0;
+}
+.card-filename {
+	font-size: 0.62rem;
+	line-height: 1.3;
+	color: var(--ui-muted);
+	max-width: 56px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* One-line list summary that collapses/expands an image list. */
+.collapse-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	border: 0;
+	background: transparent;
+	padding: 2px 0 8px;
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--ui-muted);
+	cursor: pointer;
+}
+.collapse-toggle:hover {
+	color: var(--ui-text);
+}
+.collapse-note {
+	font-weight: 400;
+}
 .card-fields {
 	flex: 1;
 	min-width: 0;
@@ -438,11 +476,28 @@
 	background: #fff;
 }
 
-/* ---- Layout section: canvas grid + header gap ---- */
+/* ---- Canvas grid toolbar (preview toolbar) + header gap ---- */
 .grid-toolbar {
 	display: flex;
 	align-items: center;
 	gap: 4px;
+}
+.preview-grid-tools {
+	flex-shrink: 0;
+	background: var(--ui-surface);
+	border: 1px solid var(--ui-border);
+	border-radius: 8px;
+	padding: 3px 8px;
+}
+.grid-tools-label {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--ui-muted);
+	margin-right: 2px;
+	cursor: default;
+}
+.preview-grid-tools .grid-snap {
+	margin-left: 6px;
 }
 .grid-snap {
 	display: inline-flex;
@@ -480,6 +535,38 @@
 .gap-unit {
 	font-size: 0.8rem;
 	color: var(--ui-muted);
+}
+
+/* ---- Signature drawing pad ---- */
+.signature-pad {
+	width: 100%;
+	aspect-ratio: 300 / 120;
+	border: 1.5px dashed var(--ui-border);
+	border-radius: 10px;
+	background: #fff;
+	touch-action: none;
+	cursor: crosshair;
+	display: block;
+}
+.signature-pad:hover {
+	border-color: var(--ui-accent);
+}
+.signature-pad polyline {
+	fill: none;
+	stroke: var(--ui-text);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.signature-baseline {
+	stroke: var(--ui-border);
+	stroke-width: 1;
+	stroke-dasharray: 4 6;
+}
+.signature-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 10px;
 }
 
 /* ---- Profile: résumé row ---- */
@@ -904,6 +991,41 @@ a.resume-name {
 	font-weight: 600;
 	text-transform: none;
 	letter-spacing: 0;
+}
+
+/* Editable block label (image groups): looks like the label, edits in place. */
+.block-name-input {
+	flex: 0 1 auto;
+	min-width: 0;
+	width: 130px;
+	border: 0;
+	border-bottom: 1px dashed transparent;
+	background: transparent;
+	padding: 2px 0;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ui-muted);
+}
+.block-name-input:hover {
+	border-bottom-color: var(--ui-border);
+}
+.block-name-input:focus {
+	outline: none;
+	color: var(--ui-text);
+	border-bottom-color: var(--ui-accent);
+}
+.block-name-input::placeholder {
+	color: var(--ui-muted);
+	opacity: 0.8;
+}
+
+/* Sub-page display style picker in the Sub-pages block head. */
+.children-style-select {
+	margin-left: auto;
+	max-width: 170px;
 }
 
 /* Grid-mode options inside the Images block. */

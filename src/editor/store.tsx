@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { pageGalleryConfigs } from '../lib/content';
-import type { Content, GalleryConfig, ImageLayout, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
+import type { ChildrenStyle, Content, GalleryConfig, ImageLayout, SignatureData, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
 import { registerAsset, restoreAsset, subscribeAssets, getAssetsVersion, uid } from './lib/assets';
@@ -119,6 +119,12 @@ export interface EditorContextValue {
 	addImagesBlock(key: string): void;
 	/** Change an image group's display settings (freeform/grid, columns, crop aspect). */
 	updateImagesBlock(key: string, blockId: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>): void;
+	/** Give an image group a display name (shown in the editor so groups are tellable apart). */
+	renameImagesBlock(key: string, blockId: string, name: string): void;
+	/** Choose how a page's sub-pages are presented (cards, big covers, list, text index). */
+	setChildrenStyle(key: string, blockId: string, style: ChildrenStyle): void;
+	/** Store the hand-drawn signature (undefined clears it off the site). */
+	setSignature(data: SignatureData | undefined): void;
 	addEmbedBlock(key: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	/** Pin a video embed to the page canvas (or undefined to return it to the flow). */
@@ -413,11 +419,15 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		movePage: (from, to) => patchContent((c) => ({ ...c, nav: arrayMove(c.nav, from, to) })),
 
 		renamePage: (key, label) =>
-			patchContent((c) => ({
-				...c,
-				nav: c.nav.map((item) => (item.path === key ? { ...item, label } : item)),
-				pages: c.pages[key] ? { ...c.pages, [key]: { ...c.pages[key], label } } : c.pages,
-			})),
+			patchContent((c) => {
+				// The home page's nav entry uses path '' — map the key back to it.
+				const navPath = key === 'home' ? '' : key;
+				return {
+					...c,
+					nav: c.nav.map((item) => (item.path === navPath ? { ...item, label } : item)),
+					pages: c.pages[key] ? { ...c.pages, [key]: { ...c.pages[key], label } } : c.pages,
+				};
+			}),
 
 		setPageHeading: (key, heading) => patchPage(key, (page) => ({ ...page, heading: heading || undefined })),
 
@@ -480,6 +490,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					b.id === blockId && b.type === 'images' ? { ...b, gallery: { ...b.gallery, ...patch } } : b,
 				),
 			),
+		renameImagesBlock: (key, blockId, name) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) =>
+					b.id === blockId && b.type === 'images' ? { ...b, name: name || undefined } : b,
+				),
+			),
+		setChildrenStyle: (key, blockId, style) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((b) =>
+					b.id === blockId && b.type === 'children'
+						? { ...b, style: style === 'cards' ? undefined : style }
+						: b,
+				),
+			),
+		setSignature: (data) => patchContent((c) => ({ ...c, site: { ...c.site, signature: data } })),
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),

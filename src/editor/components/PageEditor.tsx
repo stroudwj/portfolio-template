@@ -9,7 +9,14 @@ import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import { uniformColumns } from '../../portfolio/Gallery';
-import type { GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
+import type { ChildrenStyle, GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
+
+const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
+	{ value: 'cards', label: 'Thumbnail cards' },
+	{ value: 'large', label: 'Big covers' },
+	{ value: 'list', label: 'List with thumbnails' },
+	{ value: 'index', label: 'Text index (no images)' },
+];
 
 const ALIGNMENTS: Array<{ value: TextAlign; label: string; title: string }> = [
 	{ value: 'left', label: 'L', title: 'Align left' },
@@ -267,7 +274,14 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Image group</span>
+							<input
+								className="block-name-input"
+								value={block.name ?? ''}
+								placeholder="Image group"
+								title="Name this group (only shown here in the editor)"
+								aria-label="Image group name"
+								onChange={(e) => editor.renameImagesBlock(pageKey, block.id, e.target.value)}
+							/>
 							<LayoutToggle mode={groupMode} onPatch={patchGroup} />
 							{controls(index, block, true)}
 						</div>
@@ -281,7 +295,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							hint={
 								groupMode === 'grid'
 									? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
-									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking and phone order.'
+									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking: the top image sits in front.'
 							}
 						/>
 					</div>
@@ -302,6 +316,19 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 					<div className="block" key={block.id}>
 						<div className="block-head">
 							<span className="block-label">Sub-pages</span>
+							<select
+								className="select-input children-style-select"
+								value={block.style ?? 'cards'}
+								title="How the sub-pages are shown on this page"
+								aria-label="Sub-page display style"
+								onChange={(e) => editor.setChildrenStyle(pageKey, block.id, e.target.value as ChildrenStyle)}
+							>
+								{CHILDREN_STYLES.map((s) => (
+									<option key={s.value} value={s.value}>
+										{s.label}
+									</option>
+								))}
+							</select>
 							{controls(index, block, false)}
 						</div>
 						{(page.children ?? []).map((childKey) => {
@@ -344,7 +371,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	return (
 		<Section
 			sectionKey={pageKey}
-			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? 'Page: Home' : `Page: ${page.label ?? pageKey}`}
+			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? `Page: ${page.label || 'Home'}` : `Page: ${page.label ?? pageKey}`}
 			action={
 				!isHome ? (
 					<button type="button" className="btn-icon danger" onClick={removeThisPage} aria-label="Delete page">
@@ -353,11 +380,12 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 				) : undefined
 			}
 		>
-			{!isHome && !nested && (
-				<Field label="Page name">
-					<TextInput value={page.label ?? ''} onChange={(e) => editor.renamePage(pageKey, e.target.value)} />
-				</Field>
-			)}
+			<Field
+				label={nested ? 'Sub-page name' : 'Page name'}
+				hint={nested ? 'Shown on its card and heading.' : 'Shown in the site menu.'}
+			>
+				<TextInput value={page.label ?? ''} onChange={(e) => editor.renamePage(pageKey, e.target.value)} />
+			</Field>
 			<Field label="Heading (optional)">
 				<TextInput
 					value={page.heading ?? ''}

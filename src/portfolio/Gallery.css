@@ -156,12 +156,13 @@
 
 /* Editor grid overlay: --gn columns across, --gh (precomputed) per cell down.
    Sits above the images (pointer-events off) so lines stay visible for lining
-   things up; the dragged item (z-index 10) still renders above it. */
+   things up; items get list-based z-indexes inline, and the dragged one (6000)
+   still renders above this. */
 .canvas-grid-overlay {
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	z-index: 4;
+	z-index: 5000;
 	background-image: linear-gradient(to right, rgba(37, 99, 235, 0.22) 1px, transparent 1px),
 		linear-gradient(to bottom, rgba(37, 99, 235, 0.22) 1px, transparent 1px);
 	background-size: calc(100% / var(--gn, 12)) var(--gh, 8.333%);
@@ -226,9 +227,9 @@
 	outline-offset: 2px;
 }
 
+/* z-index while dragging is set inline (DRAG_Z) — it must beat the grid overlay. */
 .canvas-gallery.editable .canvas-item.dragging {
 	cursor: grabbing;
-	z-index: 10;
 	outline: 2px solid rgba(37, 99, 235, 0.9);
 	outline-offset: 2px;
 }

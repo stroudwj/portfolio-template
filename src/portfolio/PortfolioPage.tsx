@@ -5,6 +5,7 @@ import About from './About';
 import TextBlock from './TextBlock';
 import Embed from './Embed';
 import ChildPages from './ChildPages';
+import Signature from './Signature';
 import { withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
 import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
@@ -201,7 +202,7 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 					href: withBase(base, `${key}/`),
 					thumbSrc: pageThumbs?.[key],
 				}));
-				return <ChildPages key={block.id} items={items} onNavigate={onNavigate} />;
+				return <ChildPages key={block.id} items={items} style={block.style} onNavigate={onNavigate} />;
 			}
 			case 'gallery': {
 				const galleryEl = (
@@ -259,6 +260,7 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 		<>
 			<Hero heading={config.heading} />
 			{blocks.map(renderBlock)}
+			{content.site.signature && <Signature data={content.site.signature} />}
 		</>
 	);
 }
