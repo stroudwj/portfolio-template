@@ -1,6 +1,7 @@
 // GitHubTarget: the PublishTarget that turns a bundle into a live website. It creates
 // the repo the first time, then updates it on every later publish — the editor only ever
 // calls target.publish(bundle, onProgress) and never learns any of this.
+import { compressImage, imageTypeFromName } from '../compressImage';
 import type { PortfolioBundle, PublishProgress, PublishResult, PublishTarget } from '../exporter';
 import { contentJsonString } from '../exporter';
 import { GitHubClient } from './client';
@@ -78,6 +79,34 @@ export class GitHubTarget implements PublishTarget {
 		];
 		for (const f of bundle.files) files.push({ path: f.path, bytes: f.bytes });
 		if (configFile) files.push(configFile);
+
+		// GitHub's create-blob API rejects request bodies past ~25 MB (base64 inflates
+		// files by a third) with an opaque "input was too large" error. Uploads are
+		// compressed on the way in, but drafts saved before that existed can still hold
+		// full camera photos — rescue those here, and fail with actionable names for
+		// anything (huge GIFs) that can't be shrunk.
+		const MAX_BLOB_BYTES = 18 * 1024 * 1024;
+		const oversized: string[] = [];
+		for (const f of files) {
+			if (!f.bytes || f.bytes.length <= MAX_BLOB_BYTES) continue;
+			const name = f.path.split('/').pop() ?? f.path;
+			const type = imageTypeFromName(name);
+			// keepType: content.json already references this exact file name.
+			const shrunk = type
+				? await compressImage(new File([new Uint8Array(f.bytes)], name, { type }), { keepType: true })
+				: null;
+			if (shrunk && shrunk.size <= MAX_BLOB_BYTES) {
+				f.bytes = new Uint8Array(await shrunk.arrayBuffer());
+			} else {
+				oversized.push(name);
+			}
+		}
+		if (oversized.length) {
+			throw new Error(
+				`Too large to publish: ${oversized.join(', ')}. GitHub can't accept files ` +
+					`over ${MAX_BLOB_BYTES / (1024 * 1024)} MB — please use a smaller version.`,
+			);
+		}
 
 		// The editor fully owns src/assets/: whatever it isn't writing shouldn't be there.
 		// This removes the template's placeholder.png files (and any image deleted in the

@@ -17,8 +17,10 @@ export const isUrl = (value: string): boolean => {
 	}
 };
 
-// GitHub's blob API (the publish path) accepts files up to 100 MB; 50 MB leaves
-// comfortable headroom for the base64 upload while allowing full-res photos.
+// Ingest cap only — images are downscaled/re-encoded on upload (lib/compressImage.ts),
+// so camera-sized files are welcome here. What actually ships must stay well under
+// GitHub's create-blob request limit (~25 MB body; base64 adds a third), which the
+// publish path enforces per file.
 export const MAX_IMAGE_BYTES = 50 * 1024 * 1024; // 50 MB
 export const MAX_IMAGE_MB = MAX_IMAGE_BYTES / (1024 * 1024);
 

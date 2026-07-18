@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { compressImage } from '../../lib/compressImage';
 import { isImageFile, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from '../../lib/validation';
 
 /** Natural-order name sort so "img2" comes before "img10" — matches folder view order. */
@@ -47,13 +48,23 @@ export function ImageDrop({
 	const inputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
 	const [over, setOver] = useState(false);
+	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const handle = (all: File[]) => {
+	const handle = async (all: File[]) => {
 		const valid = all.filter((f) => isImageFile(f) && f.size <= MAX_IMAGE_BYTES);
 		const rejected = all.length - valid.length;
 		setError(rejected > 0 ? `${rejected} file(s) skipped (must be an image under ${MAX_IMAGE_MB} MB).` : null);
-		if (valid.length) onFiles(multiple ? valid : valid.slice(0, 1));
+		if (!valid.length) return;
+		setBusy(true);
+		try {
+			// One at a time: decoding several 20 MB photos at once can exhaust mobile memory.
+			const ready: File[] = [];
+			for (const f of multiple ? valid : valid.slice(0, 1)) ready.push(await compressImage(f));
+			onFiles(ready);
+		} finally {
+			setBusy(false);
+		}
 	};
 
 	return (
@@ -97,7 +108,7 @@ export function ImageDrop({
 						e.target.value = '';
 					}}
 				/>
-				{children ?? <span>Click or drop image{multiple ? 's' : ''} here</span>}
+				{busy ? <span>Optimizing image{multiple ? 's' : ''}…</span> : (children ?? <span>Click or drop image{multiple ? 's' : ''} here</span>)}
 			</div>
 			{multiple && (
 				<>
