@@ -5,7 +5,7 @@ import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { SortableList, SortableItem } from './ui/Sortable';
-import { getAssetUrl } from '../lib/assets';
+import { getAssetPreviewUrl } from '../lib/assets';
 import { PLACEHOLDER_IMAGE } from '../lib/content-init';
 import { isUrl } from '../lib/validation';
 
@@ -43,7 +43,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 				<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
 					<div className="card-list">
 						{entries.map((entry, idx) => {
-							const url = getAssetUrl(entry.assetId) ?? PLACEHOLDER_IMAGE;
+							const url = getAssetPreviewUrl(entry.assetId) ?? PLACEHOLDER_IMAGE;
 							const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
 							return (
 								<SortableItem key={entry.id} id={entry.id}>

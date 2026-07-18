@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Field, TextInput, TextArea, Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
-import { getAssetUrl } from '../lib/assets';
+import { getAssetUrl, getAssetPreviewUrl } from '../lib/assets';
 import { isEmail, isPdfFile, MAX_PDF_BYTES, MAX_PDF_MB } from '../lib/validation';
 
 export default function ProfileEditor() {
@@ -22,8 +22,8 @@ export default function ProfileEditor() {
 	const [resumeError, setResumeError] = useState<string | null>(null);
 	if (!doc) return null;
 	const c = doc.content;
-	const profileUrl = getAssetUrl(doc.profileImage.assetId);
-	const logoUrl = getAssetUrl(doc.logoImage?.assetId);
+	const profileUrl = getAssetPreviewUrl(doc.profileImage.assetId);
+	const logoUrl = getAssetPreviewUrl(doc.logoImage?.assetId);
 	const emailError = c.contact.email && !isEmail(c.contact.email) ? 'Enter a valid email address.' : undefined;
 	const resumeName = doc.resumeFile?.filename ?? '';
 	const resumeUrl = getAssetUrl(doc.resumeFile?.assetId);

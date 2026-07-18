@@ -92,7 +92,10 @@ export class GitHubTarget implements PublishTarget {
 		const deletions = (await listAssetPaths(client, ref)).filter((p) => !keep.has(p));
 		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((f) => f.path)];
 
-		report('Uploading your images…', `0 of ${files.length}`);
+		// `done` counts completed blob uploads; show the file currently uploading
+		// (done + 1) so the counter reads "1 of N" … "N of N" instead of stopping
+		// at "N-1 of N" before flipping to the saving step.
+		report('Uploading your images…', `1 of ${files.length}`);
 		const commitSha = await commitFiles(
 			client,
 			{
@@ -103,7 +106,11 @@ export class GitHubTarget implements PublishTarget {
 				files,
 				deletions,
 			},
-			(done, total) => report(done < total ? 'Uploading your images…' : 'Saving your changes…', `${done} of ${total}`),
+			(done, total) =>
+				report(
+					done < total ? 'Uploading your images…' : 'Saving your changes…',
+					`${Math.min(done + 1, total)} of ${total}`,
+				),
 		);
 
 		report('Publishing your website…');

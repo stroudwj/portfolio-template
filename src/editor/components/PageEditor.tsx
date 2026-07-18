@@ -6,7 +6,7 @@ import { useEditor } from '../store';
 import { Field, TextInput, TextArea, Section } from './ui/controls';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import { ImageDrop } from './ui/ImageDrop';
-import { getAssetUrl } from '../lib/assets';
+import { getAssetPreviewUrl } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import { uniformColumns } from '../../portfolio/Gallery';
 import type { GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
@@ -306,7 +306,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						</div>
 						{(page.children ?? []).map((childKey) => {
 							const child = doc.content.pages[childKey];
-							const thumbUrl = getAssetUrl(doc.pageThumbs[childKey]?.assetId ?? null);
+							const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[childKey]?.assetId ?? null);
 							return (
 								<div className="child-row" key={childKey}>
 									<div className="child-thumb-picker">

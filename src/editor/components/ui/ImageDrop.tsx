@@ -62,7 +62,13 @@ export function ImageDrop({
 				className={`imagedrop ${over ? 'over' : ''}`}
 				role="button"
 				tabIndex={0}
-				onClick={() => inputRef.current?.click()}
+				onClick={(e) => {
+					// The drop zone often sits inside a <label> (Field). Without this,
+					// the label ALSO forwards the click to the hidden input, opening the
+					// file picker a second time after the first choice.
+					e.preventDefault();
+					inputRef.current?.click();
+				}}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click();
 				}}
@@ -83,6 +89,9 @@ export function ImageDrop({
 					accept="image/*"
 					multiple={multiple}
 					hidden
+					// Keep the programmatic click from bubbling back to the div handler,
+					// whose preventDefault would cancel opening the picker.
+					onClick={(e) => e.stopPropagation()}
 					onChange={(e) => {
 						handle(Array.from(e.target.files ?? []));
 						e.target.value = '';

@@ -95,6 +95,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 			content={data.content}
 			galleries={data.galleries}
 			profileImageSrc={data.profileImageSrc}
+			logoImageSrc={data.logoImageSrc}
 			pageThumbs={data.pageThumbs}
 			fontFaces={data.fontFaces}
 			resumeHref={data.resumeHref}

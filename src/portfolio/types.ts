@@ -30,6 +30,8 @@ export interface ResolvedImage {
 	id?: string;
 	src: string;
 	srcSet?: string;
+	/** Full-resolution URL for the lightbox (src/srcSet stay display-sized). */
+	full?: string;
 	alt: string;
 	title?: string;
 	description?: string;

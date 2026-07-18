@@ -1,9 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { pageGalleryConfigs } from '../lib/content';
 import type { Content, GalleryConfig, ImageLayout, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
-import { registerAsset, restoreAsset, uid } from './lib/assets';
+import { registerAsset, restoreAsset, subscribeAssets, getAssetsVersion, uid } from './lib/assets';
 import { sanitizeFilename } from './lib/validation';
 import {
 	saveDoc,
@@ -143,6 +143,9 @@ export function useEditor(): EditorContextValue {
 export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const [doc, setDoc] = useState<EditorDoc | null>(null);
 	const [hasDraft, setHasDraft] = useState<boolean>(() => hasSavedDoc());
+	// Downscaled asset previews finish async; bumping this re-renders every consumer
+	// so getAssetPreviewUrl() calls pick up the light copies.
+	const assetsVersion = useSyncExternalStore(subscribeAssets, getAssetsVersion, getAssetsVersion);
 
 	// Autosave (debounced) whenever the document changes.
 	const timer = useRef<number | undefined>(undefined);
@@ -522,7 +525,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		moveGalleryImage: (folder, from, to) => patchGallery(folder, (entries) => arrayMove(entries, from, to)),
 		updateGalleryMeta: (folder, id, patch) =>
 			patchGallery(folder, (entries) => entries.map((e) => (e.id === id ? { ...e, meta: { ...e.meta, ...patch } } : e))),
-	}), [doc, hasDraft, patchContent, patchGallery, patchPage, patchBlocks]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- assetsVersion invalidates asset-URL reads
+	}), [doc, hasDraft, assetsVersion, patchContent, patchGallery, patchPage, patchBlocks]);
 
 	return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 }

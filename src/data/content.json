@@ -25,8 +25,8 @@
     "email": "you@example.com"
   },
   "social": [
-    { "label": "Instagram", "url": "https://instagram.com/yourhandle" },
-    { "label": "LinkedIn", "url": "https://linkedin.com/in/yourhandle" }
+    { "label": "Instagram", "url": "https://instagram.com" },
+    { "label": "LinkedIn", "url": "https://linkedin.com" }
   ],
   "resume": {
     "label": "Résumé",

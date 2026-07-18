@@ -26,11 +26,23 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 	const entries = getGallery(folder, order, items);
 	return Promise.all(
 		entries.map(async (entry) => {
-			const optimized = await getImage({ src: entry.image, width: 800 });
+			const naturalWidth = entry.image.width;
+			// Responsive candidates up to (near) the original size so big screens get
+			// sharp renders instead of one upscaled 800px image.
+			const widths = [...[640, 1024, 1600, 2048].filter((w) => w < naturalWidth), Math.min(naturalWidth, 2560)];
+			const optimized = await getImage({
+				src: entry.image,
+				width: Math.min(1600, naturalWidth),
+				widths,
+				quality: 85,
+			});
+			// The lightbox reveals the image at its full original resolution.
+			const fullRes = await getImage({ src: entry.image, width: naturalWidth, quality: 90 });
 			const srcSet = optimized.srcSet?.attribute || undefined;
 			return {
 				src: optimized.src,
 				srcSet,
+				full: fullRes.src,
 				alt,
 				title: entry.title,
 				description: entry.description,

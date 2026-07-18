@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import type { CanvasEmbed, CanvasText, GalleryConfig, ImageLayout, ResolvedImage, TextLayout } from './types';
 import { safeHref } from './safeHref';
 import CanvasGallery from './CanvasGallery';
@@ -68,19 +69,25 @@ export default function Gallery({
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
+	// The <body> this gallery actually renders in (the editor preview can run
+	// inside an iframe). The lightbox portals there so no transformed/scrollable
+	// ancestor (like the editor's preview pane) can trap or scroll past it.
+	const [host, setHost] = useState<HTMLElement | null>(null);
 
 	useEffect(() => {
-		if (openIndex === null) return;
+		if (openIndex === null || !host) return;
+		const doc = host.ownerDocument;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') setOpenIndex(null);
 		};
-		document.addEventListener('keydown', onKey);
-		document.body.style.overflow = 'hidden';
+		doc.addEventListener('keydown', onKey);
+		const previousOverflow = host.style.overflow;
+		host.style.overflow = 'hidden';
 		return () => {
-			document.removeEventListener('keydown', onKey);
-			document.body.style.overflow = '';
+			doc.removeEventListener('keydown', onKey);
+			host.style.overflow = previousOverflow;
 		};
-	}, [openIndex]);
+	}, [openIndex, host]);
 
 	if (images.length === 0 && !texts?.length && !embeds?.length) {
 		return (
@@ -96,8 +103,39 @@ export default function Gallery({
 	const cols = uniformColumns(settings?.columns);
 	const cellAr = parseAspect(settings?.aspect);
 
+	const modal = (
+		<div
+			className={`modal ${open ? 'show' : ''}`}
+			role="dialog"
+			aria-hidden={open ? 'false' : 'true'}
+			onClick={(e) => {
+				if (e.target === e.currentTarget) setOpenIndex(null);
+			}}
+		>
+			<span className="close-btn" onClick={() => setOpenIndex(null)}>
+				&times;
+			</span>
+			{open && <img src={open.full ?? open.src} alt={open.title || 'Full resolution portfolio piece'} />}
+			{open && (open.title || open.description || open.link) && (
+				<figcaption className="modal-caption">
+					{open.title && <span className="modal-caption-title">{open.title}</span>}
+					{open.description && <span className="modal-caption-description">{open.description}</span>}
+					{open.link && (
+						<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener">
+							View project ↗
+						</a>
+					)}
+				</figcaption>
+			)}
+		</div>
+	);
+
 	return (
-		<>
+		<div
+			ref={(el) => {
+				setHost(el ? el.ownerDocument.body : null);
+			}}
+		>
 			{uniformMode ? (
 				<div
 					className={`uniform-grid ${cellAr ? 'cropped' : ''}`}
@@ -147,30 +185,7 @@ export default function Gallery({
 				</div>
 			)}
 
-			<div
-				className={`modal ${open ? 'show' : ''}`}
-				role="dialog"
-				aria-hidden={open ? 'false' : 'true'}
-				onClick={(e) => {
-					if (e.target === e.currentTarget) setOpenIndex(null);
-				}}
-			>
-				<span className="close-btn" onClick={() => setOpenIndex(null)}>
-					&times;
-				</span>
-				{open && <img src={open.src} srcSet={open.srcSet} alt={open.title || 'Full resolution portfolio piece'} />}
-				{open && (open.title || open.description || open.link) && (
-					<figcaption className="modal-caption">
-						{open.title && <span className="modal-caption-title">{open.title}</span>}
-						{open.description && <span className="modal-caption-description">{open.description}</span>}
-						{open.link && (
-							<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener">
-								View project ↗
-							</a>
-						)}
-					</figcaption>
-				)}
-			</div>
-		</>
+			{host ? createPortal(modal, host) : null}
+		</div>
 	);
 }

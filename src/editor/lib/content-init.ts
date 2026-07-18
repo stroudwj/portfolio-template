@@ -4,7 +4,7 @@ import { content as bundledContent, migrateContent, pageGalleryConfigs } from '.
 import type { Content } from '../../lib/content';
 import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
-import { getAssetUrl, uid } from './assets';
+import { getAssetUrl, getAssetPreviewUrl, uid } from './assets';
 
 /** Gray placeholder shown for images referenced by name but not uploaded this session. */
 export const PLACEHOLDER_IMAGE =
@@ -117,7 +117,10 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
 		galleries[folder] = entries.map((e) => ({
 			id: e.id,
-			src: getAssetUrl(e.assetId) ?? PLACEHOLDER_IMAGE,
+			// Editor rendering uses the downscaled working copy; the lightbox gets
+			// the untouched original via `full` (same split the published site makes).
+			src: getAssetPreviewUrl(e.assetId) ?? PLACEHOLDER_IMAGE,
+			full: getAssetUrl(e.assetId),
 			alt: e.meta.title || '',
 			title: e.meta.title || undefined,
 			description: e.meta.description || undefined,
@@ -127,21 +130,21 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			layout: e.meta.layout,
 		}));
 	}
-	const uploaded = getAssetUrl(doc.profileImage.assetId);
+	const uploaded = getAssetPreviewUrl(doc.profileImage.assetId);
 	const profileImageSrc = uploaded ?? (doc.profileImage.filename ? PLACEHOLDER_IMAGE : undefined);
 
 	// Header logo: only a real uploaded image replaces the text logo (a gray
 	// placeholder up there would look broken, so fall back to text instead).
-	const logoImageSrc = getAssetUrl(doc.logoImage?.assetId) ?? undefined;
+	const logoImageSrc = getAssetPreviewUrl(doc.logoImage?.assetId) ?? undefined;
 
 	// Sub-page card images: explicit thumbnail first, else the page's first gallery image.
 	const pageThumbs: Record<string, string> = {};
 	for (const [key, page] of Object.entries(doc.content.pages)) {
 		const thumb = doc.pageThumbs[key];
-		let src = getAssetUrl(thumb?.assetId ?? null) ?? (thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
+		let src = getAssetPreviewUrl(thumb?.assetId ?? null) ?? (thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
 		if (!src && page.gallery) {
 			const first = doc.galleries[page.gallery.folder]?.[0];
-			if (first) src = getAssetUrl(first.assetId) ?? PLACEHOLDER_IMAGE;
+			if (first) src = getAssetPreviewUrl(first.assetId) ?? PLACEHOLDER_IMAGE;
 		}
 		if (src) pageThumbs[key] = src;
 	}
