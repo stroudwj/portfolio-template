@@ -86,7 +86,7 @@ export async function loadDocFromRepo(
 	const shaByPath = new Map(tree.map((t) => [t.path, t.sha]));
 
 	const contentSha = shaByPath.get(CONTENT_JSON_PATH);
-	if (!contentSha) throw new Error('That repository doesn’t look like a portfolio — its content file is missing.');
+	if (!contentSha) throw new Error('That site doesn’t look like a portfolio — its content file is missing.');
 
 	onProgress?.({ step: 'Downloading your content…' });
 	const contentBytes = await readBlobBytes(client, ref, contentSha);

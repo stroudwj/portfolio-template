@@ -1,4 +1,4 @@
-// Unlock publishing. Shown when someone tries to publish without an active license. The primary
+// The license gate. Shown when someone tries to publish without an active license. The primary
 // path is "Buy a license" (opens the Lemon Squeezy overlay; auto-unlocks on return). Entering a
 // key by hand is a secondary fallback, tucked behind a disclosure so it doesn't clutter the flow.
 // When a stored license simply couldn't be verified (offline / blocked), the modal opens in a
@@ -80,7 +80,7 @@ export default function LicenseGateModal({
 
 	return (
 		<Modal
-			title="Unlock publishing"
+			title="Pay once, publish forever"
 			onClose={onClose}
 			dismissable={!busy}
 			footer={
@@ -94,7 +94,7 @@ export default function LicenseGateModal({
 						</button>
 					) : mode === 'key' ? (
 						<button type="button" className="btn-primary" onClick={submit} disabled={busy || !key.trim()}>
-							{busy ? 'Unlocking…' : 'Unlock'}
+							{busy ? 'Activating…' : 'Activate'}
 						</button>
 					) : (
 						<button type="button" className="btn-primary" onClick={buyLicense} disabled={busy}>
@@ -115,8 +115,9 @@ export default function LicenseGateModal({
 			) : (
 				<>
 					<p className="modal-lead">
-						Building and previewing are free — publishing to your own website needs a one-time license. A secure
-						checkout opens right here, and you’ll be unlocked automatically after paying. Your work is saved.
+						Building and previewing are free — publishing needs a one-time license. One payment, no
+						subscription. A secure checkout opens right here, and publishing continues on its own after you
+						pay. Your work is saved.
 					</p>
 
 					{mode === 'key' ? (

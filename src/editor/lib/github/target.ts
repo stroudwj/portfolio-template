@@ -45,8 +45,8 @@ export class GitHubTarget implements PublishTarget {
 
 		if (!ref) {
 			const name = this.opts.desiredRepoName?.trim();
-			if (!name) throw new Error('A repository name is required for the first publish.');
-			report('Creating your repository…', name);
+			if (!name) throw new Error('A website name is required for the first publish.');
+			report('Creating your space…', name);
 			ref = await generateFromTemplate(client, login, name);
 		}
 
@@ -54,7 +54,7 @@ export class GitHubTarget implements PublishTarget {
 		// replace the landing with a portfolio — only possible for the template's owner, but
 		// catastrophic enough to hard-stop.
 		if (ref.owner === TEMPLATE_REPO.owner && ref.repo === TEMPLATE_REPO.repo) {
-			throw new Error('This is the template repository itself — publish to a different repository name.');
+			throw new Error('This name belongs to the template itself — pick a different website name.');
 		}
 
 		// Make sure astro.config's site/base point at this repo's Pages URL — or, when the

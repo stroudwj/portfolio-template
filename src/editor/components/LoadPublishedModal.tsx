@@ -33,7 +33,7 @@ export default function LoadPublishedModal({
 		setError(null);
 		const token = getToken();
 		if (!token) {
-			setError('Please connect GitHub first, then try again.');
+			setError('Connect your GitHub account first, then try again.');
 			setPhase('error');
 			return;
 		}

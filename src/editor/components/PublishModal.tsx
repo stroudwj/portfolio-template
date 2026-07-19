@@ -120,7 +120,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	// ---- Verifying the saved repo still exists (avoids flashing "update" for a deleted site) ----
 	if (verifying) {
 		return (
-			<Modal title="Publish website" onClose={onClose}>
+			<Modal title="Publish" onClose={onClose}>
 				<p className="modal-note">Checking your published site…</p>
 			</Modal>
 		);
@@ -176,7 +176,6 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 			return (
 				<Modal title="Almost there…" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
 					<div className="publish-success">
-						<div className="success-emoji">⏳</div>
 						<h3>Building your site…</h3>
 						<span className="live-url">{result.url}</span>
 						<p className="modal-note">This usually takes about a minute — the link goes live the moment it’s done.</p>
@@ -187,8 +186,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		return (
 			<Modal title="Published" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
 				<div className="publish-success">
-					<div className="success-emoji">{build === 'failed' ? '⚠️' : '✅'}</div>
-					<h3>{build === 'failed' ? 'Published, but the site build hit a problem' : 'Your portfolio is live!'}</h3>
+					<h3>{build === 'failed' ? 'Published, but the site build hit a problem' : 'Your site is live.'}</h3>
 					<a className="live-url" href={result.url} target="_blank" rel="noopener noreferrer">
 						{result.url}
 					</a>
@@ -199,9 +197,9 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						<p className="modal-note">
 							The site build reported an error — check the{' '}
 							<a href={`${result.repoUrl}/actions`} target="_blank" rel="noopener noreferrer">
-								repository’s Actions tab
-							</a>
-							.
+								build log
+							</a>{' '}
+							to see what happened.
 						</p>
 					)}
 					<div className="success-actions">
@@ -209,14 +207,14 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 							Open website ↗
 						</a>
 						<button type="button" className="btn-secondary" onClick={copyUrl}>
-							{copied ? 'Copied!' : 'Copy URL'}
+							{copied ? 'Copied' : 'Copy address'}
 						</button>
 						<button type="button" className="btn-ghost" onClick={() => setShowDomain(true)}>
 							Custom domain…
 						</button>
 						{result.repoUrl && (
 							<a className="btn-ghost" href={result.repoUrl} target="_blank" rel="noopener noreferrer">
-								View repository ↗
+								View on GitHub ↗
 							</a>
 						)}
 					</div>
@@ -259,7 +257,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	// ---- Configure screen ----
 	return (
 		<Modal
-			title="Publish website"
+			title="Publish"
 			onClose={onClose}
 			footer={
 				<>
@@ -267,7 +265,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						Cancel
 					</button>
 					<button type="button" className="btn-primary" onClick={runPublish} disabled={!repoName.trim()}>
-						{firstPublish ? 'Publish website' : 'Publish update'}
+						{firstPublish ? 'Publish' : 'Publish update'}
 					</button>
 				</>
 			}
@@ -300,8 +298,8 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						/>
 						<span className="field-hint">
 							{nameState === 'checking' && 'Checking availability…'}
-							{nameState === 'available' && '✓ Available'}
-							{nameState === 'taken' && '✕ You already have a repository with this name — pick another.'}
+							{nameState === 'available' && 'Available.'}
+							{nameState === 'taken' && 'That name is taken in your account — pick another.'}
 							{nameState === 'idle' && 'Letters, numbers and dashes. This becomes part of your web address.'}
 						</span>
 					</label>
@@ -312,11 +310,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 			) : (
 				<>
 					<p className="url-preview">
-						Updating your existing site at <strong>{saved?.pagesUrl || targetUrl}</strong> (repository{' '}
-						<strong>
-							{saved?.owner}/{saved?.repo}
-						</strong>
-						).
+						Updating your existing site at <strong>{saved?.pagesUrl || targetUrl}</strong>.
 					</p>
 					<button type="button" className="btn-link" onClick={() => setShowDomain(true)}>
 						{saved?.customDomain ? `Custom domain: ${saved.customDomain}` : 'Use a custom domain…'}

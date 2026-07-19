@@ -238,19 +238,19 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 						DNS changes usually take a few minutes, sometimes up to an hour. GitHub turns on HTTPS automatically once
 						it can see your records.
 					</p>
-					{rebuild === 'building' && <p className="modal-note">⏳ Rebuilding your site for the new address…</p>}
+					{rebuild === 'building' && <p className="modal-note">Rebuilding your site for the new address…</p>}
 					{rebuild === 'failed' && (
 						<p className="publish-error">
-							The site rebuild reported an error — check{' '}
+							The site rebuild reported an error — check the{' '}
 							<a href={`https://github.com/${ref.owner}/${ref.repo}/actions`} target="_blank" rel="noopener noreferrer">
-								the repository’s Actions tab
-							</a>
-							.
+								build log
+							</a>{' '}
+							to see what happened.
 						</p>
 					)}
-					{health === 'live' && <p className="modal-note">✅ DNS looks good — your domain is connected.</p>}
+					{health === 'live' && <p className="modal-note">DNS looks good — your domain is connected.</p>}
 					{health === 'pending' && (
-						<p className="modal-note">⏳ DNS isn’t pointing at GitHub yet — records can take up to an hour to propagate.</p>
+						<p className="modal-note">DNS isn’t pointing at GitHub yet — records can take up to an hour to propagate.</p>
 					)}
 					{health === 'unknown' && (
 						<p className="modal-note">

@@ -168,7 +168,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 				</div>
 				{editable && <GridTools />}
 				<span className="preview-hint">
-					{editable ? 'Drag images, videos & text to arrange them.' : 'Exactly how your published site will look.'}
+					{editable ? 'Drag images, videos and text to arrange them.' : 'Exactly how your published site will look.'}
 				</span>
 				<button
 					type="button"
@@ -176,7 +176,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 					onClick={() => setFullscreen((f) => !f)}
 					title={fullscreen ? 'Back to the editor (Esc)' : 'Preview your published site fullscreen'}
 				>
-					{fullscreen ? '✕ Back to editor' : '⛶ Fullscreen'}
+					{fullscreen ? 'Back to editor' : 'Fullscreen'}
 				</button>
 			</div>
 			{device === 'phone' ? (

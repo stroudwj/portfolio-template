@@ -90,7 +90,7 @@ export default function ConnectGitHubModal({
 
 	return (
 		<Modal
-			title="Connect GitHub"
+			title="Claim your space"
 			onClose={onClose}
 			dismissable={!busy}
 			footer={
@@ -105,11 +105,11 @@ export default function ConnectGitHubModal({
 			{oauthEnabled ? (
 				<>
 					<p className="modal-lead">
-						Publishing puts your site on your own GitHub account. Connect it in one click — you’ll approve on GitHub and
-						come right back.
+						Your site is stored in a free GitHub account you own — that’s what makes it yours. Approve the
+						connection on GitHub and you’ll come right back.
 					</p>
 					<button type="button" className="btn-primary btn-authorize" onClick={authorize}>
-						Authorize with GitHub ↗
+						Continue with GitHub ↗
 					</button>
 					<details className="advanced">
 						<summary>Prefer a personal access token? (advanced)</summary>
@@ -120,8 +120,8 @@ export default function ConnectGitHubModal({
 			) : (
 				<>
 					<p className="modal-lead">
-						Publishing puts your site on your own GitHub account. Connect it once with a personal access token — a private
-						key you create in a couple of clicks.
+						Your site is stored in a free GitHub account you own — that’s what makes it yours. Connect it once
+						with a personal access token — a private key you create in a couple of clicks.
 					</p>
 					{tokenSteps}
 				</>

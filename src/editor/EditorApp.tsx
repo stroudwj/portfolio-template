@@ -42,7 +42,9 @@ function Shell({ base }: { base: string }) {
 	return (
 		<div className="editor">
 			<header className="editor-topbar">
-				<strong className="brand">Portfolio Editor</strong>
+				<span className="brand">
+					hangwork<span className="brand-dot">.</span>
+				</span>
 				<div className="mobile-toggle">
 					<button type="button" className={mobileView === 'edit' ? 'active' : ''} onClick={() => setMobileView('edit')}>
 						Edit
@@ -56,7 +58,7 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<div className="topbar-spacer" />
-				<button type="button" className="btn-ghost" onClick={resetAll}>
+				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset
 				</button>
 				<GitHubControls license={license} />

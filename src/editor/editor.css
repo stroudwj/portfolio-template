@@ -1,23 +1,40 @@
-/* Editor chrome. Deliberately its own visual language (a tool), distinct from the
-   portfolio it edits. Only the right-hand preview uses the portfolio's styles. */
+/* Editor chrome. It sits next to the artist's actual work all day, so it stays
+   quieter than the landing page: --wall-1 panels, --wall-2 dividers, and Klein
+   blue only on the publish button, focus rings, and the canvas selection.
+   Only the right-hand preview uses the portfolio's own styles. */
 .editor,
 .start {
-	--ui-bg: #f6f7f9;
-	--ui-surface: #ffffff;
-	--ui-border: #e3e6ea;
-	--ui-text: #1c2024;
-	--ui-muted: #6b7280;
-	--ui-accent: #2563eb;
-	--ui-danger: #dc2626;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-	color: var(--ui-text);
+	--paper: #faf8f5;
+	--ink: #1a1a1a;
+	--ink-soft: #6b6963;
+	--klein: #002fa7;
+	--klein-dark: #00248a;
+	--wall-1: #edeae4;
+	--wall-2: #ddd9d0;
+	--wall-3: #e5e1da;
+	--error: #b3261e;
+	--focus-ring: 0 0 0 3px rgba(0, 47, 167, 0.12);
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+		sans-serif;
+	font-size: 14px;
+	color: var(--ink);
+}
+
+.editor button,
+.start button {
+	font-weight: 400;
+}
+
+:is(.editor, .start) :is(button, a, summary, [role='button']):focus-visible {
+	outline: 2px solid var(--klein);
+	outline-offset: 2px;
 }
 
 .editor {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
-	background: var(--ui-bg);
+	background: var(--paper);
 }
 
 /* ---- Top bar ---- */
@@ -26,34 +43,38 @@
 	align-items: center;
 	gap: 10px;
 	padding: 10px 16px;
-	background: var(--ui-surface);
-	border-bottom: 1px solid var(--ui-border);
+	background: var(--wall-1);
+	border-bottom: 1px solid var(--wall-2);
 	flex-shrink: 0;
 }
 .editor-topbar .brand {
-	font-weight: 700;
-	font-size: 0.95rem;
+	font-weight: 500;
+	font-size: 15px;
+	letter-spacing: -0.01em;
+}
+.brand-dot {
+	color: var(--klein);
 }
 .topbar-spacer {
 	flex: 1;
 }
 .mobile-toggle {
 	display: none;
-	border: 1px solid var(--ui-border);
-	border-radius: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	overflow: hidden;
 }
 .mobile-toggle button {
 	border: 0;
 	background: transparent;
 	padding: 6px 12px;
-	font-size: 0.85rem;
+	font-size: 13px;
 	cursor: pointer;
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 }
 .mobile-toggle button.active {
-	background: var(--ui-accent);
-	color: #fff;
+	background: var(--ink);
+	color: var(--paper);
 }
 
 /* ---- Body split ---- */
@@ -69,23 +90,22 @@
 	padding: 16px;
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	border-right: 1px solid var(--ui-border);
+	gap: 12px;
+	border-right: 1px solid var(--wall-2);
 }
 .editor-preview {
 	flex: 1;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	background: var(--ui-bg);
+	background: var(--paper);
 }
 
 /* ---- Sections ---- */
 .editor-section {
-	background: var(--ui-surface);
-	border: 1px solid var(--ui-border);
-	border-radius: 12px;
-	padding: 16px;
+	background: var(--wall-1);
+	border-radius: 6px;
+	padding: 14px 16px;
 }
 .editor-section-head {
 	display: flex;
@@ -94,12 +114,10 @@
 	margin-bottom: 12px;
 }
 .editor-section-head h2 {
-	font-size: 0.9rem;
-	font-weight: 700;
+	font-size: 13px;
+	font-weight: 500;
 	margin: 0;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-	color: var(--ui-muted);
+	color: var(--ink);
 	flex: 1;
 	min-width: 0;
 }
@@ -114,27 +132,20 @@
 	padding: 0;
 	font: inherit;
 	color: inherit;
-	text-transform: inherit;
-	letter-spacing: inherit;
 	text-align: left;
 	cursor: pointer;
 }
-.section-toggle:hover {
-	color: var(--ui-text);
-}
 .section-chevron {
-	font-size: 0.68rem;
+	font-size: 10px;
+	color: var(--ink-soft);
 	flex-shrink: 0;
 }
 .editor-section.collapsed .editor-section-head {
 	margin-bottom: 0;
 }
 .count {
-	font-size: 0.8rem;
-	color: var(--ui-muted);
-	background: var(--ui-bg);
-	border-radius: 999px;
-	padding: 1px 9px;
+	font-size: 13px;
+	color: var(--ink-soft);
 }
 
 /* ---- Fields ---- */
@@ -148,44 +159,49 @@
 	margin-bottom: 0;
 }
 .field-label {
-	font-size: 0.8rem;
-	font-weight: 600;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
 }
 .field-hint {
-	font-size: 0.75rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 }
 .field-error {
-	font-size: 0.75rem;
-	color: var(--ui-danger);
+	font-size: 13px;
+	color: var(--error);
 }
 .text-input,
 .text-area {
 	width: 100%;
-	border: 1px solid var(--ui-border);
-	border-radius: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 8px 10px;
 	font: inherit;
-	font-size: 0.88rem;
+	font-size: 14px;
 	background: #fff;
 	color: inherit;
+}
+.text-input::placeholder,
+.text-area::placeholder {
+	color: var(--ink-soft);
 }
 .text-input:focus,
 .text-area:focus {
 	outline: none;
-	border-color: var(--ui-accent);
-	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+	border-color: var(--klein);
+	box-shadow: var(--focus-ring);
 }
 .text-input.invalid {
-	border-color: var(--ui-danger);
+	border-color: var(--error);
 }
 .text-area {
 	resize: vertical;
 	line-height: 1.5;
 }
 .muted {
-	color: var(--ui-muted);
-	font-size: 0.85rem;
+	color: var(--ink-soft);
+	font-size: 13px;
 	margin: 8px 0 0;
 }
 
@@ -193,16 +209,16 @@
 .card-list {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
 	margin-top: 12px;
 }
 .card {
 	display: flex;
 	gap: 10px;
 	align-items: flex-start;
-	background: var(--ui-bg);
-	border: 1px solid var(--ui-border);
-	border-radius: 10px;
+	background: var(--paper);
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 10px;
 }
 .card.row {
@@ -212,9 +228,9 @@
 	width: 56px;
 	height: 56px;
 	object-fit: cover;
-	border-radius: 6px;
+	border-radius: 3px;
 	flex-shrink: 0;
-	background: #e4e4e4;
+	background: var(--wall-3);
 }
 /* Thumb + its file name, stacked. */
 .card-media {
@@ -225,9 +241,9 @@
 	flex-shrink: 0;
 }
 .card-filename {
-	font-size: 0.62rem;
+	font-size: 10px;
 	line-height: 1.3;
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	max-width: 56px;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -243,13 +259,13 @@
 	background: transparent;
 	padding: 2px 0 8px;
 	font: inherit;
-	font-size: 0.8rem;
-	font-weight: 600;
-	color: var(--ui-muted);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
 	cursor: pointer;
 }
 .collapse-toggle:hover {
-	color: var(--ui-text);
+	color: var(--ink);
 }
 .collapse-note {
 	font-weight: 400;
@@ -273,8 +289,8 @@
 	cursor: grab;
 	border: 0;
 	background: transparent;
-	color: var(--ui-muted);
-	font-size: 1.1rem;
+	color: var(--ink-soft);
+	font-size: 15px;
 	padding: 2px 4px;
 	touch-action: none;
 	align-self: center;
@@ -285,20 +301,21 @@
 
 /* ---- Image drop ---- */
 .imagedrop {
-	border: 1.5px dashed var(--ui-border);
-	border-radius: 10px;
+	border: 1px dashed var(--wall-2);
+	border-radius: 4px;
 	padding: 16px;
 	text-align: center;
-	color: var(--ui-muted);
-	font-size: 0.85rem;
+	color: var(--ink-soft);
+	font-size: 13px;
 	cursor: pointer;
 	background: #fff;
-	transition: border-color 0.15s, background 0.15s;
 }
-.imagedrop:hover,
+.imagedrop:hover {
+	border-color: var(--ink-soft);
+}
 .imagedrop.over {
-	border-color: var(--ui-accent);
-	background: rgba(37, 99, 235, 0.04);
+	border-color: var(--klein);
+	box-shadow: var(--focus-ring);
 }
 .image-picker {
 	display: flex;
@@ -312,8 +329,8 @@
 	width: 64px;
 	height: 64px;
 	object-fit: cover;
-	border-radius: 8px;
-	background: #e4e4e4;
+	border-radius: 3px;
+	background: var(--wall-3);
 }
 /* Logos are usually wide — show the whole mark, not a square crop. */
 .image-picker .logo-thumb {
@@ -323,7 +340,7 @@
 }
 .imagedrop-folder {
 	margin-top: 4px;
-	font-size: 0.85rem;
+	font-size: 13px;
 }
 
 /* ---- Buttons ---- */
@@ -332,77 +349,104 @@
 .btn-ghost,
 .btn-link {
 	font: inherit;
-	font-size: 0.85rem;
-	font-weight: 600;
-	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	border-radius: 4px;
 	padding: 8px 14px;
 	cursor: pointer;
 	border: 1px solid transparent;
 }
 .btn-primary {
-	background: var(--ui-accent);
-	color: #fff;
+	background: var(--klein);
+	color: var(--paper);
+}
+.btn-primary:hover {
+	background: var(--klein-dark);
 }
 .btn-primary:disabled {
-	opacity: 0.6;
+	opacity: 0.55;
 	cursor: default;
+	background: var(--klein);
 }
 .btn-secondary {
-	background: #fff;
-	border-color: var(--ui-border);
-	color: var(--ui-text);
+	background: transparent;
+	border-color: var(--wall-2);
+	color: var(--ink);
+}
+.btn-secondary:hover {
+	background: var(--wall-3);
 }
 .btn-ghost {
 	background: transparent;
-	border-color: var(--ui-border);
-	color: var(--ui-text);
+	border-color: var(--wall-2);
+	color: var(--ink);
 }
 .btn-ghost:hover {
-	background: var(--ui-bg);
+	background: var(--wall-3);
+}
+/* Destructive actions stay quiet until pointed at — then say so in --error. */
+.btn-ghost.danger:hover {
+	color: var(--error);
+	border-color: var(--error);
+	background: transparent;
 }
 .btn-link {
 	background: transparent;
 	border: 0;
-	color: var(--ui-accent);
+	color: var(--ink-soft);
 	padding: 4px;
 }
+.btn-link:hover {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 0.25em;
+}
 .btn-icon {
-	border: 1px solid var(--ui-border);
-	background: #fff;
-	border-radius: 6px;
+	border: 1px solid var(--wall-2);
+	background: transparent;
+	border-radius: 4px;
 	width: 26px;
 	height: 26px;
 	cursor: pointer;
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	line-height: 1;
-	font-size: 0.85rem;
+	font-size: 13px;
+}
+.btn-icon:hover {
+	color: var(--ink);
+	background: var(--wall-3);
 }
 .btn-icon:disabled {
 	opacity: 0.4;
 	cursor: default;
 }
 .btn-icon.active {
-	background: var(--ui-accent);
-	border-color: var(--ui-accent);
-	color: #fff;
+	background: var(--ink);
+	border-color: var(--ink);
+	color: var(--paper);
 }
 .btn-icon.danger:hover {
-	color: var(--ui-danger);
-	border-color: var(--ui-danger);
+	color: var(--error);
+	border-color: var(--error);
+	background: transparent;
 }
 
 /* ---- Issues banner ---- */
 .issues {
-	background: #fff7ed;
-	border: 1px solid #fed7aa;
-	border-radius: 10px;
+	background: var(--wall-1);
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
 	padding: 12px 14px;
-	font-size: 0.82rem;
-	color: #9a3412;
+	font-size: 13px;
+	color: var(--ink);
+}
+.issues strong {
+	font-weight: 500;
 }
 .issues ul {
 	margin: 6px 0 0;
 	padding-left: 18px;
+	color: var(--ink-soft);
 }
 
 /* ---- Preview ---- */
@@ -416,8 +460,8 @@
 	flex: 1;
 	min-height: 0;
 	margin: 8px 12px 12px;
-	border: 1px solid var(--ui-border);
-	border-radius: 12px;
+	border: 1px solid var(--wall-2);
+	border-radius: 3px;
 	overflow: auto;
 	position: relative;
 	/* Contain the portfolio's fixed sidebar within this pane, not the viewport. */
@@ -435,35 +479,32 @@
 }
 .device-toggle {
 	display: flex;
-	border: 1px solid var(--ui-border);
-	border-radius: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	overflow: hidden;
-	background: var(--ui-surface);
 }
 .device-toggle button {
 	border: 0;
 	background: transparent;
 	padding: 5px 12px;
-	font-size: 0.8rem;
-	font-weight: 600;
+	font-size: 13px;
 	cursor: pointer;
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 }
 .device-toggle button.active {
-	background: var(--ui-accent);
-	color: #fff;
+	background: var(--ink);
+	color: var(--paper);
 }
 .preview-hint {
 	flex: 1;
-	font-size: 0.78rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 .preview-expand {
 	white-space: nowrap;
-	background: var(--ui-surface);
 }
 
 /* Fullscreen: the preview takes over the whole browser window (published look). */
@@ -471,7 +512,7 @@
 	position: fixed;
 	inset: 0;
 	z-index: 300;
-	background: var(--ui-bg);
+	background: var(--paper);
 }
 
 /* Phone preview: a real iframe viewport at phone width inside a device frame. */
@@ -479,7 +520,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: var(--ui-bg);
+	background: var(--wall-1);
 	transform: none;
 	overflow: auto;
 	padding: 16px 0;
@@ -489,11 +530,10 @@
 	max-width: calc(100% - 24px);
 	height: min(844px, 100%);
 	min-height: 320px;
-	border: 10px solid #1c2024;
-	border-radius: 34px;
+	border: 10px solid var(--ink);
+	border-radius: 28px;
 	overflow: hidden;
 	background: #fff;
-	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
 	flex-shrink: 0;
 }
 .device-frame {
@@ -512,15 +552,13 @@
 }
 .preview-grid-tools {
 	flex-shrink: 0;
-	background: var(--ui-surface);
-	border: 1px solid var(--ui-border);
-	border-radius: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 3px 8px;
 }
 .grid-tools-label {
-	font-size: 0.78rem;
-	font-weight: 600;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 	margin-right: 2px;
 	cursor: default;
 }
@@ -532,8 +570,8 @@
 	align-items: center;
 	gap: 5px;
 	margin-left: 10px;
-	font-size: 0.8rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 	cursor: pointer;
 	user-select: none;
 }
@@ -542,7 +580,7 @@
 	cursor: default;
 }
 .grid-snap input {
-	accent-color: var(--ui-accent);
+	accent-color: var(--klein);
 	margin: 0;
 }
 .gap-row {
@@ -552,7 +590,7 @@
 }
 .gap-row input[type='range'] {
 	flex: 1;
-	accent-color: var(--ui-accent);
+	accent-color: var(--ink);
 	cursor: ew-resize;
 }
 .gap-input {
@@ -561,33 +599,33 @@
 	text-align: right;
 }
 .gap-unit {
-	font-size: 0.8rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 }
 
 /* ---- Signature drawing pad ---- */
 .signature-pad {
 	width: 100%;
 	aspect-ratio: 300 / 120;
-	border: 1.5px dashed var(--ui-border);
-	border-radius: 10px;
+	border: 1px dashed var(--wall-2);
+	border-radius: 4px;
 	background: #fff;
 	touch-action: none;
 	cursor: crosshair;
 	display: block;
 }
 .signature-pad:hover {
-	border-color: var(--ui-accent);
+	border-color: var(--ink-soft);
 }
 .signature-pad polyline {
 	fill: none;
-	stroke: var(--ui-text);
+	stroke: var(--ink);
 	stroke-width: 2.5;
 	stroke-linecap: round;
 	stroke-linejoin: round;
 }
 .signature-baseline {
-	stroke: var(--ui-border);
+	stroke: var(--wall-2);
 	stroke-width: 1;
 	stroke-dasharray: 4 6;
 }
@@ -605,55 +643,55 @@
 	flex-wrap: wrap;
 }
 .resume-name {
-	font-size: 0.85rem;
-	color: var(--ui-text);
+	font-size: 13px;
+	color: var(--ink);
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	max-width: 100%;
 }
-a.resume-name {
-	color: var(--ui-accent);
+a.resume-name:hover {
+	color: var(--klein);
 }
 
 /* ---- Start screen: template picker ---- */
 .template-lead {
-	color: var(--ui-muted);
-	font-size: 0.85rem;
-	margin: 22px 0 10px;
+	color: var(--ink-soft);
+	font-size: 13px;
+	margin: 24px 0 10px;
 }
 .template-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
+/* The card's colors/type come from the template itself — it previews the artist's
+   site, not the editor. Chrome adds only a hairline and a hover border. */
 .template-card {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 4px;
 	text-align: left;
-	border: 1px solid var(--ui-border);
-	border-radius: 12px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 14px 16px;
 	cursor: pointer;
-	transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .template-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+	border-color: var(--ink);
 }
 .template-sample {
-	font-size: 1.5rem;
-	font-weight: 700;
+	font-size: 24px;
 	line-height: 1;
 }
 .template-name {
-	font-size: 0.95rem;
+	font-size: 14px;
+	font-weight: 500;
 }
 .template-tagline {
-	font-size: 0.76rem;
+	font-size: 12px;
 	line-height: 1.45;
 }
 @media (max-width: 560px) {
@@ -668,25 +706,25 @@ a.resume-name {
 	align-items: center;
 	justify-content: center;
 	min-height: 100vh;
-	background: var(--ui-bg);
+	background: var(--paper);
 	padding: 24px;
 }
 .start-card {
-	background: var(--ui-surface);
-	border: 1px solid var(--ui-border);
-	border-radius: 16px;
+	background: var(--wall-1);
+	border-radius: 6px;
 	padding: 40px;
 	max-width: 480px;
 	text-align: center;
-	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
 }
 .start-card h1 {
 	margin: 0 0 10px;
-	font-size: 1.6rem;
+	font-size: 24px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
 }
 .start-card p {
-	color: var(--ui-muted);
-	font-size: 0.92rem;
+	color: var(--ink-soft);
+	font-size: 14px;
 	line-height: 1.6;
 	margin: 0 0 24px;
 }
@@ -698,26 +736,19 @@ a.resume-name {
 }
 .start-actions .btn-primary,
 .start-actions .btn-secondary {
-	padding: 12px 20px;
+	padding: 10px 22px;
 }
 .how-it-works {
-	margin: 22px auto 4px;
+	margin: 24px auto 4px;
 	max-width: 30rem;
 	padding-left: 1.4em;
 	text-align: left;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	font-size: 0.86rem;
+	font-size: 13px;
 	line-height: 1.5;
-	color: var(--ui-muted);
-}
-.how-it-works code {
-	font-size: 0.85em;
-	background: var(--ui-bg);
-	border: 1px solid var(--ui-border);
-	border-radius: 4px;
-	padding: 0 4px;
+	color: var(--ink-soft);
 }
 .start-links {
 	margin-top: 18px;
@@ -729,7 +760,10 @@ a.resume-name {
 .btn-sub {
 	opacity: 0.7;
 	font-weight: 400;
-	font-size: 0.85em;
+	font-size: 12px;
+}
+.start-error {
+	margin: 0 0 12px;
 }
 
 /* ---- GitHub connection chip ---- */
@@ -737,45 +771,50 @@ a.resume-name {
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;
-	font-size: 0.82rem;
-	color: var(--ui-text);
-	background: var(--ui-bg);
-	border: 1px solid var(--ui-border);
-	border-radius: 999px;
-	padding: 3px 4px 3px 4px;
+	font-size: 13px;
+	color: var(--ink);
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	padding: 3px 4px;
 }
 .muted-chip {
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	padding: 6px 12px;
 }
 .gh-avatar {
-	width: 22px;
-	height: 22px;
+	width: 20px;
+	height: 20px;
 	border-radius: 50%;
-	background: var(--ui-border);
+	background: var(--wall-2);
 }
 .gh-login {
-	font-weight: 600;
+	font-weight: 500;
 }
 .gh-signout {
 	border: 0;
 	background: transparent;
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	font: inherit;
-	font-size: 0.78rem;
+	font-size: 12px;
 	cursor: pointer;
 	padding: 2px 8px;
-	border-left: 1px solid var(--ui-border);
+	border-left: 1px solid var(--wall-2);
 }
 .gh-signout:hover {
-	color: var(--ui-danger);
+	color: var(--error);
+}
+.gh-error-chip {
+	color: var(--error);
+	border-color: var(--error);
+	padding: 6px 12px;
+	max-width: 320px;
 }
 
 /* ---- Modals ---- */
 .modal-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(17, 20, 24, 0.45);
+	background: rgba(26, 26, 26, 0.4);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -783,25 +822,26 @@ a.resume-name {
 	z-index: 100;
 }
 .modal-card {
-	background: var(--ui-surface);
-	border-radius: 16px;
+	background: var(--paper);
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
 	width: 100%;
 	max-width: 520px;
 	max-height: 90vh;
 	display: flex;
 	flex-direction: column;
-	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
 .modal-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	padding: 16px 20px;
-	border-bottom: 1px solid var(--ui-border);
+	border-bottom: 1px solid var(--wall-2);
 }
 .modal-head h2 {
 	margin: 0;
-	font-size: 1.05rem;
+	font-size: 16px;
+	font-weight: 500;
 }
 .modal-body {
 	padding: 20px;
@@ -812,18 +852,18 @@ a.resume-name {
 	justify-content: flex-end;
 	gap: 10px;
 	padding: 14px 20px;
-	border-top: 1px solid var(--ui-border);
+	border-top: 1px solid var(--wall-2);
 }
 .modal-lead,
 .modal-note {
-	font-size: 0.88rem;
-	line-height: 1.55;
-	color: var(--ui-muted);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--ink-soft);
 	margin: 0 0 14px;
 }
 .modal-note {
 	margin: 14px 0 0;
-	font-size: 0.8rem;
+	font-size: 13px;
 }
 .steps {
 	margin: 0 0 16px;
@@ -831,7 +871,7 @@ a.resume-name {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	font-size: 0.88rem;
+	font-size: 14px;
 	line-height: 1.5;
 }
 .steps > li {
@@ -844,8 +884,16 @@ a.resume-name {
 	flex-direction: column;
 	gap: 4px;
 }
+.perm-list strong,
+.steps strong,
+.modal-lead strong,
+.modal-note strong,
+.url-preview strong,
+.publish-success strong {
+	font-weight: 500;
+}
 .perm-why {
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 }
 .btn-inline {
 	display: inline-block;
@@ -857,18 +905,18 @@ a.resume-name {
 	display: block;
 	width: 100%;
 	padding: 11px 16px;
-	font-size: 0.95rem;
+	font-size: 14px;
 	text-align: center;
 }
 .advanced {
 	margin-top: 16px;
-	border-top: 1px solid var(--ui-border);
+	border-top: 1px solid var(--wall-2);
 	padding-top: 12px;
 }
 .advanced > summary {
 	cursor: pointer;
-	font-size: 0.82rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 	list-style: revert;
 	user-select: none;
 }
@@ -878,15 +926,6 @@ a.resume-name {
 .advanced-actions {
 	display: flex;
 	justify-content: flex-end;
-}
-.gh-error-chip {
-	color: var(--ui-danger);
-	border-color: var(--ui-danger);
-	padding: 6px 12px;
-	max-width: 320px;
-}
-.start-error {
-	margin: 0 0 12px;
 }
 
 /* ---- Publish progress ---- */
@@ -902,28 +941,32 @@ a.resume-name {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	font-size: 0.92rem;
-	color: var(--ui-muted);
+	font-size: 14px;
+	color: var(--ink-soft);
 }
 .progress-list li.active {
-	color: var(--ui-text);
-	font-weight: 600;
+	color: var(--ink);
+	font-weight: 500;
 }
 .progress-mark {
-	font-size: 0.95rem;
+	font-size: 14px;
 }
 .progress-list li.done .progress-mark {
-	color: #16a34a;
+	color: var(--ink-soft);
 }
 .progress-list li.active .progress-mark {
-	color: var(--ui-accent);
-	animation: spin 1.1s linear infinite;
+	color: var(--ink);
 	display: inline-block;
 }
+@media (prefers-reduced-motion: no-preference) {
+	.progress-list li.active .progress-mark {
+		animation: spin 1.1s linear infinite;
+	}
+}
 .progress-detail {
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	font-weight: 400;
-	font-size: 0.82rem;
+	font-size: 13px;
 }
 @keyframes spin {
 	to {
@@ -935,22 +978,22 @@ a.resume-name {
 .publish-success {
 	text-align: center;
 }
-.success-emoji {
-	font-size: 2.4rem;
-}
 .publish-success h3 {
 	margin: 8px 0 14px;
-	font-size: 1.2rem;
+	font-size: 16px;
+	font-weight: 500;
 }
 .live-url {
 	display: inline-block;
 	word-break: break-all;
-	font-weight: 600;
-	color: var(--ui-accent);
+	font-weight: 500;
+	color: var(--ink);
 	text-decoration: none;
 }
-.live-url:hover {
+a.live-url:hover {
+	color: var(--klein);
 	text-decoration: underline;
+	text-underline-offset: 0.25em;
 }
 .success-actions {
 	display: flex;
@@ -963,23 +1006,26 @@ a.resume-name {
 	text-decoration: none;
 }
 .publish-error {
-	font-size: 0.92rem;
-	line-height: 1.55;
-	color: var(--ui-text);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--ink);
 	margin: 0;
 }
+.publish-error a {
+	color: inherit;
+}
 .url-preview {
-	font-size: 0.88rem;
-	line-height: 1.55;
-	color: var(--ui-muted);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--ink-soft);
 	margin: 4px 0 0;
 	word-break: break-word;
 }
 
 /* ---- Page blocks (text / images / sub-pages / about) ---- */
 .block {
-	border: 1px solid rgba(127, 127, 127, 0.18);
-	border-radius: 10px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 10px 12px;
 	margin: 10px 0;
 }
@@ -991,11 +1037,9 @@ a.resume-name {
 	margin-bottom: 6px;
 }
 .block-label {
-	font-size: 0.78rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--ui-muted);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
 }
 .block-controls {
 	display: flex;
@@ -1008,17 +1052,14 @@ a.resume-name {
 	margin-right: 6px;
 }
 .align-toggle .btn-icon {
-	font-size: 0.72rem;
-	font-weight: 700;
+	font-size: 11px;
 }
 
 /* Chip-sized toggle (e.g. Freeform / Grid) — a btn-icon that fits a word. */
 .btn-icon.btn-chip {
 	width: auto;
 	padding: 0 9px;
-	font-weight: 600;
-	text-transform: none;
-	letter-spacing: 0;
+	font-weight: 500;
 }
 
 /* Editable block label (image groups): looks like the label, edits in place. */
@@ -1031,22 +1072,20 @@ a.resume-name {
 	background: transparent;
 	padding: 2px 0;
 	font: inherit;
-	font-size: 0.78rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--ui-muted);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
 }
 .block-name-input:hover {
-	border-bottom-color: var(--ui-border);
+	border-bottom-color: var(--wall-2);
 }
 .block-name-input:focus {
 	outline: none;
-	color: var(--ui-text);
-	border-bottom-color: var(--ui-accent);
+	color: var(--ink);
+	border-bottom-color: var(--klein);
 }
 .block-name-input::placeholder {
-	color: var(--ui-muted);
+	color: var(--ink-soft);
 	opacity: 0.8;
 }
 
@@ -1067,16 +1106,21 @@ a.resume-name {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	font-size: 0.78rem;
-	color: var(--ui-muted);
+	font-size: 13px;
+	color: var(--ink-soft);
 }
 .select-input {
-	border: 1px solid var(--ui-border);
+	border: 1px solid var(--wall-2);
 	background: #fff;
-	border-radius: 6px;
+	border-radius: 4px;
 	padding: 4px 6px;
-	font-size: 0.82rem;
-	color: var(--ui-text);
+	font-size: 13px;
+	color: var(--ink);
+}
+.select-input:focus {
+	outline: none;
+	border-color: var(--klein);
+	box-shadow: var(--focus-ring);
 }
 
 /* ---- Uploaded font rows ---- */
@@ -1084,15 +1128,15 @@ a.resume-name {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	background: var(--ui-bg);
-	border: 1px solid var(--ui-border);
-	border-radius: 8px;
+	background: var(--paper);
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	padding: 6px 10px;
 	margin-bottom: 8px;
 }
 .font-row-name {
 	flex: 1;
-	font-size: 0.95rem;
+	font-size: 14px;
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1116,7 +1160,7 @@ a.resume-name {
 	width: 72px;
 	min-height: 48px;
 	padding: 2px;
-	font-size: 0.7rem;
+	font-size: 11px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1125,13 +1169,13 @@ a.resume-name {
 	width: 64px;
 	height: 44px;
 	object-fit: cover;
-	border-radius: 4px;
+	border-radius: 3px;
 	display: block;
 }
 .nested-pages {
 	margin-top: 12px;
 	padding-left: 12px;
-	border-left: 3px solid rgba(127, 127, 127, 0.25);
+	border-left: 2px solid var(--wall-2);
 }
 .nested-pages .editor-section {
 	padding-left: 0;
@@ -1149,8 +1193,8 @@ a.resume-name {
 	width: 40px;
 	height: 32px;
 	padding: 0;
-	border: 1px solid rgba(127, 127, 127, 0.3);
-	border-radius: 6px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
 	background: none;
 	cursor: pointer;
 }
@@ -1160,18 +1204,19 @@ a.resume-name {
 
 /* DNS records shown in the custom-domain modal — copy-paste friendly. */
 .dns-records {
-	background: var(--ui-bg-soft, rgba(127, 127, 127, 0.08));
-	border-radius: 8px;
+	background: var(--wall-1);
+	border-radius: 4px;
 	padding: 10px 12px;
 	margin: 10px 0;
 }
 .dns-records code {
 	display: inline-block;
-	font-size: 0.9rem;
+	font-size: 13px;
 	padding: 2px 8px;
 	margin: 2px 4px 2px 0;
-	border-radius: 6px;
-	background: rgba(127, 127, 127, 0.15);
+	border-radius: 3px;
+	background: #fff;
+	border: 1px solid var(--wall-2);
 	user-select: all;
 }
 

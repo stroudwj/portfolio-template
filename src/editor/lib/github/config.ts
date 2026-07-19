@@ -34,7 +34,7 @@ export const NEW_TOKEN_URL =
 
 /** Human-readable list of the fine-grained permissions the publish flow needs. */
 export const REQUIRED_PERMISSIONS = [
-	{ name: 'Administration', access: 'Read and write', why: 'create your website repository' },
+	{ name: 'Administration', access: 'Read and write', why: 'create the space your site lives in' },
 	{ name: 'Contents', access: 'Read and write', why: 'upload your text and images' },
 	{ name: 'Pages', access: 'Read and write', why: 'turn your website on' },
 ] as const;

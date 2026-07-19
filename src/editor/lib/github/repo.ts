@@ -74,7 +74,7 @@ export async function readAstroConfig(client: GitHubClient, ref: RepoRef): Promi
 			throw err;
 		}
 	}
-	throw new GitHubError(404, 'Could not read the new repository’s configuration.');
+	throw new GitHubError(404, 'Could not read your new site’s settings.');
 }
 
 /**

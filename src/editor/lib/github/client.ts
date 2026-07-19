@@ -74,16 +74,16 @@ export function friendlyMessage(status: number, data: unknown): string {
 	const apiMsg = typeof data === 'object' && data && 'message' in data ? String((data as { message: unknown }).message) : '';
 	switch (status) {
 		case 401:
-			return 'Your GitHub connection has expired or the token was revoked. Please reconnect GitHub.';
+			return 'Your GitHub connection has expired or was revoked. Sign in to GitHub again.';
 		case 403:
 			if (/rate limit/i.test(apiMsg)) return 'GitHub is rate-limiting requests. Please wait a minute and try again.';
 			if (/SSO|SAML/i.test(apiMsg)) return 'Your organization requires SSO for this token. Authorize it in GitHub, then retry.';
 			return "GitHub refused the request — your token may be missing a permission. Reconnect with 'Administration', 'Contents', and 'Pages' set to Read and write.";
 		case 404:
-			return "GitHub couldn't find that repository. It may have been deleted or renamed.";
+			return "GitHub couldn't find your site. It may have been deleted or renamed.";
 		case 422:
-			if (/name already exists/i.test(apiMsg)) return 'A repository with that name already exists. Please choose a different name.';
-			return apiMsg || 'GitHub rejected the request as invalid. Please check your inputs and try again.';
+			if (/name already exists/i.test(apiMsg)) return 'You already have a site with that name. Choose a different name.';
+			return apiMsg || 'GitHub rejected the request as invalid. Check your inputs and try again.';
 		default:
 			return apiMsg ? `GitHub error: ${apiMsg}` : `Something went wrong talking to GitHub (status ${status}).`;
 	}

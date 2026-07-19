@@ -29,7 +29,7 @@ const base = withBase(siteBase, 'demo');
 
 <Layout title={`Demo — ${pageTitle(page.title)}`} showLogo={true} base={base} noindex={true}>
 	<a slot="banner" class="demo-banner" href={withBase(siteBase)}>
-		This is a demo — <strong>build yours for $19 →</strong>
+		This is a demo — <strong>hang your own for $19</strong>
 	</a>
 	{
 		hasImages ? (
@@ -61,16 +61,24 @@ const base = withBase(siteBase, 'demo');
 		bottom: 1rem;
 		right: 1rem;
 		z-index: 100;
-		background: #16181d;
-		color: #fff;
+		background: #1a1a1a;
+		color: #faf8f5;
 		text-decoration: none;
-		font-family: ui-sans-serif, system-ui, sans-serif;
-		font-size: 0.9rem;
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		font-size: 14px;
+		font-weight: 400;
 		padding: 0.6rem 1rem;
-		border-radius: 999px;
-		box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+		border-radius: 4px;
 	}
-	.demo-banner:hover {
-		background: #2f6df6;
+	.demo-banner strong {
+		font-weight: 500;
+	}
+	.demo-banner:hover strong {
+		text-decoration: underline;
+		text-underline-offset: 0.25em;
+	}
+	.demo-banner:focus-visible {
+		outline: 2px solid #002fa7;
+		outline-offset: 2px;
 	}
 </style>

@@ -47,14 +47,14 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 						</button>
 					</span>
 					<button type="button" className="btn-primary" onClick={onPublishClick}>
-						Publish website
+						Publish
 					</button>
 				</>
 			) : (
 				<>
 					{gh.error && <span className="gh-chip gh-error-chip">{gh.error}</span>}
 					<button type="button" className="btn-primary" onClick={() => setShowConnect(true)}>
-						Connect GitHub
+						Claim your space
 					</button>
 				</>
 			)}

@@ -63,7 +63,9 @@ export default function StartScreen() {
 	return (
 		<div className="start">
 			<div className="start-card">
-				<h1>Portfolio Editor</h1>
+				<h1>
+					hangwork<span className="brand-dot">.</span>
+				</h1>
 
 				{!connected && gh.error && <p className="field-error start-error">{gh.error}</p>}
 
@@ -124,12 +126,12 @@ export default function StartScreen() {
 				) : (
 					<>
 						<p>
-							Build your portfolio right here in your browser — no code, no setup. Add your work and watch the live
-							preview, then publish it to your own website on GitHub. You keep the site and its code forever.
+							Build your portfolio right here in the browser. Hang your pieces, watch the live preview, then
+							publish to a space you own — yours forever.
 						</p>
 						<div className="start-actions">
 							<button type="button" className="btn-primary" onClick={startExisting}>
-								Start building
+								Hang your first piece
 							</button>
 							<button type="button" className="btn-secondary" onClick={startBlank}>
 								Start from blank
@@ -138,12 +140,13 @@ export default function StartScreen() {
 						<p className="template-lead">Or pick a different look to start from:</p>
 						{templatePicker}
 						<ol className="how-it-works">
-							<li>Add your details, images, and links — the preview updates as you go.</li>
-							<li>Authorize GitHub in one click{licenseGated ? ' and unlock with your license' : ''}.</li>
+							<li>Add your pieces, details, and links — the preview updates as you go.</li>
+							<li>Claim your space — a free account where your site is stored.</li>
 							<li>
-								Publish — your site goes live at your own <code>github.io</code> address.
+								Publish{licenseGated ? ' — pay once and' : ' —'} your site goes live at its own web
+								address.
 							</li>
-							<li>Come back anytime, from any device, to edit and publish again.</li>
+							<li>Come back anytime, from any device, to rehang and publish again.</li>
 						</ol>
 						<div className="start-links">
 							<button
