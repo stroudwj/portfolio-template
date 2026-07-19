@@ -6,9 +6,10 @@ compatibility_date = "2024-11-01"
 [vars]
 # The OAuth App client id (public). Same value the editor uses to start the flow.
 GITHUB_CLIENT_ID = "Ov23liWlyP2MLmoVBnKF"
-# CORS + caller lock. The origin the hosted editor is served from (no trailing slash).
-# Keep in sync with `site` in astro.config.product.mjs.
-ALLOWED_ORIGIN = "https://portfolio-template-9p2.pages.dev"
+# CORS + caller lock. The origin(s) the hosted editor is served from (no trailing slash).
+# Comma-separated list: the canonical custom domain first, then the pages.dev fallback so
+# both keep working. Keep the first entry in sync with `site` in astro.config.product.mjs.
+ALLOWED_ORIGIN = "https://hangwork.art,https://portfolio-template-9p2.pages.dev"
 
 # GITHUB_CLIENT_SECRET is a SECRET — do NOT put it here. Set it with:
 #   wrangler secret put GITHUB_CLIENT_SECRET

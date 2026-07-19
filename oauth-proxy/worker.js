@@ -14,17 +14,26 @@
 // Deploy: see README.md in this folder. Required config:
 //   - var    GITHUB_CLIENT_ID      (public; the OAuth App's client id)
 //   - secret GITHUB_CLIENT_SECRET  (`wrangler secret put GITHUB_CLIENT_SECRET`)
-//   - var    ALLOWED_ORIGIN        (e.g. https://portfolio-template-9p2.pages.dev) — CORS is locked to this
+//   - var    ALLOWED_ORIGIN        CORS is locked to this. One origin, or a comma-separated
+//                                  list (e.g. "https://hangwork.art,https://portfolio-template-9p2.pages.dev")
+//                                  to allow the custom domain and the pages.dev fallback at once.
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
 export default {
 	async fetch(request, env) {
 		const origin = request.headers.get('Origin') || '';
-		const allowed = env.ALLOWED_ORIGIN || '';
-		// Only ever reflect our own editor origin back — never a wildcard, since this
-		// endpoint mints credentials.
-		const corsOrigin = origin && origin === allowed ? origin : allowed;
+		// ALLOWED_ORIGIN may list several origins (comma-separated) so a custom domain and
+		// the pages.dev fallback both pass during/after a domain switch.
+		const allowlist = (env.ALLOWED_ORIGIN || '')
+			.split(',')
+			.map((o) => o.trim())
+			.filter(Boolean);
+		const isAllowed = origin !== '' && allowlist.includes(origin);
+		// Only ever reflect a known editor origin back — never a wildcard, since this
+		// endpoint mints credentials. Non-matches get the first configured origin (used only
+		// on the error response, which the browser discards anyway).
+		const corsOrigin = isAllowed ? origin : allowlist[0] || '';
 
 		if (request.method === 'OPTIONS') {
 			return new Response(null, { status: 204, headers: cors(corsOrigin) });
@@ -32,11 +41,11 @@ export default {
 		if (request.method !== 'POST') {
 			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
 		}
-		// Require an exact Origin match — browsers always send Origin on cross-origin fetch,
-		// so only the editor passes; requests with a missing or foreign Origin (curl, other
-		// sites, server-to-server) are rejected outright. Fail closed if ALLOWED_ORIGIN is
-		// unset rather than becoming an open proxy.
-		if (!allowed || origin !== allowed) {
+		// Require an Origin in the allowlist — browsers always send Origin on cross-origin
+		// fetch, so only the editor passes; requests with a missing or foreign Origin (curl,
+		// other sites, server-to-server) are rejected outright. Fail closed if ALLOWED_ORIGIN
+		// is unset rather than becoming an open proxy.
+		if (!isAllowed) {
 			return json({ error: 'forbidden_origin' }, 403, corsOrigin);
 		}
 

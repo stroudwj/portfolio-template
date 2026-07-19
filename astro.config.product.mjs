@@ -11,9 +11,10 @@ import react from '@astrojs/react';
 // If you generated your portfolio from the template: ignore this file — your site
 // builds with astro.config.mjs.
 //
-// Keep `site` in sync with the Worker's ALLOWED_ORIGIN in oauth-proxy/wrangler.toml.
+// Keep `site` in sync with the first entry of the Worker's ALLOWED_ORIGIN in
+// oauth-proxy/wrangler.toml. This is the canonical URL used in sitemap/robots/og tags.
 export default defineConfig({
-	site: 'https://portfolio-template-9p2.pages.dev',
+	site: 'https://hangwork.art',
 	// No `base`: Cloudflare Pages serves the site at the domain root.
 	integrations: [react()],
 });

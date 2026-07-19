@@ -13,9 +13,9 @@ personal-access-token flow automatically.
 GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**:
 
 - **Application name:** anything (e.g. "Portfolio Publisher")
-- **Homepage URL:** your editor URL, e.g. `https://portfolio-template-9p2.pages.dev/`
+- **Homepage URL:** your editor URL, e.g. `https://hangwork.art/`
 - **Authorization callback URL:** the editor page exactly —
-  `https://portfolio-template-9p2.pages.dev/editor/`
+  `https://hangwork.art/editor/`
 
 Click **Register**, then **Generate a new client secret**. Note the **Client ID** and the
 **secret**.
