@@ -1,9 +1,9 @@
-// The ✨ Fun tab: playful, entirely optional site-wide effects. Everything here
+// The Fun tab: playful, entirely optional site-wide effects. Everything here
 // writes content.site.creative, rendered by portfolio/CreativeEffects in the
 // preview and on the published site.
 import { useEditor } from '../store';
-import { Field, Section } from './ui/controls';
-import type { CreativeTrail } from '../../lib/content';
+import { Field, Section, TextInput } from './ui/controls';
+import type { CreativeClickMark, CreativeTrail } from '../../lib/content';
 
 /** Preset cursors — artist-flavored, one click each. */
 const CURSORS = ['✏️', '🖌️', '✂️', '🌸', '⭐', '👁️', '🐌'];
@@ -14,6 +14,42 @@ const TRAILS: Array<{ value: CreativeTrail | ''; label: string }> = [
 	{ value: 'hearts', label: '♥ Hearts' },
 	{ value: 'bubbles', label: '○ Bubbles' },
 ];
+
+const CLICK_MARKS: Array<{ value: CreativeClickMark | ''; label: string }> = [
+	{ value: '', label: 'Off' },
+	{ value: 'nail', label: '• Nail' },
+	{ value: 'cross', label: '× Cross' },
+	{ value: 'star', label: '✶ Star' },
+];
+
+function OnOff({
+	value,
+	onChange,
+	label,
+}: {
+	value: boolean;
+	onChange(value: boolean): void;
+	label: string;
+}) {
+	return (
+		<div className="chip-row" role="group" aria-label={label}>
+			<button
+				type="button"
+				className={`btn-icon btn-chip ${!value ? 'active' : ''}`}
+				onClick={() => onChange(false)}
+			>
+				Off
+			</button>
+			<button
+				type="button"
+				className={`btn-icon btn-chip ${value ? 'active' : ''}`}
+				onClick={() => onChange(true)}
+			>
+				On
+			</button>
+		</div>
+	);
+}
 
 export default function CreativeEditor() {
 	const { doc, setCreative } = useEditor();
@@ -89,6 +125,56 @@ export default function CreativeEditor() {
 					/>
 					<span className="gap-unit">{grain > 0 ? `${grain}%` : 'off'}</span>
 				</div>
+			</Field>
+
+			<Field label="Tap to mark" hint="Clicks on open space leave a small, temporary studio mark.">
+				<div className="chip-row" role="group" aria-label="Tap to mark style">
+					{CLICK_MARKS.map((mark) => (
+						<button
+							key={mark.value || 'off'}
+							type="button"
+							className={`btn-icon btn-chip ${(creative.clickMark ?? '') === mark.value ? 'active' : ''}`}
+							onClick={() =>
+								setCreative({ clickMark: (mark.value || undefined) as CreativeClickMark | undefined })
+							}
+						>
+							{mark.label}
+						</button>
+					))}
+				</div>
+			</Field>
+
+			<Field label="Loose hang" hint="Tilts each piece by a fraction, like a wall hung by hand.">
+				<OnOff
+					label="Loose hang"
+					value={creative.looseHang ?? false}
+					onChange={(value) => setCreative({ looseHang: value || undefined })}
+				/>
+			</Field>
+
+			<Field label="Slow reveal" hint="Artwork fades in gently when each page opens.">
+				<OnOff
+					label="Slow reveal"
+					value={creative.slowReveal ?? false}
+					onChange={(value) => setCreative({ slowReveal: value || undefined })}
+				/>
+			</Field>
+
+			<Field label="Hide the frame" hint="Adds a quiet view that hides the logo and menu. Visitors can also press H.">
+				<OnOff
+					label="Hide the frame"
+					value={creative.quietMode ?? false}
+					onChange={(value) => setCreative({ quietMode: value || undefined })}
+				/>
+			</Field>
+
+			<Field label="Wall note" hint="A short note tucked into the lower corner of every page.">
+				<TextInput
+					value={creative.wallNote ?? ''}
+					maxLength={80}
+					placeholder="Thanks for looking."
+					onChange={(e) => setCreative({ wallNote: e.target.value.slice(0, 80) || undefined })}
+				/>
 			</Field>
 		</Section>
 	);

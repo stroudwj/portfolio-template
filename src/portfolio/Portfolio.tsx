@@ -23,8 +23,14 @@ export interface PortfolioProps extends PortfolioData {
  */
 export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
+	const creativeClasses = [
+		content.site.creative?.looseHang && 'creative-loose-hang',
+		content.site.creative?.slowReveal && 'creative-slow-reveal',
+	]
+		.filter(Boolean)
+		.join(' ');
 	return (
-		<div className="portfolio-root" style={themeToVars(content.theme)}>
+		<div className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={themeToVars(content.theme)}>
 			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
 			<CreativeEffects creative={content.site.creative} />
 			<PortfolioFrame

@@ -71,10 +71,22 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<style is:global set:html={themeCss}></style>
 		<title>{title}</title>
 	</head>
-	<body>
+	<body
+		class:list={{
+			'creative-loose-hang': site.creative?.looseHang,
+			'creative-slow-reveal': site.creative?.slowReveal,
+		}}
+	>
 		<slot name="banner" />
 		{
-			(site.creative?.cursor || site.creative?.trail || site.creative?.grain) && (
+			(site.creative?.cursor ||
+				site.creative?.trail ||
+				site.creative?.grain ||
+				site.creative?.clickMark ||
+				site.creative?.looseHang ||
+				site.creative?.slowReveal ||
+				site.creative?.quietMode ||
+				site.creative?.wallNote) && (
 				<CreativeEffects client:load creative={site.creative} />
 			)
 		}

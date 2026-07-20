@@ -1,14 +1,16 @@
 // Playful site-wide flourishes (all opt-in from the editor's ✨ Fun tab):
 //   - an emoji cursor,
 //   - a little trail of shapes following the pointer,
-//   - a paper-grain texture laid over the whole page.
+//   - a paper-grain texture laid over the whole page,
+//   - temporary click marks, loose-hung artwork, a slow reveal,
+//   - a hide-the-frame view and a tucked-away wall note.
 // Rendered in BOTH the editor preview and the published site. Effects scope
 // themselves to the nearest .portfolio-root (the preview pane) when one exists,
 // else to the document body (the published site), so the editor chrome is never
 // affected. The overlay is position:fixed; inside the preview pane that still
 // stays contained because .preview-surface creates a transform containing block.
-import { useEffect, useRef } from 'react';
-import type { CreativeConfig, CreativeTrail } from '../lib/content';
+import { useEffect, useRef, useState } from 'react';
+import type { CreativeClickMark, CreativeConfig, CreativeTrail } from '../lib/content';
 import './CreativeEffects.css';
 
 /** The characters each trail flavor sprinkles behind the pointer. */
@@ -23,6 +25,15 @@ const TRAIL_SPACING = 28;
 /** How long one trail bit lives (must match the CSS animation duration). */
 const TRAIL_LIFE_MS = 700;
 
+const CLICK_MARK_BITS: Record<CreativeClickMark, string> = {
+	nail: '•',
+	cross: '×',
+	star: '✶',
+};
+
+/** How long a visitor's click mark remains on the wall. */
+const CLICK_MARK_LIFE_MS = 1400;
+
 /** An emoji as a 32px SVG cursor image. */
 function emojiCursorUrl(emoji: string): string {
 	const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='26' font-size='26'>${emoji}</text></svg>`;
@@ -35,9 +46,15 @@ const GRAIN_TILE =
 
 export default function CreativeEffects({ creative }: { creative?: CreativeConfig }) {
 	const overlayRef = useRef<HTMLDivElement>(null);
+	const [frameHidden, setFrameHidden] = useState(false);
 	const cursor = creative?.cursor?.trim() || '';
 	const trail = creative?.trail;
 	const grain = Math.min(Math.max(creative?.grain ?? 0, 0), 30);
+	const clickMark = creative?.clickMark;
+	const looseHang = creative?.looseHang ?? false;
+	const slowReveal = creative?.slowReveal ?? false;
+	const quietMode = creative?.quietMode ?? false;
+	const wallNote = creative?.wallNote?.trim().slice(0, 80) || '';
 
 	/** The element the effects attach to: preview pane root, else the page body. */
 	const hostOf = (el: HTMLElement): HTMLElement =>
@@ -82,11 +99,82 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 		return () => host.removeEventListener('pointermove', onMove);
 	}, [trail]);
 
-	if (!cursor && !trail && !grain) return null;
+	// Click marks are decorative and temporary. Interactive elements and artwork
+	// are left alone so a visitor never trades a real action for a flourish.
+	useEffect(() => {
+		const el = overlayRef.current;
+		if (!el || !clickMark) return;
+		const host = hostOf(el);
+		const onPointerDown = (ev: PointerEvent) => {
+			if (!ev.isPrimary || ev.button !== 0) return;
+			const target = ev.target;
+			if (
+				target instanceof Element &&
+				target.closest('a, button, input, textarea, select, summary, iframe, video, img, [role="button"], .modal')
+			)
+				return;
+			const rect = el.getBoundingClientRect();
+			const mark = el.ownerDocument.createElement('span');
+			mark.className = 'creative-click-mark';
+			mark.textContent = CLICK_MARK_BITS[clickMark];
+			mark.style.left = `${ev.clientX - rect.left}px`;
+			mark.style.top = `${ev.clientY - rect.top}px`;
+			mark.style.setProperty('--mr', `${(Math.random() * 18 - 9).toFixed(0)}deg`);
+			el.appendChild(mark);
+			setTimeout(() => mark.remove(), CLICK_MARK_LIFE_MS + 100);
+		};
+		host.addEventListener('pointerdown', onPointerDown);
+		return () => host.removeEventListener('pointerdown', onPointerDown);
+	}, [clickMark]);
+
+	useEffect(() => {
+		if (quietMode) return;
+		setFrameHidden(false);
+	}, [quietMode]);
+
+	useEffect(() => {
+		const el = overlayRef.current;
+		if (!el || !quietMode) return;
+		const host = hostOf(el);
+		const onKeyDown = (ev: KeyboardEvent) => {
+			if (ev.key.toLowerCase() !== 'h' || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+			const target = ev.target as HTMLElement | null;
+			if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+			setFrameHidden((hidden) => !hidden);
+		};
+		host.ownerDocument.addEventListener('keydown', onKeyDown);
+		return () => host.ownerDocument.removeEventListener('keydown', onKeyDown);
+	}, [quietMode]);
+
+	useEffect(() => {
+		const el = overlayRef.current;
+		if (!el) return;
+		const host = hostOf(el);
+		host.classList.toggle('creative-frame-hidden', quietMode && frameHidden);
+		return () => host.classList.remove('creative-frame-hidden');
+	}, [quietMode, frameHidden]);
+
+	if (!cursor && !trail && !grain && !clickMark && !looseHang && !slowReveal && !quietMode && !wallNote)
+		return null;
 	return (
-		<div ref={overlayRef} className="creative-effects" aria-hidden="true">
+		<div ref={overlayRef} className="creative-effects">
 			{grain > 0 && (
-				<div className="creative-grain" style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }} />
+				<div
+					className="creative-grain"
+					style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }}
+					aria-hidden="true"
+				/>
+			)}
+			{wallNote && <p className="creative-wall-note">{wallNote}</p>}
+			{quietMode && (
+				<button
+					type="button"
+					className="creative-frame-toggle"
+					onClick={() => setFrameHidden((hidden) => !hidden)}
+					aria-pressed={frameHidden}
+				>
+					{frameHidden ? 'Show frame' : 'Hide frame'}
+				</button>
 			)}
 		</div>
 	);

@@ -27,7 +27,7 @@ const EDITOR_TABS = [
 	{ id: 'content', icon: '🖼️', label: 'Content', title: 'Your pages — images, text, videos & profile' },
 	{ id: 'theme', icon: '🎨', label: 'Theme', title: 'Colors, fonts & site layout' },
 	{ id: 'extras', icon: '🖋️', label: 'Extras', title: 'Finishing touches — signature, footer & links' },
-	{ id: 'creative', icon: '✨', label: 'Fun', title: 'Playful touches — cursor, pointer trail & paper grain' },
+	{ id: 'creative', icon: '✨', label: 'Fun', title: 'Optional playful touches for the whole site' },
 	{ id: 'sharing', icon: '🔍', label: 'Sharing', title: 'How your site appears in search results and link previews' },
 	{ id: 'publish', icon: '🚀', label: 'Publish', title: 'Your web address, domain & license' },
 ] as const;

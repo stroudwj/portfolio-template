@@ -147,7 +147,7 @@ export interface EditorContextValue {
 	 *  adopting the Grid arrangement as the freeform starting point. */
 	setGalleryLayouts(folder: string, layouts: Record<string, ImageLayout>): void;
 	// creative extras
-	/** Fun site-wide flourishes: emoji cursor, pointer trail, paper grain. */
+	/** Optional site-wide flourishes configured in the Fun tab. */
 	setCreative(patch: Partial<CreativeConfig>): void;
 	// sharing / SEO
 	/** Meta description used for search results and social link previews. */
@@ -623,6 +623,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				if (!merged.cursor) delete merged.cursor;
 				if (!merged.trail) delete merged.trail;
 				if (!merged.grain) delete merged.grain;
+				if (!merged.clickMark) delete merged.clickMark;
+				if (!merged.looseHang) delete merged.looseHang;
+				if (!merged.slowReveal) delete merged.slowReveal;
+				if (!merged.quietMode) delete merged.quietMode;
+				if (!merged.wallNote?.trim()) delete merged.wallNote;
 				return { ...c, site: { ...c.site, creative: Object.keys(merged).length ? merged : undefined } };
 			}),
 

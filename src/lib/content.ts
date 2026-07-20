@@ -23,12 +23,15 @@ export interface Site {
 	footer?: string;
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
 	ogImage?: string;
-	/** Fun site-wide flourishes (emoji cursor, pointer trail, paper grain). Absent = none. */
+	/** Optional site-wide flourishes configured in the editor's Fun tab. Absent = none. */
 	creative?: CreativeConfig;
 }
 
 /** The pointer-trail flavors a site can turn on. */
 export type CreativeTrail = 'sparkles' | 'hearts' | 'bubbles';
+
+/** The temporary marks visitors can leave by clicking open areas of the page. */
+export type CreativeClickMark = 'nail' | 'cross' | 'star';
 
 /**
  * Playful site-wide effects, all off by default. Rendered by
@@ -41,6 +44,16 @@ export interface CreativeConfig {
 	trail?: CreativeTrail;
 	/** Paper-grain texture overlay opacity, 1–30 (%). Absent/0 = off. */
 	grain?: number;
+	/** A temporary mark left when a visitor clicks an open part of the page. */
+	clickMark?: CreativeClickMark;
+	/** Give artwork a very slight, deterministic rotation, like a hand-hung salon wall. */
+	looseHang?: boolean;
+	/** Fade artwork into place when a page opens. */
+	slowReveal?: boolean;
+	/** Let visitors hide/show the logo and menu with a small control or the H key. */
+	quietMode?: boolean;
+	/** A short artist note tucked into the lower corner of the site. */
+	wallNote?: string;
 }
 
 /**
