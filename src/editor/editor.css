@@ -93,6 +93,56 @@
 	gap: 12px;
 	border-right: 1px solid var(--wall-2);
 }
+
+/* ---- Category tabs (top of the editing column) ----
+   Icon-labeled chips splitting the controls into Content / Theme / Extras.
+   Sticky so the categories stay reachable while the pane scrolls; panes stay
+   mounted and are only CSS-hidden (section state + scroll targets survive). */
+.editor-tabs {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	display: flex;
+	gap: 6px;
+	margin: -16px -16px 0;
+	padding: 12px 16px;
+	background: var(--paper);
+	border-bottom: 1px solid var(--wall-2);
+}
+.editor-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 14px;
+	border: 1px solid var(--wall-2);
+	border-radius: 999px;
+	background: transparent;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
+	cursor: pointer;
+}
+.editor-tab:hover {
+	border-color: var(--ink-soft);
+	color: var(--ink);
+}
+.editor-tab.active {
+	background: var(--ink);
+	border-color: var(--ink);
+	color: var(--paper);
+}
+.editor-tab-icon {
+	font-size: 14px;
+	line-height: 1;
+}
+.editor-tab-pane {
+	display: none;
+}
+.editor-tab-pane.active {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
 .editor-preview {
 	flex: 1;
 	min-width: 0;
@@ -1108,6 +1158,11 @@ a.live-url:hover {
 	gap: 6px;
 	font-size: 13px;
 	color: var(--ink-soft);
+}
+/* "Edit this arrangement in Freeform" — sits at the end of the grid options row. */
+.grid-options .adopt-grid {
+	font-size: 13px;
+	align-self: center;
 }
 .select-input {
 	border: 1px solid var(--wall-2);

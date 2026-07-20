@@ -7,7 +7,7 @@ export const DEFAULT_AR = 4 / 3;
 /** Smallest width an image can be resized to, in canvas-width %. */
 export const MIN_W = 8;
 /** Gutter between auto-placed images, in canvas-width %. */
-const GUTTER = 2.5;
+export const GUTTER = 2.5;
 /** Auto-placed images per row. */
 const COLS = 3;
 
@@ -47,6 +47,48 @@ export function clampTextLayout(t: TextLayout): TextLayout {
 /** Snap a value to the nearest multiple of `step` (no-op for step <= 0). */
 export const snapTo = (value: number, step: number): number =>
 	step > 0 ? Math.round(value / step) * step : value;
+
+/** Snap a value to the nearest entry of `edges` (no-op when empty). */
+export const snapToEdges = (value: number, edges: readonly number[]): number =>
+	edges.reduce((best, e) => (Math.abs(e - value) < Math.abs(best - value) ? e : best), edges[0] ?? value);
+
+/**
+ * The n columns of the uniform Grid layout (full width, GUTTER between, no
+ * outer margins), as {x, w} in canvas-width %. Column guides shade these bands
+ * and adoptions from Grid mode place images into them, so both line up with
+ * grid-mode image edges and margins.
+ */
+export function columnSpans(n: number): Array<{ x: number; w: number }> {
+	const w = (100 - GUTTER * (n - 1)) / n;
+	return Array.from({ length: n }, (_, col) => ({ x: col * (w + GUTTER), w }));
+}
+
+/** Every column edge (left and right of each band) — the x snap targets. */
+export const columnEdges = (n: number): number[] => columnSpans(n).flatMap(({ x, w }) => [x, x + w]);
+
+/**
+ * Freeform layouts reproducing the uniform Grid arrangement: `ars` in display
+ * order (pass the crop ratio for every item when the grid crops), `cols` per
+ * row. Rows advance by the tallest item, like the CSS grid with items at the
+ * top of their row.
+ */
+export function uniformGridLayouts(ars: number[], cols: number): ImageLayout[] {
+	const spans = columnSpans(cols);
+	const out: ImageLayout[] = [];
+	let y = 0;
+	let rowH = 0;
+	ars.forEach((raw, i) => {
+		const ar = raw || DEFAULT_AR;
+		const { x, w } = spans[i % cols];
+		out.push({ x, y, w, ar });
+		rowH = Math.max(rowH, w / ar);
+		if (i % cols === cols - 1) {
+			y += rowH + GUTTER;
+			rowH = 0;
+		}
+	});
+	return out;
+}
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 

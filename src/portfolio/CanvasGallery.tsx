@@ -17,6 +17,8 @@ import {
 	canvasHeight,
 	clampLayout,
 	clampTextLayout,
+	columnEdges,
+	columnSpans,
 	DEFAULT_AR,
 	flowMissing,
 	MIN_EMBED_W,
@@ -25,9 +27,10 @@ import {
 	roundLayout,
 	roundTextLayout,
 	snapTo,
+	snapToEdges,
 	textBottom,
 } from './canvasLayout';
-import { useGridPrefs } from './gridPrefs';
+import { guideById, useGridPrefs } from './gridPrefs';
 import { videoEmbedSrc } from './videoEmbed';
 import { safeHref } from './safeHref';
 import { TextLines } from './TextBlock';
@@ -79,8 +82,15 @@ export default function CanvasGallery({
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
 	const gridPrefs = useGridPrefs();
 
-	/** Snap increment in canvas-width % (0 = snapping off). */
-	const snapStep = editable && gridPrefs.cols > 0 && gridPrefs.snap ? 100 / gridPrefs.cols : 0;
+	// Snap targets follow the chosen guide: square guides snap x AND y to the
+	// cell size; column guides snap x (and the resized right edge) to column
+	// edges, leaving y free. Identity functions when guides/snap are off.
+	const guide = guideById(gridPrefs.guide);
+	const snapOn = editable && gridPrefs.snap && guide.kind !== 'off';
+	const squareStep = snapOn && guide.kind === 'squares' ? 100 / guide.n : 0;
+	const xEdges = snapOn && guide.kind === 'columns' ? columnEdges(guide.n) : [];
+	const snapX = (v: number): number => (xEdges.length ? snapToEdges(v, xEdges) : snapTo(v, squareStep));
+	const snapY = (v: number): number => snapTo(v, squareStep);
 
 	const keyOf = (img: ResolvedImage, i: number): string => img.id ?? `${img.src}-${i}`;
 
@@ -186,11 +196,11 @@ export default function CanvasGallery({
 			const dy = (ev.clientY - startY) * scale;
 			let next: ImageLayout;
 			if (mode === 'move') {
-				next = { ...from, x: snapTo(from.x + dx, snapStep), y: snapTo(from.y + dy, snapStep) };
+				next = { ...from, x: snapX(from.x + dx), y: snapY(from.y + dy) };
 			} else {
-				// Snap the RIGHT edge to the grid so resized items line up with columns.
+				// Snap the RIGHT edge to the guides so resized items line up with columns.
 				const w = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
-				next = { ...from, w: Math.max(snapTo(from.x + w, snapStep) - from.x, minW) };
+				next = { ...from, w: Math.max(snapX(from.x + w) - from.x, minW) };
 			}
 			setDrafts((d) => ({ ...d, [id]: clampLayout(next) }));
 		};
@@ -238,8 +248,8 @@ export default function CanvasGallery({
 			const dy = (ev.clientY - startY) * scale;
 			const next =
 				mode === 'move'
-					? { ...from, x: snapTo(from.x + dx, snapStep), y: snapTo(from.y + dy, snapStep) }
-					: { ...from, w: Math.max(snapTo(from.x + from.w + dx, snapStep) - from.x, MIN_TEXT_W) };
+					? { ...from, x: snapX(from.x + dx), y: snapY(from.y + dy) }
+					: { ...from, w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W) };
 			setTextDrafts((d) => ({ ...d, [id]: clampTextLayout(next) }));
 		};
 		const up = () => {
@@ -264,19 +274,26 @@ export default function CanvasGallery({
 			className={`canvas-gallery ${editable ? 'editable' : ''}`}
 			style={{ '--ch': String(height) } as CSSProperties}
 		>
-			{editable && gridPrefs.cols > 0 && (
+			{editable && guide.kind === 'squares' && (
 				<div
 					className="canvas-grid-overlay"
 					style={
 						{
-							'--gn': String(gridPrefs.cols),
+							'--gn': String(guide.n),
 							// Cell height in % of the canvas height, precomputed so the CSS
 							// stays a plain calc (cells are square in canvas-width units).
-							'--gh': `${(10000 / (gridPrefs.cols * height)).toFixed(4)}%`,
+							'--gh': `${(10000 / (guide.n * height)).toFixed(4)}%`,
 						} as CSSProperties
 					}
 					aria-hidden="true"
 				/>
+			)}
+			{editable && guide.kind === 'columns' && (
+				<div className="canvas-column-overlay" aria-hidden="true">
+					{columnSpans(guide.n).map(({ x, w }, i) => (
+						<span key={i} style={{ left: `${x}%`, width: `${w}%` }} />
+					))}
+				</div>
 			)}
 			{images.map((img, i) => {
 				const key = keyOf(img, i);

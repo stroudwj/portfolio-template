@@ -1,30 +1,58 @@
-// Editor-only canvas grid preference (overlay density + snap), shared between
-// the editor panel (where the buttons live) and every CanvasGallery instance
+// Editor-only canvas guide preference (overlay + snap), shared between the
+// editor panel (where the buttons live) and every CanvasGallery instance
 // (which draws the overlay and snaps drags). Module-level store so the two stay
 // in sync without threading props through the whole portfolio tree; persisted
 // to localStorage so the choice survives sessions. Never published.
 import { useSyncExternalStore } from 'react';
 
-/** Grid overlay density choices (vertical columns across the canvas); 0 = off. */
-export const GRID_OPTIONS = [0, 8, 12, 16] as const;
+/** One choosable guide overlay. 'squares' is a uniform n-column checker of
+ *  square cells; 'columns' shades the n columns (with gutters) of the Grid
+ *  layout, so guide edges land exactly on grid-mode image edges and margins. */
+export interface GuideOption {
+	id: string;
+	label: string;
+	title: string;
+	kind: 'off' | 'squares' | 'columns';
+	n: number;
+}
+
+export const GUIDE_OPTIONS: readonly GuideOption[] = [
+	{ id: 'off', label: 'Off', title: 'Hide the guides', kind: 'off', n: 0 },
+	{ id: 'sq-8', label: '8', title: 'Guide squares — 8 across', kind: 'squares', n: 8 },
+	{ id: 'sq-12', label: '12', title: 'Guide squares — 12 across', kind: 'squares', n: 12 },
+	{ id: 'sq-16', label: '16', title: 'Guide squares — 16 across', kind: 'squares', n: 16 },
+	{ id: 'sq-24', label: '24', title: 'Guide squares — 24 across (small)', kind: 'squares', n: 24 },
+	{ id: 'sq-32', label: '32', title: 'Guide squares — 32 across (smallest)', kind: 'squares', n: 32 },
+	{ id: 'col-2', label: '2col', title: 'Column guides matching a 2-column Grid (image edges and margins)', kind: 'columns', n: 2 },
+	{ id: 'col-3', label: '3col', title: 'Column guides matching a 3-column Grid (image edges and margins)', kind: 'columns', n: 3 },
+	{ id: 'col-4', label: '4col', title: 'Column guides matching a 4-column Grid (image edges and margins)', kind: 'columns', n: 4 },
+] as const;
+
+export const guideById = (id: string): GuideOption => GUIDE_OPTIONS.find((o) => o.id === id) ?? GUIDE_OPTIONS[0];
 
 const GRID_PREFS_KEY = 'portfolio-editor.canvas-grid';
 
 export interface GridPrefs {
-	cols: number;
+	/** Selected GuideOption id ('off' = no overlay). */
+	guide: string;
 	snap: boolean;
 }
 
 function load(): GridPrefs {
-	if (typeof window === 'undefined') return { cols: 0, snap: true };
+	if (typeof window === 'undefined') return { guide: 'off', snap: true };
 	try {
-		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs>;
+		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs> & {
+			cols?: number;
+		};
+		// Migrate the pre-guides shape ({ cols: 0|8|12|16 }) to a guide id.
+		const legacy = typeof parsed.cols === 'number' ? (parsed.cols > 0 ? `sq-${parsed.cols}` : 'off') : undefined;
+		const guide = parsed.guide ?? legacy ?? 'off';
 		return {
-			cols: (GRID_OPTIONS as readonly number[]).includes(parsed.cols ?? -1) ? (parsed.cols as number) : 0,
+			guide: GUIDE_OPTIONS.some((o) => o.id === guide) ? guide : 'off',
 			snap: parsed.snap !== false,
 		};
 	} catch {
-		return { cols: 0, snap: true };
+		return { guide: 'off', snap: true };
 	}
 }
 
@@ -47,9 +75,10 @@ const subscribe = (fn: () => void): (() => void) => {
 };
 
 const getSnapshot = (): GridPrefs => prefs;
-const getServerSnapshot = (): GridPrefs => ({ cols: 0, snap: true });
+const serverPrefs: GridPrefs = { guide: 'off', snap: true };
+const getServerSnapshot = (): GridPrefs => serverPrefs;
 
-/** Live grid prefs — re-renders the caller whenever any component changes them. */
+/** Live guide prefs — re-renders the caller whenever any component changes them. */
 export function useGridPrefs(): GridPrefs {
 	return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

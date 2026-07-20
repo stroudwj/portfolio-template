@@ -140,6 +140,9 @@ export interface EditorContextValue {
 	removeGalleryImage(folder: string, id: string): void;
 	moveGalleryImage(folder: string, from: number, to: number): void;
 	updateGalleryMeta(folder: string, id: string, patch: Partial<ImageMeta>): void;
+	/** Overwrite many images' freeform positions at once (id -> layout), e.g. when
+	 *  adopting the Grid arrangement as the freeform starting point. */
+	setGalleryLayouts(folder: string, layouts: Record<string, ImageLayout>): void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -558,6 +561,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		moveGalleryImage: (folder, from, to) => patchGallery(folder, (entries) => arrayMove(entries, from, to)),
 		updateGalleryMeta: (folder, id, patch) =>
 			patchGallery(folder, (entries) => entries.map((e) => (e.id === id ? { ...e, meta: { ...e.meta, ...patch } } : e))),
+		setGalleryLayouts: (folder, layouts) =>
+			patchGallery(folder, (entries) =>
+				entries.map((e) => (layouts[e.id] ? { ...e, meta: { ...e.meta, layout: layouts[e.id] } } : e)),
+			),
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- assetsVersion invalidates asset-URL reads
 	}), [doc, hasDraft, assetsVersion, patchContent, patchGallery, patchPage, patchBlocks]);
 

@@ -169,6 +169,23 @@
 	box-shadow: inset -1px -1px 0 rgba(0, 47, 167, 0.18);
 }
 
+/* Column guides: shaded bands matching the uniform Grid's columns + gutters,
+   so their edges land exactly on grid-mode image edges and margins. Same
+   stacking/pointer rules as the square overlay. */
+.canvas-column-overlay {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 5000;
+}
+.canvas-column-overlay span {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	background: rgba(0, 47, 167, 0.05);
+	border-inline: 1px solid rgba(0, 47, 167, 0.25);
+}
+
 /* Video embeds pinned to the canvas: the iframe fills the 16:9 item box. */
 .canvas-item.canvas-embed-item iframe {
 	width: 100%;

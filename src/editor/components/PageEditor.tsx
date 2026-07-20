@@ -8,7 +8,8 @@ import ImageCollectionEditor from './ImageCollectionEditor';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
-import { uniformColumns } from '../../portfolio/Gallery';
+import { parseAspect, uniformColumns } from '../../portfolio/Gallery';
+import { DEFAULT_AR, roundLayout, uniformGridLayouts } from '../../portfolio/canvasLayout';
 import type { ChildrenStyle, GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
 
 const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
@@ -35,6 +36,16 @@ const CROP_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 type GalleryPatch = Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect'>>;
+
+/** Natural width/height ratio of an image URL (undefined when it can't load). */
+const measureAr = (url: string | null | undefined): Promise<number | undefined> =>
+	new Promise((resolve) => {
+		if (!url) return resolve(undefined);
+		const img = new Image();
+		img.onload = () => resolve(img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : undefined);
+		img.onerror = () => resolve(undefined);
+		img.src = url;
+	});
 
 /** Freeform/Grid toggle shared by the main gallery block and extra image groups. */
 function LayoutToggle({ mode, onPatch }: { mode: 'freeform' | 'grid'; onPatch: (patch: GalleryPatch) => void }) {
@@ -63,7 +74,16 @@ function LayoutToggle({ mode, onPatch }: { mode: 'freeform' | 'grid'; onPatch: (
 }
 
 /** Grid-mode settings (columns + crop) shared by the gallery block and image groups. */
-function GridOptions({ config, onPatch }: { config: GalleryConfig; onPatch: (patch: GalleryPatch) => void }) {
+function GridOptions({
+	config,
+	onPatch,
+	onAdopt,
+}: {
+	config: GalleryConfig;
+	onPatch: (patch: GalleryPatch) => void;
+	/** Copy this grid arrangement into freeform coordinates, then switch to Freeform. */
+	onAdopt?: () => void;
+}) {
 	return (
 		<div className="grid-options">
 			<label className="grid-option">
@@ -94,6 +114,16 @@ function GridOptions({ config, onPatch }: { config: GalleryConfig; onPatch: (pat
 					))}
 				</select>
 			</label>
+			{onAdopt && (
+				<button
+					type="button"
+					className="btn-link adopt-grid"
+					title="Switch to Freeform with the images placed exactly like this grid — then slide them around from there."
+					onClick={onAdopt}
+				>
+					Edit this arrangement in Freeform
+				</button>
+			)}
 		</div>
 	);
 }
@@ -118,6 +148,30 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	const addChild = () => {
 		const name = prompt('Name of the new sub-page:');
 		if (name?.trim()) editor.addChildPage(pageKey, name.trim());
+	};
+
+	/** Bake the current Grid arrangement into freeform coordinates and switch to
+	 *  Freeform, so the images start exactly where the grid showed them. Aspect
+	 *  ratios come from the crop (when set) or the images' real pixels. */
+	const adoptGridAsFreeform = async (config: GalleryConfig, onPatch: (patch: GalleryPatch) => void) => {
+		const entries = doc.galleries[config.folder] ?? [];
+		if (entries.length === 0) {
+			onPatch({ layout: undefined });
+			return;
+		}
+		const cellAr = parseAspect(config.aspect);
+		const ars = await Promise.all(
+			entries.map(
+				async (e) =>
+					cellAr ?? (await measureAr(getAssetPreviewUrl(e.assetId))) ?? e.meta.layout?.ar ?? DEFAULT_AR,
+			),
+		);
+		const layouts = uniformGridLayouts(ars, uniformColumns(config.columns));
+		editor.setGalleryLayouts(
+			config.folder,
+			Object.fromEntries(entries.map((e, i) => [e.id, roundLayout(layouts[i])])),
+		);
+		onPatch({ layout: undefined });
 	};
 
 	const controls = (index: number, block: PageBlock, removable: boolean) => (
@@ -250,7 +304,13 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							{controls(index, block, false)}
 						</div>
 						{page.gallery && galleryMode === 'grid' && (
-							<GridOptions config={page.gallery} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
+							<GridOptions
+								config={page.gallery}
+								onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)}
+								onAdopt={() =>
+									void adoptGridAsFreeform(page.gallery!, (patch) => editor.setGalleryConfig(pageKey, patch))
+								}
+							/>
 						)}
 						{page.gallery && (
 							<ImageCollectionEditor
@@ -285,7 +345,13 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 							<LayoutToggle mode={groupMode} onPatch={patchGroup} />
 							{controls(index, block, true)}
 						</div>
-						{groupMode === 'grid' && <GridOptions config={block.gallery} onPatch={patchGroup} />}
+						{groupMode === 'grid' && (
+							<GridOptions
+								config={block.gallery}
+								onPatch={patchGroup}
+								onAdopt={() => void adoptGridAsFreeform(block.gallery, patchGroup)}
+							/>
+						)}
 						<ImageCollectionEditor
 							embedded
 							folder={block.gallery.folder}

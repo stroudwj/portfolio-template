@@ -56,6 +56,21 @@ export function expandSection(key: string) {
 	window.dispatchEvent(new CustomEvent(EXPAND_EVENT, { detail: key }));
 }
 
+/** The editing column is split into category tabs (Theme / Content / …). Panes
+ *  stay mounted (hidden with CSS) so section state and scroll targets survive;
+ *  this event lets faraway code (the preview's nav) switch the visible tab. */
+const SHOW_TAB_EVENT = 'editor-show-tab';
+
+export function showEditorTab(tab: string) {
+	window.dispatchEvent(new CustomEvent(SHOW_TAB_EVENT, { detail: tab }));
+}
+
+export function onShowEditorTab(fn: (tab: string) => void): () => void {
+	const handler = (e: Event) => fn((e as CustomEvent<string>).detail);
+	window.addEventListener(SHOW_TAB_EVENT, handler);
+	return () => window.removeEventListener(SHOW_TAB_EVENT, handler);
+}
+
 export function Section({
 	title,
 	children,

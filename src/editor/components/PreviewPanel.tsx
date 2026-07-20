@@ -3,34 +3,39 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
-import { GRID_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
-import { expandSection } from './ui/controls';
+import { GUIDE_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
+import { expandSection, showEditorTab } from './ui/controls';
 
-/** Canvas grid overlay + snap controls. Lives in the preview toolbar so they're
+/** Canvas guide overlay + snap controls ("Guides", to not clash with the
+ *  Freeform/Grid layout toggle). Lives in the preview toolbar so they're
  *  reachable no matter how far down the editing column is scrolled. */
-function GridTools() {
+function GuideTools() {
 	const gridPrefs = useGridPrefs();
+	const off = gridPrefs.guide === 'off';
 	return (
-		<div className="grid-toolbar preview-grid-tools" role="group" aria-label="Canvas grid overlay">
-			<span className="grid-tools-label" title="Grid overlay for lining things up — never shown on your site.">
-				Grid
+		<div className="grid-toolbar preview-grid-tools" role="group" aria-label="Canvas guide overlay">
+			<span
+				className="grid-tools-label"
+				title="Guide overlay for lining things up — never shown on your site. Numbers are squares; “col” options match the Grid layout's columns."
+			>
+				Guides
 			</span>
-			{GRID_OPTIONS.map((n) => (
+			{GUIDE_OPTIONS.map((o) => (
 				<button
-					key={n}
+					key={o.id}
 					type="button"
-					className={`btn-icon btn-chip ${gridPrefs.cols === n ? 'active' : ''}`}
-					onClick={() => setGridPrefs({ cols: n })}
-					title={n === 0 ? 'Hide the grid overlay' : `Overlay a ${n}-column grid`}
+					className={`btn-icon btn-chip ${gridPrefs.guide === o.id ? 'active' : ''}`}
+					onClick={() => setGridPrefs({ guide: o.id })}
+					title={o.title}
 				>
-					{n === 0 ? 'Off' : String(n)}
+					{o.label}
 				</button>
 			))}
-			<label className={`grid-snap ${gridPrefs.cols === 0 ? 'disabled' : ''}`}>
+			<label className={`grid-snap ${off ? 'disabled' : ''}`}>
 				<input
 					type="checkbox"
-					checked={gridPrefs.snap && gridPrefs.cols > 0}
-					disabled={gridPrefs.cols === 0}
+					checked={gridPrefs.snap && !off}
+					disabled={off}
 					onChange={(e) => setGridPrefs({ snap: e.target.checked })}
 				/>
 				Snap
@@ -118,9 +123,11 @@ export default function PreviewPanel({ base }: { base: string }) {
 		const key = path === '' ? 'home' : path;
 		setPage(key);
 		if (fullscreen) return;
-		// Bring that page's editing section into view alongside the preview. A collapsed
-		// section (or a sub-page inside a collapsed parent) must expand first, or the
+		// Bring that page's editing section into view alongside the preview. The
+		// Content tab must be active (pages live there), and a collapsed section
+		// (or a sub-page inside a collapsed parent) must expand first, or the
 		// scroll target doesn't exist / has no height yet.
+		showEditorTab('content');
 		const parent = Object.entries(doc.content.pages).find(([, p]) => p.children?.includes(key))?.[0];
 		if (parent) expandSection(parent);
 		expandSection(key);
@@ -166,7 +173,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 						Phone
 					</button>
 				</div>
-				{editable && <GridTools />}
+				{editable && <GuideTools />}
 				<span className="preview-hint">
 					{editable ? 'Drag images, videos and text to arrange them.' : 'Exactly how your published site will look.'}
 				</span>
