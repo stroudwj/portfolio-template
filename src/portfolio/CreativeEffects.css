@@ -1,0 +1,44 @@
+/* Fun-effects overlay: never intercepts input, sits above the page content but
+   below the editor's modals (z-index 100 in editor.css is on a separate
+   stacking context — the overlay only competes inside the portfolio). Inside
+   the editor preview, .preview-surface's transform contains this fixed layer. */
+.creative-effects {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 80;
+	overflow: hidden;
+}
+
+.creative-grain {
+	position: absolute;
+	inset: 0;
+	background-repeat: repeat;
+	mix-blend-mode: multiply;
+}
+
+.creative-trail-bit {
+	position: absolute;
+	color: var(--color-accent, #333);
+	font-size: 14px;
+	line-height: 1;
+	transform: translate(-50%, -50%) rotate(var(--tr, 0deg)) scale(var(--ts, 1));
+	animation: creative-trail-fade 0.7s ease-out forwards;
+	user-select: none;
+}
+
+@keyframes creative-trail-fade {
+	0% {
+		opacity: 0.9;
+	}
+	100% {
+		opacity: 0;
+		translate: 0 14px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.creative-trail-bit {
+		display: none;
+	}
+}

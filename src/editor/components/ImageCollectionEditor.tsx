@@ -38,7 +38,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 					onClick={() => setCollapsed((c) => !c)}
 					aria-expanded={!collapsed}
 				>
-					<span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
+					<span className="collapse-chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 					{entries.length} image{entries.length === 1 ? '' : 's'}
 					{collapsed && <span className="collapse-note">— click to show</span>}
 				</button>

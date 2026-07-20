@@ -86,6 +86,10 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		}
 	}
 
+	// The social-card image is re-resolved every publish: gallery files get renamed
+	// (ordered prefixes), so a stale path would 404. No valid choice = automatic.
+	let ogPath: string | undefined;
+
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
 		const items: Record<string, Partial<ImageMeta>> = {};
 		for (let i = 0; i < entries.length; i++) {
@@ -95,10 +99,13 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			if (meta) items[finalName] = meta;
 			const blob = getAssetBlob(entry.assetId);
 			if (blob) files.push({ path: `src/assets/${folder}/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+			if (doc.ogImage && doc.ogImage.folder === folder && doc.ogImage.entryId === entry.id)
+				ogPath = `${folder}/${finalName}`;
 		}
 		content.galleries[folder] = { items } as Content['galleries'][string];
 		for (const config of configsByFolder.get(folder) ?? []) config.order = 'asc';
 	}
+	content.site.ogImage = ogPath;
 
 	// Résumé PDF, served from public/ at the site root. Uploaded this session ->
 	// write the file and point resume.url at it; loaded from the repo without

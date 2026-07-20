@@ -21,6 +21,26 @@ export interface Site {
 	signature?: SignatureData;
 	/** Footer line(s) shown at the bottom of every page. "\n" is a line break; absent/empty = no footer. */
 	footer?: string;
+	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
+	ogImage?: string;
+	/** Fun site-wide flourishes (emoji cursor, pointer trail, paper grain). Absent = none. */
+	creative?: CreativeConfig;
+}
+
+/** The pointer-trail flavors a site can turn on. */
+export type CreativeTrail = 'sparkles' | 'hearts' | 'bubbles';
+
+/**
+ * Playful site-wide effects, all off by default. Rendered by
+ * portfolio/CreativeEffects in both the editor preview and the published site.
+ */
+export interface CreativeConfig {
+	/** Emoji drawn as the visitor's cursor (empty/absent = the normal cursor). */
+	cursor?: string;
+	/** Little shapes trailing the pointer as it moves. */
+	trail?: CreativeTrail;
+	/** Paper-grain texture overlay opacity, 1–30 (%). Absent/0 = off. */
+	grain?: number;
 }
 
 /**
@@ -140,6 +160,8 @@ export interface PageConfig {
 	title: string;
 	/** Display name — nav entry for top-level pages, card caption for sub-pages. */
 	label?: string;
+	/** Meta description for THIS page (search results, link previews). Absent = site.description. */
+	description?: string;
 	/** Optional on-page heading shown above the body. */
 	heading?: string;
 	/** Present on gallery pages; absent on text-only pages like About. */

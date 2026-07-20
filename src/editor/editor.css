@@ -186,7 +186,8 @@
 	cursor: pointer;
 }
 .section-chevron {
-	font-size: 10px;
+	font-size: 15px;
+	line-height: 1;
 	color: var(--ink-soft);
 	flex-shrink: 0;
 }
@@ -316,6 +317,10 @@
 }
 .collapse-toggle:hover {
 	color: var(--ink);
+}
+.collapse-chevron {
+	font-size: 15px;
+	line-height: 1;
 }
 .collapse-note {
 	font-weight: 400;
@@ -1255,6 +1260,105 @@ a.live-url:hover {
 }
 .color-field .text-input {
 	flex: 1;
+}
+
+/* ---- ✨ Fun tab ---- */
+.chip-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+.cursor-chip {
+	font-size: 16px;
+}
+.chip-row .btn-icon {
+	height: 30px;
+	min-width: 30px;
+}
+.emoji-input {
+	width: 110px;
+	flex: none;
+	padding: 4px 8px;
+}
+
+/* ---- 🔍 Sharing tab: mock social preview card ---- */
+.share-card {
+	border: 1px solid var(--wall-2);
+	border-radius: 8px;
+	overflow: hidden;
+	background: #fff;
+	max-width: 420px;
+}
+.share-card-image {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1.91 / 1;
+	object-fit: cover;
+	background: var(--wall-3);
+}
+.share-card-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--ink-soft);
+	font-size: 13px;
+}
+.share-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 12px;
+	border-top: 1px solid var(--wall-2);
+}
+.share-card-domain {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ink-soft);
+}
+.share-card-title {
+	font-size: 14px;
+	font-weight: 500;
+}
+.share-card-desc {
+	font-size: 13px;
+	color: var(--ink-soft);
+	line-height: 1.4;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* ---- 🚀 Publish tab ---- */
+.status-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 0;
+}
+.status-label {
+	width: 70px;
+	flex-shrink: 0;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
+}
+.status-value {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 14px;
+}
+.status-value.muted {
+	color: var(--ink-soft);
+}
+.publish-panel-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 12px;
+	flex-wrap: wrap;
 }
 
 /* DNS records shown in the custom-domain modal — copy-paste friendly. */

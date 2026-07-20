@@ -9,6 +9,9 @@ import AddPageButton from './components/AddPageButton';
 import SocialLinksEditor from './components/SocialLinksEditor';
 import SignatureEditor from './components/SignatureEditor';
 import FooterEditor from './components/FooterEditor';
+import CreativeEditor from './components/CreativeEditor';
+import SharingEditor from './components/SharingEditor';
+import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
 import GitHubControls from './components/GitHubControls';
 import { onShowEditorTab } from './components/ui/controls';
@@ -22,15 +25,41 @@ import './editor.css';
 const EDITOR_TABS = [
 	{ id: 'content', icon: '🖼️', label: 'Content', title: 'Your pages — images, text, videos & profile' },
 	{ id: 'theme', icon: '🎨', label: 'Theme', title: 'Colors, fonts & site layout' },
-	{ id: 'extras', icon: '✨', label: 'Extras', title: 'Finishing touches — signature, footer & links' },
+	{ id: 'extras', icon: '🖋️', label: 'Extras', title: 'Finishing touches — signature, footer & links' },
+	{ id: 'creative', icon: '✨', label: 'Fun', title: 'Playful touches — cursor, pointer trail & paper grain' },
+	{ id: 'sharing', icon: '🔍', label: 'Sharing', title: 'How your site appears in search results and link previews' },
+	{ id: 'publish', icon: '🚀', label: 'Publish', title: 'Your web address, domain & license' },
 ] as const;
 
 type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 
 const TAB_STORE = 'portfolio-editor.tab';
 
+/** Cmd/Ctrl+Z undoes the last canvas arrangement change; Cmd+Shift+Z or Cmd/Ctrl+Y
+ *  redoes it. Text fields keep their native undo — shortcuts are ignored there. */
+function useUndoShortcuts(undo: () => void, redo: () => void) {
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+			const t = e.target as HTMLElement | null;
+			if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+			const key = e.key.toLowerCase();
+			if (key === 'z') {
+				e.preventDefault();
+				if (e.shiftKey) redo();
+				else undo();
+			} else if (key === 'y') {
+				e.preventDefault();
+				redo();
+			}
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, [undo, redo]);
+}
+
 function Shell({ base }: { base: string }) {
-	const { doc, reset, resumeDraft, hasDraft } = useEditor();
+	const { doc, reset, resumeDraft, hasDraft, undo, redo } = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
@@ -54,6 +83,8 @@ function Shell({ base }: { base: string }) {
 	// Held at the top level so the auto-unlock-after-purchase handler runs even on the Start
 	// screen (a buyer usually lands there returning from checkout, before the editor mounts).
 	const license = useLicense();
+
+	useUndoShortcuts(undo, redo);
 
 	// Returning from checkout reloads the page onto the Start screen. If the buyer set out to
 	// publish, resume their saved draft automatically so they land back in the editor (GitHubControls
@@ -139,6 +170,15 @@ function Shell({ base }: { base: string }) {
 						<SocialLinksEditor />
 						<SignatureEditor />
 						<FooterEditor />
+					</div>
+					<div className={`editor-tab-pane ${tab === 'creative' ? 'active' : ''}`}>
+						<CreativeEditor />
+					</div>
+					<div className={`editor-tab-pane ${tab === 'sharing' ? 'active' : ''}`}>
+						<SharingEditor />
+					</div>
+					<div className={`editor-tab-pane ${tab === 'publish' ? 'active' : ''}`}>
+						<PublishPanel license={license} />
 					</div>
 				</div>
 				<div className="editor-preview">

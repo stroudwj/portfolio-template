@@ -1,5 +1,6 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
+import CreativeEffects from './CreativeEffects';
 import { themeToVars, fontFacesCss } from './theme';
 import type { ImageLayout, PortfolioData, TextLayout } from './types';
 
@@ -25,6 +26,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 	return (
 		<div className="portfolio-root" style={themeToVars(content.theme)}>
 			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
+			<CreativeEffects creative={content.site.creative} />
 			<PortfolioFrame
 				nav={content.nav}
 				logo={content.site.logo || content.site.name}

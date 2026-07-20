@@ -48,6 +48,34 @@ export function clampTextLayout(t: TextLayout): TextLayout {
 export const snapTo = (value: number, step: number): number =>
 	step > 0 ? Math.round(value / step) * step : value;
 
+/** How close (in canvas-width %) an edge must be before it magnetically snaps. */
+export const EDGE_SNAP = 1.2;
+
+/** The nearest of `edges` within `threshold` of `value`, or null when none is. */
+export function nearestEdge(value: number, edges: readonly number[], threshold: number): number | null {
+	let best: number | null = null;
+	for (const e of edges) {
+		if (Math.abs(e - value) > threshold) continue;
+		if (best === null || Math.abs(e - value) < Math.abs(best - value)) best = e;
+	}
+	return best;
+}
+
+/**
+ * Magnetic alignment to neighboring items: given a moving span [pos, pos+size],
+ * snap whichever of its two edges lands nearest one of `edges` (within
+ * EDGE_SNAP), and return the adjusted pos. Used per-axis, so a dragged image's
+ * top/bottom lines up with neighbors' tops/bottoms and its sides with their sides.
+ */
+export function snapSpanToEdges(pos: number, size: number, edges: readonly number[]): number {
+	const lead = nearestEdge(pos, edges, EDGE_SNAP);
+	const trail = nearestEdge(pos + size, edges, EDGE_SNAP);
+	const dLead = lead === null ? Infinity : Math.abs(lead - pos);
+	const dTrail = trail === null ? Infinity : Math.abs(trail - pos - size);
+	if (dLead === Infinity && dTrail === Infinity) return pos;
+	return dLead <= dTrail ? (lead as number) : (trail as number) - size;
+}
+
 /** Snap a value to the nearest entry of `edges` (no-op when empty). */
 export const snapToEdges = (value: number, edges: readonly number[]): number =>
 	edges.reduce((best, e) => (Math.abs(e - value) < Math.abs(best - value) ? e : best), edges[0] ?? value);

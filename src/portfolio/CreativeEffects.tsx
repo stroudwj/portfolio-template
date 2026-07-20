@@ -1,0 +1,93 @@
+// Playful site-wide flourishes (all opt-in from the editor's ✨ Fun tab):
+//   - an emoji cursor,
+//   - a little trail of shapes following the pointer,
+//   - a paper-grain texture laid over the whole page.
+// Rendered in BOTH the editor preview and the published site. Effects scope
+// themselves to the nearest .portfolio-root (the preview pane) when one exists,
+// else to the document body (the published site), so the editor chrome is never
+// affected. The overlay is position:fixed; inside the preview pane that still
+// stays contained because .preview-surface creates a transform containing block.
+import { useEffect, useRef } from 'react';
+import type { CreativeConfig, CreativeTrail } from '../lib/content';
+import './CreativeEffects.css';
+
+/** The characters each trail flavor sprinkles behind the pointer. */
+const TRAIL_BITS: Record<CreativeTrail, string[]> = {
+	sparkles: ['✦', '✧', '⋆', '✶'],
+	hearts: ['♥', '♡', '♥'],
+	bubbles: ['○', '◦', '°'],
+};
+
+/** Minimum pointer travel (px) between two trail bits, so the trail stays airy. */
+const TRAIL_SPACING = 28;
+/** How long one trail bit lives (must match the CSS animation duration). */
+const TRAIL_LIFE_MS = 700;
+
+/** An emoji as a 32px SVG cursor image. */
+function emojiCursorUrl(emoji: string): string {
+	const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='26' font-size='26'>${emoji}</text></svg>`;
+	return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 4 4, auto`;
+}
+
+/** Subtle monochrome noise tile (SVG turbulence) for the paper-grain overlay. */
+const GRAIN_TILE =
+	"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+export default function CreativeEffects({ creative }: { creative?: CreativeConfig }) {
+	const overlayRef = useRef<HTMLDivElement>(null);
+	const cursor = creative?.cursor?.trim() || '';
+	const trail = creative?.trail;
+	const grain = Math.min(Math.max(creative?.grain ?? 0, 0), 30);
+
+	/** The element the effects attach to: preview pane root, else the page body. */
+	const hostOf = (el: HTMLElement): HTMLElement =>
+		el.closest<HTMLElement>('.portfolio-root') ?? el.ownerDocument.body;
+
+	// Emoji cursor.
+	useEffect(() => {
+		const el = overlayRef.current;
+		if (!el || !cursor) return;
+		const host = hostOf(el);
+		host.style.cursor = emojiCursorUrl(cursor);
+		return () => {
+			host.style.cursor = '';
+		};
+	}, [cursor]);
+
+	// Pointer trail: spawn short-lived, self-removing spans directly in the DOM —
+	// running this through React state would re-render the whole portfolio per bit.
+	useEffect(() => {
+		const el = overlayRef.current;
+		if (!el || !trail) return;
+		const host = hostOf(el);
+		const bits = TRAIL_BITS[trail];
+		let lastX = -Infinity;
+		let lastY = -Infinity;
+		const onMove = (ev: PointerEvent) => {
+			if (Math.hypot(ev.clientX - lastX, ev.clientY - lastY) < TRAIL_SPACING) return;
+			lastX = ev.clientX;
+			lastY = ev.clientY;
+			const rect = el.getBoundingClientRect();
+			const bit = el.ownerDocument.createElement('span');
+			bit.className = 'creative-trail-bit';
+			bit.textContent = bits[Math.floor(Math.random() * bits.length)];
+			bit.style.left = `${ev.clientX - rect.left}px`;
+			bit.style.top = `${ev.clientY - rect.top}px`;
+			bit.style.setProperty('--tr', `${(Math.random() * 60 - 30).toFixed(0)}deg`);
+			bit.style.setProperty('--ts', (0.7 + Math.random() * 0.6).toFixed(2));
+			el.appendChild(bit);
+			setTimeout(() => bit.remove(), TRAIL_LIFE_MS + 100);
+		};
+		host.addEventListener('pointermove', onMove);
+		return () => host.removeEventListener('pointermove', onMove);
+	}, [trail]);
+
+	if (!cursor && !trail && !grain) return null;
+	return (
+		<div ref={overlayRef} className="creative-effects" aria-hidden="true">
+			{grain > 0 && (
+				<div className="creative-grain" style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }} />
+			)}
+		</div>
+	);
+}

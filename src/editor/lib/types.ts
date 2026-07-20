@@ -52,4 +52,6 @@ export interface EditorDoc {
 	fonts: Record<string, SingleImage>;
 	/** The résumé PDF linked from the About section (empty filename = none). */
 	resumeFile: SingleImage;
+	/** Social-card image choice; the exporter turns it into content.site.ogImage. Absent = automatic. */
+	ogImage?: { folder: string; entryId: string };
 }

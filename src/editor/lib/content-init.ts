@@ -84,14 +84,28 @@ export function initDocFromContent(content: Content): EditorDoc {
 		fonts[font.name] = { filename: font.file.slice(font.file.lastIndexOf('/') + 1), assetId: null };
 	}
 	const resumeUrl = cloned.resume?.url ?? '';
+	const galleries = entriesFromContent(cloned);
+
+	// Map a stored social-card image ("folder/file.jpg") back to its entry so the
+	// Sharing tab shows the current choice and the next publish keeps it.
+	let ogImage: EditorDoc['ogImage'];
+	if (cloned.site.ogImage) {
+		const slash = cloned.site.ogImage.indexOf('/');
+		const folder = cloned.site.ogImage.slice(0, slash);
+		const file = cloned.site.ogImage.slice(slash + 1);
+		const entry = galleries[folder]?.find((e) => e.filename === file);
+		if (entry) ogImage = { folder, entryId: entry.id };
+	}
+
 	return {
 		content: cloned,
-		galleries: entriesFromContent(cloned),
+		galleries,
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
 		logoImage: { filename: cloned.site.logoImage || '', assetId: null },
 		pageThumbs,
 		fonts,
 		resumeFile: { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
+		ogImage,
 	};
 }
 

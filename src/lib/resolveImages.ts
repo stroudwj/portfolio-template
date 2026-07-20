@@ -69,13 +69,15 @@ export async function resolvePageGalleries(pageKey: string): Promise<Record<stri
 }
 
 /**
- * Best available social-card image: the profile photo, else the home gallery's
- * first image (in that gallery's display order). Most platforms won't render an
- * SVG card, so the favicon is never used; undefined means "emit no og:image".
+ * Best available social-card image: the owner's explicit choice (site.ogImage,
+ * set from the editor's Sharing tab), else the profile photo, else the home
+ * gallery's first image (in that gallery's display order). Most platforms won't
+ * render an SVG card, so the favicon is never used; undefined means "emit no og:image".
  */
 export async function resolveOgImage(): Promise<string | undefined> {
 	const home = content.pages.home?.gallery;
 	const image =
+		(content.site.ogImage ? getAsset(content.site.ogImage) : undefined) ??
 		getAsset(content.profile.image) ??
 		(home ? getGallery(home.folder, home.order)[0]?.image : undefined);
 	if (!image) return undefined;

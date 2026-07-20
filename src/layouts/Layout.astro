@@ -8,11 +8,14 @@ import { getFontUrl } from '../lib/galleries';
 import { themeToRootCss, fontFacesCss } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
+import CreativeEffects from '../portfolio/CreativeEffects';
 import { withBase, stripSlashes } from '../portfolio/types';
 import '../portfolio/frame.css';
 
 interface Props {
 	title: string;
+	/** Per-page meta description; falls back to site.description. */
+	description?: string;
 	showLogo?: boolean;
 	/** Link prefix for nav/logo/favicon — override so /demo pages link within /demo. */
 	base?: string;
@@ -20,6 +23,7 @@ interface Props {
 }
 
 const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = false } = Astro.props;
+const description = Astro.props.description || content.site.description;
 const { site, theme, nav } = content;
 const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
@@ -51,7 +55,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="description" content={site.description} />
+		<meta name="description" content={description} />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		{noindex && <meta name="robots" content="noindex" />}
 		<link rel="icon" type="image/svg+xml" href={favicon} />
@@ -59,7 +63,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content={site.name} />
 		<meta property="og:title" content={title} />
-		<meta property="og:description" content={site.description} />
+		<meta property="og:description" content={description} />
 		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
 		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
 		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
@@ -69,6 +73,11 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 	</head>
 	<body>
 		<slot name="banner" />
+		{
+			(site.creative?.cursor || site.creative?.trail || site.creative?.grain) && (
+				<CreativeEffects client:load creative={site.creative} />
+			)
+		}
 		{showLogo && <Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} />}
 		<div class="portfolio-container">
 			<!-- The menu lives here permanently; hydrated for the hover-magnify. -->

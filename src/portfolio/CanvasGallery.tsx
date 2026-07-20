@@ -20,12 +20,15 @@ import {
 	columnEdges,
 	columnSpans,
 	DEFAULT_AR,
+	EDGE_SNAP,
 	flowMissing,
 	MIN_EMBED_W,
 	MIN_TEXT_W,
 	MIN_W,
+	nearestEdge,
 	roundLayout,
 	roundTextLayout,
+	snapSpanToEdges,
 	snapTo,
 	snapToEdges,
 	textBottom,
@@ -91,6 +94,36 @@ export default function CanvasGallery({
 	const xEdges = snapOn && guide.kind === 'columns' ? columnEdges(guide.n) : [];
 	const snapX = (v: number): number => (xEdges.length ? snapToEdges(v, xEdges) : snapTo(v, squareStep));
 	const snapY = (v: number): number => snapTo(v, squareStep);
+
+	/**
+	 * Every OTHER item's edges (x: left/right, y: top/bottom), so a drag can
+	 * magnetically align with its neighbors — e.g. two images sharing the exact
+	 * same top or bottom line. Always on in the editor, guides or not; a
+	 * neighbor edge within EDGE_SNAP wins over the coarser guide snap.
+	 */
+	const neighborEdges = (excludeId: string): { xs: number[]; ys: number[] } => {
+		const xs: number[] = [];
+		const ys: number[] = [];
+		images.forEach((img, i) => {
+			if ((img.id ?? keyOf(img, i)) === excludeId) return;
+			const l = layouts[i];
+			xs.push(l.x, l.x + l.w);
+			ys.push(l.y, bottomOf(l));
+		});
+		embeds.forEach((v, i) => {
+			if (v.id === excludeId) return;
+			const l = embedLayouts[i];
+			xs.push(l.x, l.x + l.w);
+			ys.push(l.y, bottomOf(l));
+		});
+		shownTexts.forEach((t, i) => {
+			if (t.id === excludeId) return;
+			const l = textLayouts[i];
+			xs.push(l.x, l.x + l.w);
+			ys.push(l.y, textBottom(l));
+		});
+		return { xs, ys };
+	};
 
 	const keyOf = (img: ResolvedImage, i: number): string => img.id ?? `${img.src}-${i}`;
 
@@ -190,17 +223,37 @@ export default function CanvasGallery({
 		const scale = 100 / canvas.getBoundingClientRect().width; // px -> canvas-width %
 		const startX = e.clientX;
 		const startY = e.clientY;
+		const { xs, ys } = neighborEdges(id);
 		setDragId(id);
 		const move = (ev: PointerEvent) => {
 			const dx = (ev.clientX - startX) * scale;
 			const dy = (ev.clientY - startY) * scale;
+			const h = from.w / from.ar;
 			let next: ImageLayout;
 			if (mode === 'move') {
-				next = { ...from, x: snapX(from.x + dx), y: snapY(from.y + dy) };
+				// Guide snap first, then let a nearby neighbor edge take over so the
+				// item's top/bottom (or sides) lines up exactly with its neighbors'.
+				const x = snapSpanToEdges(snapX(from.x + dx), from.w, xs);
+				const y = snapSpanToEdges(snapY(from.y + dy), h, ys);
+				next = { ...from, x, y };
 			} else {
-				// Snap the RIGHT edge to the guides so resized items line up with columns.
+				// Snap the RIGHT edge to the guides so resized items line up with
+				// columns — unless a neighbor's edge is closer: right edge to a
+				// neighbor's side, or bottom edge to a neighbor's top/bottom.
 				const w = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
-				next = { ...from, w: Math.max(snapX(from.x + w) - from.x, minW) };
+				const right = nearestEdge(from.x + w, xs, EDGE_SNAP);
+				const bottom = nearestEdge(from.y + w / from.ar, ys, EDGE_SNAP);
+				const wRight = right === null ? null : right - from.x;
+				const wBottom = bottom === null ? null : (bottom - from.y) * from.ar;
+				const dRight = wRight === null ? Infinity : Math.abs(wRight - w);
+				const dBottom = wBottom === null ? Infinity : Math.abs(wBottom - w);
+				const snapped =
+					dRight <= dBottom && dRight < Infinity
+						? (wRight as number)
+						: dBottom < Infinity
+							? (wBottom as number)
+							: snapX(from.x + w) - from.x;
+				next = { ...from, w: Math.max(snapped, minW) };
 			}
 			setDrafts((d) => ({ ...d, [id]: clampLayout(next) }));
 		};
@@ -242,13 +295,19 @@ export default function CanvasGallery({
 		const from = textLayouts[index];
 		const startX = e.clientX;
 		const startY = e.clientY;
+		const { xs, ys } = neighborEdges(id);
+		const fromH = textBottom(from) - from.y;
 		setDragId(id);
 		const move = (ev: PointerEvent) => {
 			const dx = (ev.clientX - startX) * scale;
 			const dy = (ev.clientY - startY) * scale;
 			const next =
 				mode === 'move'
-					? { ...from, x: snapX(from.x + dx), y: snapY(from.y + dy) }
+					? {
+							...from,
+							x: snapSpanToEdges(snapX(from.x + dx), from.w, xs),
+							y: snapSpanToEdges(snapY(from.y + dy), fromH, ys),
+						}
 					: { ...from, w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W) };
 			setTextDrafts((d) => ({ ...d, [id]: clampTextLayout(next) }));
 		};

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { pageGalleryConfigs } from '../lib/content';
-import type { ChildrenStyle, Content, GalleryConfig, ImageLayout, SignatureData, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
+import type { ChildrenStyle, Content, CreativeConfig, GalleryConfig, ImageLayout, SignatureData, SocialLink, Theme, PageBlock, PageConfig, TextAlign, TextLayout } from '../lib/content';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
 import { registerAsset, restoreAsset, subscribeAssets, getAssetsVersion, uid } from './lib/assets';
@@ -22,6 +22,9 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 
 /** Page keys that can never be minted for a new page (routes/folders the site owns). */
 const RESERVED_KEYS = new Set(['home', 'editor', 'demo', 'thumbs', '404']);
+
+/** How many arrangement states Cmd+Z can walk back through. */
+const HISTORY_LIMIT = 20;
 
 function slugify(value: string): string {
 	return (
@@ -143,6 +146,21 @@ export interface EditorContextValue {
 	/** Overwrite many images' freeform positions at once (id -> layout), e.g. when
 	 *  adopting the Grid arrangement as the freeform starting point. */
 	setGalleryLayouts(folder: string, layouts: Record<string, ImageLayout>): void;
+	// creative extras
+	/** Fun site-wide flourishes: emoji cursor, pointer trail, paper grain. */
+	setCreative(patch: Partial<CreativeConfig>): void;
+	// sharing / SEO
+	/** Meta description used for search results and social link previews. */
+	setSiteDescription(value: string): void;
+	/** Per-page meta description (empty falls back to the site description). */
+	setPageDescription(key: string, value: string): void;
+	/** Pick which uploaded image social cards use (undefined = automatic). */
+	setOgImage(sel: { folder: string; entryId: string } | undefined): void;
+	// history (canvas arrangements)
+	/** Undo the last recorded image/video arrangement change (Cmd+Z). */
+	undo(): void;
+	/** Redo an undone arrangement change (Cmd+Y / Cmd+Shift+Z). */
+	redo(): void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -159,6 +177,16 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 	// Downscaled asset previews finish async; bumping this re-renders every consumer
 	// so getAssetPreviewUrl() calls pick up the light copies.
 	const assetsVersion = useSyncExternalStore(subscribeAssets, getAssetsVersion, getAssetsVersion);
+
+	// Undo/redo for canvas arrangements: snapshots of the doc taken right before a
+	// recorded change. Refs, not state — pushing history must never re-render.
+	const undoStack = useRef<EditorDoc[]>([]);
+	const redoStack = useRef<EditorDoc[]>([]);
+	const record = useCallback((prev: EditorDoc) => {
+		undoStack.current.push(prev);
+		if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
+		redoStack.current = [];
+	}, []);
 
 	// Autosave (debounced) whenever the document changes.
 	const timer = useRef<number | undefined>(undefined);
@@ -191,28 +219,35 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		[patchPage],
 	);
 
+	// Fresh documents start with a clean history.
+	const openFresh = useCallback((next: EditorDoc | null) => {
+		undoStack.current = [];
+		redoStack.current = [];
+		setDoc(next);
+	}, []);
+
 	const value = useMemo<EditorContextValue>(() => ({
 		doc,
 		hasDraft,
 
-		startBlank: () => setDoc(blankDoc()),
-		startExisting: () => setDoc(existingDoc()),
-		startTemplate: (content) => setDoc(initDocFromContent(content)),
+		startBlank: () => openFresh(blankDoc()),
+		startExisting: () => openFresh(existingDoc()),
+		startTemplate: (content) => openFresh(initDocFromContent(content)),
 		resumeDraft: async () => {
 			const stored = await loadAllAssetBlobs();
 			for (const a of stored) restoreAsset(a.id, a.blob, a.filename);
 			const saved = loadSavedDoc();
-			if (saved) setDoc(upgradeDoc(saved));
-			else setDoc(existingDoc());
+			if (saved) openFresh(upgradeDoc(saved));
+			else openFresh(existingDoc());
 		},
 		openDoc: (next: EditorDoc) => {
 			setHasDraft(true);
-			setDoc(upgradeDoc(next));
+			openFresh(upgradeDoc(next));
 		},
 		reset: async () => {
 			await clearPersisted();
 			setHasDraft(false);
-			setDoc(null);
+			openFresh(null);
 		},
 
 		setName: (value) => patchContent((c) => ({ ...c, site: { ...c.site, name: value } })),
@@ -467,10 +502,17 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					b.id === blockId && b.type === 'text' ? { ...b, align: align === 'left' ? undefined : align } : b,
 				),
 			),
-		setTextLayout: (key, blockId, layout) =>
+		setTextLayout: (key, blockId, layout) => {
+			// Record real placement changes only — the preview re-commits text heights
+			// (h) after every render measure, and those must not flood the history.
+			const block = doc?.content.pages[key]?.blocks?.find((b) => b.id === blockId);
+			const old = block?.type === 'text' ? block.layout : undefined;
+			const moved = !layout || !old || old.x !== layout.x || old.y !== layout.y || old.w !== layout.w;
+			if (doc && moved) record(doc);
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) => (b.id === blockId && b.type === 'text' ? { ...b, layout } : b)),
-			),
+			);
+		},
 		setGalleryConfig: (key, patch) =>
 			patchPage(key, (page) => (page.gallery ? { ...page, gallery: { ...page.gallery, ...patch } } : page)),
 		addImagesBlock: (key) =>
@@ -519,10 +561,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		addEmbedBlock: (key) => patchBlocks(key, (blocks) => [...blocks, { id: uid('v'), type: 'embed', url: '' }]),
 		updateEmbedBlock: (key, blockId, url) =>
 			patchBlocks(key, (blocks) => blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, url } : b))),
-		setEmbedLayout: (key, blockId, layout) =>
+		setEmbedLayout: (key, blockId, layout) => {
+			if (doc) record(doc); // moving/pinning a video is undoable like an image move
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) => (b.id === blockId && b.type === 'embed' ? { ...b, layout } : b)),
-			),
+			);
+		},
 		removeBlock: (key, blockId) =>
 			setDoc((prev) => {
 				if (!prev) return prev;
@@ -559,14 +603,47 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			]),
 		removeGalleryImage: (folder, id) => patchGallery(folder, (entries) => entries.filter((e) => e.id !== id)),
 		moveGalleryImage: (folder, from, to) => patchGallery(folder, (entries) => arrayMove(entries, from, to)),
-		updateGalleryMeta: (folder, id, patch) =>
-			patchGallery(folder, (entries) => entries.map((e) => (e.id === id ? { ...e, meta: { ...e.meta, ...patch } } : e))),
-		setGalleryLayouts: (folder, layouts) =>
+		updateGalleryMeta: (folder, id, patch) => {
+			// An image MOVE is undoable; the first layout an image ever gets is the
+			// auto-flow commit (not a user action), so only record replacements.
+			if (patch.layout && doc?.galleries[folder]?.find((e) => e.id === id)?.meta.layout) record(doc);
+			patchGallery(folder, (entries) => entries.map((e) => (e.id === id ? { ...e, meta: { ...e.meta, ...patch } } : e)));
+		},
+		setGalleryLayouts: (folder, layouts) => {
+			if (doc) record(doc);
 			patchGallery(folder, (entries) =>
 				entries.map((e) => (layouts[e.id] ? { ...e, meta: { ...e.meta, layout: layouts[e.id] } } : e)),
-			),
+			);
+		},
+
+		setCreative: (patch) =>
+			patchContent((c) => {
+				const merged: CreativeConfig = { ...c.site.creative, ...patch };
+				// Keep content.json clean: strip switched-off effects, drop the object when empty.
+				if (!merged.cursor) delete merged.cursor;
+				if (!merged.trail) delete merged.trail;
+				if (!merged.grain) delete merged.grain;
+				return { ...c, site: { ...c.site, creative: Object.keys(merged).length ? merged : undefined } };
+			}),
+
+		setSiteDescription: (value) => patchContent((c) => ({ ...c, site: { ...c.site, description: value } })),
+		setPageDescription: (key, value) => patchPage(key, (page) => ({ ...page, description: value || undefined })),
+		setOgImage: (sel) => setDoc((prev) => (prev ? { ...prev, ogImage: sel } : prev)),
+
+		undo: () => {
+			const prev = undoStack.current.pop();
+			if (!prev || !doc) return;
+			redoStack.current.push(doc);
+			setDoc(prev);
+		},
+		redo: () => {
+			const next = redoStack.current.pop();
+			if (!next || !doc) return;
+			undoStack.current.push(doc);
+			setDoc(next);
+		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- assetsVersion invalidates asset-URL reads
-	}), [doc, hasDraft, assetsVersion, patchContent, patchGallery, patchPage, patchBlocks]);
+	}), [doc, hasDraft, assetsVersion, patchContent, patchGallery, patchPage, patchBlocks, record, openFresh]);
 
 	return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 }
