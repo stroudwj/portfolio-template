@@ -11,12 +11,13 @@ import { IS_PRODUCT_SITE } from '../lib/productSite';
 export const GET: APIRoute = () => {
 	const site = import.meta.env.SITE;
 	const base = import.meta.env.BASE_URL;
-	// Product site: the landing, setup guide, and FAQ — /demo and /editor are noindex.
+	// Product site: the landing, examples, setup guide, and FAQ — /demo and /editor are noindex.
 	// Published sites: every page, including nested sub-pages (keys are paths).
 	const pagePaths = Object.keys(content.pages).map((key) => (key === 'home' ? '' : key));
 	const locs = IS_PRODUCT_SITE
 		? [
 				new URL(withBase(base), site).href,
+				new URL(withBase(base, 'examples'), site).href,
 				new URL(withBase(base, 'guide'), site).href,
 				new URL(withBase(base, 'faq'), site).href,
 			]

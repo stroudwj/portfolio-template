@@ -59,9 +59,6 @@
 .editor-brand-logo {
 	width: auto;
 	height: 42px;
-	padding: 3px 6px;
-	border-radius: 3px;
-	background: var(--ink);
 }
 .topbar-spacer {
 	flex: 1;
@@ -888,9 +885,6 @@ a.resume-name:hover {
 	display: block;
 	width: min(320px, 100%);
 	height: auto;
-	padding: 8px 14px;
-	border-radius: 4px;
-	background: var(--ink);
 }
 .start-card p {
 	color: var(--ink-soft);

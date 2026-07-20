@@ -10,7 +10,7 @@ import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
-const demoUrl = withBase(base, 'demo/');
+const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
@@ -48,7 +48,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 			</a>
 			<nav class="topnav">
 				<a href="#how">How it works</a>
-				<a href="#examples">Examples</a>
+				<a href={examplesUrl}>Examples</a>
 				<a href="#pricing">Pricing</a>
 			</nav>
 		</header>
@@ -76,7 +76,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 							<span>once. No subscription.</span>
 						</p>
 					</div>
-					<a class="btn btn-secondary" href={demoUrl}>See an example wall</a>
+					<a class="btn btn-secondary" href={examplesUrl}>View example sites</a>
 				</div>
 			</section>
 
@@ -100,8 +100,8 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 
 			<section class="band" id="examples">
 				<h2>Examples</h2>
-				<p class="band-lede">See a full site built with Hangwork — the same quiet wall your work will hang on.</p>
-				<a class="btn btn-secondary" href={demoUrl}>See an example wall</a>
+				<p class="band-lede">See published portfolio sites built with Hangwork — each one shaped around the artist's own work.</p>
+				<a class="btn btn-secondary" href={examplesUrl}>Browse example sites</a>
 			</section>
 
 			<section class="band pricing" id="pricing">
@@ -142,7 +142,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav>
-				<a href={demoUrl}>Examples</a>
+				<a href={examplesUrl}>Examples</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>
@@ -193,9 +193,6 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		display: block;
 		width: auto;
 		height: 50px;
-		padding: 4px 8px;
-		border-radius: 3px;
-		background: var(--ink);
 	}
 
 	.topbar {

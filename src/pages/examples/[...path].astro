@@ -1,0 +1,412 @@
+---
+// The product site's gallery of portfolios made with Hangwork. Keep the entries in
+// this array so adding another example only requires one new object.
+import { withBase } from '../../portfolio/types';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import Favicons from '../../components/Favicons.astro';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const examplesUrl = withBase(base, 'examples');
+const faqUrl = withBase(base, 'faq');
+const guideUrl = withBase(base, 'guide');
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+const supportEmail = 'william.stroud100@gmail.com';
+
+const examples = [
+	{
+		name: 'Will Stroud',
+		url: 'https://stroud.xyz',
+		domain: 'stroud.xyz',
+		description: 'Art, graphic design, and photography in a clean, image-first portfolio.',
+	},
+];
+
+const title = 'Example sites — Hangwork';
+const description = 'Explore portfolio websites made with Hangwork.';
+const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav class="topnav" aria-label="Main navigation">
+				<a class="current" href={examplesUrl} aria-current="page">Examples</a>
+				<a href={`${homeUrl}#how`}>How it works</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="examples-hero">
+				<p class="eyebrow">Made with Hangwork</p>
+				<h1>Example sites</h1>
+				<p class="lede">Real portfolios, built and published by artists.</p>
+			</section>
+
+			<section class="examples-grid" aria-label="Portfolio examples">
+				{
+					examples.map((example) => (
+						<article class="example-card">
+							<div class="example-preview">
+								<iframe
+									src={example.url}
+									title={`Preview of ${example.name}'s portfolio`}
+									loading="lazy"
+									tabindex="-1"
+									aria-hidden="true"
+								/>
+								<a
+									class="preview-link"
+									href={example.url}
+									target="_blank"
+									rel="noreferrer"
+									aria-label={`Visit ${example.name}'s portfolio at ${example.domain}`}
+								/>
+							</div>
+							<div class="example-copy">
+								<div>
+									<h2>{example.name}</h2>
+									<p>{example.description}</p>
+								</div>
+								<a class="site-link" href={example.url} target="_blank" rel="noreferrer">
+									{example.domain}<span aria-hidden="true">↗</span>
+								</a>
+							</div>
+						</article>
+					))
+				}
+			</section>
+
+			<section class="closing">
+				<p>More walls are coming as artists publish them.</p>
+				<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav>
+				<a href={examplesUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments and refunds are handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-1: #edeae4;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+			sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible {
+		outline: 2px solid var(--klein);
+		outline-offset: 3px;
+	}
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+	}
+	.brand-logo {
+		display: block;
+		width: auto;
+		height: 50px;
+	}
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav {
+		display: flex;
+		align-items: baseline;
+		gap: 28px;
+	}
+	.topnav a {
+		color: var(--ink-soft);
+		font-size: 15px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.topnav a:hover,
+	.topnav a.current {
+		color: var(--ink);
+	}
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 0 32px;
+	}
+	.examples-hero {
+		padding: 88px 0 72px;
+	}
+	.eyebrow {
+		margin: 0 0 14px;
+		color: var(--ink-soft);
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: 0.02em;
+	}
+	.eyebrow::before {
+		content: '';
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		margin-right: 9px;
+		border-radius: 50%;
+		background: var(--klein);
+		vertical-align: 1px;
+	}
+	.examples-hero h1 {
+		margin: 0 0 18px;
+		font-size: clamp(36px, 6vw, 56px);
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		line-height: 1.12;
+	}
+	.lede {
+		max-width: 34rem;
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 17px;
+	}
+	.examples-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 40px 32px;
+		padding: 0 0 112px;
+	}
+	.example-card {
+		min-width: 0;
+	}
+	.example-preview {
+		position: relative;
+		overflow: hidden;
+		aspect-ratio: 16 / 10;
+		border: 1px solid var(--wall-2);
+		background: var(--wall-1);
+	}
+	.example-preview iframe {
+		position: absolute;
+		inset: 0;
+		width: 200%;
+		height: 200%;
+		border: 0;
+		pointer-events: none;
+		transform: scale(0.5);
+		transform-origin: top left;
+	}
+	.preview-link {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+	}
+	.example-preview:has(.preview-link:hover),
+	.example-preview:has(.preview-link:focus-visible) {
+		border-color: var(--ink);
+	}
+	.example-copy {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 24px;
+		padding-top: 18px;
+	}
+	.example-copy h2 {
+		margin: 0 0 5px;
+		font-size: 18px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+	.example-copy p {
+		max-width: 29rem;
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+	.site-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
+		color: var(--ink);
+		font-size: 14px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.site-link:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.site-link span {
+		color: var(--klein);
+	}
+	.closing {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+		padding: 64px 0;
+		border-top: 1px solid var(--wall-2);
+	}
+	.closing p {
+		margin: 0;
+		color: var(--ink-soft);
+	}
+	.btn {
+		display: inline-block;
+		padding: 11px 22px;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		font-size: 15px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.btn-primary {
+		background: var(--klein);
+		color: var(--paper);
+	}
+	.btn-primary:hover {
+		background: var(--klein-dark);
+	}
+	.footer {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 40px 32px 56px;
+		border-top: 1px solid var(--wall-2);
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.footer nav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+	}
+	.footer a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.footer a:hover {
+		color: var(--ink);
+	}
+	.footer .brand {
+		margin-bottom: 2px;
+	}
+	.footer .brand-logo {
+		height: 40px;
+	}
+	.footer-note {
+		font-size: 13px;
+	}
+	@media (max-width: 760px) {
+		.topbar {
+			padding: 20px;
+		}
+		.topnav {
+			gap: 20px;
+		}
+		main {
+			padding: 0 20px;
+		}
+		.examples-hero {
+			padding: 64px 0 56px;
+		}
+		.examples-grid {
+			grid-template-columns: minmax(0, 1fr);
+			padding-bottom: 80px;
+		}
+		.footer {
+			padding: 32px 20px 44px;
+		}
+	}
+	@media (max-width: 500px) {
+		.topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
+		}
+		.topnav {
+			width: 100%;
+			justify-content: space-between;
+			gap: 12px;
+		}
+		.topnav a {
+			font-size: 14px;
+		}
+		.example-copy,
+		.closing {
+			flex-direction: column;
+		}
+	}
+</style>
