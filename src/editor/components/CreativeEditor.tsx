@@ -2,7 +2,7 @@
 // writes content.site.creative, rendered by portfolio/CreativeEffects in the
 // preview and on the published site.
 import { useEditor } from '../store';
-import { Field, Section, TextInput } from './ui/controls';
+import { Field, Section } from './ui/controls';
 import type { CreativeClickMark, CreativeTrail } from '../../lib/content';
 
 /** Preset cursors — artist-flavored, one click each. */
@@ -127,7 +127,7 @@ export default function CreativeEditor() {
 				</div>
 			</Field>
 
-			<Field label="Tap to mark" hint="Clicks on open space leave a small, temporary studio mark.">
+			<Field label="Tap to mark" hint="Every click or tap leaves a small, temporary studio mark.">
 				<div className="chip-row" role="group" aria-label="Tap to mark style">
 					{CLICK_MARKS.map((mark) => (
 						<button
@@ -160,20 +160,19 @@ export default function CreativeEditor() {
 				/>
 			</Field>
 
-			<Field label="Hide the frame" hint="Adds a quiet view that hides the logo and menu. Visitors can also press H.">
+			<Field label="Artwork wobble" hint="Pieces do a quick little shake when visitors hover over them.">
 				<OnOff
-					label="Hide the frame"
-					value={creative.quietMode ?? false}
-					onChange={(value) => setCreative({ quietMode: value || undefined })}
+					label="Artwork wobble"
+					value={creative.artworkWobble ?? false}
+					onChange={(value) => setCreative({ artworkWobble: value || undefined })}
 				/>
 			</Field>
 
-			<Field label="Wall note" hint="A short note tucked into the lower corner of every page.">
-				<TextInput
-					value={creative.wallNote ?? ''}
-					maxLength={80}
-					placeholder="Thanks for looking."
-					onChange={(e) => setCreative({ wallNote: e.target.value.slice(0, 80) || undefined })}
+			<Field label="Color spin" hint="Hovering a piece sends its colors on one trip around the color wheel.">
+				<OnOff
+					label="Color spin"
+					value={creative.colorSpin ?? false}
+					onChange={(value) => setCreative({ colorSpin: value || undefined })}
 				/>
 			</Field>
 		</Section>

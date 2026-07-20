@@ -6,6 +6,7 @@
 // the checkout overlay is editor-only.
 import { withBase } from '../portfolio/types';
 import { currentPriceText, pricing, regularPriceText } from '../lib/pricing';
+import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
@@ -25,7 +26,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="description" content={description} />
-		<link rel="icon" type="image/svg+xml" href={withBase(base, 'favicon.svg')} />
+		<Favicons base={base} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -192,6 +193,9 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		display: block;
 		width: auto;
 		height: 50px;
+		padding: 4px 8px;
+		border-radius: 3px;
+		background: var(--ink);
 	}
 
 	.topbar {

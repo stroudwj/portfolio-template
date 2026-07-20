@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <title>Hangwork</title>
-  <circle cx="60" cy="30" r="4" fill="#002FA7"/>
-  <path d="M60 30 L36 52 M60 30 L84 52" stroke="#1A1A1A" stroke-width="1.75" stroke-linecap="round"/>
-  <rect x="20" y="52" width="80" height="52" stroke="#1A1A1A" stroke-width="5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <circle cx="16" cy="8" r="2.4" fill="#002FA7"/>
+  <path d="M16 8 L10 15 M16 8 L22 15" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <rect x="5" y="15" width="22" height="12" stroke="#1A1A1A" stroke-width="3" fill="none"/>
 </svg>

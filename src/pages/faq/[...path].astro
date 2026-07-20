@@ -11,6 +11,7 @@
 // honest caveats (see #if-hangwork-shuts-down, #unlimited-images).
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import Favicons from '../../components/Favicons.astro';
 import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 
 export function getStaticPaths() {
@@ -174,7 +175,7 @@ const faqLd = {
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="description" content={description} />
-		<link rel="icon" type="image/svg+xml" href={withBase(base, 'favicon.svg')} />
+		<Favicons base={base} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -294,6 +295,9 @@ const faqLd = {
 		display: block;
 		width: auto;
 		height: 50px;
+		padding: 4px 8px;
+		border-radius: 3px;
+		background: var(--ink);
 	}
 
 	.topbar {

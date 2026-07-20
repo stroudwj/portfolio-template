@@ -82,7 +82,9 @@ Everything the site *says* lives in **`src/data/content.json`**:
   file name with a `title`, `description`, and/or `link`.
 
 ### Change the favicon
-Replace **`public/favicon.svg`** (keep the name) or point `site.favicon` at another file.
+Replace the icon files in **`public/`**: `favicon.svg`, `favicon.ico`, `favicon-16.png`,
+`favicon-32.png`, and `apple-touch-icon.png`. You can still point `site.favicon` at a
+different SVG file; the ICO, PNG, and Apple icons remain the compatibility fallbacks.
 
 ### Add a page
 1. Copy `src/pages/art.astro` to e.g. `src/pages/paintings.astro`.

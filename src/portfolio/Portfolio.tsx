@@ -26,6 +26,8 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 	const creativeClasses = [
 		content.site.creative?.looseHang && 'creative-loose-hang',
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
+		content.site.creative?.artworkWobble && 'creative-artwork-wobble',
+		content.site.creative?.colorSpin && 'creative-color-spin',
 	]
 		.filter(Boolean)
 		.join(' ');

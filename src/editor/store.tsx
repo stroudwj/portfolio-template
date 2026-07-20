@@ -626,8 +626,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				if (!merged.clickMark) delete merged.clickMark;
 				if (!merged.looseHang) delete merged.looseHang;
 				if (!merged.slowReveal) delete merged.slowReveal;
-				if (!merged.quietMode) delete merged.quietMode;
-				if (!merged.wallNote?.trim()) delete merged.wallNote;
+				if (!merged.artworkWobble) delete merged.artworkWobble;
+				if (!merged.colorSpin) delete merged.colorSpin;
 				return { ...c, site: { ...c.site, creative: Object.keys(merged).length ? merged : undefined } };
 			}),
 

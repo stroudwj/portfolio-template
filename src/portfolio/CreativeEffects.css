@@ -27,48 +27,6 @@
 	user-select: none;
 }
 
-.creative-wall-note {
-	position: absolute;
-	right: 18px;
-	bottom: 18px;
-	max-width: min(240px, calc(100% - 36px));
-	margin: 0;
-	padding: 8px 10px;
-	border-left: 1px solid var(--color-text-muted, #666);
-	background: var(--color-bg, #fff);
-	color: var(--color-text-muted, #666);
-	font: 400 12px/1.45 var(--font-family, sans-serif);
-	letter-spacing: 0;
-}
-
-.creative-frame-toggle {
-	position: absolute;
-	left: 18px;
-	bottom: 18px;
-	pointer-events: auto;
-	padding: 6px 9px;
-	border: 1px solid var(--color-text-muted, #666);
-	border-radius: 3px;
-	background: var(--color-bg, #fff);
-	color: var(--color-text, #222);
-	font: 400 12px/1.2 var(--font-family, sans-serif);
-	cursor: pointer;
-}
-
-.creative-frame-toggle:hover {
-	border-color: var(--color-text, #222);
-}
-
-.creative-frame-toggle:focus-visible {
-	outline: 2px solid var(--color-accent, #333);
-	outline-offset: 2px;
-}
-
-.creative-frame-hidden :is(.sidebar, .header-logo-container) {
-	opacity: 0;
-	pointer-events: none;
-}
-
 /* "Loose hang" never changes the canvas geometry: freeform pieces rotate only
    inside their positioned boxes, while grid wrappers take the tiny tilt. */
 .creative-loose-hang .masonry-item:nth-child(4n + 1),
@@ -94,16 +52,32 @@
 	transform: rotate(0.55deg);
 }
 
-.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item > img) {
+.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)) {
 	animation: creative-art-reveal 0.7s ease-out both;
 }
-.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item):nth-child(3n + 2) > img,
-.creative-slow-reveal :is(.masonry-item, .uniform-item):nth-child(3n + 2) {
+.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item):nth-child(3n + 2) {
 	animation-delay: 80ms;
 }
-.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item):nth-child(3n) > img,
-.creative-slow-reveal :is(.masonry-item, .uniform-item):nth-child(3n) {
+.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item):nth-child(3n) {
 	animation-delay: 160ms;
+}
+
+/* New Fun-tab hover effects share the same artwork target. When both are on,
+   list both animations so one does not cancel the other. */
+.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+	animation: creative-artwork-wobble 0.42s ease-in-out;
+}
+
+.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+	animation: creative-color-spin 1.15s linear;
+}
+
+.creative-artwork-wobble.creative-color-spin
+	:is(.masonry-item, .uniform-item, .canvas-item)
+	> img:hover {
+	animation:
+		creative-artwork-wobble 0.42s ease-in-out,
+		creative-color-spin 1.15s linear;
 }
 
 .creative-trail-bit {
@@ -148,24 +122,43 @@
 	}
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.creative-trail-bit,
-	.creative-click-mark {
-		display: none;
+@keyframes creative-artwork-wobble {
+	0%,
+	100% {
+		transform: rotate(0deg) scale(1);
 	}
-	.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item > img) {
-		animation: none;
+	25% {
+		transform: rotate(-2deg) scale(0.99);
+	}
+	55% {
+		transform: rotate(2.4deg) scale(1.01);
+	}
+	78% {
+		transform: rotate(-0.8deg) scale(1);
 	}
 }
 
-@media (max-width: 520px) {
-	.creative-wall-note {
-		right: 12px;
-		bottom: 12px;
-		max-width: 190px;
+@keyframes creative-color-spin {
+	0%,
+	100% {
+		filter: hue-rotate(0deg) saturate(1);
 	}
-	.creative-frame-toggle {
-		left: 12px;
-		bottom: 12px;
+	50% {
+		filter: hue-rotate(180deg) saturate(1.6);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.creative-trail-bit {
+		display: none;
+	}
+	.creative-click-mark {
+		animation: none;
+		opacity: 0.9;
+	}
+	.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)),
+	.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover,
+	.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+		animation: none;
 	}
 }

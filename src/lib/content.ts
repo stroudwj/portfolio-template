@@ -44,16 +44,16 @@ export interface CreativeConfig {
 	trail?: CreativeTrail;
 	/** Paper-grain texture overlay opacity, 1–30 (%). Absent/0 = off. */
 	grain?: number;
-	/** A temporary mark left when a visitor clicks an open part of the page. */
+	/** A temporary mark left wherever a visitor clicks or taps the page. */
 	clickMark?: CreativeClickMark;
 	/** Give artwork a very slight, deterministic rotation, like a hand-hung salon wall. */
 	looseHang?: boolean;
 	/** Fade artwork into place when a page opens. */
 	slowReveal?: boolean;
-	/** Let visitors hide/show the logo and menu with a small control or the H key. */
-	quietMode?: boolean;
-	/** A short artist note tucked into the lower corner of the site. */
-	wallNote?: string;
+	/** Give artwork a quick shake when a visitor hovers over it. */
+	artworkWobble?: boolean;
+	/** Cycle artwork through the color wheel while it is hovered. */
+	colorSpin?: boolean;
 }
 
 /**
@@ -245,6 +245,14 @@ export function pageGalleryConfigs(page: PageConfig): GalleryConfig[] {
  * site build, the editor, and the published-site loader — one upgrade path.
  */
 export function migrateContent(c: Content): Content {
+	// Retired Fun-tab fields are removed from older saved drafts and imported sites.
+	// The cast only describes legacy data that can still exist at runtime.
+	if (c.site.creative) {
+		const creative = c.site.creative as CreativeConfig & { quietMode?: boolean; wallNote?: string };
+		delete creative.quietMode;
+		delete creative.wallNote;
+		if (Object.keys(creative).length === 0) c.site.creative = undefined;
+	}
 	const labelByPath = new Map(c.nav.map((item) => [item.path || 'home', item.label]));
 	for (const [key, page] of Object.entries(c.pages)) {
 		if (!page.blocks) {

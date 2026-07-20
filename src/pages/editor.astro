@@ -3,6 +3,7 @@
 // site. It's deployed with the site (but noindex) so it works from any device; it's never
 // part of a visitor-facing page. Rendered client-only (uploads, IndexedDB, OAuth redirect).
 import EditorApp from '../editor/EditorApp';
+import Favicons from '../components/Favicons.astro';
 import { withBase } from '../portfolio/types';
 // The preview renders the portfolio components inside a client:only island, whose
 // code-split CSS Astro can't discover without an SSR pass. Import the styles at the
@@ -10,7 +11,6 @@ import { withBase } from '../portfolio/types';
 import '../portfolio/preview.css';
 
 const base = import.meta.env.BASE_URL;
-const favicon = withBase(base, 'favicon.svg');
 ---
 
 <!doctype html>
@@ -19,7 +19,7 @@ const favicon = withBase(base, 'favicon.svg');
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
-		<link rel="icon" type="image/svg+xml" href={favicon} />
+		<Favicons base={base} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link

@@ -9,6 +9,7 @@ import { themeToRootCss, fontFacesCss } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
 import CreativeEffects from '../portfolio/CreativeEffects';
+import Favicons from '../components/Favicons.astro';
 import { withBase, stripSlashes } from '../portfolio/types';
 import '../portfolio/frame.css';
 
@@ -25,7 +26,6 @@ interface Props {
 const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = false } = Astro.props;
 const description = Astro.props.description || content.site.description;
 const { site, theme, nav } = content;
-const favicon = withBase(base, site.favicon);
 const logo = site.logo || site.name;
 const logoImageSrc = await resolveLogoImage();
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
@@ -58,8 +58,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<meta name="description" content={description} />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		{noindex && <meta name="robots" content="noindex" />}
-		<link rel="icon" type="image/svg+xml" href={favicon} />
-		<link rel="apple-touch-icon" href={favicon} />
+		<Favicons base={base} svg={site.favicon} />
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content={site.name} />
 		<meta property="og:title" content={title} />
@@ -75,18 +74,13 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		class:list={{
 			'creative-loose-hang': site.creative?.looseHang,
 			'creative-slow-reveal': site.creative?.slowReveal,
+			'creative-artwork-wobble': site.creative?.artworkWobble,
+			'creative-color-spin': site.creative?.colorSpin,
 		}}
 	>
 		<slot name="banner" />
 		{
-			(site.creative?.cursor ||
-				site.creative?.trail ||
-				site.creative?.grain ||
-				site.creative?.clickMark ||
-				site.creative?.looseHang ||
-				site.creative?.slowReveal ||
-				site.creative?.quietMode ||
-				site.creative?.wallNote) && (
+			(site.creative?.cursor || site.creative?.trail || site.creative?.grain || site.creative?.clickMark) && (
 				<CreativeEffects client:load creative={site.creative} />
 			)
 		}
