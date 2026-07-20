@@ -11,5 +11,11 @@ GITHUB_CLIENT_ID = "Ov23liWlyP2MLmoVBnKF"
 # both keep working. Keep the first entry in sync with `site` in astro.config.product.mjs.
 ALLOWED_ORIGIN = "https://hangwork.art,https://portfolio-template-9p2.pages.dev"
 
-# GITHUB_CLIENT_SECRET is a SECRET — do NOT put it here. Set it with:
+# The domain new sites get their default address under ([name].hangwork.art), and the
+# Cloudflare zone id for it (Cloudflare dashboard → hangwork.art → Overview → Zone ID).
+SITES_ROOT_DOMAIN = "hangwork.art"
+CF_ZONE_ID = "45dd2f188d13d5dace6eeeb7d74282e0"
+
+# SECRETS — do NOT put them here. Set them with:
 #   wrangler secret put GITHUB_CLIENT_SECRET
+#   wrangler secret put CF_DNS_TOKEN        (Cloudflare API token, DNS:Edit on the hangwork.art zone)

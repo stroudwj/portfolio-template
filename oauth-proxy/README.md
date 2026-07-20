@@ -1,11 +1,16 @@
-# GitHub OAuth token-exchange proxy
+# GitHub OAuth token-exchange proxy (+ hangwork.art subdomains)
 
-The one small server-side function the editor's **Authorize with GitHub** flow needs. It
-swaps the short-lived OAuth `code` for a user access token using the OAuth App's client
-secret (which can't live in the browser). No database, no per-user cost, no subscription.
+The one small server-side piece the editor needs. Two jobs:
+
+1. **OAuth token exchange** — swaps the short-lived OAuth `code` for a user access token
+   using the OAuth App's client secret (which can't live in the browser). No database,
+   no per-user cost, no subscription.
+2. **Subdomain grants** — creates the DNS record that gives every new published site its
+   default address, `[name].hangwork.art` → `[user].github.io`. The DNS record itself is
+   the ownership ledger (its CNAME target says whose it is), so still no database.
 
 If you don't deploy this, the editor still works — it falls back to the manual
-personal-access-token flow automatically.
+personal-access-token flow, and new sites publish to `[user].github.io/[name]`.
 
 ## One-time setup
 
@@ -29,6 +34,25 @@ cd oauth-proxy
 wrangler secret put GITHUB_CLIENT_SECRET   # paste the client secret when prompted
 wrangler deploy
 ```
+
+### 2b. Enable hangwork.art subdomains (optional but recommended)
+
+New sites then default to `[name].hangwork.art` instead of the github.io address.
+
+1. In the Cloudflare dashboard → the **hangwork.art** zone → Overview, copy the
+   **Zone ID** into `CF_ZONE_ID` in `wrangler.toml`.
+2. Create an API token (My Profile → API Tokens → Create Token) with a single
+   permission: **Zone → DNS → Edit**, scoped to the hangwork.art zone only. Then:
+
+```sh
+wrangler secret put CF_DNS_TOKEN   # paste the DNS token when prompted
+wrangler deploy
+```
+
+Until both are set, the `/subdomain/*` routes answer 503 and the editor quietly falls
+back to publishing at `[user].github.io/[name]`. Records are created DNS-only (grey
+cloud) on purpose — GitHub Pages must see the CNAME directly to route the domain and
+issue its HTTPS certificate (which takes a few minutes on a brand-new address).
 
 Wrangler prints the Worker URL, e.g. `https://portfolio-oauth-proxy.<you>.workers.dev`.
 

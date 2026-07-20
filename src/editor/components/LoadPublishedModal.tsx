@@ -10,7 +10,7 @@ import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken } from '../lib/github/session';
 import { loadPublishedPortfolio } from '../lib/github/load';
 import { loadRepoInfo, saveRepoInfo } from '../lib/github/store';
-import { pagesUrl, type RepoRef } from '../lib/github/repo';
+import { pagesUrl, getPagesInfo, type RepoRef } from '../lib/github/repo';
 import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'loading' | 'error';
@@ -46,11 +46,15 @@ export default function LoadPublishedModal({
 			);
 			// Remember this repo so the next Publish UPDATES it instead of creating a new one
 			// (crucial when the repo was discovered on a fresh browser with no saved info).
+			// The Pages cname is the source of truth for the site's address — a fresh browser
+			// must recover the hangwork.art/custom domain, not fall back to github.io.
+			const domain = (await getPagesInfo(client, ref).catch(() => null))?.cname ?? null;
 			saveRepoInfo({
 				owner: ref.owner,
 				repo: ref.repo,
 				branch: ref.branch,
-				pagesUrl: saved?.pagesUrl ?? pagesUrl(ref.owner, ref.repo),
+				pagesUrl: domain ? `https://${domain}/` : (saved?.pagesUrl ?? pagesUrl(ref.owner, ref.repo)),
+				customDomain: domain ?? undefined,
 				lastManifest: managedPaths,
 			});
 			onLoaded(doc);

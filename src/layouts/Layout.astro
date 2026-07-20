@@ -30,7 +30,14 @@ const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
 	const url = getFontUrl(font.file);
 	return url ? [{ name: font.name, url }] : [];
 });
-const themeCss = fontFacesCss(fontFaces) + themeToRootCss(theme);
+// The html/body theming lives in THIS rendered string — not a `<style is:global>`
+// block — because Astro bundles static styles from every imported component into the
+// page. index.astro imports Layout even on the product site, where Layout never
+// renders and the theme variables are never defined, so a static html/body rule with
+// var(--color-bg)/var(--font-family) would land on the sales page and reset its
+// background and font to browser defaults. Rendered styles only exist when Layout does.
+const bodyCss = 'html,body{margin:0;padding:0;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-family);}';
+const themeCss = fontFacesCss(fontFaces) + themeToRootCss(theme) + bodyCss;
 
 // Social cards need an ABSOLUTE image URL (getImage's src is base-prefixed but
 // site-relative), and og:image can't be the favicon SVG — most platforms won't
@@ -76,14 +83,3 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		</div>
 	</body>
 </html>
-
-<style is:global>
-	html, body {
-		margin: 0;
-		padding: 0;
-		width: 100%;
-		height: 100%;
-		background-color: var(--color-bg);
-		font-family: var(--font-family);
-	}
-</style>

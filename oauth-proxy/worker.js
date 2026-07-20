@@ -6,10 +6,16 @@
 // user access token using the secret, and hand the token back to the editor. No database,
 // no per-user state, no logging of tokens.
 //
-// Routes (both POST):
-//   /        — exchange { code } for an access token
-//   /revoke  — revoke { token } on sign-out (DELETE /applications/{client_id}/grant needs
-//              the client secret, so it has to happen here, not in the browser)
+// Routes (all POST):
+//   /                 — exchange { code } for an access token
+//   /revoke           — revoke { token } on sign-out (DELETE /applications/{client_id}/grant needs
+//                       the client secret, so it has to happen here, not in the browser)
+//   /subdomain/check  — { token, name }: is name.hangwork.art free to claim?
+//   /subdomain/claim  — { token, name }: create the DNS record name.hangwork.art →
+//                       {login}.github.io for the GitHub account the token belongs to.
+//                       The record's CNAME target doubles as the ownership ledger: a
+//                       record pointing at someone else's github.io means "taken", a
+//                       record pointing at your own means the claim is idempotent.
 //
 // Deploy: see README.md in this folder. Required config:
 //   - var    GITHUB_CLIENT_ID      (public; the OAuth App's client id)
@@ -17,6 +23,12 @@
 //   - var    ALLOWED_ORIGIN        CORS is locked to this. One origin, or a comma-separated
 //                                  list (e.g. "https://hangwork.art,https://portfolio-template-9p2.pages.dev")
 //                                  to allow the custom domain and the pages.dev fallback at once.
+//   - var    SITES_ROOT_DOMAIN     the domain subdomains are granted under ("hangwork.art")
+//   - var    CF_ZONE_ID            the Cloudflare zone id of SITES_ROOT_DOMAIN
+//   - secret CF_DNS_TOKEN          a Cloudflare API token with DNS:Edit on that zone
+//                                  (`wrangler secret put CF_DNS_TOKEN`)
+// The /subdomain routes answer 503 until the last three are set — the editor treats
+// that as "no hangwork.art addresses" and publishes to github.io instead.
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
@@ -51,10 +63,114 @@ export default {
 
 		const path = new URL(request.url).pathname;
 		if (path === '/revoke') return revoke(request, env, corsOrigin);
+		if (path === '/subdomain/check') return subdomain(request, env, corsOrigin, false);
+		if (path === '/subdomain/claim') return subdomain(request, env, corsOrigin, true);
 		if (path === '/') return exchange(request, env, corsOrigin);
 		return json({ error: 'not_found' }, 404, corsOrigin);
 	},
 };
+
+const CF_API = 'https://api.cloudflare.com/client/v4';
+
+// Subdomains we will never hand out: infrastructure, mail, and anything that could be
+// mistaken for the product itself.
+const RESERVED_SUBDOMAINS = new Set([
+	'www', 'mail', 'email', 'smtp', 'imap', 'pop', 'ftp', 'ns1', 'ns2', 'mx',
+	'api', 'cdn', 'static', 'assets', 'admin', 'root', 'dev', 'test', 'staging',
+	'app', 'editor', 'demo', 'docs', 'help', 'support', 'status', 'blog', 'shop',
+	'account', 'accounts', 'login', 'auth', 'pay', 'payments', 'billing', 'hangwork',
+]);
+
+/** One DNS label: a–z, 0–9, inner hyphens, ≤63 chars. Mirrors the editor's slugify. */
+function isValidSubdomain(name) {
+	return typeof name === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(name) && !RESERVED_SUBDOMAINS.has(name);
+}
+
+/**
+ * Grant (or probe) a hangwork.art subdomain. The caller proves who they are with their
+ * GitHub token; the record we create can ONLY point at that account's github.io, so the
+ * worker can never be used to alias arbitrary hosts, and a name already pointing at a
+ * different account is simply "taken".
+ */
+async function subdomain(request, env, corsOrigin, claim) {
+	if (!env.SITES_ROOT_DOMAIN || !env.CF_ZONE_ID || !env.CF_DNS_TOKEN) {
+		return json({ error: 'subdomains_unconfigured' }, 503, corsOrigin);
+	}
+
+	let token, name;
+	try {
+		({ token, name } = await request.json());
+	} catch {
+		return json({ error: 'invalid_json' }, 400, corsOrigin);
+	}
+	if (!token || typeof token !== 'string') return json({ error: 'missing_token' }, 400, corsOrigin);
+	if (!isValidSubdomain(name)) return json({ error: 'invalid_name' }, 400, corsOrigin);
+
+	// Who is asking? The GitHub login pins the only CNAME target we'll ever write.
+	let login;
+	try {
+		const res = await fetch('https://api.github.com/user', {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/vnd.github+json',
+				'User-Agent': 'portfolio-oauth-proxy',
+			},
+		});
+		if (!res.ok) return json({ error: 'invalid_token' }, 401, corsOrigin);
+		login = (await res.json()).login;
+	} catch {
+		return json({ error: 'github_unreachable' }, 502, corsOrigin);
+	}
+	if (!login || !/^[a-zA-Z0-9-]+$/.test(login)) return json({ error: 'invalid_token' }, 401, corsOrigin);
+
+	const fqdn = `${name}.${env.SITES_ROOT_DOMAIN}`;
+	const target = `${login.toLowerCase()}.github.io`;
+	const cfHeaders = { Authorization: `Bearer ${env.CF_DNS_TOKEN}`, 'Content-Type': 'application/json' };
+
+	// Any existing record on the name (regardless of type) decides availability.
+	let existing;
+	try {
+		const res = await fetch(`${CF_API}/zones/${env.CF_ZONE_ID}/dns_records?name=${fqdn}`, { headers: cfHeaders });
+		const data = await res.json();
+		if (!res.ok || !data.success) return json({ error: 'dns_lookup_failed' }, 502, corsOrigin);
+		existing = data.result?.[0] ?? null;
+	} catch {
+		return json({ error: 'dns_unreachable' }, 502, corsOrigin);
+	}
+
+	const ours = existing && existing.type === 'CNAME' && existing.content?.toLowerCase() === target;
+	if (existing && !ours) {
+		return json({ error: 'name_taken', domain: fqdn }, 409, corsOrigin);
+	}
+	if (!claim) {
+		return json({ available: existing === null || ours, domain: fqdn }, 200, corsOrigin);
+	}
+	if (ours) {
+		return json({ domain: fqdn }, 200, corsOrigin); // re-publish of the same site
+	}
+
+	// DNS-only (not proxied): GitHub must see the CNAME directly to route the domain
+	// and issue its HTTPS certificate.
+	try {
+		const res = await fetch(`${CF_API}/zones/${env.CF_ZONE_ID}/dns_records`, {
+			method: 'POST',
+			headers: cfHeaders,
+			body: JSON.stringify({
+				type: 'CNAME',
+				name: fqdn,
+				content: target,
+				ttl: 1,
+				proxied: false,
+				comment: `hangwork site for github:${login}`,
+			}),
+		});
+		const data = await res.json();
+		if (!res.ok || !data.success) return json({ error: 'dns_create_failed' }, 502, corsOrigin);
+	} catch {
+		return json({ error: 'dns_unreachable' }, 502, corsOrigin);
+	}
+	return json({ domain: fqdn }, 200, corsOrigin);
+}
 
 /** Swap a GitHub OAuth `code` for a user access token. */
 async function exchange(request, env, corsOrigin) {

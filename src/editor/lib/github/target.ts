@@ -15,6 +15,7 @@ import {
 	getPagesInfo,
 	listAssetPaths,
 	enablePages,
+	setCustomDomain,
 	pagesUrl,
 	type RepoRef,
 } from './repo';
@@ -27,6 +28,13 @@ export interface GitHubTargetOptions {
 	store: RepoStore;
 	/** Required only on the first publish (when no repo exists yet). */
 	desiredRepoName?: string;
+	/**
+	 * Reserve the site's default address ([name].hangwork.art) for this account and
+	 * return the full domain, or null if it can't be had (service down, name taken).
+	 * Only consulted on the first publish; when absent or failing, the site publishes
+	 * to the plain github.io URL exactly as before.
+	 */
+	claimAddress?: (name: string) => Promise<string | null>;
 }
 
 export class GitHubTarget implements PublishTarget {
@@ -63,7 +71,18 @@ export class GitHubTarget implements PublishTarget {
 		// a publish never clobbers a configured domain. Idempotent + only committed when it
 		// actually changes, so it self-heals a repo published before this was correct.
 		const currentConfig = await readAstroConfig(client, ref);
-		const domain = (await getPagesInfo(client, ref))?.cname ?? null; // null = no Pages yet (first publish)
+		let domain = (await getPagesInfo(client, ref))?.cname ?? null; // null = no Pages yet (first publish)
+
+		// New sites default to [name].hangwork.art. Claim the DNS record BEFORE writing the
+		// config so the publish commit already points at the final address (one build, not
+		// two). A failed claim is not an error — the site just keeps its github.io URL.
+		let claimedDomain: string | null = null;
+		if (firstPublish && !domain && this.opts.claimAddress) {
+			report('Claiming your web address…', ref.repo);
+			claimedDomain = await this.opts.claimAddress(ref.repo).catch(() => null);
+			if (claimedDomain) domain = claimedDomain;
+		}
+
 		const desiredConfig = domain
 			? rewriteSiteAndBase(currentConfig, `https://${domain}`, '/')
 			: rewriteSiteAndBase(currentConfig, `https://${ref.owner}.github.io`, `/${ref.repo}`);
@@ -125,7 +144,7 @@ export class GitHubTarget implements PublishTarget {
 		// (done + 1) so the counter reads "1 of N" … "N of N" instead of stopping
 		// at "N-1 of N" before flipping to the saving step.
 		report('Uploading your images…', `1 of ${files.length}`);
-		const commitSha = await commitFiles(
+		let commitSha = await commitFiles(
 			client,
 			{
 				owner: ref.owner,
@@ -144,6 +163,26 @@ export class GitHubTarget implements PublishTarget {
 
 		report('Publishing your website…');
 		await enablePages(client, ref);
+
+		// Attach the claimed address to the Pages site (the cname is what makes GitHub
+		// actually serve it, and it's the source of truth every later publish reads). If
+		// GitHub refuses the domain, put the config back on github.io so the site's links
+		// still resolve somewhere real.
+		if (claimedDomain) {
+			try {
+				await setCustomDomain(client, ref, claimedDomain);
+			} catch {
+				domain = null;
+				const reverted = rewriteSiteAndBase(desiredConfig, `https://${ref.owner}.github.io`, `/${ref.repo}`);
+				commitSha = await commitFiles(client, {
+					owner: ref.owner,
+					repo: ref.repo,
+					branch: ref.branch,
+					message: 'Use the github.io address',
+					files: [{ path: ASTRO_CONFIG_PATH, text: reverted }],
+				});
+			}
+		}
 
 		// Don't block on the Pages build (the first one takes 1–2 min): the commit is done and
 		// Pages is enabled. Returning the commit sha lets the success screen poll the build and

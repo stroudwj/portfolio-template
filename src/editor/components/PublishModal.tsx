@@ -11,6 +11,7 @@ import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
 import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
 import { getRepo, getBuildStatus, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
+import { slugifySiteName, subdomainFor, checkSubdomain, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
 import { ProgressList, appendStep } from './ui/ProgressList';
 import CustomDomainModal from './CustomDomainModal';
 
@@ -20,24 +21,13 @@ type Phase = 'configure' | 'publishing' | 'success' | 'error';
 // tell — polling error, no commit sha, or >3 min without completion.
 type BuildState = 'building' | 'live' | 'timeout' | 'failed';
 
-function slugify(s: string): string {
-	return (
-		s
-			.toLowerCase()
-			.trim()
-			.replace(/[^a-z0-9._-]+/g, '-')
-			.replace(/^[-.]+|[-.]+$/g, '')
-			.slice(0, 90) || 'my-portfolio'
-	);
-}
-
 export default function PublishModal({ user, onClose }: { user: GitHubUser; onClose: () => void }) {
 	const { doc } = useEditor();
 	const [saved, setSaved] = useState(() => loadRepoInfo());
 	const [verifying, setVerifying] = useState(() => loadRepoInfo() != null);
 	const firstPublish = !saved;
 
-	const [repoName, setRepoName] = useState(() => saved?.repo ?? slugify(doc?.content.site.name || user.login + '-portfolio'));
+	const [repoName, setRepoName] = useState(() => saved?.repo ?? slugifySiteName(doc?.content.site.name || user.login + '-portfolio'));
 	const [nameState, setNameState] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 	const [phase, setPhase] = useState<Phase>('configure');
 	const [log, setLog] = useState<PublishProgress[]>([]);
@@ -115,7 +105,9 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	if (!doc) return null;
 	if (showDomain) return <CustomDomainModal onClose={closeDomainModal} />;
 	const issues = collectIssues(doc);
-	const targetUrl = pagesUrl(user.login, repoName);
+	// The default address for a new site. If the address service is unreachable at
+	// publish time, the publish still succeeds at pagesUrl(login, repoName) instead.
+	const targetUrl = `https://${subdomainFor(repoName)}`;
 
 	// ---- Verifying the saved repo still exists (avoids flashing "update" for a deleted site) ----
 	if (verifying) {
@@ -130,8 +122,14 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		if (!firstPublish || !repoName.trim()) return;
 		setNameState('checking');
 		try {
-			const free = await isRepoNameAvailable(new GitHubClient(getToken() ?? ''), user.login, repoName.trim());
-			setNameState(free ? 'available' : 'taken');
+			const name = repoName.trim();
+			// The name must be free in BOTH namespaces: the user's repos and *.hangwork.art.
+			// 'unknown' (address service unreachable) doesn't block — publish falls back.
+			const [repoFree, sub] = await Promise.all([
+				isRepoNameAvailable(new GitHubClient(getToken() ?? ''), user.login, name),
+				checkSubdomain(getToken() ?? '', name),
+			]);
+			setNameState(repoFree && sub !== 'taken' ? 'available' : 'taken');
 		} catch {
 			setNameState('idle');
 		}
@@ -149,6 +147,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 				login: user.login,
 				store: localRepoStore,
 				desiredRepoName: repoName.trim(),
+				claimAddress: (name) => claimSubdomain(getToken() ?? '', name),
 			});
 			const res = await target.publish(bundle, (p) => setLog((prev) => appendStep(prev, p)));
 			setResult(res);
@@ -192,6 +191,12 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 					</a>
 					{build === 'timeout' && (
 						<p className="modal-note">It can take a minute for a brand-new site to finish building. Refresh if it isn’t up yet.</p>
+					)}
+					{result.url?.includes(`.${SITES_ROOT_DOMAIN}`) && build !== 'failed' && (
+						<p className="modal-note">
+							A brand-new address can take a few minutes to finish its security (HTTPS) setup — if your browser shows a
+							privacy warning, give it a moment and refresh.
+						</p>
 					)}
 					{build === 'failed' && result.repoUrl && (
 						<p className="modal-note">
@@ -290,7 +295,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 							className="text-input"
 							value={repoName}
 							onChange={(e) => {
-								setRepoName(slugify(e.target.value));
+								setRepoName(slugifySiteName(e.target.value));
 								setNameState('idle');
 							}}
 							onBlur={checkName}
@@ -299,8 +304,8 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						<span className="field-hint">
 							{nameState === 'checking' && 'Checking availability…'}
 							{nameState === 'available' && 'Available.'}
-							{nameState === 'taken' && 'That name is taken in your account — pick another.'}
-							{nameState === 'idle' && 'Letters, numbers and dashes. This becomes part of your web address.'}
+							{nameState === 'taken' && 'That name is taken — pick another.'}
+							{nameState === 'idle' && 'Letters, numbers and dashes. This becomes your web address.'}
 						</span>
 					</label>
 					<p className="url-preview">
@@ -310,10 +315,12 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 			) : (
 				<>
 					<p className="url-preview">
-						Updating your existing site at <strong>{saved?.pagesUrl || targetUrl}</strong>.
+						Updating your existing site at <strong>{saved?.pagesUrl || pagesUrl(user.login, repoName)}</strong>.
 					</p>
 					<button type="button" className="btn-link" onClick={() => setShowDomain(true)}>
-						{saved?.customDomain ? `Custom domain: ${saved.customDomain}` : 'Use a custom domain…'}
+						{saved?.customDomain && !saved.customDomain.endsWith(`.${SITES_ROOT_DOMAIN}`)
+							? `Custom domain: ${saved.customDomain}`
+							: 'Use a custom domain…'}
 					</button>
 				</>
 			)}

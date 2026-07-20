@@ -23,6 +23,7 @@ import {
 	type DomainHealth,
 	type RepoRef,
 } from '../lib/github/repo';
+import { subdomainFor, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
 
 /** "https://www.Example.com/x." → "www.example.com" (what Pages stores as the cname). */
 export function normalizeDomain(input: string): string {
@@ -130,6 +131,10 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 			setError('That doesn’t look like a domain. Enter it like example.com or www.example.com.');
 			return;
 		}
+		if (domain === SITES_ROOT_DOMAIN || domain.endsWith(`.${SITES_ROOT_DOMAIN}`)) {
+			setError(`${SITES_ROOT_DOMAIN} addresses are assigned automatically when you publish — enter a domain you own.`);
+			return;
+		}
 		setError(null);
 		setHealth(null);
 		setBusy('saving');
@@ -145,16 +150,28 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 	};
 
 	const remove = async () => {
-		if (!confirm(`Disconnect ${cname}? Your site will go back to ${pagesUrl(ref.owner, ref.repo)}`)) return;
+		if (!confirm(`Disconnect ${cname}? Your site will go back to https://${subdomainFor(info.repo)}`)) return;
 		setError(null);
 		setHealth(null);
 		setBusy('removing');
 		try {
-			await removeCustomDomain(client, ref);
-			saveRepoInfo({ ...info, customDomain: undefined, pagesUrl: pagesUrl(ref.owner, ref.repo) });
-			setCname(null);
-			setInput('');
-			await applyConfig(null);
+			// Prefer returning to the site's included hangwork.art address (idempotent
+			// re-claim of our own DNS record); if the address service can't confirm it,
+			// fall back to the plain github.io URL so links always resolve somewhere.
+			const included = await claimSubdomain(getToken() ?? '', info.repo);
+			if (included) {
+				await setCustomDomain(client, ref, included);
+				saveRepoInfo({ ...info, customDomain: included, pagesUrl: `https://${included}/` });
+				setCname(included);
+				setInput('');
+				await applyConfig(included);
+			} else {
+				await removeCustomDomain(client, ref);
+				saveRepoInfo({ ...info, customDomain: undefined, pagesUrl: pagesUrl(ref.owner, ref.repo) });
+				setCname(null);
+				setInput('');
+				await applyConfig(null);
+			}
 		} catch (err) {
 			setError(err instanceof GitHubError ? err.friendly : 'Couldn’t remove the domain.');
 		}
@@ -172,6 +189,12 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 	// Apex domains (example.com) need A records; subdomains (www.example.com) use a CNAME.
 	const isApex = cname != null && cname.split('.').length === 2;
 
+	// The site's assigned [name].hangwork.art address is NOT a user custom domain: we
+	// manage its DNS, so never show registrar instructions for it — offer to connect
+	// their own domain instead.
+	const isIncluded = cname != null && cname.endsWith(`.${SITES_ROOT_DOMAIN}`);
+	const currentAddress = isIncluded ? `https://${cname}` : pagesUrl(ref.owner, ref.repo);
+
 	return (
 		<Modal
 			title="Custom domain"
@@ -184,11 +207,11 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 		>
 			{busy === 'loading' ? (
 				<p className="modal-note">Checking your domain settings…</p>
-			) : cname === null ? (
+			) : cname === null || isIncluded ? (
 				<>
 					<p className="modal-lead">
 						Point a domain you own at your site — like <strong>www.yourname.com</strong> instead of{' '}
-						<strong>{pagesUrl(ref.owner, ref.repo).replace('https://', '')}</strong>.
+						<strong>{currentAddress.replace('https://', '')}</strong>.
 					</p>
 					<label className="field">
 						<span className="field-label">Your domain</span>
