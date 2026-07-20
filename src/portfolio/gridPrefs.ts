@@ -36,10 +36,13 @@ export interface GridPrefs {
 	/** Selected GuideOption id ('off' = no overlay). */
 	guide: string;
 	snap: boolean;
+	/** Magnetic snap to a neighboring item's edges while dragging — independent of the
+	 *  guide overlay above, on by default. Toggleable from the toolbar or Shift+S. */
+	edgeSnap: boolean;
 }
 
 function load(): GridPrefs {
-	if (typeof window === 'undefined') return { guide: 'off', snap: true };
+	if (typeof window === 'undefined') return { guide: 'off', snap: true, edgeSnap: true };
 	try {
 		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs> & {
 			cols?: number;
@@ -50,9 +53,10 @@ function load(): GridPrefs {
 		return {
 			guide: GUIDE_OPTIONS.some((o) => o.id === guide) ? guide : 'off',
 			snap: parsed.snap !== false,
+			edgeSnap: parsed.edgeSnap !== false,
 		};
 	} catch {
-		return { guide: 'off', snap: true };
+		return { guide: 'off', snap: true, edgeSnap: true };
 	}
 }
 
@@ -75,10 +79,21 @@ const subscribe = (fn: () => void): (() => void) => {
 };
 
 const getSnapshot = (): GridPrefs => prefs;
-const serverPrefs: GridPrefs = { guide: 'off', snap: true };
+const serverPrefs: GridPrefs = { guide: 'off', snap: true, edgeSnap: true };
 const getServerSnapshot = (): GridPrefs => serverPrefs;
 
 /** Live guide prefs — re-renders the caller whenever any component changes them. */
 export function useGridPrefs(): GridPrefs {
 	return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+/** One-off read outside React (e.g. a keyboard shortcut handler) — not reactive. */
+export function getGridPrefs(): GridPrefs {
+	return prefs;
+}
+
+/** Flip edge-snap on/off, keeping the localStorage-backed store as the single source
+ *  of truth (the Shift+S shortcut and the toolbar checkbox both go through this). */
+export function toggleEdgeSnap(): void {
+	setGridPrefs({ edgeSnap: !prefs.edgeSnap });
 }

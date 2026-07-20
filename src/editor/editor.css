@@ -77,6 +77,59 @@
 	color: var(--paper);
 }
 
+/* ---- Keyboard shortcuts popover (top bar "?" button) ---- */
+.hotkey-guide {
+	position: relative;
+}
+.hotkey-guide-toggle {
+	font-size: 16px;
+	line-height: 1;
+	padding: 6px 10px;
+}
+.hotkey-guide-popover {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	z-index: 50;
+	width: 260px;
+	background: var(--paper);
+	border: 1px solid var(--wall-2);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+	padding: 12px 14px;
+}
+.hotkey-guide-popover h3 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--ink-soft);
+}
+.hotkey-guide-popover ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.hotkey-guide-popover li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 13px;
+}
+.hotkey-guide-popover kbd {
+	flex-shrink: 0;
+	font: inherit;
+	font-size: 12px;
+	background: var(--wall-1);
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	padding: 2px 6px;
+	white-space: nowrap;
+}
+
 /* ---- Body split ---- */
 .editor-body {
 	display: flex;
@@ -87,6 +140,7 @@
 	width: 440px;
 	max-width: 45%;
 	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: 16px;
 	display: flex;
 	flex-direction: column;
@@ -103,11 +157,29 @@
 	top: 0;
 	z-index: 20;
 	display: flex;
+	flex-wrap: wrap;
 	gap: 6px;
 	margin: -16px -16px 0;
 	padding: 12px 16px;
 	background: var(--paper);
 	border-bottom: 1px solid var(--wall-2);
+	/* Own compositing layer so the opaque background paints crisply above scrolled
+	   content instead of letting a sliver show through during momentum/rubber-band
+	   scroll (an isolated stacking context also keeps this above any pane content). */
+	isolation: isolate;
+	transform: translateZ(0);
+}
+/* Extends the sticky bar's solid background upward past its own box, so elastic
+   overscroll (trackpad/touch bounce past the top of .editor-controls) still shows
+   paper color instead of the pane content peeking above the tab bar. */
+.editor-tabs::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 100%;
+	height: 100vh;
+	background: inherit;
 }
 .editor-tab {
 	display: inline-flex;
@@ -232,6 +304,24 @@
 	font-size: 14px;
 	background: #fff;
 	color: inherit;
+}
+/* A native <select>'s arrow is tiny and barely visible against --wall-2 borders — swap
+   it for a bigger, high-contrast chevron. `.select-input` selects are already sized down
+   for inline use, so they get a proportionally smaller (but still large) icon. */
+select.text-input,
+select.select-input {
+	appearance: none;
+	-webkit-appearance: none;
+	background-color: #fff;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 16 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 6px center;
+	background-size: 28px;
+	padding-right: 38px;
+}
+select.select-input {
+	background-size: 22px;
+	padding-right: 30px;
 }
 .text-input::placeholder,
 .text-area::placeholder {

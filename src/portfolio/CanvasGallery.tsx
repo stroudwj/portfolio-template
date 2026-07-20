@@ -95,13 +95,18 @@ export default function CanvasGallery({
 	const snapX = (v: number): number => (xEdges.length ? snapToEdges(v, xEdges) : snapTo(v, squareStep));
 	const snapY = (v: number): number => snapTo(v, squareStep);
 
+	// On by default in the editor, guides or not; a neighbor edge within EDGE_SNAP wins
+	// over the coarser guide snap. Toggleable (toolbar checkbox / Shift+S) for the rare
+	// composition where near-misses should stay near-misses.
+	const edgeSnapOn = editable && gridPrefs.edgeSnap;
+
 	/**
 	 * Every OTHER item's edges (x: left/right, y: top/bottom), so a drag can
 	 * magnetically align with its neighbors — e.g. two images sharing the exact
-	 * same top or bottom line. Always on in the editor, guides or not; a
-	 * neighbor edge within EDGE_SNAP wins over the coarser guide snap.
+	 * same top or bottom line.
 	 */
 	const neighborEdges = (excludeId: string): { xs: number[]; ys: number[] } => {
+		if (!edgeSnapOn) return { xs: [], ys: [] };
 		const xs: number[] = [];
 		const ys: number[] = [];
 		images.forEach((img, i) => {

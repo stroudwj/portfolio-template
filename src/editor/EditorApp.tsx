@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorProvider, useEditor } from './store';
 import StartScreen from './components/StartScreen';
 import ProfileEditor from './components/ProfileEditor';
@@ -34,6 +34,66 @@ const EDITOR_TABS = [
 type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 
 const TAB_STORE = 'portfolio-editor.tab';
+
+const SHORTCUTS: Array<{ keys: string; label: string }> = [
+	{ keys: '⌘/Ctrl Z', label: 'Undo the last canvas move' },
+	{ keys: '⌘/Ctrl ⇧ Z', label: 'Redo' },
+	{ keys: '⌘/Ctrl Y', label: 'Redo' },
+	{ keys: '⇧ S', label: 'Toggle edge snap' },
+	{ keys: 'Esc', label: 'Leave fullscreen preview' },
+];
+
+/** A small "?" button in the top bar that opens a popover listing every editor
+ *  shortcut — the shortcuts themselves live next to the code that implements them;
+ *  this is just the one place someone can go to remember what they are. */
+function HotkeyGuide() {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		const onDown = (e: MouseEvent) => {
+			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setOpen(false);
+		};
+		window.addEventListener('mousedown', onDown);
+		window.addEventListener('keydown', onKey);
+		return () => {
+			window.removeEventListener('mousedown', onDown);
+			window.removeEventListener('keydown', onKey);
+		};
+	}, [open]);
+
+	return (
+		<div className="hotkey-guide" ref={ref}>
+			<button
+				type="button"
+				className="btn-ghost hotkey-guide-toggle"
+				aria-expanded={open}
+				aria-label="Keyboard shortcuts"
+				title="Keyboard shortcuts"
+				onClick={() => setOpen((o) => !o)}
+			>
+				⌨
+			</button>
+			{open && (
+				<div className="hotkey-guide-popover" role="dialog" aria-label="Keyboard shortcuts">
+					<h3>Keyboard shortcuts</h3>
+					<ul>
+						{SHORTCUTS.map((s, i) => (
+							<li key={i}>
+								<kbd>{s.keys}</kbd>
+								<span>{s.label}</span>
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+		</div>
+	);
+}
 
 /** Cmd/Ctrl+Z undoes the last canvas arrangement change; Cmd+Shift+Z or Cmd/Ctrl+Y
  *  redoes it. Text fields keep their native undo — shortcuts are ignored there. */
@@ -120,6 +180,7 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<div className="topbar-spacer" />
+				<HotkeyGuide />
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset
 				</button>

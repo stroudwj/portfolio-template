@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
-import { GUIDE_OPTIONS, setGridPrefs, useGridPrefs } from '../../portfolio/gridPrefs';
+import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import { expandSection, showEditorTab } from './ui/controls';
 
 /** Canvas guide overlay + snap controls ("Guides", to not clash with the
@@ -40,8 +40,31 @@ function GuideTools() {
 				/>
 				Snap
 			</label>
+			<label className="grid-snap" title="Magnetically align a dragged item with its neighbors' edges (Shift+S)">
+				<input
+					type="checkbox"
+					checked={gridPrefs.edgeSnap}
+					onChange={(e) => setGridPrefs({ edgeSnap: e.target.checked })}
+				/>
+				Edge snap
+			</label>
 		</div>
 	);
+}
+
+/** Shift+S toggles edge snap from anywhere in the editor (ignored while typing). */
+function useEdgeSnapShortcut() {
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.metaKey || e.ctrlKey || e.altKey || e.key.toLowerCase() !== 's' || !e.shiftKey) return;
+			const t = e.target as HTMLElement | null;
+			if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+			e.preventDefault();
+			toggleEdgeSnap();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, []);
 }
 
 /**
@@ -100,6 +123,8 @@ export default function PreviewPanel({ base }: { base: string }) {
 	const [page, setPage] = useState('home');
 	const [device, setDevice] = useState<'desktop' | 'phone'>('desktop');
 	const [fullscreen, setFullscreen] = useState(false);
+
+	useEdgeSnapShortcut();
 
 	// Esc leaves the fullscreen site preview.
 	useEffect(() => {

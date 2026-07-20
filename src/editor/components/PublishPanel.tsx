@@ -12,6 +12,7 @@ import ConnectGitHubModal from './ConnectGitHubModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 import CustomDomainModal from './CustomDomainModal';
+import RenameSiteModal from './RenameSiteModal';
 
 export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const { doc } = useEditor();
@@ -20,6 +21,7 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const [showLicense, setShowLicense] = useState(false);
 	const [showPublish, setShowPublish] = useState(false);
 	const [showDomain, setShowDomain] = useState(false);
+	const [showRename, setShowRename] = useState(false);
 	// Re-read the saved repo pointer after any modal closes (publish/domain change it).
 	const [, setRefresh] = useState(0);
 	const bump = () => setRefresh((n) => n + 1);
@@ -55,6 +57,9 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 						<div className="publish-panel-actions">
 							<button type="button" className="btn-secondary" onClick={() => setShowDomain(true)} disabled={!connected}>
 								{info.customDomain && !isSubdomain ? 'Manage custom domain…' : 'Use a custom domain…'}
+							</button>
+							<button type="button" className="btn-secondary" onClick={() => setShowRename(true)} disabled={!connected}>
+								Rename site…
 							</button>
 						</div>
 					</>
@@ -143,6 +148,14 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				<CustomDomainModal
 					onClose={() => {
 						setShowDomain(false);
+						bump();
+					}}
+				/>
+			)}
+			{showRename && (
+				<RenameSiteModal
+					onClose={() => {
+						setShowRename(false);
 						bump();
 					}}
 				/>

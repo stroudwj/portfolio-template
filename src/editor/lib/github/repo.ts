@@ -39,6 +39,18 @@ export async function listAssetPaths(client: GitHubClient, ref: RepoRef): Promis
 	return (await getTree(client, ref)).map((t) => t.path).filter((p) => p.startsWith('src/assets/'));
 }
 
+/**
+ * Rename the repo. GitHub keeps the repo's identity (Pages settings, custom domain,
+ * commit history) intact and redirects the old name for a while — but the built
+ * site's own `base` path only matches the new name once astro.config is rewritten
+ * and re-committed, which callers must do right after (skippable when a custom
+ * domain is set, since then `base` is already '/').
+ */
+export async function renameRepo(client: GitHubClient, ref: RepoRef, newName: string): Promise<RepoRef> {
+	await client.request(`/repos/${ref.owner}/${ref.repo}`, { method: 'PATCH', body: { name: newName } });
+	return { ...ref, repo: newName };
+}
+
 /** Look up an existing repo. Returns null on 404 (e.g. the user deleted it). */
 export async function getRepo(client: GitHubClient, owner: string, repo: string): Promise<RepoRef | null> {
 	const { status, data } = await client.request<{ default_branch: string }>(`/repos/${owner}/${repo}`, {
