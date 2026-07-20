@@ -1,6 +1,6 @@
 // Seeds the editor document (blank or from the bundled content.json) and turns a
 // live document into the PortfolioData the shared components render for preview.
-import { content as bundledContent, migrateContent, pageGalleryConfigs } from '../../lib/content';
+import { DEFAULT_FOOTER, content as bundledContent, migrateContent, pageGalleryConfigs } from '../../lib/content';
 import type { Content } from '../../lib/content';
 import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
@@ -16,7 +16,7 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg' },
+	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
 		textColor: '#111111',

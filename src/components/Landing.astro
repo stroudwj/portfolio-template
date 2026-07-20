@@ -5,7 +5,7 @@
 // content.json, none of which belong on a marketing page. No lemon.js here either —
 // the checkout overlay is editor-only.
 import { withBase } from '../portfolio/types';
-import { currentPriceText, pricing, regularPriceText } from '../lib/pricing';
+import { currentPrice, currentPriceText, pricing, regularPriceText } from '../lib/pricing';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
@@ -13,11 +13,28 @@ const editorUrl = withBase(base, 'editor/');
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
+const squarespaceAlternativeUrl = withBase(base, 'learn/squarespace-alternative-for-artists');
+const noSubscriptionUrl = withBase(base, 'learn/portfolio-website-without-subscription');
+const artPortfolioGuideUrl = withBase(base, 'learn/how-to-make-an-art-portfolio-site');
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
-const title = 'Hangwork — portfolio websites for visual artists';
+const title = 'Portfolio website builder for artists — Hangwork';
 const description =
-	'A portfolio site for visual artists. One payment, no subscription, no platform holding your work hostage.';
+	'Build an art portfolio website with a visual editor. One payment, no subscription, an included hangwork.art address, and site files you own.';
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
+const applicationLd = {
+	'@context': 'https://schema.org',
+	'@type': 'SoftwareApplication',
+	name: 'Hangwork',
+	applicationCategory: 'DesignApplication',
+	operatingSystem: 'Web browser',
+	description,
+	offers: {
+		'@type': 'Offer',
+		price: currentPrice,
+		priceCurrency: 'USD',
+		url: canonicalUrl,
+	},
+};
 ---
 
 <!doctype html>
@@ -37,9 +54,11 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		<meta property="og:site_name" content="Hangwork" />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
 		<meta name="twitter:card" content="summary" />
 		<title>{title}</title>
+		<script type="application/ld+json" set:html={JSON.stringify(applicationLd)} is:inline />
 	</head>
 	<body>
 		<header class="topbar">
@@ -104,6 +123,24 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 				<a class="btn btn-secondary" href={examplesUrl}>Browse example sites</a>
 			</section>
 
+			<section class="band" id="guides">
+				<h2>Guides for artists</h2>
+				<div class="guide-links">
+					<a href={squarespaceAlternativeUrl}>
+						<strong>A Squarespace alternative for artists</strong>
+						<span>Compare the cost model, ownership, portfolio tools, and tradeoffs.</span>
+					</a>
+					<a href={noSubscriptionUrl}>
+						<strong>Portfolio website without a subscription</strong>
+						<span>See what one-time pricing includes and which optional costs remain.</span>
+					</a>
+					<a href={artPortfolioGuideUrl}>
+						<strong>How to make an art portfolio site</strong>
+						<span>Choose the work, prepare images, structure pages, write, test, and publish.</span>
+					</a>
+				</div>
+			</section>
+
 			<section class="band pricing" id="pricing">
 				<div class="pricing-copy">
 					<h2>One price</h2>
@@ -121,7 +158,8 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 						)
 					}
 					<p class="pricing-comparison">
-						Squarespace: $192–280 every year. Wix: $204+ every year. Hangwork: <strong>{currentPriceText}, once.</strong>
+						Squarespace and Wix use ongoing website plans. Hangwork: <strong>{currentPriceText}, once.</strong>
+						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
 					</p>
 					<p class="included">
 						Includes the editor, your yourname.hangwork.art address, publishing, and every future update to
@@ -143,6 +181,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 			</a>
 			<nav>
 				<a href={examplesUrl}>Examples</a>
+				<a href={artPortfolioGuideUrl}>Portfolio guide</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>
@@ -327,6 +366,34 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		margin: 0 0 32px;
 		max-width: 34em;
 	}
+	.guide-links {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 16px;
+	}
+	.guide-links a {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		min-height: 150px;
+		padding: 22px;
+		border: 1px solid var(--wall-2);
+		border-radius: 4px;
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.guide-links a:hover {
+		background: var(--wall-3);
+	}
+	.guide-links strong {
+		font-weight: 500;
+		line-height: 1.4;
+	}
+	.guide-links span {
+		color: var(--ink-soft);
+		font-size: 13px;
+		line-height: 1.55;
+	}
 
 	.steps {
 		list-style: none;
@@ -394,6 +461,13 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 	}
 	.pricing-comparison strong {
 		font-weight: 500;
+	}
+	.pricing-comparison a {
+		color: var(--ink-soft);
+		text-underline-offset: 3px;
+	}
+	.pricing-comparison a:hover {
+		color: var(--ink);
 	}
 	.ownership-note {
 		margin: 0 0 32px;
@@ -463,6 +537,9 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		.steps {
 			grid-template-columns: 1fr;
 			gap: 28px;
+		}
+		.guide-links {
+			grid-template-columns: 1fr;
 		}
 		.footer {
 			padding: 32px 20px 44px;

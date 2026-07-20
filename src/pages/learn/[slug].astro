@@ -1,0 +1,450 @@
+---
+// Search-focused, product-only guides. A dynamic route lets published artist sites
+// omit every article by returning no paths when the product flag is switched off.
+import { withBase } from '../../portfolio/types';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { SEO_ARTICLES, type SeoArticle } from '../../lib/seoArticles';
+import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import Favicons from '../../components/Favicons.astro';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return SEO_ARTICLES.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+interface Props {
+	article: SeoArticle;
+}
+
+const { article } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const examplesUrl = withBase(base, 'examples');
+const faqUrl = withBase(base, 'faq');
+const guideUrl = withBase(base, 'guide');
+const articleUrl = withBase(base, `learn/${article.slug}`);
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+const supportEmail = 'william.stroud100@gmail.com';
+const canonicalUrl = Astro.site ? new URL(articleUrl, Astro.site).href : undefined;
+const publishedDate = '2026-07-20';
+
+const isSquarespace = article.slug === 'squarespace-alternative-for-artists';
+const isNoSubscription = article.slug === 'portfolio-website-without-subscription';
+const isHowTo = article.slug === 'how-to-make-an-art-portfolio-site';
+
+const howToSteps = [
+	['Choose the job of the site', 'Decide who the portfolio is for and what you want that visitor to do.'],
+	['Select a tight edit', 'Lead with the strongest work and remove pieces that weaken the whole.'],
+	['Prepare images for the web', 'Export clean, consistent images that load quickly and preserve useful detail.'],
+	['Build a simple structure', 'Use a focused home page, project or medium pages, and a concise about page.'],
+	['Write the supporting copy', 'Add clear titles, useful captions, a short biography, and a direct contact route.'],
+	['Design around the artwork', 'Choose type, color, and spacing that support the work instead of competing with it.'],
+	['Add search and sharing details', 'Write distinct page titles and descriptions, then choose a representative sharing image.'],
+	['Test, publish, and update', 'Check the site on a phone and computer, publish it, and refresh the edit as the work changes.'],
+];
+
+const articleLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Article',
+	headline: article.heading,
+	description: article.description,
+	datePublished: publishedDate,
+	dateModified: publishedDate,
+	author: { '@type': 'Organization', name: 'Hangwork', url: canonicalUrl ? new URL(homeUrl, Astro.site).href : undefined },
+	mainEntityOfPage: canonicalUrl,
+};
+
+const howToLd = isHowTo
+	? {
+			'@context': 'https://schema.org',
+			'@type': 'HowTo',
+			name: article.heading,
+			description: article.description,
+			step: howToSteps.map(([name, text], index) => ({
+				'@type': 'HowToStep',
+				position: index + 1,
+				name,
+				text,
+			})),
+		}
+	: undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={article.description} />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={article.title} />
+		<meta property="og:description" content={article.description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{article.title}</title>
+		<script type="application/ld+json" set:html={JSON.stringify(articleLd)} is:inline />
+		{howToLd && <script type="application/ld+json" set:html={JSON.stringify(howToLd)} is:inline />}
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav class="topnav" aria-label="Main navigation">
+				<a href={examplesUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<nav class="breadcrumbs" aria-label="Breadcrumb">
+				<a href={homeUrl}>Hangwork</a><span aria-hidden="true">/</span><span>Guides</span>
+			</nav>
+
+			<article>
+				<header class="article-hero">
+					<p class="eyebrow">{article.eyebrow}</p>
+					<h1>{article.heading}</h1>
+					<p class="lede">{article.description}</p>
+					<p class="article-date">Published <time datetime={publishedDate}>July 20, 2026</time></p>
+				</header>
+
+				{
+					isSquarespace && (
+						<div class="article-body">
+							<section>
+								<p class="standfirst">
+									Squarespace is a broad website platform. Hangwork is a focused portfolio builder for visual artists.
+									The useful question isn't which one can make a website; both can. It's which tradeoffs fit the job
+									your portfolio needs to do.
+								</p>
+							</section>
+
+							<section>
+								<h2>Hangwork vs. Squarespace at a glance</h2>
+								<div class="table-wrap">
+									<table>
+										<thead><tr><th>Question</th><th>Hangwork</th><th>Squarespace</th></tr></thead>
+										<tbody>
+											<tr><th>Cost model</th><td><strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}</td><td>Ongoing plan billed monthly or annually</td></tr>
+											<tr><th>Primary job</th><td>Image-first artist portfolios</td><td>General websites, services, stores, and portfolios</td></tr>
+											<tr><th>Site storage</th><td>A free account owned by the artist</td><td>Squarespace's hosted platform</td></tr>
+											<tr><th>Included address</th><td>Your chosen hangwork.art subdomain</td><td>Squarespace subdomain; annual plans may include a domain offer</td></tr>
+											<tr><th>Commerce</th><td>Links out to a shop or gallery</td><td>Built-in selling tools on eligible plans</td></tr>
+											<tr><th>Exit path</th><td>Ordinary site files stay in your account</td><td>Content export is available, with platform-specific limits</td></tr>
+										</tbody>
+									</table>
+								</div>
+								<p class="source-note">
+									Squarespace plan names, features, and prices change. Check its <a href="https://www.squarespace.com/pricing">live pricing page</a> and <a href="https://support.squarespace.com/hc/en-us/articles/29215717722637-Selling-on-the-Basic-Core-Plus-and-Advanced-plans">current plan guide</a> before deciding.
+								</p>
+							</section>
+
+							<section>
+								<h2>Choose Hangwork when the portfolio is the whole point</h2>
+								<p>
+									Hangwork starts with the work: freeform walls and grids, project pages, captions, video embeds,
+									an about page, contact details, and a live phone-and-desktop preview. There are fewer business
+									features to sort through because the editor is shaped around presenting art.
+								</p>
+								<p>
+									The ownership model is the larger difference. Publishing places the website and its files in a free
+									account you control. That makes one-time pricing possible and means the published site isn't tied to
+									an active Hangwork subscription. Read exactly <a href={`${faqUrl}#if-hangwork-shuts-down`}>what happens if Hangwork shuts down</a>.
+								</p>
+							</section>
+
+							<section>
+								<h2>Choose Squarespace when you need a broader business platform</h2>
+								<p>
+									A gallery, shop, design studio, or artist running paid memberships may need integrated checkout,
+									inventory, scheduling, email campaigns, or customer accounts. Hangwork deliberately doesn't process
+									transactions. It can link a piece to an external shop, gallery page, commission form, or email, but it
+									isn't a substitute for an ecommerce system.
+								</p>
+								<p>
+									That narrower scope is a benefit only when it matches your needs. If selling directly on the site is
+									central, Squarespace or a dedicated commerce platform is likely the better fit.
+								</p>
+							</section>
+
+							<section>
+								<h2>The decision in one sentence</h2>
+								<p>
+									Choose Hangwork for a focused, no-subscription art portfolio you own; choose Squarespace for a wider
+									set of managed website and commerce tools. If you want to see the difference in practice, browse
+									<a href={examplesUrl}> sites made with Hangwork</a> or build a draft before paying.
+								</p>
+							</section>
+						</div>
+					)
+				}
+
+				{
+					isNoSubscription && (
+						<div class="article-body">
+							<section>
+								<p class="standfirst">
+									A portfolio website without a subscription separates the cost of the building tool from the life of
+									the published site. You pay to create and update it, but the site doesn't disappear because a monthly
+									website-builder bill stops.
+								</p>
+							</section>
+
+							<section>
+								<h2>What “no subscription” means at Hangwork</h2>
+								<p>
+									Hangwork costs <strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> at launch; the regular one-time price is {regularPriceText}</>}.
+									That includes the visual editor, publishing, an address such as yourname.hangwork.art, and future
+									editor updates. There is no renewal tier and no monthly hosting invoice from Hangwork.
+								</p>
+								<p>
+									Your published portfolio lives in a free account in your name. The site is made from ordinary web
+									files, so it can keep running without the editor being open and without an active Hangwork payment.
+									The <a href={`${faqUrl}#who-owns-my-work`}>ownership answer</a> covers the files and artwork directly.
+								</p>
+							</section>
+
+							<section>
+								<h2>Costs that can still exist</h2>
+								<p>No subscription doesn't mean every possible part of a website is free. It means the recurring parts are visible and optional.</p>
+								<ul>
+									<li><strong>Your included address:</strong> a hangwork.art subdomain costs nothing extra.</li>
+									<li><strong>A custom domain:</strong> if you want yourname.com, you pay the domain registrar's yearly renewal. Hangwork doesn't add a domain connection fee.</li>
+									<li><strong>External services:</strong> a shop, newsletter, analytics service, or video host may have its own plan. None is required for a basic portfolio.</li>
+									<li><strong>Your time:</strong> the site still benefits from a careful edit and occasional updates. Ownership removes rent, not maintenance.</li>
+								</ul>
+							</section>
+
+							<section>
+								<h2>How free hosting works</h2>
+								<p>
+									Hangwork publishes to GitHub Pages, a static-site hosting service available with a free GitHub account.
+									GitHub documents a 1 GB published-site limit and a soft 100 GB monthly bandwidth limit. A considered
+									portfolio of web-sized images normally sits far below those numbers, but full-resolution source files
+									should stay in your archive rather than on the website.
+								</p>
+								<p class="source-note">
+									Read the official <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub Pages overview</a> and <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits">usage limits</a>. The hosting isn't intended for ecommerce or sensitive transactions, which is why Hangwork links out to shops instead of running checkout.
+								</p>
+							</section>
+
+							<section>
+								<h2>Who a no-subscription portfolio suits</h2>
+								<p>
+									It suits artists, photographers, illustrators, and designers who need a public body of work, a short
+									biography, contact details, and links. It is less suited to someone who needs private client galleries,
+									built-in sales, appointment booking, or a large database behind the site.
+								</p>
+								<p>
+									Before choosing any platform, write down the features the portfolio actually needs. If that list is
+									mostly images, project context, biography, contact, and a domain, a focused tool can remove years of
+									recurring cost without removing the parts visitors use.
+								</p>
+							</section>
+						</div>
+					)
+				}
+
+				{
+					isHowTo && (
+						<div class="article-body how-to-body">
+							<section>
+								<p class="standfirst">
+									A strong art portfolio site is a clear edit of your work, not an inventory of everything you've made.
+									Start with the visitor and the artwork. The platform, theme, and effects come after those decisions.
+								</p>
+							</section>
+
+							<ol class="article-steps">
+								<li>
+									<div class="step-number">01</div><div><h2>Choose the job of the site</h2><p>Decide who needs to understand your work: a curator, client, gallery, collaborator, or collector. Then choose one main action for them—view a body of work, read project context, email you, or follow a shop link. That decision keeps the navigation and home page focused.</p></div>
+								</li>
+								<li>
+									<div class="step-number">02</div><div><h2>Select a tight edit</h2><p>Lead with the strongest five to twelve pieces that represent the direction you want more of. Group related work into projects or mediums. Repetition is useful when it shows a body of work; it is noise when several images make the same point. Ask a trusted person to identify where their attention drops.</p></div>
+								</li>
+								<li>
+									<div class="step-number">03</div><div><h2>Prepare images for the web</h2><p>Use accurate color, clean crops, and consistent documentation. Export JPEG or WebP for most photographs and PNG when transparency or crisp graphic edges matter. Keep enough detail for a large screen while avoiding enormous source files. Descriptive filenames also make the working archive easier to manage.</p></div>
+								</li>
+								<li>
+									<div class="step-number">04</div><div><h2>Build a simple structure</h2><p>A useful starting structure is Home, Work or Projects, and About. The home page gives a quick edit; project pages create context; About holds a short biography, location, contact route, social links, and an optional résumé. Add pages only when they give visitors a clearer path through the work.</p></div>
+								</li>
+								<li>
+									<div class="step-number">05</div><div><h2>Write the supporting copy</h2><p>Use specific page titles and concise captions. For individual works, include the title, year, medium, and dimensions when they matter. Write the biography in plain language: what you make, the questions or materials guiding it, and where you work. Put a direct email address or contact route where it can be found.</p></div>
+								</li>
+								<li>
+									<div class="step-number">06</div><div><h2>Design around the artwork</h2><p>Choose one readable type system, a restrained palette, and generous spacing. Keep image sizes and relationships intentional. A freeform canvas can echo a studio wall; a grid can help a large archive scan quickly. Check that every decorative choice supports the work instead of becoming the first thing a visitor remembers.</p></div>
+								</li>
+								<li>
+									<div class="step-number">07</div><div><h2>Add search and sharing details</h2><p>Give every page a distinct browser title and a short description that says whose work it is and what the page contains. Write meaningful image descriptions where the system supports them. Choose a representative sharing image, then preview how the site looks when its link is sent in a message.</p></div>
+								</li>
+								<li>
+									<div class="step-number">08</div><div><h2>Test, publish, and keep editing</h2><p>Open every page on a phone and computer. Check navigation, captions, external links, contact details, and loading speed. Ask someone unfamiliar with the work to find a project and contact you. Publish when the path is clear, then revisit the edit as new work replaces old work.</p></div>
+								</li>
+							</ol>
+
+							<section>
+								<h2>What to gather before you start</h2>
+								<ul>
+									<li>Five to twelve finished pieces for the first edit</li>
+									<li>Web-ready images and a record of titles, dates, materials, and dimensions</li>
+									<li>A short biography and a current email address</li>
+									<li>Links to relevant social profiles, a shop, gallery, or résumé</li>
+									<li>A domain you own, if you want one; an included hangwork.art address also works</li>
+								</ul>
+								<p>When those pieces are ready, follow the <a href={guideUrl}>Hangwork setup guide</a> from blank page through publishing.</p>
+							</section>
+						</div>
+					)
+				}
+
+				<section class="related" aria-labelledby="related-title">
+					<p class="section-label" id="related-title">Keep reading</p>
+					<div class="related-grid">
+						{SEO_ARTICLES.filter((item) => item.slug !== article.slug).map((item) => (
+							<a href={withBase(base, `learn/${item.slug}`)}>
+								<strong>{item.heading}</strong><span>{item.description}</span>
+							</a>
+						))}
+					</div>
+				</section>
+
+				<section class="closing">
+					<h2>Start with the work.</h2>
+					<p>Build and preview a complete portfolio before you pay. Publish when the wall feels right.</p>
+					<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+				</section>
+			</article>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav>
+				<a href={examplesUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments and refunds are handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-1: #edeae4;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* { box-sizing: border-box; }
+	html, body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.65;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible { outline: 2px solid var(--klein); outline-offset: 3px; }
+	.brand { display: inline-flex; align-items: center; text-decoration: none; }
+	.brand-logo { display: block; width: auto; height: 50px; }
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav { display: flex; align-items: baseline; gap: 28px; }
+	.topnav a { color: var(--ink-soft); font-size: 15px; text-decoration: none; white-space: nowrap; }
+	.topnav a:hover { color: var(--ink); }
+	main { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+	.breadcrumbs { display: flex; gap: 8px; margin-top: 48px; color: var(--ink-soft); font-size: 13px; }
+	.breadcrumbs a { color: inherit; text-decoration: none; }
+	.breadcrumbs a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+	article { max-width: 760px; }
+	.article-hero { padding: 52px 0 88px; }
+	.eyebrow, .section-label { margin: 0 0 14px; color: var(--ink-soft); font-size: 13px; font-weight: 500; letter-spacing: 0.02em; }
+	.eyebrow::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 9px; border-radius: 50%; background: var(--klein); vertical-align: 1px; }
+	.article-hero h1 { max-width: 13em; margin: 0 0 24px; font-size: clamp(36px, 6vw, 56px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.12; }
+	.lede { max-width: 42rem; margin: 0 0 20px; color: var(--ink-soft); font-size: 17px; }
+	.article-date { margin: 0; color: var(--ink-soft); font-size: 13px; }
+	.article-body { border-top: 1px solid var(--wall-2); }
+	.article-body > section { padding: 72px 0; border-bottom: 1px solid var(--wall-2); }
+	.article-body h2, .closing h2 { max-width: 23em; margin: 0 0 20px; font-size: clamp(24px, 4vw, 28px); font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; }
+	.article-body p, .closing p { max-width: 43rem; margin: 0 0 20px; }
+	.article-body p:last-child { margin-bottom: 0; }
+	.standfirst { font-size: 19px; line-height: 1.65; }
+	.article-body strong { font-weight: 500; }
+	.article-body a { color: var(--klein); text-underline-offset: 3px; }
+	.article-body a:hover { color: var(--klein-dark); }
+	.article-body ul { max-width: 42rem; margin: 24px 0 0; padding-left: 22px; }
+	.article-body li + li { margin-top: 12px; }
+	.source-note { margin-top: 22px !important; color: var(--ink-soft); font-size: 13px; }
+	.table-wrap { width: 100%; overflow-x: auto; margin: 28px 0 0; }
+	table { width: 100%; min-width: 650px; border-collapse: collapse; font-size: 14px; }
+	th, td { padding: 14px 16px; border-top: 1px solid var(--wall-2); text-align: left; vertical-align: top; }
+	thead th { color: var(--ink-soft); font-size: 13px; font-weight: 500; }
+	tbody th { width: 23%; font-weight: 500; }
+	td { width: 38.5%; }
+	del { color: var(--ink-soft); text-decoration-thickness: 1px; }
+	.article-steps { list-style: none; margin: 0; padding: 0; }
+	.article-steps li { display: grid; grid-template-columns: 54px 1fr; gap: 24px; padding: 64px 0; border-bottom: 1px solid var(--wall-2); }
+	.step-number { color: var(--ink-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
+	.article-steps h2 { margin-top: 0; }
+	.article-steps p { margin-bottom: 0; }
+	.related { padding: 88px 0; }
+	.related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+	.related-grid a { display: flex; flex-direction: column; gap: 10px; padding: 22px; border: 1px solid var(--wall-2); border-radius: 4px; color: var(--ink); text-decoration: none; }
+	.related-grid a:hover { background: var(--wall-3); }
+	.related-grid strong { font-weight: 500; line-height: 1.4; }
+	.related-grid span { color: var(--ink-soft); font-size: 13px; line-height: 1.55; }
+	.closing { padding: 88px 0 104px; border-top: 1px solid var(--wall-2); }
+	.btn { display: inline-block; padding: 10px 22px; border: 1px solid transparent; border-radius: 4px; font-size: 15px; font-weight: 500; text-decoration: none; }
+	.btn-primary { background: var(--klein); color: var(--paper); }
+	.btn-primary:hover { background: var(--klein-dark); }
+	.footer { max-width: 1100px; margin: 0 auto; border-top: 1px solid var(--wall-2); padding: 40px 32px 56px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; color: var(--ink-soft); font-size: 14px; }
+	.footer nav { display: flex; gap: 24px; }
+	.footer a { color: var(--ink-soft); text-decoration: none; }
+	.footer a:hover { color: var(--ink); }
+	.footer .brand { margin-bottom: 2px; }
+	.footer .brand-logo { height: 40px; }
+	.footer-note { font-size: 13px; }
+	@media (max-width: 700px) {
+		.topbar { padding: 20px; }
+		.topnav { gap: 18px; }
+		main { padding: 0 20px; }
+		.breadcrumbs { margin-top: 28px; }
+		.article-hero { padding: 44px 0 64px; }
+		.article-body > section, .closing, .related { padding: 64px 0; }
+		.article-steps li { grid-template-columns: 38px 1fr; gap: 14px; padding: 52px 0; }
+		.related-grid { grid-template-columns: 1fr; }
+		.footer { padding: 32px 20px 44px; }
+	}
+	@media (max-width: 460px) {
+		.topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
+		.brand-logo { height: 44px; }
+		.footer nav { flex-wrap: wrap; gap: 12px 20px; }
+	}
+</style>

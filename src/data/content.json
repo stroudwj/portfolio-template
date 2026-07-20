@@ -2,7 +2,8 @@
   "site": {
     "name": "Your Name",
     "description": "Portfolio",
-    "favicon": "favicon.svg"
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
   },
   "theme": {
     "backgroundColor": "#fafafa",

@@ -7,11 +7,12 @@ import type { APIRoute } from 'astro';
 import { content } from '../lib/content';
 import { withBase } from '../portfolio/types';
 import { IS_PRODUCT_SITE } from '../lib/productSite';
+import { SEO_ARTICLES } from '../lib/seoArticles';
 
 export const GET: APIRoute = () => {
 	const site = import.meta.env.SITE;
 	const base = import.meta.env.BASE_URL;
-	// Product site: the landing, examples, setup guide, and FAQ — /demo and /editor are noindex.
+	// Product site: the landing, examples, guides, and FAQ — /demo and /editor are noindex.
 	// Published sites: every page, including nested sub-pages (keys are paths).
 	const pagePaths = Object.keys(content.pages).map((key) => (key === 'home' ? '' : key));
 	const locs = IS_PRODUCT_SITE
@@ -20,6 +21,7 @@ export const GET: APIRoute = () => {
 				new URL(withBase(base, 'examples'), site).href,
 				new URL(withBase(base, 'guide'), site).href,
 				new URL(withBase(base, 'faq'), site).href,
+				...SEO_ARTICLES.map((article) => new URL(withBase(base, `learn/${article.slug}`), site).href),
 			]
 		: pagePaths.map((path) => new URL(withBase(base, path && `${path}/`), site).href);
 	const urls = locs.map((loc) => `\t<url><loc>${loc}</loc></url>`).join('\n');

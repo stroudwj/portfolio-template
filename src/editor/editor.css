@@ -359,6 +359,17 @@ select.select-input {
 	font-size: 13px;
 	margin: 8px 0 0;
 }
+.footer-field-meta {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+.footer-symbol-button {
+	flex-shrink: 0;
+	padding: 4px 9px;
+	font-size: 13px;
+}
 
 /* ---- Cards (gallery/project/social rows) ---- */
 .card-list {

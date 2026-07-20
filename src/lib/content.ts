@@ -6,6 +6,9 @@
 // the build fails loudly if the data drifts from what the pages expect.
 import data from '../data/content.json';
 
+/** Credit seeded into every new portfolio. Artists can edit or remove it in Extras. */
+export const DEFAULT_FOOTER = 'Made with hangwork.art';
+
 export interface Site {
 	/** Owner name — the single source of truth, reused in the logo and every page title. */
 	name: string;
