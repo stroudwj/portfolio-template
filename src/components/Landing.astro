@@ -9,6 +9,7 @@ import { withBase } from '../portfolio/types';
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
 const demoUrl = withBase(base, 'demo/');
+const faqUrl = withBase(base, 'faq');
 const title = 'Hangwork — portfolio websites for visual artists';
 const description =
 	'A portfolio site for visual artists. One payment, no subscription, no platform holding your work hostage.';
@@ -48,7 +49,14 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 
 		<main>
 			<section class="hero">
-				<h1>Hang your work.<br />Own it forever.</h1>
+				<!-- "Own it forever" links to its proof — what happens if Hangwork shuts down. -->
+				<h1>
+					Hang your work.<br /><a
+						class="own-link"
+						href={`${faqUrl}#if-hangwork-shuts-down`}
+						title="What happens if Hangwork shuts down">Own it forever.</a
+					>
+				</h1>
 				<p class="lede">
 					A portfolio site for visual artists. One payment, no subscription, no platform holding
 					your work hostage.
@@ -91,6 +99,9 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 					ready to publish, and your site is yours to keep.
 				</p>
 				<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+				<p class="pricing-faq">
+					<a href={`${faqUrl}#what-it-costs`}>Questions about pricing?</a>
+				</p>
 			</section>
 		</main>
 
@@ -98,6 +109,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 			<a class="brand" href={withBase(base)}>hangwork<span class="brand-accent">.art</span></a>
 			<nav>
 				<a href={demoUrl}>Examples</a>
+				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>
 				<a href="mailto:william.stroud100@gmail.com">Support</a>
 			</nav>
@@ -217,6 +229,18 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		letter-spacing: -0.02em;
 		margin: 0 0 24px;
 	}
+	/* Stays part of the headline — ink, not Klein — but underlines on hover/focus to
+	   signal it leads to the proof (the FAQ's "if Hangwork shuts down" answer). */
+	.own-link {
+		color: inherit;
+		text-decoration: none;
+	}
+	.own-link:hover,
+	.own-link:focus-visible {
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 6px;
+	}
 	.lede {
 		font-size: 17px;
 		color: var(--ink-soft);
@@ -276,6 +300,19 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		font-weight: 500;
 		letter-spacing: -0.02em;
 		margin: 0 0 20px;
+	}
+	.pricing-faq {
+		margin: 20px 0 0;
+		font-size: 15px;
+	}
+	.pricing-faq a {
+		color: var(--ink-soft);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		text-decoration-color: var(--wall-2);
+	}
+	.pricing-faq a:hover {
+		color: var(--ink);
 	}
 
 	.footer {

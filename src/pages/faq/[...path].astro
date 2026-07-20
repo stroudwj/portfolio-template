@@ -1,0 +1,490 @@
+---
+// The product site's FAQ, at /faq. Product-site only — buyer repos emit no /faq
+// (getStaticPaths returns [] on the wrong side, same gate as demo/[...page].astro).
+// A standalone document like Landing.astro: it deliberately does NOT use Layout.astro
+// (that carries the portfolio's sidebar chrome + theme). Styles + tokens are its own,
+// copied from Landing so the two marketing pages read as one site.
+//
+// Voice + rules live in this file's copy: sentence case, no exclamation marks, no
+// "simply/just/easy", and never the words repo/repository/git/commit/deploy — say
+// "your account" and "your site's files". Straight answers are the brand; keep the
+// honest caveats (see #if-hangwork-shuts-down, #unlimited-images).
+import { withBase } from '../../portfolio/types';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	// A single route: the rest param resolves to the parent, /faq.
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const demoUrl = withBase(base, 'demo/');
+const faqUrl = withBase(base, 'faq');
+const supportEmail = 'william.stroud100@gmail.com';
+// The written setup guide (numbered build-and-publish steps, with screenshots).
+const guideUrl = 'https://github.com/stroudwj/portfolio-template#readme';
+
+const title = 'Common questions — Hangwork';
+const description =
+	'Straight answers about how Hangwork works, what you own, and what it costs.';
+const canonicalUrl = Astro.site ? new URL(withBase(base, 'faq'), Astro.site).href : undefined;
+
+// One source of truth: `a` is the plain-text answer used for both the visible copy and
+// the JSON-LD below (so structured data always matches the page). `aHtml` overrides the
+// visible render only where an answer needs inline links; its plain twin stays in `a`.
+interface QA {
+	slug: string;
+	q: string;
+	a: string;
+	aHtml?: string;
+}
+interface Group {
+	heading: string;
+	items: QA[];
+}
+
+const groups: Group[] = [
+	{
+		heading: 'The basics',
+		items: [
+			{
+				slug: 'what-is-hangwork',
+				q: 'What is Hangwork?',
+				a: "Hangwork is a portfolio site builder for visual artists. You design your site in our editor, and it's published as a fast, plain-file website. One payment, no subscription. It's a place to show your work, not a shop.",
+			},
+			{
+				slug: 'do-i-need-to-code',
+				q: 'Do I need to know how to code?',
+				a: 'No. The editor is visual: arrange your pieces on a freeform canvas or a grid, choose your fonts and colors, add subpages. If you can hang work on a wall, you can build a site here.',
+			},
+			{
+				slug: 'why-github-account',
+				q: 'Why do I need a GitHub account?',
+				a: "Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and we walk you through every step with screenshots.",
+			},
+			{
+				slug: 'my-web-address',
+				q: "What's my web address?",
+				a: "You get yourname.hangwork.art at no extra cost, and you pick the name — it doesn't have to match your GitHub username. If you already own a domain, you can connect that instead.",
+			},
+		],
+	},
+	{
+		heading: 'Ownership',
+		items: [
+			{
+				slug: 'if-i-stop-paying',
+				q: 'What happens if I stop paying?',
+				a: "Nothing, because there's nothing to stop paying. There's no subscription and no renewal. Your site stays up.",
+			},
+			{
+				slug: 'if-hangwork-shuts-down',
+				q: 'What happens if Hangwork shuts down?',
+				a: "Your site keeps working. It lives in your own account on GitHub's infrastructure, not on our servers, so you keep the site and all its files. The editor might stop getting updates, but nothing you've published goes offline. This is the exact situation Hangwork is built to survive.",
+			},
+			{
+				slug: 'who-owns-my-work',
+				q: 'Who owns my images and my site?',
+				a: "You do, entirely. We never claim rights to your work, we don't watermark it, and we don't train anything on it. Your files sit in your own account, and you can download them anytime.",
+			},
+			{
+				slug: 'can-i-leave',
+				q: 'Can I leave?',
+				a: "Yes, and there's nothing to cancel. Your site is a folder of ordinary web files in your account, so you can take it to any host whenever you want.",
+			},
+		],
+	},
+	{
+		heading: 'Limits and fine print',
+		items: [
+			{
+				slug: 'unlimited-images',
+				q: 'Is it really unlimited images?',
+				a: "There's no image count and no fee that grows with use, but the free hosting has real limits: each file must be under 100 MB, sites work best under about 1 GB total, and very high-traffic sites — around 100 GB of bandwidth a month, far more than a portfolio ever sees — can be throttled. For nearly every artist this is effectively unlimited. If you're posting hundreds of full-resolution TIFFs, export them for web first, and embed long videos from YouTube or Vimeo rather than uploading them.",
+			},
+			{
+				slug: 'selling-work',
+				q: "Why can't I sell work directly on my site?",
+				a: "Two reasons, both honest: the free hosting's terms don't allow e-commerce, and building checkout would mean subscriptions and platform cuts — the things Hangwork exists to avoid. You can link out to your shop on Etsy, Big Cartel, or your gallery, list an email for commissions and inquiries, and add donation or crowdfunding links.",
+			},
+			{
+				slug: 'is-my-site-private',
+				q: 'Is my site private?',
+				a: "Published sites are public — that's what a portfolio is for. Drafts you haven't published stay hidden. If you need password-protected client galleries, Hangwork isn't the right tool for that part.",
+			},
+		],
+	},
+	{
+		heading: 'Money',
+		items: [
+			{
+				slug: 'what-it-costs',
+				q: 'How much does it cost, and what does the fee include?',
+				a: '$19, once. That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No renewal, and no features held back for a higher tier.',
+			},
+			{
+				slug: 'why-one-payment',
+				q: 'Why one payment instead of a subscription?',
+				a: "Because your site's hosting doesn't cost us anything each month — it lives in your account, not ours. Subscription builders charge rent forever and take your site down when you stop paying. We charge once, for the tool.",
+			},
+			{
+				slug: 'refund-policy',
+				q: "What's your refund policy?",
+				a: "If Hangwork isn't for you, email us within 14 days of buying for a full refund, no questions asked.",
+			},
+			{
+				slug: 'getting-help',
+				q: "What do I do if I'm stuck?",
+				a: `Email ${supportEmail} and a real person, not a bot, usually replies within one business day. The setup guide covers most questions, with a screenshot for every step.`,
+				aHtml: `Email <a href="mailto:${supportEmail}">${supportEmail}</a> and a real person, not a bot, usually replies within one business day. The <a href="${guideUrl}">setup guide</a> covers most questions, with a screenshot for every step.`,
+			},
+		],
+	},
+];
+
+// FAQPage structured data, built from the same `groups` so it can't drift from the copy.
+const faqLd = {
+	'@context': 'https://schema.org',
+	'@type': 'FAQPage',
+	mainEntity: groups.flatMap((group) =>
+		group.items.map((item) => ({
+			'@type': 'Question',
+			name: item.q,
+			acceptedAnswer: { '@type': 'Answer', text: item.a },
+		}))
+	),
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="icon" type="image/svg+xml" href={withBase(base, 'favicon.svg')} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+		<script type="application/ld+json" set:html={JSON.stringify(faqLd)} is:inline />
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl}>hangwork<span class="brand-accent">.art</span></a>
+			<nav class="topnav">
+				<a href={`${homeUrl}#how`}>How it works</a>
+				<a href={demoUrl}>Examples</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="faq-hero">
+				<h1>Common questions</h1>
+				<p class="lede">{description}</p>
+			</section>
+
+			{
+				groups.map((group) => (
+					<section class="faq-group">
+						<h2 class="group-h">{group.heading}</h2>
+						<dl class="qa-list">
+							{group.items.map((item) => (
+								<div class="qa">
+									<dt class="q" id={item.slug}>
+										<a class="q-anchor" href={`#${item.slug}`}>
+											{item.q}
+										</a>
+									</dt>
+									{item.aHtml ? (
+										<dd class="a" set:html={item.aHtml} />
+									) : (
+										<dd class="a">{item.a}</dd>
+									)}
+								</div>
+							))}
+						</dl>
+					</section>
+				))
+			}
+
+			<p class="closing">
+				Something we didn't answer? <a href={`mailto:${supportEmail}`}>Ask us</a>.
+			</p>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl}>hangwork<span class="brand-accent">.art</span></a>
+			<nav>
+				<a href={demoUrl}>Examples</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments and refunds are handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+			sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible {
+		outline: 2px solid var(--klein);
+		outline-offset: 3px;
+	}
+
+	.brand {
+		font-size: 16px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.brand-accent {
+		color: var(--klein);
+	}
+
+	.topbar {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav {
+		display: flex;
+		align-items: baseline;
+		gap: 28px;
+	}
+	.topnav a {
+		color: var(--ink-soft);
+		text-decoration: none;
+		font-size: 15px;
+		white-space: nowrap;
+	}
+	.topnav a:hover {
+		color: var(--ink);
+	}
+
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 0 32px;
+	}
+
+	/* Prose reads best in a narrow column, left-aligned within the wider chrome. */
+	.faq-hero {
+		max-width: 40rem;
+		padding: 56px 0 8px;
+	}
+	.faq-hero h1 {
+		font-size: clamp(30px, 5vw, 44px);
+		font-weight: 500;
+		line-height: 1.14;
+		letter-spacing: -0.02em;
+		margin: 0 0 18px;
+	}
+	.lede {
+		font-size: 17px;
+		color: var(--ink-soft);
+		margin: 0;
+		max-width: 34em;
+	}
+
+	.faq-group {
+		max-width: 44rem;
+		padding: 56px 0;
+		border-top: 1px solid var(--wall-2);
+	}
+	.faq-group:first-of-type {
+		border-top: none;
+		padding-top: 40px;
+	}
+	.group-h {
+		font-size: 15px;
+		font-weight: 500;
+		letter-spacing: 0.01em;
+		color: var(--ink-soft);
+		margin: 0 0 8px;
+	}
+
+	.qa-list {
+		margin: 0;
+	}
+	.qa {
+		padding: 24px 0;
+		border-top: 1px solid var(--wall-3);
+	}
+	.q {
+		/* Deep-link target: keep the heading clear of the viewport top on jump. */
+		scroll-margin-top: 88px;
+		position: relative;
+		margin: 0 0 8px;
+	}
+	.q-anchor {
+		font-size: 19px;
+		font-weight: 500;
+		line-height: 1.35;
+		letter-spacing: -0.01em;
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.q-anchor:hover {
+		text-decoration: underline;
+		text-decoration-color: var(--wall-2);
+		text-underline-offset: 4px;
+	}
+	/* A quiet # appears on hover/focus so the per-question link is discoverable. */
+	.q-anchor::before {
+		content: '#';
+		position: absolute;
+		left: -1.15em;
+		color: var(--klein);
+		opacity: 0;
+		transition: opacity 0.12s ease;
+	}
+	.q:hover .q-anchor::before,
+	.q-anchor:focus-visible::before {
+		opacity: 1;
+	}
+	.a {
+		margin: 0;
+		max-width: 36em;
+		color: var(--ink);
+	}
+	.a a {
+		color: var(--klein);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.a a:hover {
+		color: var(--klein-dark);
+	}
+
+	.closing {
+		max-width: 44rem;
+		padding: 48px 0 8px;
+		border-top: 1px solid var(--wall-2);
+		color: var(--ink-soft);
+		font-size: 15px;
+	}
+	.closing a {
+		color: var(--klein);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.closing a:hover {
+		color: var(--klein-dark);
+	}
+
+	.footer {
+		max-width: 1100px;
+		margin: 0 auto;
+		border-top: 1px solid var(--wall-2);
+		padding: 40px 32px 56px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+		font-size: 14px;
+		color: var(--ink-soft);
+		margin-top: 40px;
+	}
+	.footer nav {
+		display: flex;
+		gap: 24px;
+		flex-wrap: wrap;
+	}
+	.footer a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.footer a:hover {
+		color: var(--ink);
+	}
+	.footer .brand {
+		color: var(--ink);
+	}
+	.footer-note {
+		font-size: 13px;
+	}
+
+	@media (max-width: 700px) {
+		.topbar {
+			padding: 20px;
+		}
+		.topnav {
+			gap: 20px;
+		}
+		main {
+			padding: 0 20px;
+		}
+		.faq-hero {
+			padding: 40px 0 8px;
+		}
+		.faq-group {
+			padding: 44px 0;
+		}
+		.footer {
+			padding: 32px 20px 44px;
+		}
+		/* No room for the hanging # in a tight column. */
+		.q-anchor::before {
+			display: none;
+		}
+	}
+
+	@media (max-width: 460px) {
+		.topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 14px;
+		}
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			scroll-behavior: smooth;
+		}
+	}
+</style>
