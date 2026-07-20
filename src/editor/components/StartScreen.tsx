@@ -30,7 +30,7 @@ function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t
 	);
 }
 
-export default function StartScreen() {
+export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft } = useEditor();
 	const gh = useGitHub();
 	const [showConnect, setShowConnect] = useState(false);
@@ -63,8 +63,8 @@ export default function StartScreen() {
 	return (
 		<div className="start">
 			<div className="start-card">
-				<h1>
-					hangwork<span className="brand-dot">.</span>
+				<h1 className="start-brand">
+					<img className="start-brand-logo" src={brandLockup} alt="Hangwork" />
 				</h1>
 
 				{!connected && gh.error && <p className="field-error start-error">{gh.error}</p>}

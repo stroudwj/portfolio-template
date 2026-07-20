@@ -10,6 +10,7 @@ const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
 const demoUrl = withBase(base, 'demo/');
 const faqUrl = withBase(base, 'faq');
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const title = 'Hangwork — portfolio websites for visual artists';
 const description =
 	'A portfolio site for visual artists. One payment, no subscription, no platform holding your work hostage.';
@@ -39,7 +40,9 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 	</head>
 	<body>
 		<header class="topbar">
-			<a class="brand" href={withBase(base)}>hangwork<span class="brand-accent">.art</span></a>
+			<a class="brand" href={withBase(base)} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
 			<nav class="topnav">
 				<a href="#how">How it works</a>
 				<a href="#examples">Examples</a>
@@ -106,7 +109,9 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		</main>
 
 		<footer class="footer">
-			<a class="brand" href={withBase(base)}>hangwork<span class="brand-accent">.art</span></a>
+			<a class="brand" href={withBase(base)} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
 			<nav>
 				<a href={demoUrl}>Examples</a>
 				<a href={faqUrl}>Questions</a>
@@ -150,19 +155,19 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 	}
 
 	.brand {
-		font-size: 16px;
-		font-weight: 500;
-		letter-spacing: -0.01em;
-		color: var(--ink);
+		display: inline-flex;
+		align-items: center;
 		text-decoration: none;
 	}
-	.brand-accent {
-		color: var(--klein);
+	.brand-logo {
+		display: block;
+		width: auto;
+		height: 40px;
 	}
 
 	.topbar {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
 		max-width: 1100px;
@@ -339,7 +344,10 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		color: var(--ink);
 	}
 	.footer .brand {
-		color: var(--ink);
+		margin-bottom: 2px;
+	}
+	.footer .brand-logo {
+		height: 36px;
 	}
 	.footer-note {
 		font-size: 13px;

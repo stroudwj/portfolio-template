@@ -47,13 +47,18 @@
 	border-bottom: 1px solid var(--wall-2);
 	flex-shrink: 0;
 }
-.editor-topbar .brand {
-	font-weight: 500;
-	font-size: 15px;
-	letter-spacing: -0.01em;
+.editor-brand {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
 }
-.brand-dot {
-	color: var(--klein);
+.editor-brand picture,
+.editor-brand-logo {
+	display: block;
+}
+.editor-brand-logo {
+	width: auto;
+	height: 34px;
 }
 .topbar-spacer {
 	flex: 1;
@@ -870,11 +875,16 @@ a.resume-name:hover {
 	max-width: 480px;
 	text-align: center;
 }
-.start-card h1 {
+.start-brand {
 	margin: 0 0 10px;
-	font-size: 24px;
-	font-weight: 500;
-	letter-spacing: -0.01em;
+	line-height: 0;
+	display: flex;
+	justify-content: center;
+}
+.start-brand-logo {
+	display: block;
+	width: min(272px, 100%);
+	height: auto;
 }
 .start-card p {
 	color: var(--ink-soft);

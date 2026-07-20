@@ -18,6 +18,7 @@ import { onShowEditorTab } from './components/ui/controls';
 import { useLicense } from './components/useLicense';
 import { shouldResumePublish } from './lib/license/flow';
 import { collectIssues } from './lib/validation';
+import { withBase } from '../portfolio/types';
 import './editor.css';
 
 /** The editing column's categories. Panes stay mounted (CSS-hidden) so section
@@ -126,6 +127,8 @@ function Shell({ base }: { base: string }) {
 		return EDITOR_TABS.some((t) => t.id === saved) ? (saved as EditorTab) : 'content';
 	});
 	const issues = useMemo(() => (doc ? collectIssues(doc) : []), [doc]);
+	const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+	const brandMark = withBase(base, 'assets/brand/hangwork-mark.svg');
 
 	const pickTab = (next: EditorTab) => {
 		setTab(next);
@@ -154,7 +157,7 @@ function Shell({ base }: { base: string }) {
 		if (shouldResumePublish()) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
 
-	if (!doc) return <StartScreen />;
+	if (!doc) return <StartScreen brandLockup={brandLockup} />;
 
 	const resetAll = () => {
 		if (confirm('Reset the editor? This permanently deletes your draft and every image saved in this browser.'))
@@ -164,9 +167,12 @@ function Shell({ base }: { base: string }) {
 	return (
 		<div className="editor">
 			<header className="editor-topbar">
-				<span className="brand">
-					hangwork<span className="brand-dot">.</span>
-				</span>
+				<a className="editor-brand" href={withBase(base)} aria-label="Hangwork home">
+					<picture>
+						<source media="(max-width: 520px)" srcSet={brandMark} />
+						<img className="editor-brand-logo" src={brandLockup} alt="Hangwork" />
+					</picture>
+				</a>
 				<div className="mobile-toggle">
 					<button type="button" className={mobileView === 'edit' ? 'active' : ''} onClick={() => setMobileView('edit')}>
 						Edit
