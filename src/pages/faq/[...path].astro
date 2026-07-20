@@ -24,10 +24,9 @@ const homeUrl = withBase(base);
 const editorUrl = withBase(base, 'editor/');
 const demoUrl = withBase(base, 'demo/');
 const faqUrl = withBase(base, 'faq');
+const guideUrl = withBase(base, 'guide');
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const supportEmail = 'william.stroud100@gmail.com';
-// The written setup guide (numbered build-and-publish steps, with screenshots).
-const guideUrl = 'https://github.com/stroudwj/portfolio-template#readme';
 
 const title = 'Common questions — Hangwork';
 const description =
@@ -71,7 +70,8 @@ const groups: Group[] = [
 			{
 				slug: 'why-github-account',
 				q: 'Why do I need a GitHub account?',
-				a: "Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and we walk you through every step with screenshots.",
+				a: "Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and the setup guide walks you through it.",
+				aHtml: `Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and the <a href="${guideUrl}#claim-your-space">setup guide</a> walks you through it.`,
 			},
 			{
 				slug: 'my-web-address',
@@ -147,8 +147,8 @@ const groups: Group[] = [
 			{
 				slug: 'getting-help',
 				q: "What do I do if I'm stuck?",
-				a: `Email ${supportEmail} and a real person, not a bot, usually replies within one business day. The setup guide covers most questions, with a screenshot for every step.`,
-				aHtml: `Email <a href="mailto:${supportEmail}">${supportEmail}</a> and a real person, not a bot, usually replies within one business day. The <a href="${guideUrl}">setup guide</a> covers most questions, with a screenshot for every step.`,
+				a: `Email ${supportEmail} and a real person, not a bot, usually replies within one business day. The setup guide walks through building, publishing, updating, and using your own domain.`,
+				aHtml: `Email <a href="mailto:${supportEmail}">${supportEmail}</a> and a real person, not a bot, usually replies within one business day. The <a href="${guideUrl}">setup guide</a> walks through building, publishing, updating, and using your own domain.`,
 			},
 		],
 	},
@@ -197,8 +197,8 @@ const faqLd = {
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav class="topnav">
+				<a href={guideUrl}>Setup guide</a>
 				<a href={`${homeUrl}#how`}>How it works</a>
-				<a href={demoUrl}>Examples</a>
 				<a href={`${homeUrl}#pricing`}>Pricing</a>
 			</nav>
 		</header>
@@ -244,6 +244,7 @@ const faqLd = {
 			</a>
 			<nav>
 				<a href={demoUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>
 				<a href={`mailto:${supportEmail}`}>Support</a>

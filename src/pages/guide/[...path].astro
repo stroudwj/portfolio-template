@@ -1,0 +1,768 @@
+---
+// The product site's setup guide, at /guide. Published artist sites do not emit
+// this route, matching the same product-only gate used by /faq and /demo.
+import { withBase } from '../../portfolio/types';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const demoUrl = withBase(base, 'demo/');
+const guideUrl = withBase(base, 'guide');
+const faqUrl = withBase(base, 'faq');
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+const supportEmail = 'william.stroud100@gmail.com';
+
+const title = 'Setup guide — Hangwork';
+const description =
+	'Build, publish, and update your Hangwork portfolio with this step-by-step setup guide.';
+const canonicalUrl = Astro.site ? new URL(withBase(base, 'guide'), Astro.site).href : undefined;
+
+const guideLd = {
+	'@context': 'https://schema.org',
+	'@type': 'HowTo',
+	name: 'How to set up a Hangwork portfolio',
+	description,
+	step: [
+		{
+			'@type': 'HowToStep',
+			name: 'Choose a starting point',
+			text: 'Open the Hangwork editor and choose a template or start from blank.',
+		},
+		{
+			'@type': 'HowToStep',
+			name: 'Add your work',
+			text: 'Add your name, images, project details, biography, contact details, and links.',
+		},
+		{
+			'@type': 'HowToStep',
+			name: 'Shape your wall',
+			text: 'Arrange your pages and images, then choose the type, colors, and layout that support your work.',
+		},
+		{
+			'@type': 'HowToStep',
+			name: 'Claim your space',
+			text: 'Connect a free GitHub account so the website and its files are stored in an account you own.',
+		},
+		{
+			'@type': 'HowToStep',
+			name: 'Publish your website',
+			text: 'Choose your included hangwork.art address and publish the finished portfolio.',
+		},
+	],
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="icon" type="image/svg+xml" href={withBase(base, 'favicon.svg')} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+		<script type="application/ld+json" set:html={JSON.stringify(guideLd)} is:inline />
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav class="topnav" aria-label="Main navigation">
+				<a class="current" href={guideUrl} aria-current="page">Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="guide-hero">
+				<p class="eyebrow">Setup guide</p>
+				<h1>From blank page to a live portfolio.</h1>
+				<p class="lede">
+					Build at your pace, preview every change, and publish to a space you own. You can stop
+					anytime — your draft stays saved in this browser.
+				</p>
+				<a class="btn btn-primary" href={editorUrl}>Open the editor</a>
+			</section>
+
+			<div class="guide-layout">
+				<aside class="contents" aria-label="On this page">
+					<p class="contents-title">On this page</p>
+					<ol>
+						<li><a href="#before-you-begin">Before you begin</a></li>
+						<li><a href="#choose-a-starting-point">Choose a starting point</a></li>
+						<li><a href="#add-your-work">Add your work</a></li>
+						<li><a href="#shape-your-wall">Shape your wall</a></li>
+						<li><a href="#claim-your-space">Claim your space</a></li>
+						<li><a href="#publish">Publish</a></li>
+						<li><a href="#update-your-site">Update your site</a></li>
+						<li><a href="#custom-domain">Use your own domain</a></li>
+						<li><a href="#troubleshooting">If something gets stuck</a></li>
+					</ol>
+				</aside>
+
+				<article class="guide-body">
+					<section class="prep" id="before-you-begin">
+						<p class="section-label">Before you begin</p>
+						<h2>Bring the work. Hangwork handles the site.</h2>
+						<p>You don't need to prepare everything before you start. These three things are enough:</p>
+						<ul class="checklist">
+							<li>
+								<strong>A few finished pieces.</strong> JPG, PNG, GIF, and WebP images work. Exporting
+								large originals for the web will make your pages load faster.
+							</li>
+							<li>
+								<strong>A short introduction.</strong> Your name, a sentence or two about your practice,
+								and the email or social links where people can reach you.
+							</li>
+							<li>
+								<strong>A free account for your site.</strong> You'll connect it when you publish, so you
+								can begin building before you have one.
+							</li>
+						</ul>
+						<div class="note">
+							<strong>Drafts stay on this device.</strong> Until you publish, return in the same browser
+							to continue where you left off.
+						</div>
+					</section>
+
+					<section class="step" id="choose-a-starting-point">
+						<div class="step-number" aria-hidden="true">01</div>
+						<div class="step-copy">
+							<p class="section-label">Choose a starting point</p>
+							<h2>Start with a wall, not a settings screen.</h2>
+							<p>
+								Open the editor and choose the starting point closest to your work. A template gives
+								you a complete structure to edit; <strong>Start from blank</strong> gives you an empty
+								portfolio.
+							</p>
+							<p>
+								Nothing is permanent. You can change the type, colors, layout, and page order later.
+							</p>
+							<div class="click-path" aria-label="Click path">
+								<span>Editor</span><i aria-hidden="true">→</i><span>Choose a template</span>
+							</div>
+						</div>
+					</section>
+
+					<section class="step" id="add-your-work">
+						<div class="step-number" aria-hidden="true">02</div>
+						<div class="step-copy">
+							<p class="section-label">Add your work</p>
+							<h2>Put the art in first.</h2>
+							<p>
+								In <strong>Content</strong>, add your name, profile image, biography, and contact
+								details. Open a page to upload pieces, write captions, add video links, or link a work
+								to a project page.
+							</p>
+							<ul>
+								<li>Drag pieces to change their order.</li>
+								<li>Add pages for bodies of work, exhibitions, or a separate about page.</li>
+								<li>Use the preview beside the controls to check every change as you make it.</li>
+							</ul>
+							<p class="quiet">
+								You can leave fields empty. Before publishing, Hangwork points out unfinished details
+								without stopping you from going live.
+							</p>
+						</div>
+					</section>
+
+					<section class="step" id="shape-your-wall">
+						<div class="step-number" aria-hidden="true">03</div>
+						<div class="step-copy">
+							<p class="section-label">Shape your wall</p>
+							<h2>Make the presentation support the work.</h2>
+							<p>
+								Use <strong>Theme</strong> for type, color, and the overall page layout. Use
+								<strong>Extras</strong> for social links, your signature, and the footer. The
+								<strong>Sharing</strong> tab controls the title, description, and image people see when
+								your site appears in search results or a message.
+							</p>
+							<div class="note">
+								<strong>Check both views.</strong> On a phone, switch between <strong>Edit</strong> and
+								<strong>Preview</strong>. On a larger screen, the preview stays beside the editor.
+							</div>
+						</div>
+					</section>
+
+					<section class="step" id="claim-your-space">
+						<div class="step-number" aria-hidden="true">04</div>
+						<div class="step-copy">
+							<p class="section-label">Claim your space</p>
+							<h2>Connect the account that will hold your site.</h2>
+							<p>
+								Open <strong>Publish</strong> and choose <strong>Connect</strong>. Hangwork uses a free
+								GitHub account to store your website and its files in your name. If you don't have an
+								account, you can create one during this step.
+							</p>
+							<ol>
+								<li>Choose <strong>Continue with GitHub</strong>.</li>
+								<li>Approve the connection on GitHub.</li>
+								<li>You'll return to Hangwork with your draft intact.</li>
+							</ol>
+							<div class="click-path" aria-label="Click path">
+								<span>Publish</span><i aria-hidden="true">→</i><span>Connect</span><i aria-hidden="true">→</i
+								><span>Continue with GitHub</span>
+							</div>
+							<p class="quiet">
+								The connection is kept in this browser and can be removed with <strong>Sign out</strong>.
+								If you prefer, the connection window also has an advanced personal-access-key option.
+							</p>
+						</div>
+					</section>
+
+					<section class="step" id="publish">
+						<div class="step-number" aria-hidden="true">05</div>
+						<div class="step-copy">
+							<p class="section-label">Publish</p>
+							<h2>Choose your address and open the doors.</h2>
+							<p>
+								Choose <strong>Publish website</strong>. If you haven't bought Hangwork yet, the
+								one-time checkout appears here. Your draft stays saved while you complete it.
+							</p>
+							<p>
+								Next, pick the name in your included address — for example,
+								<code>yourname.hangwork.art</code>. Use letters, numbers, and dashes. Hangwork checks
+								that the name is available before it publishes.
+							</p>
+							<ol>
+								<li>Review any unfinished details. You can fix them or publish anyway.</li>
+								<li>Choose <strong>Publish</strong> and keep the window open while the steps finish.</li>
+								<li>When <strong>Your site is live</strong> appears, open or copy the address.</li>
+							</ol>
+							<div class="note">
+								<strong>Give a new site a moment.</strong> The first build usually takes about a minute.
+								A new hangwork.art address can take a few more minutes to finish its secure connection.
+							</div>
+						</div>
+					</section>
+
+					<section class="follow-up" id="update-your-site">
+						<p class="section-label">After publishing</p>
+						<h2>Come back anytime to rehang.</h2>
+						<p>
+							On the same device, open the editor and continue your saved draft. On a different
+							device, connect the same account and choose <strong>Edit my published site</strong>.
+							Hangwork brings your live text and images back into the editor.
+						</p>
+						<p>
+							Make your changes, open <strong>Publish</strong>, and choose <strong>Publish update</strong>.
+							Your address stays the same.
+						</p>
+					</section>
+
+					<section class="follow-up" id="custom-domain">
+						<p class="section-label">Optional</p>
+						<h2>Use a domain you already own.</h2>
+						<p>
+							Publish once before connecting your own domain. Then open <strong>Publish</strong>, choose
+							<strong>Use a custom domain</strong>, and enter an address such as
+							<code>www.yourname.com</code>.
+						</p>
+						<p>
+							Hangwork will show the exact DNS record to add where you bought the domain. Copy that
+							record, wait for the change to reach the web, then choose <strong>Check DNS</strong>.
+							Your included hangwork.art address remains available if you disconnect the domain later.
+						</p>
+						<p class="quiet">
+							Domain changes often appear within a few minutes, but can take up to an hour.
+						</p>
+					</section>
+
+					<section class="troubleshooting" id="troubleshooting">
+						<p class="section-label">If something gets stuck</p>
+						<h2>Start with the small checks.</h2>
+						<dl>
+							<div>
+								<dt>My draft isn't here.</dt>
+								<dd>
+									Unpublished drafts stay in the browser where you made them. Return on that device, or
+									connect your account and load a site you've already published.
+								</dd>
+							</div>
+							<div>
+								<dt>My address says the site isn't ready.</dt>
+								<dd>
+									Wait a minute and refresh. If the browser mentions privacy or HTTPS on a brand-new
+									hangwork.art address, give the secure connection a few more minutes.
+								</dd>
+							</div>
+							<div>
+								<dt>The website name is taken.</dt>
+								<dd>
+									Try a small variation using your full name, studio name, medium, or city. Your site name
+									can be different from your account name.
+								</dd>
+							</div>
+							<div>
+								<dt>The account connection didn't return to Hangwork.</dt>
+								<dd>
+									Open <strong>Claim your space</strong> again and use the advanced personal-access-key
+									option, or email support and tell us which browser you're using.
+								</dd>
+							</div>
+						</dl>
+					</section>
+
+					<section class="help">
+						<p class="section-label">Still stuck?</p>
+						<h2>Ask a person.</h2>
+						<p>
+							Email <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. Include the step you were on
+							and what appeared on screen; a reply usually arrives within one business day.
+						</p>
+						<a class="btn btn-secondary" href={editorUrl}>Return to the editor</a>
+					</section>
+				</article>
+			</div>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav>
+				<a href={demoUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments and refunds are handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-1: #edeae4;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+			sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible {
+		outline: 2px solid var(--klein);
+		outline-offset: 3px;
+	}
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+	}
+	.brand-logo {
+		display: block;
+		width: auto;
+		height: 50px;
+	}
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav {
+		display: flex;
+		align-items: baseline;
+		gap: 28px;
+	}
+	.topnav a {
+		color: var(--ink-soft);
+		font-size: 15px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.topnav a:hover,
+	.topnav a.current {
+		color: var(--ink);
+	}
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 0 32px;
+	}
+	.guide-hero {
+		max-width: 46rem;
+		padding: 88px 0 104px;
+	}
+	.eyebrow,
+	.section-label,
+	.contents-title {
+		margin: 0 0 14px;
+		color: var(--ink-soft);
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: 0.02em;
+	}
+	.eyebrow::before {
+		content: '';
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		margin-right: 9px;
+		border-radius: 50%;
+		background: var(--klein);
+		vertical-align: 1px;
+	}
+	.guide-hero h1 {
+		max-width: 12em;
+		margin: 0 0 24px;
+		font-size: clamp(36px, 6vw, 56px);
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		line-height: 1.12;
+	}
+	.lede {
+		max-width: 39rem;
+		margin: 0 0 34px;
+		color: var(--ink-soft);
+		font-size: 17px;
+	}
+	.btn {
+		display: inline-block;
+		padding: 10px 22px;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		font-size: 15px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.btn-primary {
+		background: var(--klein);
+		color: var(--paper);
+	}
+	.btn-primary:hover {
+		background: var(--klein-dark);
+	}
+	.btn-secondary {
+		border-color: var(--wall-2);
+		background: transparent;
+		color: var(--ink);
+	}
+	.btn-secondary:hover {
+		background: var(--wall-3);
+	}
+	.guide-layout {
+		display: grid;
+		grid-template-columns: 190px minmax(0, 44rem);
+		gap: clamp(56px, 10vw, 112px);
+		align-items: start;
+		border-top: 1px solid var(--wall-2);
+	}
+	.contents {
+		position: sticky;
+		top: 24px;
+		padding: 56px 0;
+	}
+	.contents ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.contents li + li {
+		margin-top: 8px;
+	}
+	.contents a {
+		color: var(--ink-soft);
+		font-size: 13px;
+		line-height: 1.4;
+		text-decoration: none;
+	}
+	.contents a:hover {
+		color: var(--ink);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.guide-body > section {
+		scroll-margin-top: 32px;
+	}
+	.prep,
+	.follow-up,
+	.troubleshooting,
+	.help {
+		padding: 88px 0;
+		border-bottom: 1px solid var(--wall-2);
+	}
+	.guide-body h2 {
+		max-width: 22em;
+		margin: 0 0 20px;
+		font-size: clamp(24px, 4vw, 28px);
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		line-height: 1.25;
+	}
+	.guide-body p {
+		max-width: 39rem;
+		margin: 0 0 20px;
+	}
+	.guide-body strong {
+		font-weight: 500;
+	}
+	.guide-body a:not(.btn) {
+		color: var(--klein);
+		text-underline-offset: 2px;
+	}
+	.guide-body a:not(.btn):hover {
+		color: var(--klein-dark);
+	}
+	.guide-body code {
+		padding: 2px 5px;
+		border: 1px solid var(--wall-2);
+		border-radius: 3px;
+		background: var(--wall-1);
+		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		font-size: 0.88em;
+		white-space: nowrap;
+	}
+	.checklist {
+		list-style: none;
+		margin: 30px 0 0;
+		padding: 0;
+		border-top: 1px solid var(--wall-2);
+	}
+	.checklist li {
+		position: relative;
+		padding: 19px 0 19px 28px;
+		border-bottom: 1px solid var(--wall-3);
+	}
+	.checklist li::before {
+		content: '✓';
+		position: absolute;
+		left: 0;
+		color: var(--ink-soft);
+	}
+	.note {
+		max-width: 39rem;
+		margin-top: 28px;
+		padding: 18px 20px;
+		border-left: 2px solid var(--ink);
+		background: var(--wall-1);
+		font-size: 14px;
+	}
+	.step {
+		display: grid;
+		grid-template-columns: 44px minmax(0, 1fr);
+		gap: 28px;
+		padding: 88px 0;
+		border-bottom: 1px solid var(--wall-2);
+	}
+	.step-number {
+		padding-top: 2px;
+		color: var(--ink-soft);
+		font-size: 14px;
+		font-variant-numeric: tabular-nums;
+	}
+	.step-copy > ul,
+	.step-copy > ol {
+		max-width: 38rem;
+		margin: 24px 0;
+		padding-left: 1.25rem;
+	}
+	.step-copy li {
+		padding-left: 6px;
+	}
+	.step-copy li + li {
+		margin-top: 9px;
+	}
+	.click-path {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		max-width: 39rem;
+		margin: 28px 0 20px;
+		font-size: 13px;
+	}
+	.click-path span {
+		padding: 6px 9px;
+		border: 1px solid var(--wall-2);
+		border-radius: 3px;
+		background: var(--wall-1);
+	}
+	.click-path i {
+		color: var(--ink-soft);
+		font-style: normal;
+	}
+	.quiet {
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.troubleshooting dl {
+		margin: 32px 0 0;
+	}
+	.troubleshooting dl > div {
+		display: grid;
+		grid-template-columns: minmax(150px, 0.7fr) minmax(0, 1.3fr);
+		gap: 28px;
+		padding: 22px 0;
+		border-top: 1px solid var(--wall-3);
+	}
+	.troubleshooting dt {
+		font-weight: 500;
+	}
+	.troubleshooting dd {
+		margin: 0;
+	}
+	.help {
+		border-bottom: 0;
+	}
+	.help .btn {
+		margin-top: 10px;
+	}
+	.footer {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+		max-width: 1100px;
+		margin: 40px auto 0;
+		padding: 40px 32px 56px;
+		border-top: 1px solid var(--wall-2);
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.footer nav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+	}
+	.footer a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.footer a:hover {
+		color: var(--ink);
+	}
+	.footer .brand {
+		margin-bottom: 2px;
+	}
+	.footer .brand-logo {
+		height: 40px;
+	}
+	.footer-note {
+		font-size: 13px;
+	}
+	@media (max-width: 760px) {
+		.topbar {
+			padding: 20px;
+		}
+		.topnav {
+			gap: 20px;
+		}
+		main {
+			padding: 0 20px;
+		}
+		.guide-hero {
+			padding: 64px 0 72px;
+		}
+		.guide-layout {
+			display: block;
+		}
+		.contents {
+			position: static;
+			padding: 36px 0;
+			border-bottom: 1px solid var(--wall-2);
+		}
+		.contents ol {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 8px 20px;
+		}
+		.contents li + li {
+			margin-top: 0;
+		}
+		.prep,
+		.follow-up,
+		.troubleshooting,
+		.help,
+		.step {
+			padding: 64px 0;
+		}
+		.footer {
+			padding: 32px 20px 44px;
+		}
+	}
+	@media (max-width: 500px) {
+		.topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
+		}
+		.topnav {
+			width: 100%;
+			justify-content: space-between;
+			gap: 12px;
+		}
+		.topnav a {
+			font-size: 14px;
+		}
+		.contents ol {
+			grid-template-columns: 1fr;
+		}
+		.step {
+			display: block;
+		}
+		.step-number {
+			margin-bottom: 20px;
+		}
+		.troubleshooting dl > div {
+			display: block;
+		}
+		.troubleshooting dt {
+			margin-bottom: 8px;
+		}
+		.guide-body code {
+			white-space: normal;
+			overflow-wrap: anywhere;
+		}
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			scroll-behavior: smooth;
+		}
+	}
+</style>
