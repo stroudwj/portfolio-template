@@ -11,6 +11,7 @@
 // honest caveats (see #if-hangwork-shuts-down, #unlimited-images).
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 
 export function getStaticPaths() {
 	if (!IS_PRODUCT_SITE) return [];
@@ -32,6 +33,12 @@ const title = 'Common questions — Hangwork';
 const description =
 	'Straight answers about how Hangwork works, what you own, and what it costs.';
 const canonicalUrl = Astro.site ? new URL(withBase(base, 'faq'), Astro.site).href : undefined;
+const visiblePriceHtml = pricing.launchPricingActive
+	? `<del class="regular-price">${regularPriceText}</del> <strong class="current-price">${currentPriceText}</strong>`
+	: `<strong class="current-price">${currentPriceText}</strong>`;
+const plainPrice = pricing.launchPricingActive
+	? `${regularPriceText} regular price; ${currentPriceText} launch price, paid once.`
+	: `${currentPriceText}, paid once.`;
 
 // One source of truth: `a` is the plain-text answer used for both the visible copy and
 // the JSON-LD below (so structured data always matches the page). `aHtml` overrides the
@@ -123,8 +130,9 @@ const groups: Group[] = [
 		items: [
 			{
 				slug: 'what-it-costs',
-				q: 'How much does it cost, and what does the fee include?',
-				a: '$19, once. That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No renewal, and no features held back for a higher tier.',
+				q: 'How much does it cost?',
+				a: `${plainPrice} That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No subscription, renewal, or higher tier. There is a ${pricing.refundDays}-day refund, no questions asked.`,
+				aHtml: `${visiblePriceHtml}, once. That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No subscription, renewal, or higher tier. There is a ${pricing.refundDays}-day refund, no questions asked.`,
 			},
 			{
 				slug: 'why-one-payment',
@@ -134,7 +142,7 @@ const groups: Group[] = [
 			{
 				slug: 'refund-policy',
 				q: "What's your refund policy?",
-				a: "If Hangwork isn't for you, email us within 14 days of buying for a full refund, no questions asked.",
+				a: `If Hangwork isn't for you, email us within ${pricing.refundDays} days of buying for a full refund, no questions asked.`,
 			},
 			{
 				slug: 'getting-help',
@@ -284,7 +292,7 @@ const faqLd = {
 	.brand-logo {
 		display: block;
 		width: auto;
-		height: 40px;
+		height: 50px;
 	}
 
 	.topbar {
@@ -405,6 +413,14 @@ const faqLd = {
 	.a a:hover {
 		color: var(--klein-dark);
 	}
+	.a .regular-price {
+		color: var(--ink-soft);
+		text-decoration-thickness: 1px;
+	}
+	.a .current-price {
+		font-weight: 500;
+		color: var(--ink);
+	}
 
 	.closing {
 		max-width: 44rem;
@@ -451,7 +467,7 @@ const faqLd = {
 		margin-bottom: 2px;
 	}
 	.footer .brand-logo {
-		height: 36px;
+		height: 40px;
 	}
 	.footer-note {
 		font-size: 13px;
@@ -487,6 +503,9 @@ const faqLd = {
 			flex-direction: column;
 			align-items: flex-start;
 			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
 		}
 	}
 

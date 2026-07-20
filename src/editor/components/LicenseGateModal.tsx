@@ -9,6 +9,7 @@ import { LicenseError } from '../lib/license/client';
 import { CHECKOUT_URL } from '../lib/license/config';
 import { markResumePublish } from '../lib/license/flow';
 import { getLicense } from '../lib/license/session';
+import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 
 type Mode = 'verify' | 'buy' | 'key';
 
@@ -98,7 +99,7 @@ export default function LicenseGateModal({
 						</button>
 					) : (
 						<button type="button" className="btn-primary" onClick={buyLicense} disabled={busy}>
-							Buy a license
+							Pay {currentPriceText}
 						</button>
 					)}
 				</>
@@ -114,10 +115,22 @@ export default function LicenseGateModal({
 				</>
 			) : (
 				<>
+					{CHECKOUT_URL && (
+						<div className="checkout-summary" aria-label="Hangwork checkout summary">
+							<p className="checkout-title">
+								<span>Hangwork — one-time payment</span>
+								<span className="checkout-price">
+									{pricing.launchPricingActive && <del>{regularPriceText}</del>}
+									<strong>{currentPriceText}</strong>
+								</span>
+							</p>
+							<p>Editor, yourname.hangwork.art, and all future updates. Nothing renews.</p>
+							<p>{pricing.refundDays}-day refund, no questions asked.</p>
+						</div>
+					)}
 					<p className="modal-lead">
-						Building and previewing are free — publishing needs a one-time license. One payment, no
-						subscription. A secure checkout opens right here, and publishing continues on its own after you
-						pay. Your work is saved.
+						Building and previewing are free. Publishing needs a one-time license. A secure checkout opens
+						right here, and publishing continues on its own after you pay. Your work is saved.
 					</p>
 
 					{mode === 'key' ? (
@@ -139,7 +152,7 @@ export default function LicenseGateModal({
 								<p className="modal-note">
 									Don’t have one?{' '}
 									<button type="button" className="btn-link" onClick={buyLicense} disabled={busy}>
-										Buy a license
+										Pay {currentPriceText}
 									</button>
 								</p>
 							)}

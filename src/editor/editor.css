@@ -58,7 +58,7 @@
 }
 .editor-brand-logo {
 	width: auto;
-	height: 34px;
+	height: 42px;
 }
 .topbar-spacer {
 	flex: 1;
@@ -872,7 +872,7 @@ a.resume-name:hover {
 	background: var(--wall-1);
 	border-radius: 6px;
 	padding: 40px;
-	max-width: 480px;
+	max-width: 520px;
 	text-align: center;
 }
 .start-brand {
@@ -883,7 +883,7 @@ a.resume-name:hover {
 }
 .start-brand-logo {
 	display: block;
-	width: min(272px, 100%);
+	width: min(320px, 100%);
 	height: auto;
 }
 .start-card p {
@@ -1028,6 +1028,43 @@ a.resume-name:hover {
 .modal-note {
 	margin: 14px 0 0;
 	font-size: 13px;
+}
+.checkout-summary {
+	margin: 0 0 18px;
+	padding: 0 0 18px;
+	border-bottom: 1px solid var(--wall-2);
+}
+.checkout-summary p {
+	margin: 4px 0 0;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--ink-soft);
+}
+.checkout-summary .checkout-title {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0 0 8px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--ink);
+}
+.checkout-price {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 7px;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+.checkout-price del {
+	font-weight: 400;
+	color: var(--ink-soft);
+	text-decoration-thickness: 1px;
+}
+.checkout-price strong {
+	font-weight: 500;
+	color: var(--ink);
 }
 .steps {
 	margin: 0 0 16px;
@@ -1506,5 +1543,12 @@ a.live-url:hover {
 	}
 	.editor-body.view-preview .editor-preview {
 		display: flex;
+	}
+}
+
+@media (max-width: 480px) {
+	.checkout-summary .checkout-title {
+		flex-direction: column;
+		gap: 4px;
 	}
 }

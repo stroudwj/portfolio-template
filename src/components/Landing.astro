@@ -5,6 +5,7 @@
 // content.json, none of which belong on a marketing page. No lemon.js here either —
 // the checkout overlay is editor-only.
 import { withBase } from '../portfolio/types';
+import { currentPriceText, pricing, regularPriceText } from '../lib/pricing';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
@@ -64,8 +65,15 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 					A portfolio site for visual artists. One payment, no subscription, no platform holding
 					your work hostage.
 				</p>
-				<div class="cta-row">
-					<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+				<div class="hero-actions">
+					<div class="primary-action">
+						<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+						<p class="hero-price">
+							{pricing.launchPricingActive && <del>{regularPriceText}</del>}
+							<span class="hero-current-price">{currentPriceText}</span>
+							<span>once. No subscription.</span>
+						</p>
+					</div>
 					<a class="btn btn-secondary" href={demoUrl}>See an example wall</a>
 				</div>
 			</section>
@@ -94,17 +102,36 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 				<a class="btn btn-secondary" href={demoUrl}>See an example wall</a>
 			</section>
 
-			<section class="band" id="pricing">
-				<h2>Pricing</h2>
-				<p class="price">$19, once.</p>
-				<p class="band-lede">
-					One payment. No subscription. Building and previewing are free — you pay when you're
-					ready to publish, and your site is yours to keep.
-				</p>
-				<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
-				<p class="pricing-faq">
-					<a href={`${faqUrl}#what-it-costs`}>Questions about pricing?</a>
-				</p>
+			<section class="band pricing" id="pricing">
+				<div class="pricing-copy">
+					<h2>One price</h2>
+					<p class="price-lockup">
+						{pricing.launchPricingActive && <del>{regularPriceText}</del>}
+						<strong>{currentPriceText}</strong>
+						<span>once</span>
+					</p>
+					{
+						pricing.launchPricingActive && (
+							<p class="launch-note">
+								Launch price for early artists. Goes to {regularPriceText} when the first hundred walls are
+								hung.
+							</p>
+						)
+					}
+					<p class="pricing-comparison">
+						Squarespace: $192–280 every year. Wix: $204+ every year. Hangwork: <strong>{currentPriceText}, once.</strong>
+					</p>
+					<p class="included">
+						Includes the editor, your yourname.hangwork.art address, publishing, and every future update to
+						the editor.
+					</p>
+					<p class="ownership-note">
+						<a href={`${faqUrl}#if-hangwork-shuts-down`}>
+							Your site lives in an account you own — here's what that means.
+						</a>
+					</p>
+					<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+				</div>
 			</section>
 		</main>
 
@@ -162,7 +189,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 	.brand-logo {
 		display: block;
 		width: auto;
-		height: 40px;
+		height: 50px;
 	}
 
 	.topbar {
@@ -252,10 +279,32 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		margin: 0 0 36px;
 		max-width: 30em;
 	}
-	.cta-row {
+	.hero-actions {
 		display: flex;
-		gap: 12px;
+		align-items: flex-start;
+		gap: 16px;
 		flex-wrap: wrap;
+	}
+	.primary-action {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+	.hero-price {
+		display: flex;
+		align-items: baseline;
+		gap: 5px;
+		margin: 0;
+		font-size: 13px;
+		color: var(--ink-soft);
+	}
+	.hero-price del {
+		color: var(--ink-soft);
+		text-decoration-thickness: 1px;
+	}
+	.hero-current-price {
+		color: var(--ink);
 	}
 
 	.band {
@@ -300,24 +349,62 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		max-width: 20em;
 	}
 
-	.price {
-		font-size: clamp(30px, 4vw, 40px);
+	.pricing-copy {
+		max-width: 46rem;
+	}
+	.price-lockup {
+		display: flex;
+		align-items: baseline;
+		gap: 12px;
+		margin: 0 0 20px;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.price-lockup del {
+		font-size: clamp(28px, 4vw, 38px);
+		font-weight: 400;
+		color: var(--ink-soft);
+		text-decoration-thickness: 1px;
+	}
+	.price-lockup strong {
+		font-size: clamp(48px, 7vw, 56px);
 		font-weight: 500;
 		letter-spacing: -0.02em;
-		margin: 0 0 20px;
 	}
-	.pricing-faq {
-		margin: 20px 0 0;
-		font-size: 15px;
+	.price-lockup span {
+		font-size: 16px;
 	}
-	.pricing-faq a {
+	.launch-note,
+	.pricing-comparison,
+	.included {
+		max-width: 42rem;
+		margin: 0 0 24px;
+		font-size: 16px;
+	}
+	.launch-note {
 		color: var(--ink-soft);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		text-decoration-color: var(--wall-2);
 	}
-	.pricing-faq a:hover {
+	.pricing-comparison {
+		padding: 18px 0;
+		border-top: 1px solid var(--wall-2);
+		border-bottom: 1px solid var(--wall-2);
+	}
+	.pricing-comparison strong {
+		font-weight: 500;
+	}
+	.ownership-note {
+		margin: 0 0 32px;
+		font-size: 13px;
+	}
+	.ownership-note a {
+		color: var(--ink-soft);
+		text-decoration: none;
+		text-underline-offset: 3px;
+	}
+	.ownership-note a:hover {
 		color: var(--ink);
+		text-decoration: underline;
+		text-decoration-color: var(--wall-2);
 	}
 
 	.footer {
@@ -347,7 +434,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		margin-bottom: 2px;
 	}
 	.footer .brand-logo {
-		height: 36px;
+		height: 40px;
 	}
 	.footer-note {
 		font-size: 13px;
@@ -365,7 +452,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 		}
 		.hero {
 			min-height: 0;
-			padding: 56px 0 32px;
+			padding: 64px 0 40px;
 		}
 		.band {
 			padding: 80px 0;
@@ -385,6 +472,12 @@ const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : und
 			flex-direction: column;
 			align-items: flex-start;
 			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
+		}
+		.price-lockup {
+			gap: 9px;
 		}
 	}
 
