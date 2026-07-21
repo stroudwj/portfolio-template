@@ -3,6 +3,8 @@
 // this array so adding another example only requires one new object.
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { CHECKOUT_URL } from '../../editor/lib/license/config';
 import Favicons from '../../components/Favicons.astro';
 
 export function getStaticPaths() {
@@ -108,9 +110,38 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 				}
 			</section>
 
+			<!-- The just-browsed-the-gallery moment. Desktop heads to the editor (payment
+			     waits until publish); phones lead with locking in the launch price, since
+			     building is desktop work and the editor there hands off by email. -->
 			<section class="closing">
-				<p>More walls are coming as artists publish them.</p>
-				<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
+				<div class="closing-copy">
+					<p>More walls are coming as artists publish them.</p>
+					{
+						CHECKOUT_URL && (
+							<div class="paynow-framing">
+								{pricing.launchPricingActive && (
+									<p class="paynow-anchor">
+										Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
+										forever.
+									</p>
+								)}
+								<p class="paynow-refund">
+									Changed your mind before you build? {pricing.refundDays} days, no questions.
+								</p>
+							</div>
+						)
+					}
+				</div>
+				<div class="closing-actions">
+					<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
+					{
+						CHECKOUT_URL && (
+							<a class="btn btn-primary paynow-cta" href={CHECKOUT_URL}>
+								{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
+							</a>
+						)
+					}
+				</div>
 			</section>
 		</main>
 
@@ -317,6 +348,17 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 		margin: 0;
 		color: var(--ink-soft);
 	}
+	.closing-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+	}
+	/* Pay-upfront framing is a phone-only door (same pattern as the landing page). */
+	.paynow-cta,
+	.paynow-framing {
+		display: none;
+	}
 	.btn {
 		display: inline-block;
 		padding: 11px 22px;
@@ -407,6 +449,40 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 		.example-copy,
 		.closing {
 			flex-direction: column;
+		}
+		.closing {
+			align-items: stretch;
+		}
+		.closing-actions {
+			flex-direction: column-reverse;
+			align-items: stretch;
+		}
+		.closing-actions .btn {
+			text-align: center;
+		}
+		.paynow-cta {
+			display: inline-block;
+		}
+		.build-cta {
+			background: transparent;
+			border-color: var(--wall-2);
+			color: var(--ink);
+		}
+		.build-cta:hover {
+			background: var(--wall-3);
+		}
+		.paynow-framing {
+			display: block;
+			margin-top: 12px;
+		}
+		.paynow-anchor {
+			margin: 0 0 6px;
+			font-size: 14px;
+			color: var(--ink);
+		}
+		.paynow-refund {
+			margin: 0;
+			font-size: 13px;
 		}
 	}
 </style>

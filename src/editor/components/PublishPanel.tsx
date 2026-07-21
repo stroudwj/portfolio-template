@@ -6,6 +6,8 @@ import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { useGitHub } from './useGitHub';
 import type { LicenseSession } from './useLicense';
+import { hasPublishableContent } from '../lib/validation';
+import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 import { loadRepoInfo } from '../lib/github/store';
 import { SITES_ROOT_DOMAIN, slugifySiteName, subdomainFor } from '../lib/github/subdomain';
 import { downloadEditorBackup, importEditorBackup, readEditorBackup } from '../lib/backup';
@@ -21,7 +23,9 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const { doc, openDoc } = useEditor();
 	const gh = useGitHub();
 	const [showConnect, setShowConnect] = useState(false);
-	const [showLicense, setShowLicense] = useState(false);
+	// Why the license modal is open decides its copy + what follows unlocking:
+	// 'publish' resumes into Publish, 'unlock' (paying upfront) just unlocks.
+	const [showLicense, setShowLicense] = useState<null | 'publish' | 'unlock'>(null);
 	const [showPublish, setShowPublish] = useState(false);
 	const [showDomain, setShowDomain] = useState(false);
 	const [showRename, setShowRename] = useState(false);
@@ -37,10 +41,15 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	if (!doc) return null;
 	const info = loadRepoInfo();
 	const connected = gh.status === 'connected' && gh.user;
+	// Two independent publish conditions, satisfiable in either order: the site is
+	// built, and the account is unlocked. Built-but-unpaid gets the license gate;
+	// paid-but-empty just waits for content (no payment prompt).
+	const built = hasPublishableContent(doc);
 	const needsLicense = license.required && license.status !== 'licensed';
 	const onPublishClick = () => {
+		if (!built) return;
 		if (!connected) setShowConnect(true);
-		else if (needsLicense) setShowLicense(true);
+		else if (needsLicense) setShowLicense('publish');
 		else setShowPublish(true);
 	};
 
@@ -128,20 +137,35 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 					{!license.required ? (
 						<span className="status-value">Not required</span>
 					) : license.status === 'licensed' ? (
-						<span className="status-value">✓ Active</span>
+						<span className="status-value">✓ Unlocked — yours forever</span>
 					) : license.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
-						<button type="button" className="btn-secondary" onClick={() => setShowLicense(true)}>
-							Unlock publishing…
+						<button type="button" className="btn-secondary" onClick={() => setShowLicense('unlock')}>
+							Unlock now…
 						</button>
 					)}
 				</div>
+				{/* Quiet, optional pay-upfront path. The default flow stays pay-at-publish —
+				    this is only for people who prefer to settle it before they build. */}
+				{license.required && license.status === 'unlicensed' && pricing.launchPricingActive && (
+					<p className="muted license-lock-note">
+						Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price, forever. You
+						can also just pay when you publish.
+					</p>
+				)}
 				<div className="publish-panel-actions">
-					<button type="button" className="btn-primary" onClick={onPublishClick}>
+					<button
+						type="button"
+						className="btn-primary"
+						onClick={onPublishClick}
+						disabled={!built}
+						title={built ? undefined : 'Hang your first piece, then publish.'}
+					>
 						{info ? 'Publish update' : 'Publish website'}
 					</button>
 				</div>
+				{!built && <p className="muted">Hang your first piece, then publish.</p>}
 			</Section>
 
 			<VersionHistory />
@@ -197,8 +221,10 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 					onClose={() => setShowConnect(false)}
 					onConnected={() => {
 						setShowConnect(false);
-						// Same gate as the topbar: unlicensed users see the license modal first.
-						if (needsLicense) setShowLicense(true);
+						// Same gate as the topbar: unlicensed users see the license modal first,
+						// and nothing opens until there's something to publish.
+						if (!built) return;
+						if (needsLicense) setShowLicense('publish');
 						else setShowPublish(true);
 					}}
 				/>
@@ -207,10 +233,14 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				<LicenseGateModal
 					activate={license.activate}
 					revalidate={license.revalidate}
-					onClose={() => setShowLicense(false)}
+					context={showLicense}
+					onClose={() => setShowLicense(null)}
 					onUnlocked={() => {
-						setShowLicense(false);
-						setShowPublish(true);
+						setShowLicense(null);
+						// Unlocking is an account property, not a publish step: only continue
+						// into Publish when there's actually something to publish (and GitHub —
+						// the publish click re-checks that path).
+						if (built && connected) setShowPublish(true);
 					}}
 				/>
 			)}

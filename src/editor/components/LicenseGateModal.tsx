@@ -18,11 +18,14 @@ export default function LicenseGateModal({
 	onUnlocked,
 	activate,
 	revalidate,
+	context = 'publish',
 }: {
 	onClose: () => void;
 	onUnlocked: () => void;
 	activate: (key: string) => Promise<void>;
 	revalidate: () => Promise<boolean>;
+	/** 'publish' = mid-publish gate (default); 'unlock' = paying upfront, before building. */
+	context?: 'publish' | 'unlock';
 }) {
 	const [key, setKey] = useState('');
 	const [busy, setBusy] = useState(false);
@@ -33,11 +36,12 @@ export default function LicenseGateModal({
 	const [mode, setMode] = useState<Mode>(() => (getLicense() ? 'verify' : CHECKOUT_URL ? 'buy' : 'key'));
 
 	// Open the Lemon Squeezy checkout as an on-page overlay (lemon.js, loaded in editor.astro).
-	// Falls back to a full-page navigation if the script was blocked or hasn't loaded. Leaves a
-	// breadcrumb so that, after the checkout redirect reloads the page and auto-unlocks, we can
-	// resume the buyer's draft and reopen Publish where they left off.
+	// Falls back to a full-page navigation if the script was blocked or hasn't loaded. When the
+	// buyer set out to PUBLISH, leave a breadcrumb so that, after the checkout redirect reloads
+	// the page and auto-unlocks, we resume their draft and reopen Publish where they left off.
+	// Paying upfront ('unlock') leaves no breadcrumb — there's nothing to resume into.
 	const buyLicense = () => {
-		markResumePublish();
+		if (context === 'publish') markResumePublish();
 		const ls = window.LemonSqueezy;
 		if (ls?.Url?.Open) ls.Url.Open(CHECKOUT_URL);
 		else window.location.assign(CHECKOUT_URL);
@@ -129,8 +133,9 @@ export default function LicenseGateModal({
 						</div>
 					)}
 					<p className="modal-lead">
-						Building and previewing are free. Publishing needs a one-time license. A secure checkout opens
-						right here, and publishing continues on its own after you pay. Your work is saved.
+						{context === 'unlock'
+							? 'Building and previewing are free — pay once now and publishing is unlocked whenever you’re ready, on any device. A secure checkout opens right here. Your work is saved.'
+							: 'Building and previewing are free. Publishing needs a one-time license. A secure checkout opens right here, and publishing continues on its own after you pay. Your work is saved.'}
 					</p>
 
 					{mode === 'key' ? (

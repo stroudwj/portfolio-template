@@ -16,6 +16,16 @@ ALLOWED_ORIGIN = "https://hangwork.art,https://portfolio-template-9p2.pages.dev"
 SITES_ROOT_DOMAIN = "hangwork.art"
 CF_ZONE_ID = "45dd2f188d13d5dace6eeeb7d74282e0"
 
+# /handoff ("send me the link" + post-purchase email). The sender address — its domain
+# must be verified in Resend (DNS records on hangwork.art). /handoff answers 503 until
+# EMAIL_FROM and the RESEND_API_KEY secret are both set.
+EMAIL_FROM = "Hangwork <hello@hangwork.art>"
+# Lemon Squeezy store/product ids — /handoff only mails buyers of THIS product.
+# Keep in sync with src/editor/lib/license/config.ts.
+LS_STORE_ID = "431697"
+LS_PRODUCT_ID = "1221404"
+
 # SECRETS — do NOT put them here. Set them with:
 #   wrangler secret put GITHUB_CLIENT_SECRET
 #   wrangler secret put CF_DNS_TOKEN        (Cloudflare API token, DNS:Edit on the hangwork.art zone)
+#   wrangler secret put RESEND_API_KEY      (Resend API key for /handoff emails)

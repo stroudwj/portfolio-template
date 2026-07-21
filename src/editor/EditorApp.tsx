@@ -14,9 +14,11 @@ import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
 import GitHubControls from './components/GitHubControls';
+import MobileDoor from './components/MobileDoor';
 import { onShowEditorTab } from './components/ui/controls';
 import { useLicense } from './components/useLicense';
 import { shouldResumePublish } from './lib/license/flow';
+import { usePhoneContext } from './lib/device';
 import { collectIssues } from './lib/validation';
 import { withBase } from '../portfolio/types';
 import './editor.css';
@@ -159,6 +161,7 @@ function Shell({ base }: { base: string }) {
 	// Held at the top level so the auto-unlock-after-purchase handler runs even on the Start
 	// screen (a buyer usually lands there returning from checkout, before the editor mounts).
 	const license = useLicense();
+	const phone = usePhoneContext();
 
 	useUndoShortcuts(undo, redo);
 
@@ -169,6 +172,11 @@ function Shell({ base }: { base: string }) {
 		if (doc || !hasDraft) return;
 		if (shouldResumePublish()) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
+
+	// Phones get the door + a read-only preview, never the canvas. Browsing, checkout,
+	// and the auto-unlock-after-purchase flow above all still run on a phone — only
+	// BUILDING is desktop work. Tablets pass straight through.
+	if (phone) return <MobileDoor license={license} base={base} brandLockup={brandLockup} />;
 
 	if (!doc) return <StartScreen brandLockup={brandLockup} />;
 

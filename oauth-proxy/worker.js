@@ -16,6 +16,13 @@
 //                       The record's CNAME target doubles as the ownership ledger: a
 //                       record pointing at someone else's github.io means "taken", a
 //                       record pointing at your own means the claim is idempotent.
+//   /handoff          — email the sender's editor link ("open this on your computer").
+//                       { license_key }: validate the key with Lemon Squeezy, then send
+//                       the post-purchase email to the BUYER's address (from the key —
+//                       never a caller-supplied address), with an auto-unlock link.
+//                       { email }: send the plain continue-on-desktop link to that
+//                       address. Content is fixed server-side; the caller controls only
+//                       the recipient (unpaid) or nothing at all (paid).
 //
 // Deploy: see README.md in this folder. Required config:
 //   - var    GITHUB_CLIENT_ID      (public; the OAuth App's client id)
@@ -27,8 +34,15 @@
 //   - var    CF_ZONE_ID            the Cloudflare zone id of SITES_ROOT_DOMAIN
 //   - secret CF_DNS_TOKEN          a Cloudflare API token with DNS:Edit on that zone
 //                                  (`wrangler secret put CF_DNS_TOKEN`)
-// The /subdomain routes answer 503 until the last three are set — the editor treats
-// that as "no hangwork.art addresses" and publishes to github.io instead.
+//   - secret RESEND_API_KEY        Resend API key for /handoff (`wrangler secret put RESEND_API_KEY`)
+//   - var    EMAIL_FROM            the /handoff sender, e.g. "Hangwork <hello@hangwork.art>"
+//                                  (the domain must be verified in Resend)
+//   - var    LS_STORE_ID           Lemon Squeezy store + product ids — /handoff only mails
+//   - var    LS_PRODUCT_ID         buyers of THIS product (mirror src/editor/lib/license/config.ts)
+// The /subdomain routes answer 503 until their config is set — the editor treats
+// that as "no hangwork.art addresses" and publishes to github.io instead. /handoff
+// answers 503 the same way until RESEND_API_KEY + EMAIL_FROM are set; the editor
+// then falls back to showing a copy-the-link flow instead of sending email.
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
@@ -65,6 +79,7 @@ export default {
 		if (path === '/revoke') return revoke(request, env, corsOrigin);
 		if (path === '/subdomain/check') return subdomain(request, env, corsOrigin, false);
 		if (path === '/subdomain/claim') return subdomain(request, env, corsOrigin, true);
+		if (path === '/handoff') return handoff(request, env, corsOrigin, origin);
 		if (path === '/') return exchange(request, env, corsOrigin);
 		return json({ error: 'not_found' }, 404, corsOrigin);
 	},
@@ -170,6 +185,165 @@ async function subdomain(request, env, corsOrigin, claim) {
 		return json({ error: 'dns_unreachable' }, 502, corsOrigin);
 	}
 	return json({ domain: fqdn }, 200, corsOrigin);
+}
+
+// --- /handoff — "send me the link" emails -----------------------------------
+//
+// Phones can browse and buy but not build, so the editor offers to email the
+// person their own editor link to open on a computer. Two modes:
+//   { license_key } — a buyer. The key is validated with Lemon Squeezy and the
+//                     mail goes to the ADDRESS ON THE PURCHASE, carrying an
+//                     auto-unlock link (?license_key=…). The caller cannot pick
+//                     the recipient, so a key can only ever mail its own buyer.
+//   { email }       — not (yet) a buyer. A plain editor link goes to the given
+//                     address. Subject and body are fixed here, so the worst
+//                     abuse of this endpoint is repeating the same short mail —
+//                     dampened by the per-isolate rate limit below (add a
+//                     Cloudflare rate-limiting rule on /handoff for real volume).
+
+const LS_VALIDATE_URL = 'https://api.lemonsqueezy.com/v1/licenses/validate';
+const HANDOFF_WINDOW_MS = 10 * 60 * 1000;
+const HANDOFF_MAX_PER_WINDOW = 4;
+
+// Best-effort flood damper. Workers isolates are ephemeral and per-PoP, so this
+// is not a guarantee — it exists to blunt naive loops, not determined abuse.
+const handoffLog = new Map();
+
+function handoffRateLimited(ip) {
+	const now = Date.now();
+	if (handoffLog.size > 500) {
+		for (const [key, times] of handoffLog) {
+			if (times.every((t) => now - t > HANDOFF_WINDOW_MS)) handoffLog.delete(key);
+		}
+	}
+	const times = (handoffLog.get(ip) || []).filter((t) => now - t <= HANDOFF_WINDOW_MS);
+	if (times.length >= HANDOFF_MAX_PER_WINDOW) return true;
+	times.push(now);
+	handoffLog.set(ip, times);
+	return false;
+}
+
+function isEmailAddress(value) {
+	return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/** Shared minimal HTML shell — paper/ink, one Klein-blue button, no images. */
+function emailHtml(paragraphsBefore, buttonLabel, link, paragraphsAfter) {
+	const p = (text) =>
+		`<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1a1a1a;">${text}</p>`;
+	return [
+		`<div style="background:#faf8f5;padding:40px 24px;font-family:Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`,
+		`<div style="max-width:480px;margin:0 auto;">`,
+		...paragraphsBefore.map(p),
+		`<p style="margin:24px 0;"><a href="${link}" style="display:inline-block;background:#002fa7;color:#faf8f5;text-decoration:none;border-radius:4px;padding:12px 22px;font-size:15px;font-weight:500;">${buttonLabel}</a></p>`,
+		...paragraphsAfter.map(p),
+		`</div></div>`,
+	].join('');
+}
+
+/** The email for someone who hasn't bought yet: just the way back to the canvas. */
+function handoffEmail(link) {
+	return {
+		subject: 'Your Hangwork link',
+		text: `The canvas is waiting.\n\nOpen this on your computer and you'll pick up right where you left off:\n\n${link}\n\nWhenever you're ready to hang your first piece.`,
+		html: emailHtml(
+			['The canvas is waiting.', 'Open this on your computer and you’ll pick up right where you left off.'],
+			'Open Hangwork on your computer',
+			link,
+			['Whenever you’re ready to hang your first piece.'],
+		),
+	};
+}
+
+/** The post-purchase email: reassurance first, then the desktop link. */
+function postPurchaseEmail(link) {
+	return {
+		subject: 'You own Hangwork now',
+		text: `You own Hangwork — that's yours to keep.\n\nNothing's lost and nothing needs redoing. When you're at a computer, open the link below and the canvas will be waiting. No rush.\n\n${link}\n\nWhenever you're ready to hang your first piece.`,
+		html: emailHtml(
+			[
+				'You own Hangwork — that’s yours to keep.',
+				'Nothing’s lost and nothing needs redoing. When you’re at a computer, open the link below and the canvas will be waiting. No rush.',
+			],
+			'Open Hangwork on your computer',
+			link,
+			['Whenever you’re ready to hang your first piece.'],
+		),
+	};
+}
+
+async function handoff(request, env, corsOrigin, origin) {
+	if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+		return json({ error: 'email_unconfigured' }, 503, corsOrigin);
+	}
+
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'invalid_json' }, 400, corsOrigin);
+	}
+
+	const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+	if (handoffRateLimited(ip)) {
+		return json({ error: 'rate_limited' }, 429, corsOrigin);
+	}
+
+	// The link always points at the origin the request came from (already checked
+	// against ALLOWED_ORIGIN), so this endpoint can never mail a foreign address bar.
+	const editorLink = origin + (env.EDITOR_PATH || '/editor/');
+
+	let to;
+	let mail;
+	if (typeof body.license_key === 'string' && body.license_key.trim()) {
+		// Paid mode: the key decides the recipient. Validate it with Lemon Squeezy
+		// and confirm it belongs to THIS product before mailing anyone.
+		const key = body.license_key.trim();
+		if (key.length > 64) return json({ error: 'invalid_license' }, 400, corsOrigin);
+		let data;
+		try {
+			const res = await fetch(LS_VALIDATE_URL, {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({ license_key: key }).toString(),
+			});
+			data = await res.json();
+		} catch {
+			return json({ error: 'license_service_unreachable' }, 502, corsOrigin);
+		}
+		// "inactive" just means not yet activated on a device — still a real purchase.
+		// Disabled/expired keys (refunds) get no mail.
+		const status = data?.license_key?.status;
+		const meta = data?.meta;
+		const belongsHere =
+			meta &&
+			(!env.LS_STORE_ID || meta.store_id === Number(env.LS_STORE_ID)) &&
+			(!env.LS_PRODUCT_ID || meta.product_id === Number(env.LS_PRODUCT_ID));
+		if (!(status === 'active' || status === 'inactive') || !belongsHere || !isEmailAddress(meta.customer_email)) {
+			return json({ error: 'invalid_license' }, 400, corsOrigin);
+		}
+		to = meta.customer_email.trim();
+		mail = postPurchaseEmail(`${editorLink}?license_key=${encodeURIComponent(key)}`);
+	} else if (isEmailAddress(body.email)) {
+		to = body.email.trim();
+		mail = handoffEmail(editorLink);
+	} else {
+		return json({ error: 'missing_email' }, 400, corsOrigin);
+	}
+
+	try {
+		const res = await fetch('https://api.resend.com/emails', {
+			method: 'POST',
+			headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+			body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
+		});
+		if (!res.ok) return json({ error: 'email_send_failed' }, 502, corsOrigin);
+	} catch {
+		return json({ error: 'email_send_failed' }, 502, corsOrigin);
+	}
+	// Echo the recipient so the editor can show "Sent to …" (it's the caller's own
+	// address, or the buyer's own — the license key already proves purchase).
+	return json({ sent: true, email: to }, 200, corsOrigin);
 }
 
 /** Swap a GitHub OAuth `code` for a user access token. */

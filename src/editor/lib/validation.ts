@@ -46,6 +46,27 @@ export function sanitizeFilename(name: string): string {
 	return cleaned || 'file';
 }
 
+/**
+ * Whether anything actually hangs on the wall yet. Publishing needs two independent
+ * things — a built site AND an unlocked (paid) account — in either order; this is the
+ * "built" half. A fresh blank/template document has structure but nothing publishable,
+ * so Publish stays unavailable (with no payment prompt) until something is here.
+ */
+export function hasPublishableContent(doc: EditorDoc): boolean {
+	for (const entries of Object.values(doc.galleries)) {
+		// Only images that really exist in this browser count — entries referenced by
+		// name but never uploaded render as gray placeholders, not publishable work.
+		if (entries.some((e) => e.assetId)) return true;
+	}
+	for (const page of Object.values(doc.content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type === 'text' && block.text.trim()) return true;
+			if (block.type === 'embed' && block.url.trim()) return true;
+		}
+	}
+	return Boolean(doc.content.profile.bio.trim());
+}
+
 /** Human-readable problems to surface before export (empty = all good). */
 export function collectIssues(doc: EditorDoc): string[] {
 	const issues: string[] = [];

@@ -6,6 +6,7 @@ import { activateLicense, validateLicense } from '../lib/license/client';
 import { clearLicense, getLicense, setLicense } from '../lib/license/session';
 import { isLicenseGateEnabled } from '../lib/license/config';
 import { completeLicenseRedirect } from '../lib/license/flow';
+import { maybeSendPostPurchaseEmail } from '../lib/license/handoff';
 
 export type LicenseStatus = 'checking' | 'unlicensed' | 'licensed';
 
@@ -69,6 +70,10 @@ export function useLicense(): LicenseSession {
 					if (!alive) return;
 					setLicense({ key: redirectKey, instanceId });
 					setStatus('licensed');
+					// A fresh purchase just landed: send the "You own Hangwork now" email with
+					// the desktop link (fire-and-forget, once per key). Matters most on phones,
+					// where the buyer leaves the checkout with nothing visibly built yet.
+					maybeSendPostPurchaseEmail(redirectKey);
 				})
 				.catch(() => {
 					// Bad/duplicate key from the URL — fall back to any stored key, else unlicensed.

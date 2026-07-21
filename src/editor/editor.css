@@ -3,7 +3,8 @@
    blue only on the publish button, focus rings, and the canvas selection.
    Only the right-hand preview uses the portfolio's own styles. */
 .editor,
-.start {
+.start,
+.mobile-gate {
 	--paper: #faf8f5;
 	--ink: #1a1a1a;
 	--ink-soft: #6b6963;
@@ -21,7 +22,8 @@
 }
 
 .editor button,
-.start button {
+.start button,
+.mobile-gate button {
 	font-weight: 400;
 }
 
@@ -2233,4 +2235,141 @@ a.live-url:hover {
 		flex-direction: column;
 		gap: 4px;
 	}
+}
+
+/* ---- Phone door (MobileDoor) ----
+   Phones browse and buy; building happens on a desktop. The door is a full paper
+   sheet over a read-only preview — same tokens as the rest of the editor, one
+   Klein action, nothing modal-chromed (it IS the primary surface on a phone). */
+.mobile-gate {
+	min-height: 100dvh;
+	background: var(--paper);
+}
+.mobile-gate-preview {
+	min-height: 100dvh;
+	padding-bottom: 84px; /* keep the last pieces clear of the bottom bar */
+	/* One atomic layer: the portfolio's own fixed, high z-index pieces (phone nav,
+	   sidebar, lightbox) stack among themselves in here but never over the door,
+	   bar, or nudge. */
+	position: relative;
+	isolation: isolate;
+	z-index: 0;
+}
+.mobile-door {
+	position: fixed;
+	inset: 0;
+	z-index: 80;
+	overflow-y: auto;
+	background: var(--paper);
+	display: grid;
+	place-items: center;
+}
+.mobile-door-card {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	max-width: 420px;
+	width: 100%;
+	padding: 40px 28px calc(40px + env(safe-area-inset-bottom));
+}
+.mobile-door-brand {
+	height: 40px;
+	width: auto;
+	align-self: flex-start;
+	margin-bottom: 8px;
+}
+.mobile-door-card h1 {
+	margin: 0;
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+}
+.mobile-door-card p {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--ink);
+}
+.mobile-door-card .field {
+	margin-top: 4px;
+}
+.mobile-door-send {
+	padding: 12px 22px;
+	font-size: 15px;
+}
+.mobile-door-note {
+	font-size: 13px;
+	color: var(--ink-soft);
+}
+.mobile-door-card p.mobile-door-note {
+	color: var(--ink-soft);
+}
+.mobile-door-resend {
+	align-self: flex-start;
+	padding: 4px 0;
+}
+.mobile-door-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.mobile-door-link {
+	font-size: 12px;
+	color: var(--ink-soft);
+}
+/* The quiet way past the door — a sentence, not a chrome button. */
+.mobile-door-sub {
+	margin-top: 12px;
+	padding: 4px 0;
+	background: none;
+	border: 0;
+	text-align: left;
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--ink-soft);
+	text-decoration: underline;
+	text-decoration-color: var(--wall-2);
+	text-underline-offset: 0.25em;
+	cursor: pointer;
+}
+.mobile-door-sub:hover {
+	color: var(--ink);
+}
+.mobile-gate-bar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+	background: var(--paper);
+	border-top: 1px solid var(--wall-2);
+	font-size: 13px;
+	color: var(--ink-soft);
+}
+.mobile-gate-nudge {
+	position: fixed;
+	left: 16px;
+	right: 16px;
+	bottom: calc(84px + env(safe-area-inset-bottom));
+	z-index: 70;
+	padding: 12px 16px;
+	background: var(--ink);
+	color: var(--paper);
+	border-radius: 6px;
+	font-size: 13px;
+	line-height: 1.5;
+	box-shadow: 0 6px 24px rgba(26, 26, 26, 0.18);
+}
+/* The quiet upfront-pricing note in the Publish tab's license row. */
+.license-lock-note {
+	font-size: 13px;
+	margin: 4px 0 0;
 }

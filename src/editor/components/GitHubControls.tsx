@@ -1,18 +1,27 @@
 // Topbar GitHub area: a "Connect GitHub" button until connected, then a connection chip
 // plus the primary "Publish website" call to action. Owns the two modals' open state.
 import { useEffect, useState } from 'react';
+import { useEditor } from '../store';
 import { useGitHub } from './useGitHub';
 import type { LicenseSession } from './useLicense';
 import { shouldResumePublish, clearResumePublish } from '../lib/license/flow';
+import { hasPublishableContent } from '../lib/validation';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 
 export default function GitHubControls({ license }: { license: LicenseSession }) {
+	const { doc } = useEditor();
 	const gh = useGitHub();
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLicense, setShowLicense] = useState(false);
 	const [showPublish, setShowPublish] = useState(false);
+
+	// Publishing needs two independent things, in either order: a built site and an
+	// unlocked account. Built-but-unpaid → the license gate (the warm pay-to-publish
+	// flow); paid-but-empty → Publish simply waits for content, no payment prompt.
+	const built = doc ? hasPublishableContent(doc) : false;
+	const needsLicense = license.required && license.status !== 'licensed';
 
 	// After a checkout round-trip (buyer clicked Buy, paid, and got auto-unlocked on reload),
 	// reopen Publish right where they left off. Wait until GitHub is connected AND the license has
@@ -21,19 +30,21 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 		if (!shouldResumePublish()) return;
 		if (gh.status === 'connected' && license.status === 'licensed') {
 			clearResumePublish();
-			setShowPublish(true);
+			if (built) setShowPublish(true);
 		} else if (license.status === 'unlicensed') {
 			clearResumePublish();
 		}
-	}, [gh.status, license.status]);
+	}, [gh.status, license.status, built]);
 
 	if (gh.status === 'checking') {
 		return <span className="gh-chip muted-chip">Checking GitHub…</span>;
 	}
 
-	// Publishing (not building/previewing) requires a license when the gate is configured.
-	const needsLicense = license.required && license.status !== 'licensed';
-	const onPublishClick = () => (needsLicense ? setShowLicense(true) : setShowPublish(true));
+	const onPublishClick = () => {
+		if (!built) return;
+		if (needsLicense) setShowLicense(true);
+		else setShowPublish(true);
+	};
 
 	return (
 		<>
@@ -46,7 +57,13 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 							Sign out
 						</button>
 					</span>
-					<button type="button" className="btn-primary" onClick={onPublishClick}>
+					<button
+						type="button"
+						className="btn-primary"
+						onClick={onPublishClick}
+						disabled={!built}
+						title={built ? undefined : 'Hang your first piece, then publish.'}
+					>
 						Publish
 					</button>
 				</>
@@ -80,7 +97,7 @@ export default function GitHubControls({ license }: { license: LicenseSession })
 					onClose={() => setShowLicense(false)}
 					onUnlocked={() => {
 						setShowLicense(false);
-						setShowPublish(true);
+						if (built) setShowPublish(true);
 					}}
 				/>
 			)}

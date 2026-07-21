@@ -1,6 +1,6 @@
-# GitHub OAuth token-exchange proxy (+ hangwork.art subdomains)
+# GitHub OAuth token-exchange proxy (+ hangwork.art subdomains + handoff email)
 
-The one small server-side piece the editor needs. Two jobs:
+The one small server-side piece the editor needs. Three jobs:
 
 1. **OAuth token exchange** — swaps the short-lived OAuth `code` for a user access token
    using the OAuth App's client secret (which can't live in the browser). No database,
@@ -8,6 +8,11 @@ The one small server-side piece the editor needs. Two jobs:
 2. **Subdomain grants** — creates the DNS record that gives every new published site its
    default address, `[name].hangwork.art` → `[user].github.io`. The DNS record itself is
    the ownership ledger (its CNAME target says whose it is), so still no database.
+3. **Handoff email** (`/handoff`) — phones can browse and buy but not build, so the
+   editor offers to email the person their editor link to open on a computer. Buyers
+   (identified by their Lemon Squeezy license key) get the post-purchase email at the
+   address on their purchase, with an auto-unlock link; everyone else gets a plain link
+   at the address they typed. Content is fixed server-side.
 
 If you don't deploy this, the editor still works — it falls back to the manual
 personal-access-token flow, and new sites publish to `[user].github.io/[name]`.
@@ -53,6 +58,27 @@ Until both are set, the `/subdomain/*` routes answer 503 and the editor quietly 
 back to publishing at `[user].github.io/[name]`. Records are created DNS-only (grey
 cloud) on purpose — GitHub Pages must see the CNAME directly to route the domain and
 issue its HTTPS certificate (which takes a few minutes on a brand-new address).
+
+### 2c. Enable the handoff email (optional but recommended)
+
+Powers "Send me the link" on phones and the post-purchase "You own Hangwork now" email.
+
+1. Create a free [Resend](https://resend.com) account and **verify the hangwork.art
+   domain** (Resend shows the DNS records to add in Cloudflare).
+2. Check `EMAIL_FROM` in `wrangler.toml` matches an address on that domain. Then:
+
+```sh
+wrangler secret put RESEND_API_KEY   # paste the Resend API key when prompted
+wrangler deploy
+```
+
+Until both are set, `/handoff` answers 503 and the editor quietly offers a
+copy-the-link flow instead of sending email. The endpoint is origin-locked and
+lightly rate-limited per isolate; if it ever sees real abuse, add a Cloudflare
+rate-limiting rule on `/handoff` (e.g. 5 requests / 10 minutes per IP).
+
+Also worth doing in the Lemon Squeezy dashboard: mention the 14-day refund in the
+product description so it's visible on the checkout page itself.
 
 Wrangler prints the Worker URL, e.g. `https://portfolio-oauth-proxy.<you>.workers.dev`.
 
