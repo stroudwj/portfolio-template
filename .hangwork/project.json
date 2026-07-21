@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "runtimeVersion": "1.1.2",
+  "runtimeVersion": "1.1.3",
   "sourceCommit": "development",
   "siteUrl": "https://stroudwj.github.io",
   "basePath": "/portfolio-template",
@@ -15,8 +15,8 @@
       "gitBlobSha": "4bfc51b676d04d004333cbaf6a093e09ce9560e3"
     },
     "package-lock.json": {
-      "sha256": "92615951fb5995bbad7be345af01aef20b272f1597865f9c1551de530bef6d2f",
-      "gitBlobSha": "74d3190856e2772e9f3c991726b345a8d1bc4796"
+      "sha256": "541727036a68582765594084e9ad7e94ea50575f95958aff88f252813d447e79",
+      "gitBlobSha": "0d295b3f4fecfc4fab49f0c6f4297210400232bb"
     },
     "package.json": {
       "sha256": "9f69f23beae07c7718252676fbad2b5ddb8d7b1e7193f72301a584cb5a2cc60a",
@@ -543,8 +543,8 @@
       "gitBlobSha": "69c16003b9f5148c9d049eddf3d5431a2d763fd9"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "f85f5c68ec776fd28c90772172501927cb70b7f4632fdcb3d3aafa0f1b7ffcae",
-      "gitBlobSha": "6647363d7c93bc6f6c972e5be39519ebc252fce1"
+      "sha256": "33b0397bc1c04344c3ff3a1c3890f0baf1d5b9a53bccf6c1f874d31374d35891",
+      "gitBlobSha": "5a777f9895fe9138116e89a32616294184803347"
     }
   }
 }
