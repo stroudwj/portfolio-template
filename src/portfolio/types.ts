@@ -5,15 +5,17 @@
 // framework-neutral they never touch Astro's image pipeline — callers resolve
 // images to plain `src` strings first (Astro via getImage(), the editor via
 // object URLs) and pass them in as `ResolvedImage`.
-import type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout } from '../lib/content';
+import type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout, TextStyle } from '../lib/content';
 
-export type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout };
+export type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout, TextStyle };
 
 /** A text block placed on the freeform canvas (its `layout` is present). */
 export interface CanvasText {
 	id: string;
 	text: string;
 	align?: TextAlign;
+	style?: TextStyle;
+	link?: string;
 	layout: TextLayout;
 }
 

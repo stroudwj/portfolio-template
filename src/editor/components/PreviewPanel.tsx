@@ -4,7 +4,7 @@ import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
 import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
-import { expandSection, showEditorTab } from './ui/controls';
+import { expandSection, onShowPreviewPage, showEditorTab } from './ui/controls';
 
 /** Canvas guide overlay + snap controls ("Guides", to not clash with the
  *  Freeform/Grid layout toggle). Lives in the preview toolbar so they're
@@ -75,10 +75,22 @@ function useEdgeSnapShortcut() {
  * the tree renders into its own React root, re-rendered with fresh props on
  * every editor change.
  */
-function DeviceFrame({ children }: { children: React.ReactElement }) {
+function DeviceFrame({
+	children,
+	title,
+	className = '',
+	onEscape,
+}: {
+	children: React.ReactElement;
+	title: string;
+	className?: string;
+	onEscape?: () => void;
+}) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const rootRef = useRef<Root | null>(null);
 	const [ready, setReady] = useState(false);
+	const onEscapeRef = useRef(onEscape);
+	onEscapeRef.current = onEscape;
 
 	useEffect(() => {
 		const doc = iframeRef.current?.contentDocument;
@@ -96,9 +108,14 @@ function DeviceFrame({ children }: { children: React.ReactElement }) {
 		const mount = doc.createElement('div');
 		doc.body.appendChild(mount);
 		const root = createRoot(mount);
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape' && !event.defaultPrevented) onEscapeRef.current?.();
+		};
+		doc.addEventListener('keydown', onKeyDown);
 		rootRef.current = root;
 		setReady(true);
 		return () => {
+			doc.removeEventListener('keydown', onKeyDown);
 			rootRef.current = null;
 			// Unmount async — React disallows synchronous root unmounts from cleanup.
 			setTimeout(() => root.unmount(), 0);
@@ -109,7 +126,39 @@ function DeviceFrame({ children }: { children: React.ReactElement }) {
 		if (ready) rootRef.current?.render(children);
 	});
 
-	return <iframe ref={iframeRef} className="device-frame" title="Phone preview" />;
+	return <iframe ref={iframeRef} className={`device-frame ${className}`} title={title} />;
+}
+
+/** A real desktop viewport even when the editor itself is open on a narrow
+ * screen. It scales to fit without activating the portfolio's phone queries. */
+function DesktopDeviceFrame({ children, onEscape }: { children: React.ReactElement; onEscape?: () => void }) {
+	const hostRef = useRef<HTMLDivElement>(null);
+	const [size, setSize] = useState({ width: 1100, height: 700 });
+	useEffect(() => {
+		const host = hostRef.current;
+		if (!host) return;
+		const update = () => {
+			const box = host.getBoundingClientRect();
+			if (box.width && box.height) setSize({ width: box.width, height: box.height });
+		};
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(host);
+		return () => observer.disconnect();
+	}, []);
+	const viewportWidth = Math.max(1100, size.width);
+	const scale = Math.min(1, size.width / viewportWidth);
+	const viewportHeight = Math.max(600, size.height / scale);
+	return (
+		<div ref={hostRef} className="desktop-frame-host">
+			<div
+				className="desktop-frame-scaled"
+				style={{ width: viewportWidth, height: viewportHeight, transform: `scale(${scale})` }}
+			>
+				<DeviceFrame title="Desktop preview" className="desktop-device-frame" onEscape={onEscape}>{children}</DeviceFrame>
+			</div>
+		</div>
+	);
 }
 
 /** Live preview — renders the SAME shared portfolio components as the real site.
@@ -121,10 +170,14 @@ export default function PreviewPanel({ base }: { base: string }) {
 	const editor = useEditor();
 	const { doc } = editor;
 	const [page, setPage] = useState('home');
-	const [device, setDevice] = useState<'desktop' | 'phone'>('desktop');
+	const [device, setDevice] = useState<'desktop' | 'phone'>(() =>
+		typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches ? 'phone' : 'desktop',
+	);
 	const [fullscreen, setFullscreen] = useState(false);
 
 	useEdgeSnapShortcut();
+
+	useEffect(() => onShowPreviewPage((pageKey) => setPage(pageKey)), []);
 
 	// Esc leaves the fullscreen site preview.
 	useEffect(() => {
@@ -189,12 +242,13 @@ export default function PreviewPanel({ base }: { base: string }) {
 				<div className="device-toggle" role="group" aria-label="Preview device">
 					<button
 						type="button"
-						className={device === 'desktop' ? 'active' : ''}
+							className={device === 'desktop' ? 'active' : ''}
+							aria-pressed={device === 'desktop'}
 						onClick={() => setDevice('desktop')}
 					>
 						Desktop
 					</button>
-					<button type="button" className={device === 'phone' ? 'active' : ''} onClick={() => setDevice('phone')}>
+						<button type="button" aria-pressed={device === 'phone'} className={device === 'phone' ? 'active' : ''} onClick={() => setDevice('phone')}>
 						Phone
 					</button>
 				</div>
@@ -214,11 +268,11 @@ export default function PreviewPanel({ base }: { base: string }) {
 			{device === 'phone' ? (
 				<div className="preview-surface phone-surface">
 					<div className="phone-frame">
-						<DeviceFrame>{portfolio}</DeviceFrame>
+						<DeviceFrame title="Phone preview" onEscape={fullscreen ? () => setFullscreen(false) : undefined}>{portfolio}</DeviceFrame>
 					</div>
 				</div>
 			) : (
-				<div className="preview-surface">{portfolio}</div>
+				<div className="preview-surface desktop-surface"><DesktopDeviceFrame onEscape={fullscreen ? () => setFullscreen(false) : undefined}>{portfolio}</DesktopDeviceFrame></div>
 			)}
 		</div>
 	);

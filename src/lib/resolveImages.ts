@@ -40,10 +40,11 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 			const fullRes = await getImage({ src: entry.image, width: naturalWidth, quality: 90 });
 			const srcSet = optimized.srcSet?.attribute || undefined;
 			return {
+				id: entry.id,
 				src: optimized.src,
 				srcSet,
 				full: fullRes.src,
-				alt,
+				alt: entry.alt || entry.title || alt,
 				title: entry.title,
 				description: entry.description,
 				link: entry.link,

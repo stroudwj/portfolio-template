@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { contentSchema, parseAndMigrateContent } from '../../lib/content-schema';
+import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 
 export const EDITOR_DOC_VERSION = 1 as const;
@@ -14,6 +15,7 @@ const imageLayoutSchema = passthrough({
 });
 const imageMetaSchema = passthrough({
 	title: z.string(),
+	alt: z.string().default(''),
 	description: z.string(),
 	link: z.string(),
 	w: z.number().optional(),
@@ -28,7 +30,7 @@ export const editorDocSchema = passthrough({
 		z.string(),
 		z.array(
 			passthrough({
-				id: z.string(),
+				id: z.string().min(1),
 				filename: z.string(),
 				meta: imageMetaSchema,
 				assetId: z.string().nullable(),
@@ -41,6 +43,39 @@ export const editorDocSchema = passthrough({
 	fonts: z.record(z.string(), singleImageSchema),
 	resumeFile: singleImageSchema,
 	ogImage: passthrough({ folder: z.string(), entryId: z.string() }).optional(),
+}).superRefine((value, ctx) => {
+	for (const [pageKey, page] of Object.entries(value.content.pages)) {
+		for (const [galleryIndex, gallery] of pageGalleryConfigs(page).entries()) {
+			if (!(gallery.folder in value.galleries))
+				ctx.addIssue({ code: 'custom', path: ['galleries', gallery.folder], message: `The image list used by “${pageKey}” is missing` });
+			if (gallery.mobile) {
+				const allowed = new Set((value.galleries[gallery.folder] ?? []).map((entry) => `image:${entry.id}`));
+				// Only the main freeform gallery owns text/video pinned to the page canvas.
+				if (galleryIndex === 0 && page.gallery && page.gallery.layout !== 'grid') {
+					for (const block of page.blocks ?? []) {
+						if (block.type === 'text' && block.layout) allowed.add(`text:${block.id}`);
+						if (block.type === 'embed' && block.layout) allowed.add(`video:${block.id}`);
+					}
+				}
+				for (const itemKey of [...gallery.mobile.order, ...Object.keys(gallery.mobile.items ?? {})]) {
+					if (!allowed.has(itemKey))
+						ctx.addIssue({
+							code: 'custom',
+							path: ['content', 'pages', pageKey, 'mobile'],
+							message: 'Phone image arrangement points to an item that no longer exists',
+						});
+				}
+			}
+		}
+	}
+	for (const [folder, entries] of Object.entries(value.galleries)) {
+		const ids = new Set<string>();
+		entries.forEach((entry, index) => {
+			if (ids.has(entry.id))
+				ctx.addIssue({ code: 'custom', path: ['galleries', folder, index, 'id'], message: 'Artwork ids must be unique within an image group' });
+			ids.add(entry.id);
+		});
+	}
 });
 
 export class UnsupportedEditorDocVersionError extends Error {
@@ -129,6 +164,16 @@ export function parseAndMigrateEditorDoc(raw: unknown): EditorDoc {
 	// Content has its own version lifecycle and must be normalized even when the
 	// outer draft already has the current document version.
 	if (isObject(migrated) && 'content' in migrated) migrated.content = parseAndMigrateContent(migrated.content);
+	// A sharing-image selection is a derived preference, not irreplaceable work.
+	// Older drafts may retain it after the artwork was deleted; clear it instead of
+	// making the entire draft impossible to open.
+	if (isObject(migrated) && isObject(migrated.ogImage) && isObject(migrated.galleries)) {
+		const folder = typeof migrated.ogImage.folder === 'string' ? migrated.ogImage.folder : '';
+		const entryId = typeof migrated.ogImage.entryId === 'string' ? migrated.ogImage.entryId : '';
+		const entries = migrated.galleries[folder];
+		if (!Array.isArray(entries) || !entries.some((entry) => isObject(entry) && entry.id === entryId))
+			delete migrated.ogImage;
+	}
 	const parsed = editorDocSchema.safeParse(migrated);
 	if (!parsed.success) {
 		const detail = parsed.error.issues

@@ -24,7 +24,7 @@ export interface ImageCollectionEditorProps {
 }
 
 export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded, hint }: ImageCollectionEditorProps) {
-	const { doc, addGalleryImages, removeGalleryImage, moveGalleryImage, updateGalleryMeta } = useEditor();
+	const { doc, addGalleryImages, replaceGalleryImage, removeGalleryImage, moveGalleryImage, updateGalleryMeta } = useEditor();
 	const [collapsed, setCollapsed] = useState(false);
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
@@ -63,6 +63,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 									{entries.map((entry, idx) => {
 										const url = getAssetPreviewUrl(entry.assetId) ?? PLACEHOLDER_IMAGE;
 										const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
+										const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
 										return (
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
@@ -73,38 +74,44 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 															ref={handle.setActivatorNodeRef}
 															{...handle.attributes}
 															{...handle.listeners}
-															aria-label="Drag to reorder"
+													aria-label={`Drag ${artworkName} to reorder`}
 														>
 															⠿
 														</button>
-														<div className="card-media">
-															<img className="card-thumb" src={url} alt="" />
+												<div className="card-media">
+													<img className="card-thumb" src={url} alt="" />
 															<span className="card-filename" title={entry.filename}>
 																{entry.filename}
-															</span>
-														</div>
-														<div className="card-fields">
-															<input
-																className="text-input"
-																placeholder="Title"
-																value={entry.meta.title}
-																onChange={(e) => updateGalleryMeta(folder, entry.id, { title: e.target.value })}
-															/>
+													</span>
+													<ImageDrop ariaLabel={`Replace ${artworkName}`} onFiles={(files) => replaceGalleryImage(folder, entry.id, files[0])}>
+														<span>Replace</span>
+													</ImageDrop>
+												</div>
+												<div className="card-fields">
+													<label className="image-description-field">
+														<span>Title</span>
+														<input className="text-input" value={entry.meta.title} onChange={(e) => updateGalleryMeta(folder, entry.id, { title: e.target.value })} />
+													</label>
+													<label className="image-description-field">
+														<span>Describe this image</span>
+														<input
+															className="text-input"
+															placeholder="Example: Blue ceramic vase on a wooden table"
+															value={entry.meta.alt}
+															onChange={(e) => updateGalleryMeta(folder, entry.id, { alt: e.target.value })}
+														/>
+														<small>A short description helps people who cannot see the image.</small>
+													</label>
 															{variant === 'projects' && (
 																<>
-																	<textarea
-																		className="text-area"
-																		rows={2}
-																		placeholder="Description"
-																		value={entry.meta.description}
-																		onChange={(e) => updateGalleryMeta(folder, entry.id, { description: e.target.value })}
-																	/>
-																	<input
-																		className={`text-input ${linkInvalid ? 'invalid' : ''}`}
-																		placeholder="Link (https://…)"
-																		value={entry.meta.link}
-																		onChange={(e) => updateGalleryMeta(folder, entry.id, { link: e.target.value })}
-																	/>
+															<label className="image-description-field">
+																<span>Visible caption</span>
+																<textarea className="text-area" rows={2} value={entry.meta.description} onChange={(e) => updateGalleryMeta(folder, entry.id, { description: e.target.value })} />
+															</label>
+															<label className="image-description-field">
+																<span>Project link</span>
+																<input className={`text-input ${linkInvalid ? 'invalid' : ''}`} placeholder="https://…" value={entry.meta.link} onChange={(e) => updateGalleryMeta(folder, entry.id, { link: e.target.value })} />
+															</label>
 																</>
 															)}
 														</div>
@@ -114,7 +121,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																className="btn-icon"
 																disabled={idx === 0}
 																onClick={() => moveGalleryImage(folder, idx, idx - 1)}
-																aria-label="Move up"
+														aria-label={`Move ${artworkName} up`}
 															>
 																↑
 															</button>
@@ -123,7 +130,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																className="btn-icon"
 																disabled={idx === entries.length - 1}
 																onClick={() => moveGalleryImage(folder, idx, idx + 1)}
-																aria-label="Move down"
+														aria-label={`Move ${artworkName} down`}
 															>
 																↓
 															</button>
@@ -131,7 +138,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																type="button"
 																className="btn-icon danger"
 																onClick={() => removeGalleryImage(folder, entry.id)}
-																aria-label="Delete"
+														aria-label={`Delete ${artworkName}`}
 															>
 																✕
 															</button>

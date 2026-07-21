@@ -11,7 +11,7 @@ import { loadRepoInfo } from '../lib/github/store';
 import { slugifySiteName, subdomainFor } from '../lib/github/subdomain';
 
 export default function SharingEditor() {
-	const { doc, setSiteDescription, setPageDescription, setOgImage } = useEditor();
+	const { doc, setSiteDescription, setSiteLanguage, setPageDescription, setOgImage } = useEditor();
 	if (!doc) return null;
 	const { content } = doc;
 
@@ -49,6 +49,20 @@ export default function SharingEditor() {
 	return (
 		<>
 			<Section title="Search & social" sectionKey="_sharing">
+				<Field label="Site language" hint="Helps browsers and screen readers pronounce your words correctly.">
+					<select className="select-input" value={content.site.language ?? 'en'} onChange={(event) => setSiteLanguage(event.target.value)}>
+						<option value="en">English</option>
+						<option value="es">Spanish</option>
+						<option value="fr">French</option>
+						<option value="de">German</option>
+						<option value="it">Italian</option>
+						<option value="pt">Portuguese</option>
+						<option value="nl">Dutch</option>
+						<option value="ja">Japanese</option>
+						<option value="ko">Korean</option>
+						<option value="zh">Chinese</option>
+					</select>
+				</Field>
 				<Field
 					label="Site description"
 					hint="One or two sentences. Shown under your name in Google and in link previews."

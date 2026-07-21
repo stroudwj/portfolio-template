@@ -71,6 +71,19 @@ export function onShowEditorTab(fn: (tab: string) => void): () => void {
 	return () => window.removeEventListener(SHOW_TAB_EVENT, handler);
 }
 
+const SHOW_PREVIEW_PAGE_EVENT = 'editor-show-preview-page';
+
+/** Show a page in the live preview even when it is a draft or hidden from the menu. */
+export function showPreviewPage(pageKey: string) {
+	window.dispatchEvent(new CustomEvent(SHOW_PREVIEW_PAGE_EVENT, { detail: pageKey }));
+}
+
+export function onShowPreviewPage(fn: (pageKey: string) => void): () => void {
+	const handler = (event: Event) => fn((event as CustomEvent<string>).detail);
+	window.addEventListener(SHOW_PREVIEW_PAGE_EVENT, handler);
+	return () => window.removeEventListener(SHOW_PREVIEW_PAGE_EVENT, handler);
+}
+
 export function Section({
 	title,
 	children,

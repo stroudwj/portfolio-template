@@ -20,7 +20,7 @@ export default function LoadPublishedModal({
 	onLoaded,
 }: {
 	onClose: () => void;
-	onLoaded: (doc: EditorDoc) => void;
+	onLoaded: (doc: EditorDoc) => void | Promise<void>;
 }) {
 	const [phase, setPhase] = useState<Phase>('loading');
 	const [log, setLog] = useState<PublishProgress[]>([]);
@@ -60,7 +60,7 @@ export default function LoadPublishedModal({
 				runtimeVersion,
 				dataFileShas,
 			});
-			onLoaded(doc);
+			await onLoaded(doc);
 		} catch (err) {
 			setError(err instanceof GitHubError ? err.friendly : err instanceof Error ? err.message : 'Could not load your site.');
 			setPhase('error');

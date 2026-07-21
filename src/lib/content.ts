@@ -23,6 +23,8 @@ export interface Site {
 	description: string;
 	/** Favicon file name, served from public/. */
 	favicon: string;
+	/** Language used by browsers and screen readers. Defaults to English. */
+	language?: string;
 	/** Hand-drawn signature, signed at the foot of every page. Absent = none. */
 	signature?: SignatureData;
 	/** Footer line(s) shown at the bottom of every page. "\n" is a line break; absent/empty = no footer. */
@@ -97,6 +99,8 @@ export interface NavItem {
 	/** Page file name in src/pages/ without extension ('' for the Home page). */
 	path: string;
 	label: string;
+	/** Keeps the page published but removes it from the visible menu. */
+	hidden?: boolean;
 }
 
 export interface Profile {
@@ -123,6 +127,27 @@ export interface Resume {
 
 export type GalleryLayoutMode = 'freeform' | 'grid';
 
+/** Optional phone-only presentation for one item. Automatic phone layouts do not
+ * write any of these values; they exist only after the artist explicitly chooses
+ * "Customize phone layout" for a gallery. */
+export interface MobileItemStyle {
+	/** Percentage of the phone content width (kept deliberately preset-like in the UI). */
+	width?: number;
+	align?: 'left' | 'center' | 'right';
+	hidden?: boolean;
+}
+
+/** A gallery's independent phone arrangement. Absence means the editor and
+ * published site keep generating the phone layout automatically. */
+export interface MobileComposition {
+	mode: 'custom';
+	/** Stable item keys such as `image:<id>`, `text:<id>`, and `video:<id>`. */
+	order: string[];
+	items?: Record<string, MobileItemStyle>;
+	/** Grid galleries may stay one column or use a compact two-column phone grid. */
+	columns?: 1 | 2;
+}
+
 export interface GalleryConfig {
 	/** Folder name under src/assets/ that holds this gallery's images. */
 	folder: string;
@@ -136,9 +161,19 @@ export interface GalleryConfig {
 	columns?: number;
 	/** Grid mode: crop ratio like "1:1" or "4:3"; absent = original ratios (no crop). */
 	aspect?: string;
+	/** Opt-in independent phone arrangement. Absent = a complete automatic layout. */
+	mobile?: MobileComposition;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';
+export type TextStyle = 'body' | 'heading' | 'subheading' | 'quote';
+
+export interface FormField {
+	id: string;
+	type: 'name' | 'email' | 'text' | 'textarea';
+	label: string;
+	required?: boolean;
+}
 
 /** How a page's sub-pages are presented by the 'children' block. */
 export type ChildrenStyle = 'cards' | 'large' | 'list' | 'index';
@@ -167,12 +202,22 @@ export interface TextLayout {
  * section (bio, email, social links).
  */
 export type PageBlock =
-	| { id: string; type: 'text'; text: string; align?: TextAlign; layout?: TextLayout }
+	| { id: string; type: 'text'; text: string; align?: TextAlign; style?: TextStyle; link?: string; layout?: TextLayout }
 	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'images'; gallery: GalleryConfig; /** Editor-only display name so groups are tellable apart. */ name?: string }
 	| { id: string; type: 'children'; /** Presentation of the sub-page cards; absent = 'cards'. */ style?: ChildrenStyle }
-	| { id: string; type: 'about' };
+	| { id: string; type: 'about' }
+	| { id: string; type: 'button'; label: string; url: string; align?: TextAlign; appearance?: 'solid' | 'outline' }
+	| { id: string; type: 'divider' }
+	| {
+			id: string;
+			type: 'form';
+			heading?: string;
+			action: string;
+			successMessage?: string;
+			fields: FormField[];
+		};
 
 export interface PageConfig {
 	/** Browser-tab title. "{name}" is replaced with site.name by pageTitle(). */
@@ -181,12 +226,19 @@ export interface PageConfig {
 	label?: string;
 	/** Meta description for THIS page (search results, link previews). Absent = site.description. */
 	description?: string;
+	/** Kept in the editor but left out of published bundles. */
+	draft?: boolean;
+	/** Publish the page while asking search engines not to list it. */
+	noindex?: boolean;
 	/** Optional on-page heading shown above the body. */
 	heading?: string;
 	/** Present on gallery pages; absent on text-only pages like About. */
 	gallery?: GalleryConfig;
 	/** Ordered body blocks. Filled by the versioned parser for pre-block content. */
 	blocks?: PageBlock[];
+	/** Opt-in phone-only order/visibility for whole page sections. Absence keeps
+	 * following the desktop block order automatically. */
+	mobile?: MobileComposition;
 	/** Ordered sub-page keys, shown as thumbnail cards via the 'children' block. */
 	children?: string[];
 	/** Card image for this page when it appears as a sub-page (path under src/assets/). */
@@ -207,7 +259,12 @@ export interface ImageLayout {
 }
 
 export interface ImageMeta {
+	[key: string]: unknown;
+	/** Stable across publish/reload so optional phone arrangements can refer to this image. */
+	id: string;
 	title?: string;
+	/** Accessibility description; deliberately separate from the visible title. */
+	alt?: string;
 	description?: string;
 	link?: string;
 	/** Legacy grid width in columns (1–4); ignored once `layout` exists. */
@@ -219,6 +276,7 @@ export interface ImageMeta {
 }
 
 export interface GalleryData {
+	[key: string]: unknown;
 	/** Maps an image file name to its optional caption metadata. */
 	items: Record<string, ImageMeta>;
 }

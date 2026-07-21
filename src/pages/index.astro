@@ -20,9 +20,9 @@ const base = import.meta.env.BASE_URL;
 {IS_PRODUCT_SITE && <Landing />}
 {
 	!IS_PRODUCT_SITE && (
-		<Layout title={pageTitle(page.title)} description={page.description} showLogo={true}>
+		<Layout title={pageTitle(page.title)} description={page.description} showLogo={true} noindex={page.noindex}>
 			<PortfolioPage
-				client:visible
+				client:load
 				page="home"
 				content={content}
 				galleries={galleries}

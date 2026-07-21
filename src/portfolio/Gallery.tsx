@@ -1,4 +1,13 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useId,
+	useMemo,
+	useRef,
+	useState,
+	type CSSProperties,
+	type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import type { CanvasEmbed, CanvasText, GalleryConfig, ImageLayout, ResolvedImage, TextLayout } from './types';
 import { safeHref } from './safeHref';
@@ -13,6 +22,27 @@ const clampSpan = (value: number | undefined): number =>
 /** Per-image grid placement as CSS variables Gallery.css turns into spans. */
 const spanVars = (img: ResolvedImage): CSSProperties =>
 	({ '--w': String(clampSpan(img.w)), '--h': String(clampSpan(img.h)) }) as CSSProperties;
+
+/** Phone-only CSS variables. They are inert above the phone breakpoint, so a
+ * custom phone arrangement can never disturb the desktop composition. */
+function phoneItemVars(settings: GalleryConfig | undefined, key: string, fallbackOrder: number): CSSProperties {
+	const mobile = settings?.mobile;
+	const style = mobile?.items?.[key];
+	const requested = mobile?.order.indexOf(key) ?? -1;
+	const order = requested >= 0 ? requested : (mobile?.order.length ?? 0) + fallbackOrder;
+	const width = style?.width ?? 100;
+	const align = style?.align ?? 'center';
+	return {
+		'--mobile-order': String(order),
+		'--mobile-width': String(width),
+		'--mobile-display': style?.hidden ? 'none' : 'block',
+		'--mobile-margin-left': align === 'left' ? '0' : 'auto',
+		'--mobile-margin-right': align === 'right' ? '0' : 'auto',
+	} as CSSProperties;
+}
+
+const imagePhoneKey = (img: ResolvedImage, index: number): string =>
+	`image:${img.id ?? `${img.src}-${index}`}`;
 
 /** Uniform grid: images per row, clamped to something sane. */
 export const uniformColumns = (value: number | undefined): number =>
@@ -69,25 +99,147 @@ export default function Gallery({
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
+	const isOpen = openIndex !== null;
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
+	const returnFocusRef = useRef<HTMLElement | null>(null);
+	const dialogTitleId = useId();
+	const dialogCaptionId = useId();
 	// The <body> this gallery actually renders in (the editor preview can run
 	// inside an iframe). The lightbox portals there so no transformed/scrollable
 	// ancestor (like the editor's preview pane) can trap or scroll past it.
 	const [host, setHost] = useState<HTMLElement | null>(null);
+	const [isPhone, setIsPhone] = useState(false);
+	const setGalleryRoot = useCallback((el: HTMLDivElement | null) => {
+		setHost(el ? el.ownerDocument.body : null);
+	}, []);
+	const closeLightbox = useCallback(() => setOpenIndex(null), []);
+	const renderedImages = useMemo(() => {
+		const entries = images.map((img, i) => ({ img, i }));
+		if (!isPhone || !settings?.mobile) return entries;
+		const rank = new Map(settings.mobile.order.map((key, index) => [key, index]));
+		return entries.sort(
+			(a, b) =>
+				(rank.get(imagePhoneKey(a.img, a.i)) ?? rank.size + a.i) -
+				(rank.get(imagePhoneKey(b.img, b.i)) ?? rank.size + b.i),
+		);
+	}, [images, isPhone, settings?.mobile]);
+	const lightboxIndices = useMemo(
+		() =>
+			renderedImages.flatMap(({ img, i }) => {
+				const hidden = settings?.mobile?.items?.[imagePhoneKey(img, i)]?.hidden;
+				return isPhone && hidden ? [] : [i];
+			}),
+		[isPhone, renderedImages, settings?.mobile?.items],
+	);
+	const openLightbox = useCallback(
+		(index: number, trigger?: HTMLElement) => {
+			setOpenIndex((current) => {
+				if (current === null) {
+					const active = trigger ?? host?.ownerDocument.activeElement;
+					returnFocusRef.current = active && 'focus' in active ? (active as HTMLElement) : null;
+				}
+				return index;
+			});
+		},
+		[host],
+	);
+	const moveLightbox = useCallback(
+		(direction: -1 | 1) => {
+			if (lightboxIndices.length < 2) return;
+			setOpenIndex((current) => {
+				if (current === null) return null;
+				const position = Math.max(lightboxIndices.indexOf(current), 0);
+				return lightboxIndices[(position + direction + lightboxIndices.length) % lightboxIndices.length];
+			});
+		},
+		[lightboxIndices],
+	);
+	const openFromKeyboard = (e: ReactKeyboardEvent<HTMLElement>, index: number) => {
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		e.preventDefault();
+		openLightbox(index, e.currentTarget);
+	};
 
 	useEffect(() => {
-		if (openIndex === null || !host) return;
+		const win = host?.ownerDocument.defaultView;
+		if (!win) return;
+		const query = win.matchMedia('(max-width: 639px)');
+		const update = () => setIsPhone(query.matches);
+		update();
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
+	}, [host]);
+
+	useEffect(() => {
+		if (openIndex !== null && !lightboxIndices.includes(openIndex)) closeLightbox();
+	}, [closeLightbox, lightboxIndices, openIndex]);
+
+	useEffect(() => {
+		if (!isOpen || !host) return;
 		const doc = host.ownerDocument;
+		const dialog = dialogRef.current;
+		if (!dialog) return;
+		const focusableSelector = [
+			'a[href]',
+			'button:not([disabled])',
+			'input:not([disabled])',
+			'select:not([disabled])',
+			'textarea:not([disabled])',
+			'[tabindex]:not([tabindex="-1"])',
+		].join(',');
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') setOpenIndex(null);
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				closeLightbox();
+				return;
+			}
+			if (e.key === 'ArrowLeft') {
+				e.preventDefault();
+				moveLightbox(-1);
+				return;
+			}
+			if (e.key === 'ArrowRight') {
+				e.preventDefault();
+				moveLightbox(1);
+				return;
+			}
+			if (e.key !== 'Tab') return;
+			const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+				(el) => el.getClientRects().length > 0,
+			);
+			if (focusable.length === 0) {
+				e.preventDefault();
+				dialog.focus();
+				return;
+			}
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			const active = doc.activeElement;
+			if (!dialog.contains(active)) {
+				e.preventDefault();
+				first.focus();
+			} else if (e.shiftKey && (active === first || active === dialog)) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && active === last) {
+				e.preventDefault();
+				first.focus();
+			}
 		};
 		doc.addEventListener('keydown', onKey);
 		const previousOverflow = host.style.overflow;
 		host.style.overflow = 'hidden';
+		const frame = doc.defaultView?.requestAnimationFrame(() => (closeButtonRef.current ?? dialog).focus());
 		return () => {
 			doc.removeEventListener('keydown', onKey);
+			if (frame !== undefined) doc.defaultView?.cancelAnimationFrame(frame);
 			host.style.overflow = previousOverflow;
+			const returnTarget = returnFocusRef.current;
+			if (returnTarget?.isConnected) returnTarget.focus();
+			returnFocusRef.current = null;
 		};
-	}, [openIndex, host]);
+	}, [closeLightbox, host, isOpen, moveLightbox]);
 
 	if (images.length === 0 && !texts?.length && !embeds?.length) {
 		return (
@@ -103,54 +255,98 @@ export default function Gallery({
 	const cols = uniformColumns(settings?.columns);
 	const cellAr = parseAspect(settings?.aspect);
 
-	const modal = (
+	const modal = open && openIndex !== null ? (
 		<div
-			className={`modal ${open ? 'show' : ''}`}
+			ref={dialogRef}
+			className="modal show"
 			role="dialog"
-			aria-hidden={open ? 'false' : 'true'}
+			aria-modal="true"
+			aria-labelledby={dialogTitleId}
+			aria-describedby={open.description ? dialogCaptionId : undefined}
+			tabIndex={-1}
 			onClick={(e) => {
-				if (e.target === e.currentTarget) setOpenIndex(null);
+				if (e.target === e.currentTarget) closeLightbox();
 			}}
 		>
-			<span className="close-btn" onClick={() => setOpenIndex(null)}>
+			<h2 id={dialogTitleId} className="lightbox-heading" aria-live="polite">
+				{open.title || `Artwork ${Math.max(lightboxIndices.indexOf(openIndex), 0) + 1} of ${lightboxIndices.length}`}
+			</h2>
+			<button
+				ref={closeButtonRef}
+				type="button"
+				className="close-btn"
+				aria-label="Close image viewer"
+				onClick={closeLightbox}
+			>
 				&times;
-			</span>
-			{open && <img src={open.full ?? open.src} alt={open.title || 'Full resolution portfolio piece'} />}
-			{open && (open.title || open.description || open.link) && (
-				<figcaption className="modal-caption">
-					{open.title && <span className="modal-caption-title">{open.title}</span>}
-					{open.description && <span className="modal-caption-description">{open.description}</span>}
-					{open.link && (
-						<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener">
-							View project ↗
-						</a>
-					)}
-				</figcaption>
+			</button>
+			{lightboxIndices.length > 1 && (
+				<button
+					type="button"
+					className="lightbox-nav previous"
+					aria-label="Show previous image"
+					onClick={() => moveLightbox(-1)}
+				>
+					‹
+				</button>
+			)}
+			<figure className="modal-figure">
+				<img src={open.full ?? open.src} alt={open.alt || open.title || 'Full resolution portfolio piece'} />
+				{(open.title || open.description || open.link) && (
+					<figcaption id={dialogCaptionId} className="modal-caption">
+						{open.title && <span className="modal-caption-title">{open.title}</span>}
+						{open.description && <span className="modal-caption-description">{open.description}</span>}
+						{open.link && (
+							<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener">
+								View project ↗
+							</a>
+						)}
+					</figcaption>
+				)}
+			</figure>
+			{lightboxIndices.length > 1 && (
+				<button
+					type="button"
+					className="lightbox-nav next"
+					aria-label="Show next image"
+					onClick={() => moveLightbox(1)}
+				>
+					›
+				</button>
 			)}
 		</div>
-	);
+	) : null;
 
 	return (
-		<div
-			ref={(el) => {
-				setHost(el ? el.ownerDocument.body : null);
-			}}
-		>
+		<div ref={setGalleryRoot} className="gallery-root" data-phone-ready={isPhone ? 'true' : undefined}>
 			{uniformMode ? (
 				<div
 					className={`uniform-grid ${cellAr ? 'cropped' : ''}`}
-					style={{ '--cols': String(cols), '--cell-ar': cellAr ? String(cellAr) : undefined } as CSSProperties}
+					style={{
+						'--cols': String(cols),
+						'--cell-ar': cellAr ? String(cellAr) : undefined,
+						'--mobile-cols': String(settings?.mobile?.columns ?? 1),
+					} as CSSProperties}
 				>
-					{images.map((img, i) => (
-						<div className="uniform-item" key={img.id ?? `${img.src}-${i}`}>
+					{renderedImages.map(({ img, i }) => (
+						<div
+							className="uniform-item"
+							style={phoneItemVars(settings, imagePhoneKey(img, i), i)}
+							key={img.id ?? `${img.src}-${i}`}
+						>
 							<img
 								src={img.src}
 								srcSet={img.srcSet}
-								alt={img.title || alt}
+								alt={img.alt || img.title || alt}
 								className={editable ? undefined : 'lightbox-trigger'}
 								loading="lazy"
 								decoding="async"
-								onClick={editable ? undefined : () => setOpenIndex(i)}
+								role={editable ? undefined : 'button'}
+								tabIndex={editable ? undefined : 0}
+								aria-haspopup={editable ? undefined : 'dialog'}
+								aria-label={editable ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
+								onClick={editable ? undefined : (e) => openLightbox(i, e.currentTarget)}
+								onKeyDown={editable ? undefined : (e) => openFromKeyboard(e, i)}
 							/>
 						</div>
 					))}
@@ -161,24 +357,35 @@ export default function Gallery({
 					texts={texts}
 					embeds={embeds}
 					alt={alt}
+					mobile={settings?.mobile}
+					phoneActive={isPhone}
 					editable={editable}
 					onLayoutChange={onLayoutChange}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
-					onOpen={editable ? undefined : setOpenIndex}
+					onOpen={editable ? undefined : openLightbox}
 				/>
 			) : (
 				<div className="masonry-grid">
-					{images.map((img, i) => (
-						<div className="masonry-item" style={spanVars(img)} key={img.id ?? `${img.src}-${i}`}>
+					{renderedImages.map(({ img, i }) => (
+						<div
+							className="masonry-item"
+							style={{ ...spanVars(img), ...phoneItemVars(settings, imagePhoneKey(img, i), i) }}
+							key={img.id ?? `${img.src}-${i}`}
+						>
 							<img
 								src={img.src}
 								srcSet={img.srcSet}
-								alt={img.title || alt}
+								alt={img.alt || img.title || alt}
 								className="lightbox-trigger"
 								loading="lazy"
 								decoding="async"
-								onClick={() => setOpenIndex(i)}
+								role="button"
+								tabIndex={0}
+								aria-haspopup="dialog"
+								aria-label={`Open ${img.title || img.alt || alt} in image viewer`}
+								onClick={(e) => openLightbox(i, e.currentTarget)}
+								onKeyDown={(e) => openFromKeyboard(e, i)}
 							/>
 						</div>
 					))}

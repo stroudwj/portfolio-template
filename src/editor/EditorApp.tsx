@@ -5,7 +5,7 @@ import ProfileEditor from './components/ProfileEditor';
 import ThemeEditor from './components/ThemeEditor';
 import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
-import AddPageButton from './components/AddPageButton';
+import PageManager from './components/PageManager';
 import SocialLinksEditor from './components/SocialLinksEditor';
 import SignatureEditor from './components/SignatureEditor';
 import FooterEditor from './components/FooterEditor';
@@ -37,7 +37,7 @@ type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 const TAB_STORE = 'portfolio-editor.tab';
 
 const SHORTCUTS: Array<{ keys: string; label: string }> = [
-	{ keys: '⌘/Ctrl Z', label: 'Undo the last canvas move' },
+	{ keys: '⌘/Ctrl Z', label: 'Undo the last change' },
 	{ keys: '⌘/Ctrl ⇧ Z', label: 'Redo' },
 	{ keys: '⌘/Ctrl Y', label: 'Redo' },
 	{ keys: '⇧ S', label: 'Toggle edge snap' },
@@ -96,8 +96,8 @@ function HotkeyGuide() {
 	);
 }
 
-/** Cmd/Ctrl+Z undoes the last canvas arrangement change; Cmd+Shift+Z or Cmd/Ctrl+Y
- *  redoes it. Text fields keep their native undo — shortcuts are ignored there. */
+/** Cmd/Ctrl+Z undoes the last document change; Cmd+Shift+Z or Cmd/Ctrl+Y redoes
+ *  it. Text fields keep their familiar native undo while they have focus. */
 function useUndoShortcuts(undo: () => void, redo: () => void) {
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -120,7 +120,18 @@ function useUndoShortcuts(undo: () => void, redo: () => void) {
 }
 
 function Shell({ base }: { base: string }) {
-	const { doc, reset, resumeDraft, hasDraft, undo, redo } = useEditor();
+	const {
+		doc,
+		reset,
+		resumeDraft,
+		hasDraft,
+		undo,
+		redo,
+		canUndo,
+		canRedo,
+		saveStatus,
+		saveError,
+	} = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
@@ -160,7 +171,7 @@ function Shell({ base }: { base: string }) {
 	if (!doc) return <StartScreen brandLockup={brandLockup} />;
 
 	const resetAll = () => {
-		if (confirm('Reset the editor? This permanently deletes your draft and every image saved in this browser.'))
+		if (confirm('Reset the editor? This permanently deletes your draft, uploaded files, and all saved versions in this browser. Download a backup first if you may need them.'))
 			void reset();
 	};
 
@@ -174,11 +185,12 @@ function Shell({ base }: { base: string }) {
 					</picture>
 				</a>
 				<div className="mobile-toggle">
-					<button type="button" className={mobileView === 'edit' ? 'active' : ''} onClick={() => setMobileView('edit')}>
+					<button type="button" aria-pressed={mobileView === 'edit'} className={mobileView === 'edit' ? 'active' : ''} onClick={() => setMobileView('edit')}>
 						Edit
 					</button>
 					<button
 						type="button"
+						aria-pressed={mobileView === 'preview'}
 						className={mobileView === 'preview' ? 'active' : ''}
 						onClick={() => setMobileView('preview')}
 					>
@@ -186,6 +198,36 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<div className="topbar-spacer" />
+				<div
+					className={`save-status save-status-${saveStatus}`}
+					role="status"
+					aria-live="polite"
+					aria-label={saveError ?? (saveStatus === 'saving' ? 'Saving draft' : 'Draft saved')}
+					title={saveError ?? (saveStatus === 'saving' ? 'Saving your draft in this browser' : 'Draft saved in this browser')}
+				>
+					<span className="save-status-dot" aria-hidden="true" />
+					{saveStatus === 'saving' ? 'Saving…' : saveStatus === 'failed' ? 'Couldn’t save' : 'Saved'}
+				</div>
+				<div className="history-actions" role="group" aria-label="Undo and redo">
+					<button
+						type="button"
+						className="btn-ghost"
+						onClick={undo}
+						disabled={!canUndo}
+						title="Undo the last change (Command or Ctrl + Z)"
+					>
+						Undo
+					</button>
+					<button
+						type="button"
+						className="btn-ghost"
+						onClick={redo}
+						disabled={!canRedo}
+						title="Redo the last undone change (Command or Ctrl + Shift + Z)"
+					>
+						Redo
+					</button>
+				</div>
 				<HotkeyGuide />
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset
@@ -223,11 +265,11 @@ function Shell({ base }: { base: string }) {
 						</div>
 					)}
 					<div className={`editor-tab-pane ${tab === 'content' ? 'active' : ''}`}>
+						<PageManager />
 						<ProfileEditor />
 						{doc.content.nav.map((item) => (
 							<PageEditor key={item.path || 'home'} pageKey={item.path || 'home'} />
 						))}
-						<AddPageButton />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'theme' ? 'active' : ''}`}>
 						<ThemeEditor />

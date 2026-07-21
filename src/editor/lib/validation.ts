@@ -1,6 +1,7 @@
 // Small, dependency-free validators used for live inline feedback and the
 // pre-export summary.
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 
 export const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -59,18 +60,43 @@ export function collectIssues(doc: EditorDoc): string[] {
 	doc.content.social.forEach((s, i) => {
 		if (s.url && !isUrl(s.url)) issues.push(`Social link ${i + 1} (“${s.label || 'untitled'}”) has an invalid URL.`);
 	});
+	const publishedPages = Object.entries(doc.content.pages).filter(([, page]) => !page.draft);
+	const publishedFolders = new Set(
+		publishedPages.flatMap(([, page]) => pageGalleryConfigs(page).map((gallery) => gallery.folder)),
+	);
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
+		if (!publishedFolders.has(folder)) continue;
 		entries.forEach((e) => {
 			if (e.meta.link && !isUrl(e.meta.link))
 				issues.push(`A ${folder} item link (“${e.meta.title || e.filename}”) is not a valid URL.`);
 		});
+		const missingDescriptions = entries.filter((entry) => !entry.meta.alt.trim()).length;
+		if (missingDescriptions)
+			issues.push(
+				`${missingDescriptions} image${missingDescriptions === 1 ? '' : 's'} in “${folder}” still need${missingDescriptions === 1 ? 's' : ''} a description for visitors who cannot see them.`,
+			);
 	}
-	for (const [key, page] of Object.entries(doc.content.pages)) {
+	for (const [key, page] of publishedPages) {
+		if (!page.title.trim()) issues.push(`The page “${page.label ?? key}” needs a browser and search title.`);
 		for (const block of page.blocks ?? []) {
-			if (block.type !== 'embed') continue;
-			if (!block.url.trim()) issues.push(`A video on “${page.label ?? key}” has no link yet.`);
-			else if (!videoEmbedSrc(block.url))
-				issues.push(`A video link on “${page.label ?? key}” isn’t a YouTube or Vimeo URL.`);
+			if (block.type === 'embed') {
+				if (!block.url.trim()) issues.push(`A video on “${page.label ?? key}” has no link yet.`);
+				else if (!videoEmbedSrc(block.url))
+					issues.push(`A video link on “${page.label ?? key}” isn’t a YouTube or Vimeo URL.`);
+			}
+			if (
+				block.type === 'button' &&
+				(!block.url.trim() || (!isUrl(block.url) && !block.url.startsWith('/') && !block.url.startsWith('#')))
+			)
+				issues.push(`A button on “${page.label ?? key}” needs a valid destination.`);
+			if (block.type === 'text' && block.link && !isUrl(block.link) && !block.link.startsWith('/') && !block.link.startsWith('#'))
+				issues.push(`Linked text on “${page.label ?? key}” needs a valid destination.`);
+			if (block.type === 'form') {
+				if (block.action && (!isUrl(block.action) || !block.action.startsWith('https://')))
+					issues.push(`The direct-delivery address for the contact form on “${page.label ?? key}” is not valid.`);
+				else if (!block.action && !isEmail(doc.content.contact.email))
+					issues.push(`Add a contact email so the form on “${page.label ?? key}” has somewhere to send messages.`);
+			}
 		}
 	}
 	return issues;

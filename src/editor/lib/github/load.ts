@@ -161,10 +161,12 @@ export async function loadDocFromRepo(
 			const fullName = path.slice(prefix.length); // the on-disk name, incl. NN- prefix (the caption key)
 			const meta = content.galleries[folder]?.items?.[fullName] ?? {};
 			return {
-				id: uid('e'),
+				id: meta.id || uid('e'),
 				filename: stripOrderPrefix(fullName),
 				meta: {
+					...meta,
 					title: meta.title ?? '',
+					alt: meta.alt ?? '',
 					description: meta.description ?? '',
 					link: meta.link ?? '',
 					w: meta.w,

@@ -6,7 +6,12 @@ import type { Content, ImageLayout } from '../../lib/content';
 export type { Content, ImageLayout };
 
 export interface ImageMeta {
+	[key: string]: unknown;
+	/** Written on export so published phone arrangements survive a later reload. */
+	id?: string;
 	title: string;
+	/** Screen-reader description, separate from the visible artwork title. */
+	alt: string;
 	description: string;
 	link: string;
 	/** Legacy grid width in columns (1–4; unset = 1). Ignored once `layout` exists. */

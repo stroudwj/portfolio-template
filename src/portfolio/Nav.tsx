@@ -32,7 +32,7 @@ export default function Nav({ items, base, current, onNavigate }: NavProps) {
 		setHoverCapable(window.matchMedia('(hover: hover)').matches);
 	}, []);
 
-	const links = items.map((item) => ({
+	const links = items.filter((item) => !item.hidden).map((item) => ({
 		label: item.label,
 		path: item.path,
 		href: withBase(base, item.path),

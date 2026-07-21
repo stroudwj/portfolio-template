@@ -12,6 +12,7 @@
 // measured.
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { CanvasEmbed, CanvasText, ImageLayout, ResolvedImage, TextLayout } from './types';
+import type { MobileComposition } from '../lib/content';
 import {
 	bottomOf,
 	canvasHeight,
@@ -36,7 +37,8 @@ import {
 import { guideById, useGridPrefs } from './gridPrefs';
 import { videoEmbedSrc } from './videoEmbed';
 import { safeHref } from './safeHref';
-import { TextLines } from './TextBlock';
+import { TextContent } from './TextBlock';
+import { automaticPhoneOrder } from './mobileOrder';
 import './Gallery.css';
 
 export interface CanvasGalleryProps {
@@ -49,14 +51,18 @@ export interface CanvasGalleryProps {
 	alt?: string;
 	/** Editor preview: enables move/resize instead of the lightbox. */
 	editable?: boolean;
+	/** Optional phone-only order, size and visibility. Absent = automatic. */
+	mobile?: MobileComposition;
+	/** True when this hydrated gallery is currently inside the phone breakpoint. */
+	phoneActive?: boolean;
 	/** Reports a finished move/resize (and the initial auto-flow) per image. */
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
 	/** Reports a finished move/resize (and height re-measures) per pinned text. */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned video embed. */
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
-	/** Published site: open the lightbox for image i. */
-	onOpen?: (index: number) => void;
+	/** Published site: open the lightbox for image i and restore focus to its trigger afterwards. */
+	onOpen?: (index: number, trigger?: HTMLElement) => void;
 }
 
 export default function CanvasGallery({
@@ -65,6 +71,8 @@ export default function CanvasGallery({
 	embeds = [],
 	alt = 'Portfolio piece',
 	editable = false,
+	mobile,
+	phoneActive = false,
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
@@ -154,12 +162,40 @@ export default function CanvasGallery({
 	// Phones stack the canvas as one column — interleave images, texts and videos
 	// by their vertical position so the stacking follows the composition, not the
 	// DOM order.
-	const stacked = [
-		...images.map((img, i) => ({ key: `i${keyOf(img, i)}`, y: layouts[i].y })),
-		...shownTexts.map((t, i) => ({ key: `t${t.id}`, y: textLayouts[i].y })),
-		...embeds.map((v, i) => ({ key: `v${v.id}`, y: embedLayouts[i].y })),
+	const automaticKeys = automaticPhoneOrder([
+		...images.map((img, i) => ({ key: `image:${keyOf(img, i)}`, y: layouts[i].y, kind: 'image' as const, index: i })),
+		...shownTexts.map((t, i) => ({ key: `text:${t.id}`, y: textLayouts[i].y, kind: 'text' as const, index: i })),
+		...embeds.map((v, i) => ({ key: `video:${v.id}`, y: embedLayouts[i].y, kind: 'video' as const, index: i })),
+	]);
+	const automaticOrderOf = new Map(automaticKeys.map((key, rank) => [key, rank]));
+	const requestedOrderOf = new Map((mobile?.order ?? []).map((key, rank) => [key, rank]));
+	const phoneVars = (key: string): CSSProperties => {
+		const automaticOrder = automaticOrderOf.get(key) ?? 0;
+		const requestedOrder = requestedOrderOf.get(key);
+		const style = mobile?.items?.[key];
+		const width = style?.width ?? 100;
+		const align = style?.align ?? 'center';
+		return {
+			'--mobile-order': String(requestedOrder ?? requestedOrderOf.size + automaticOrder),
+			'--mobile-width': String(width),
+			'--mobile-display': style?.hidden ? 'none' : 'block',
+			'--mobile-margin-left': align === 'left' ? '0' : 'auto',
+			'--mobile-margin-right': align === 'right' ? '0' : 'auto',
+		} as CSSProperties;
+	};
+	const renderItems = [
+		...images.map((_, index) => ({ type: 'image' as const, index, key: `image:${keyOf(images[index], index)}` })),
+		...embeds.map((embed, index) => ({ type: 'embed' as const, index, key: `video:${embed.id}` })),
+		...shownTexts.map((text, index) => ({ type: 'text' as const, index, key: `text:${text.id}` })),
 	];
-	const orderOf = new Map(stacked.sort((a, b) => a.y - b.y).map((e, rank) => [e.key, rank]));
+	if (phoneActive)
+		renderItems.sort((a, b) => {
+			const aRequested = requestedOrderOf.get(a.key);
+			const bRequested = requestedOrderOf.get(b.key);
+			const aOrder = aRequested ?? requestedOrderOf.size + (automaticOrderOf.get(a.key) ?? 0);
+			const bOrder = bRequested ?? requestedOrderOf.size + (automaticOrderOf.get(b.key) ?? 0);
+			return aOrder - bOrder;
+		});
 
 	// Overlap (z) order matches the editor panel like a layers list: the TOP image
 	// there sits in FRONT here, so z-index descends down the list. Pinned videos
@@ -359,125 +395,66 @@ export default function CanvasGallery({
 					))}
 				</div>
 			)}
-			{images.map((img, i) => {
-				const key = keyOf(img, i);
-				const l = layouts[i];
-				const vars = {
-					'--x': String(l.x),
-					'--y': String((l.y / height) * 100),
-					'--w': String(l.w),
-					'--ar': String(l.ar),
-					order: orderOf.get(`i${key}`),
-					zIndex: dragId === img.id ? DRAG_Z : imageZ(i),
-				} as CSSProperties;
-				return (
-					<div
-						key={key}
-						className={`canvas-item ${dragId === img.id ? 'dragging' : ''}`}
-						style={vars}
-						onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
-						onClick={!editable && onOpen ? () => onOpen(i) : undefined}
-					>
-						<img
-							src={img.src}
-							srcSet={img.srcSet}
-							alt={img.title || alt}
-							loading="lazy"
-							decoding="async"
-							draggable={false}
-							onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
-							ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined}
-						/>
-						{editable && (
-							<span
-								className="canvas-resize"
-								onPointerDown={(e) => startDrag(e, img, i, 'resize')}
-								aria-hidden="true"
-							/>
-						)}
-					</div>
-				);
-			})}
-			{embeds.map((embed, i) => {
-				const l = embedLayouts[i];
-				const vars = {
-					'--x': String(l.x),
-					'--y': String((l.y / height) * 100),
-					'--w': String(l.w),
-					'--ar': String(l.ar),
-					order: orderOf.get(`v${embed.id}`),
-					zIndex: dragId === embed.id ? DRAG_Z : embedZ(i),
-				} as CSSProperties;
-				const src = videoEmbedSrc(embed.url);
-				const href = src ? null : safeHref(embed.url);
-				return (
-					<div
-						key={embed.id}
-						className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`}
-						style={vars}
-						onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
-					>
-						{src ? (
-							<iframe
-								src={src}
-								title="Embedded video"
-								loading="lazy"
-								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-								allowFullScreen
-							/>
-						) : (
-							<div className="canvas-embed-fallback">
-								{href && /^https?:/.test(href) && !editable ? (
-									<a href={href} target="_blank" rel="noopener">
-										Watch video ↗
-									</a>
-								) : (
-									<span>Video</span>
-								)}
-							</div>
-						)}
-						{/* The iframe swallows pointer events; this shield keeps the video
-						    draggable in the editor (the published site renders it playable). */}
-						{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
-						{editable && (
-							<span
-								className="canvas-resize"
-								onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')}
-								aria-hidden="true"
-							/>
-						)}
-					</div>
-				);
-			})}
-			{shownTexts.map((t, i) => {
+			{renderItems.map((item) => {
+				if (item.type === 'image') {
+					const i = item.index;
+					const img = images[i];
+					const key = keyOf(img, i);
+					const l = layouts[i];
+					const vars = {
+						...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100),
+						'--w': String(l.w), '--ar': String(l.ar), zIndex: dragId === img.id ? DRAG_Z : imageZ(i),
+					} as CSSProperties;
+					return (
+						<div key={item.key} className={`canvas-item ${dragId === img.id ? 'dragging' : ''}`} style={vars}
+							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
+							role={!editable && onOpen ? 'button' : undefined} tabIndex={!editable && onOpen ? 0 : undefined}
+							aria-haspopup={!editable && onOpen ? 'dialog' : undefined}
+							aria-label={!editable && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
+							onClick={!editable && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
+							onKeyDown={!editable && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
+							<img src={img.src} srcSet={img.srcSet} alt={img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
+								onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
+								ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
+							{editable && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}
+						</div>
+					);
+				}
+				if (item.type === 'embed') {
+					const i = item.index;
+					const embed = embeds[i];
+					const l = embedLayouts[i];
+					const vars = {
+						...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100),
+						'--w': String(l.w), '--ar': String(l.ar), zIndex: dragId === embed.id ? DRAG_Z : embedZ(i),
+					} as CSSProperties;
+					const src = videoEmbedSrc(embed.url);
+					const href = src ? null : safeHref(embed.url);
+					return (
+						<div key={item.key} className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`} style={vars}
+							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}>
+							{src ? <iframe src={src} title="Embedded video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : (
+								<div className="canvas-embed-fallback">{href && /^https?:/.test(href) && !editable ? <a href={href} target="_blank" rel="noopener">Watch video ↗</a> : <span>Video</span>}</div>
+							)}
+							{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
+							{editable && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}
+						</div>
+					);
+				}
+				const i = item.index;
+				const text = shownTexts[i];
 				const l = textLayouts[i];
 				const vars = {
-					'--x': String(l.x),
-					'--y': String((l.y / height) * 100),
-					'--w': String(l.w),
-					order: orderOf.get(`t${t.id}`),
-					zIndex: dragId === t.id ? DRAG_Z : textZ(i),
+					...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100), '--w': String(l.w),
+					zIndex: dragId === text.id ? DRAG_Z : textZ(i),
 				} as CSSProperties;
 				return (
-					<div
-						key={t.id}
-						className={`canvas-item canvas-text-item ${dragId === t.id ? 'dragging' : ''}`}
-						style={vars}
-						ref={(el) => {
-							textEls.current[t.id] = el;
-						}}
-						onPointerDown={editable ? (e) => startTextDrag(e, t, i, 'move') : undefined}
-					>
-						<div className={`canvas-text align-${t.align ?? 'left'}`}>
-							{t.text.trim() ? <TextLines text={t.text} /> : <em className="canvas-text-empty">Empty text — write in the panel</em>}
+					<div key={item.key} className={`canvas-item canvas-text-item ${dragId === text.id ? 'dragging' : ''}`} style={vars}
+						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={editable ? (e) => startTextDrag(e, text, i, 'move') : undefined}>
+						<div className={`canvas-text align-${text.align ?? 'left'}`}>
+							{text.text.trim() ? <TextContent text={text.text} style={text.style} link={editable ? undefined : text.link} /> : <em className="canvas-text-empty">Empty text — write in the panel</em>}
 						</div>
-						{editable && (
-							<span
-								className="canvas-resize"
-								onPointerDown={(e) => startTextDrag(e, t, i, 'resize')}
-								aria-hidden="true"
-							/>
-						)}
+						{editable && <span className="canvas-resize" onPointerDown={(e) => startTextDrag(e, text, i, 'resize')} aria-hidden="true" />}
 					</div>
 				);
 			})}

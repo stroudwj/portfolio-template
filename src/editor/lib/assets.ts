@@ -9,9 +9,12 @@ interface AssetRecord {
 	filename: string;
 	/** Downscaled copy the editor renders; the untouched original is what publishes. */
 	previewUrl?: string;
+	persistState: 'pending' | 'saved' | 'failed';
+	persistError?: string;
 }
 
 const registry = new Map<string, AssetRecord>();
+const pendingPersistence = new Set<Promise<void>>();
 let counter = 0;
 
 // ---- change notification ----
@@ -27,6 +30,23 @@ export function subscribeAssets(listener: () => void): () => void {
 
 export function getAssetsVersion(): number {
 	return version;
+}
+
+export function getAssetPersistenceStatus(onlyIds?: ReadonlySet<string>): { pending: number; failures: string[] } {
+	let pending = 0;
+	const failures: string[] = [];
+	const entries: Array<[string, AssetRecord | undefined]> = onlyIds
+		? [...onlyIds].map((id) => [id, registry.get(id)])
+		: [...registry.entries()];
+	for (const [, record] of entries) {
+		if (!record) {
+			failures.push('An uploaded file used by this draft is missing from this browser.');
+			continue;
+		}
+		if (record.persistState === 'pending') pending += 1;
+		if (record.persistState === 'failed') failures.push(record.persistError || `“${record.filename}” was not saved.`);
+	}
+	return { pending, failures };
 }
 
 function notifyAssets(): void {
@@ -78,19 +98,53 @@ export function uid(prefix = 'a'): string {
 /** Register a freshly uploaded blob; returns its assetId (also persists it). */
 export function registerAsset(blob: Blob, filename: string): string {
 	const id = uid('img');
-	const record: AssetRecord = { blob, url: URL.createObjectURL(blob), filename };
+	const record: AssetRecord = { blob, url: URL.createObjectURL(blob), filename, persistState: 'pending' };
 	registry.set(id, record);
-	void persistAssetBlob(id, blob, filename);
+	const persistence = persistAssetBlob(id, blob, filename).then(
+		() => {
+			record.persistState = 'saved';
+			notifyAssets();
+		},
+		(error) => {
+			record.persistState = 'failed';
+			record.persistError = error instanceof Error ? error.message : `The image “${filename}” could not be saved.`;
+			notifyAssets();
+		},
+	);
+	pendingPersistence.add(persistence);
+	void persistence.finally(() => pendingPersistence.delete(persistence));
 	void makePreview(record);
 	return id;
 }
 
+/** Wait until every upload already handed to browser storage has either saved or
+ * reported failure. Used before a deliberate full reset. */
+export async function waitForAssetPersistence(): Promise<void> {
+	await Promise.all([...pendingPersistence]);
+}
+
+/** Forget in-memory blobs after persistent storage has been cleared. */
+export function clearAssetRegistry(): void {
+	for (const record of registry.values()) {
+		URL.revokeObjectURL(record.url);
+		if (record.previewUrl) URL.revokeObjectURL(record.previewUrl);
+	}
+	registry.clear();
+	notifyAssets();
+}
+
 /** Re-register a blob restored from IndexedDB (no re-persist, keep the same id). */
-export function restoreAsset(id: string, blob: Blob, filename: string): void {
-	if (registry.has(id)) return;
-	const record: AssetRecord = { blob, url: URL.createObjectURL(blob), filename };
+export function restoreAsset(id: string, blob: Blob, filename: string, replace = false): void {
+	if (registry.has(id) && !replace) return;
+	const previous = registry.get(id);
+	if (previous) {
+		URL.revokeObjectURL(previous.url);
+		if (previous.previewUrl) URL.revokeObjectURL(previous.previewUrl);
+	}
+	const record: AssetRecord = { blob, url: URL.createObjectURL(blob), filename, persistState: 'saved' };
 	registry.set(id, record);
 	void makePreview(record);
+	notifyAssets();
 }
 
 /** Original object URL — full resolution (export, lightbox, downloads). */

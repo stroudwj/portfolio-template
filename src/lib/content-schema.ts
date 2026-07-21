@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Content } from './content';
 
-export const CONTENT_SCHEMA_VERSION = 1 as const;
+export const CONTENT_SCHEMA_VERSION = 2 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 
@@ -19,13 +19,41 @@ const textLayoutSchema = passthrough({
 	h: z.number().optional(),
 });
 
+const mobileItemStyleSchema = passthrough({
+	width: z.number().min(35).max(100).optional(),
+	align: z.enum(['left', 'center', 'right']).optional(),
+	hidden: z.boolean().optional(),
+});
+
+const mobileCompositionSchema = passthrough({
+	mode: z.literal('custom'),
+	order: z.array(z.string()),
+	items: z.record(z.string(), mobileItemStyleSchema).optional(),
+	columns: z.union([z.literal(1), z.literal(2)]).optional(),
+});
+
+const galleryFolderSchema = z
+	.string()
+	.min(1)
+	.refine((value) => value !== '.' && value !== '..' && !value.includes('/') && !value.includes('\\'), {
+		message: 'Use one folder name without slashes',
+	});
+
+const galleryFilenameSchema = z
+	.string()
+	.min(1)
+	.refine((value) => value !== '.' && value !== '..' && !value.includes('/') && !value.includes('\\'), {
+		message: 'Artwork file names cannot contain folders',
+	});
+
 const galleryConfigSchema = passthrough({
-	folder: z.string(),
+	folder: galleryFolderSchema,
 	alt: z.string(),
 	order: z.enum(['asc', 'desc']),
 	layout: z.enum(['freeform', 'grid']).optional(),
 	columns: z.number().int().min(1).max(6).optional(),
 	aspect: z.string().optional(),
+	mobile: mobileCompositionSchema.optional(),
 });
 
 const pageBlockSchema = z.discriminatedUnion('type', [
@@ -34,6 +62,8 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		type: z.literal('text'),
 		text: z.string(),
 		align: z.enum(['left', 'center', 'right']).optional(),
+		style: z.enum(['body', 'heading', 'subheading', 'quote']).optional(),
+		link: z.string().optional(),
 		layout: textLayoutSchema.optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('embed'), url: z.string(), layout: imageLayoutSchema.optional() }),
@@ -50,10 +80,36 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		style: z.enum(['cards', 'large', 'list', 'index']).optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('about') }),
+	passthrough({
+		id: z.string(),
+		type: z.literal('button'),
+		label: z.string(),
+		url: z.string(),
+		align: z.enum(['left', 'center', 'right']).optional(),
+		appearance: z.enum(['solid', 'outline']).optional(),
+	}),
+	passthrough({ id: z.string(), type: z.literal('divider') }),
+	passthrough({
+		id: z.string(),
+		type: z.literal('form'),
+		heading: z.string().optional(),
+		action: z.string(),
+		successMessage: z.string().optional(),
+		fields: z.array(
+			passthrough({
+				id: z.string(),
+				type: z.enum(['name', 'email', 'text', 'textarea']),
+				label: z.string(),
+				required: z.boolean().optional(),
+			}),
+		),
+	}),
 ]);
 
 const imageMetaSchema = passthrough({
+	id: z.string().min(1),
 	title: z.string().optional(),
+	alt: z.string().optional(),
 	description: z.string().optional(),
 	link: z.string().optional(),
 	w: z.number().optional(),
@@ -71,6 +127,7 @@ export const contentSchema = passthrough({
 		logoImage: z.string().optional(),
 		description: z.string(),
 		favicon: z.string(),
+		language: z.string().min(2).optional(),
 		signature: passthrough({ strokes: z.array(z.array(z.array(z.number()))) }).optional(),
 		footer: z.string().optional(),
 		ogImage: z.string().optional(),
@@ -96,7 +153,7 @@ export const contentSchema = passthrough({
 		logoScale: z.number().optional(),
 		customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 	}),
-	nav: z.array(passthrough({ path: z.string(), label: z.string() })),
+	nav: z.array(passthrough({ path: z.string(), label: z.string(), hidden: z.boolean().optional() })),
 	profile: passthrough({ image: z.string(), bio: z.string() }),
 	contact: passthrough({ email: z.string() }),
 	social: z.array(passthrough({ label: z.string(), url: z.string() })),
@@ -107,15 +164,96 @@ export const contentSchema = passthrough({
 			title: z.string(),
 			label: z.string().optional(),
 			description: z.string().optional(),
+			draft: z.boolean().optional(),
+			noindex: z.boolean().optional(),
 			heading: z.string().optional(),
-			gallery: galleryConfigSchema.optional(),
-			blocks: z.array(pageBlockSchema).optional(),
-			children: z.array(z.string()).optional(),
+				gallery: galleryConfigSchema.optional(),
+				blocks: z.array(pageBlockSchema),
+				mobile: mobileCompositionSchema.optional(),
+				children: z.array(z.string()).optional(),
 			thumbnail: z.string().optional(),
 		}),
 	),
-	galleries: z.record(z.string(), passthrough({ items: z.record(z.string(), imageMetaSchema) })),
+	galleries: z.record(galleryFolderSchema, passthrough({ items: z.record(galleryFilenameSchema, imageMetaSchema) })),
+}).superRefine((value, ctx) => {
+	if (!value.pages.home)
+		ctx.addIssue({ code: 'custom', path: ['pages', 'home'], message: 'A home page is required' });
+	const navPaths = new Set<string>();
+	value.nav.forEach((item, index) => {
+		const key = item.path || 'home';
+		if (navPaths.has(key)) ctx.addIssue({ code: 'custom', path: ['nav', index, 'path'], message: 'Page appears in the menu more than once' });
+		navPaths.add(key);
+		if (!value.pages[key]) ctx.addIssue({ code: 'custom', path: ['nav', index, 'path'], message: 'Menu points to a page that does not exist' });
+	});
+	const parentOf = new Map<string, string>();
+	for (const [pageKey, page] of Object.entries(value.pages)) {
+		const children = new Set<string>();
+		(page.children ?? []).forEach((child, index) => {
+			if (children.has(child)) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'children', index], message: 'Sub-page appears more than once' });
+			children.add(child);
+			if (child === pageKey || !value.pages[child]) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'children', index], message: 'Sub-page does not exist' });
+			const existingParent = parentOf.get(child);
+			if (existingParent && existingParent !== pageKey)
+				ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'children', index], message: `Sub-page already belongs to “${existingParent}”` });
+			else parentOf.set(child, pageKey);
+		});
+		const blockIds = new Set<string>();
+		(page.blocks ?? []).forEach((block, index) => {
+			if (blockIds.has(block.id)) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'blocks', index, 'id'], message: 'Block id must be unique on its page' });
+			blockIds.add(block.id);
+			if (block.type === 'form') {
+				const fieldIds = new Set<string>();
+				block.fields.forEach((field, fieldIndex) => {
+					if (fieldIds.has(field.id)) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'blocks', index, 'fields', fieldIndex, 'id'], message: 'Form field id must be unique' });
+					fieldIds.add(field.id);
+				});
+			}
+		});
+		if (page.mobile) {
+			const allowed = new Set((page.blocks ?? []).map((block) => `block:${block.id}`));
+			allowed.add('page:heading');
+			if (new Set(page.mobile.order).size !== page.mobile.order.length)
+				ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'mobile', 'order'], message: 'Phone page order contains the same section more than once' });
+			for (const key of [...page.mobile.order, ...Object.keys(page.mobile.items ?? {})])
+				if (!allowed.has(key)) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'mobile'], message: 'Phone page arrangement points to a section that does not exist' });
+		}
+		for (const [galleryIndex, gallery] of pageGalleryConfigsForValidation(page).entries()) {
+			if (!value.galleries[gallery.folder]) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'gallery', galleryIndex], message: `Gallery folder “${gallery.folder}” is missing` });
+			if (gallery.mobile && new Set(gallery.mobile.order).size !== gallery.mobile.order.length)
+				ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'gallery', galleryIndex, 'mobile', 'order'], message: 'Phone order contains the same item more than once' });
+		}
+	}
+	const visited = new Set<string>();
+	const visiting = new Set<string>();
+	const visit = (key: string) => {
+		if (visiting.has(key)) {
+			ctx.addIssue({ code: 'custom', path: ['pages', key, 'children'], message: 'Sub-pages cannot form a cycle' });
+			return;
+		}
+		if (visited.has(key)) return;
+		visiting.add(key);
+		for (const child of value.pages[key]?.children ?? []) if (value.pages[child]) visit(child);
+		visiting.delete(key);
+		visited.add(key);
+	};
+	for (const key of Object.keys(value.pages)) visit(key);
+	for (const [folder, gallery] of Object.entries(value.galleries)) {
+		const ids = new Set<string>();
+		Object.entries(gallery.items).forEach(([filename, meta]) => {
+			if (ids.has(meta.id)) ctx.addIssue({ code: 'custom', path: ['galleries', folder, 'items', filename, 'id'], message: 'Artwork id must be unique within its gallery' });
+			ids.add(meta.id);
+		});
+	}
 });
+
+function pageGalleryConfigsForValidation(page: {
+	gallery?: z.infer<typeof galleryConfigSchema>;
+	blocks?: z.infer<typeof pageBlockSchema>[];
+}): z.infer<typeof galleryConfigSchema>[] {
+	const galleries = page.gallery ? [page.gallery] : [];
+	for (const block of page.blocks ?? []) if (block.type === 'images') galleries.push(block.gallery);
+	return galleries;
+}
 
 export type ContentValidationIssue = { path: string; message: string };
 
@@ -153,13 +291,44 @@ function cloneUnknown<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/** Fill the renderer's ordered block list from the older page fields. Safe to
+ * run for every version, including hand-authored current files. */
+function ensurePageBlocks(raw: unknown): unknown {
+	if (!isObject(raw)) return raw;
+	const labelByPath = new Map<string, string>();
+	if (Array.isArray(raw.nav)) {
+		for (const item of raw.nav) {
+			if (isObject(item) && typeof item.path === 'string' && typeof item.label === 'string')
+				labelByPath.set(item.path || 'home', item.label);
+		}
+	}
+	if (!isObject(raw.pages)) return raw;
+	for (const [key, value] of Object.entries(raw.pages)) {
+		if (!isObject(value)) continue;
+		if (!Array.isArray(value.blocks)) {
+			if (isObject(value.gallery)) value.blocks = [{ id: 'gallery', type: 'gallery' }];
+			else if (key === 'bio') value.blocks = [{ id: 'about', type: 'about' }];
+			else value.blocks = [];
+		}
+		if (
+			Array.isArray(value.children) &&
+			value.children.length > 0 &&
+			!(value.blocks as unknown[]).some((block) => isObject(block) && block.type === 'children')
+		) {
+			(value.blocks as unknown[]).push({ id: 'children', type: 'children' });
+		}
+		if (typeof value.label !== 'string' || !value.label) value.label = labelByPath.get(key) ?? key;
+	}
+	return raw;
+}
+
 /** Legacy, unversioned Content -> schema 1. This includes the old pre-block page
  * migration and retired creative-field cleanup. It is defensive by design: the
  * final runtime schema produces the useful validation error for malformed input. */
 export function migrateContentV0ToV1(raw: unknown): unknown {
 	const next = cloneUnknown(raw);
 	if (!isObject(next)) return next;
-	next.schemaVersion = CONTENT_SCHEMA_VERSION;
+	next.schemaVersion = 1;
 
 	const site = isObject(next.site) ? next.site : null;
 	const creative = site && isObject(site.creative) ? site.creative : null;
@@ -169,38 +338,47 @@ export function migrateContentV0ToV1(raw: unknown): unknown {
 		if (Object.keys(creative).length === 0) delete site!.creative;
 	}
 
-	const labelByPath = new Map<string, string>();
-	if (Array.isArray(next.nav)) {
-		for (const item of next.nav) {
-			if (isObject(item) && typeof item.path === 'string' && typeof item.label === 'string')
-				labelByPath.set(item.path || 'home', item.label);
-		}
-	}
+	return ensurePageBlocks(next);
+}
 
-	if (isObject(next.pages)) {
-		for (const [key, value] of Object.entries(next.pages)) {
-			if (!isObject(value)) continue;
-			if (!Array.isArray(value.blocks)) {
-				if (isObject(value.gallery)) value.blocks = [{ id: 'gallery', type: 'gallery' }];
-				else if (key === 'bio') value.blocks = [{ id: 'about', type: 'about' }];
-				else value.blocks = [];
-			}
-			if (
-				Array.isArray(value.children) &&
-				value.children.length > 0 &&
-				!(value.blocks as unknown[]).some((block) => isObject(block) && block.type === 'children')
-			) {
-				(value.blocks as unknown[]).push({ id: 'children', type: 'children' });
-			}
-			if (typeof value.label !== 'string' || !value.label) value.label = labelByPath.get(key) ?? key;
-		}
-	}
+function stableImageId(folder: string, filename: string, index: number): string {
+	const safe = `${folder}-${filename}`
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 48);
+	return `image-${safe || 'work'}-${index + 1}`;
+}
 
+function ensureStableImageIds(raw: unknown): unknown {
+	if (!isObject(raw) || !isObject(raw.galleries)) return raw;
+	for (const [folder, gallery] of Object.entries(raw.galleries)) {
+		if (!isObject(gallery) || !isObject(gallery.items)) continue;
+		Object.entries(gallery.items).forEach(([filename, meta], index) => {
+			if (isObject(meta) && (typeof meta.id !== 'string' || !meta.id))
+				meta.id = stableImageId(folder, filename, index);
+		});
+	}
+	return raw;
+}
+
+/** Schema 2 adds stable artwork ids for opt-in phone arrangements and introduces
+ * new block types. Existing sites keep their exact appearance and receive ids
+ * silently during load. */
+export function migrateContentV1ToV2(raw: unknown): unknown {
+	// Some early schema-1 files were hand-authored before block normalization was
+	// consistently written. Re-run the idempotent legacy normalizer here so they
+	// cannot become blank pages merely because they already carried version 1.
+	const next = migrateContentV0ToV1(raw);
+	if (!isObject(next)) return next;
+	ensureStableImageIds(next);
+	next.schemaVersion = 2;
 	return next;
 }
 
 const contentMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateContentV0ToV1,
+	1: migrateContentV1ToV2,
 };
 
 function readVersion(raw: unknown): number {
@@ -224,6 +402,11 @@ export function parseAndMigrateContent(raw: unknown): Content {
 		migrated = migrate(migrated);
 		version += 1;
 	}
+	// A hand-authored current-version file may still omit ids. Normalize this
+	// derived field and the renderer block list before validation so phone
+	// arrangements always have stable keys and pages cannot silently render blank.
+	migrated = ensureStableImageIds(migrated);
+	migrated = ensurePageBlocks(migrated);
 
 	const parsed = contentSchema.safeParse(migrated);
 	if (!parsed.success) {

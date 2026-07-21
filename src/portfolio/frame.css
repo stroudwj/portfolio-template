@@ -36,6 +36,13 @@
 	padding: var(--content-gap, 0px) 0 0;
 }
 
+.portfolio-page-body,
+.portfolio-page-part,
+.portfolio-page-block {
+	width: 100%;
+	min-width: 0;
+}
+
 /* Per-page body wrappers (ported from the Phase 1 page files). */
 .collage-container {
 	padding: 20px 40px 60px;
@@ -55,5 +62,16 @@
 	}
 	.page-content-wrapper {
 		padding: 80px 20px 40px;
+	}
+}
+
+@media (max-width: 639px) {
+	.portfolio-page-body {
+		display: flex;
+		flex-direction: column;
+	}
+	.portfolio-page-body[data-phone-ready='true'] > .portfolio-page-part {
+		display: var(--phone-page-display, block);
+		order: var(--phone-page-order, initial);
 	}
 }

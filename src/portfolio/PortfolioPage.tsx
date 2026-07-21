@@ -1,13 +1,15 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import Hero from './Hero';
 import Gallery from './Gallery';
 import About from './About';
 import TextBlock from './TextBlock';
 import Embed from './Embed';
+import ContactForm from './ContactForm';
+import { PortfolioButton, PortfolioDivider } from './PageBlocks';
 import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
-import { withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
+import { stripSlashes, withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
 import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
 
@@ -31,6 +33,23 @@ interface DropBox {
 	y: number;
 	w: number;
 	h: number;
+}
+
+/** Resolve a button URL to an editor page without hijacking external links. */
+function previewPageKey(url: string, base: string, pages: PortfolioData['content']['pages']): string | undefined {
+	const value = url.trim();
+	if (!value || value.startsWith('#') || value.startsWith('//') || /^[a-z][a-z\d+.-]*:/i.test(value)) return undefined;
+	let path = stripSlashes(value.split(/[?#]/, 1)[0]);
+	const basePath = stripSlashes(base);
+	if (basePath && (path === basePath || path.startsWith(`${basePath}/`))) path = stripSlashes(path.slice(basePath.length));
+	const key = path || 'home';
+	return pages[key] ? key : undefined;
+}
+
+/** Root-relative links authored as “/work” must stay inside a GitHub Pages
+ * subfolder too; absolute web links and same-page # links pass through. */
+function siteHref(url: string | undefined, base: string): string | undefined {
+	return url?.startsWith('/') && !url.startsWith('//') ? withBase(base, url) : url;
 }
 
 /**
@@ -114,6 +133,20 @@ function DraggableFlowBlock({
  * (migrateContent) before it gets here, so `blocks` is present.
  */
 export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioPageProps) {
+	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
+	const [isPhone, setIsPhone] = useState(false);
+	const setPageRoot = useCallback((element: HTMLDivElement | null) => {
+		setPageHost(element ? element.ownerDocument.body : null);
+	}, []);
+	useEffect(() => {
+		const win = pageHost?.ownerDocument.defaultView;
+		if (!win) return;
+		const query = win.matchMedia('(max-width: 639px)');
+		const update = () => setIsPhone(query.matches);
+		update();
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
+	}, [pageHost]);
 	const config = content.pages[page];
 	if (!config) return null;
 	const gallery = config.gallery;
@@ -125,10 +158,24 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 
 	// Text and videos pin to the canvas only when the page renders one (freeform gallery).
 	const blocks = config.blocks ?? [];
+	const pageOrder = new Map((config.mobile?.order ?? []).map((key, index) => [key, index]));
+	const automaticPageKeys = [
+		...(config.heading?.trim() ? ['page:heading'] : []),
+		...blocks.map((block) => `block:${block.id}`),
+	];
+	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
+	const pagePartVars = (key: string): CSSProperties => {
+		return {
+			'--phone-page-order': String(pageOrder.get(key) ?? pageOrder.size + (automaticPageOrder.get(key) ?? 0)),
+			'--phone-page-display': config.mobile?.items?.[key]?.hidden ? 'none' : 'block',
+		} as CSSProperties;
+	};
 	const hasCanvas = !!gallery && gallery.layout !== 'grid' && blocks.some((b) => b.type === 'gallery');
 	const canvasTexts: CanvasText[] = hasCanvas
 		? blocks.flatMap((b) =>
-				b.type === 'text' && b.layout ? [{ id: b.id, text: b.text, align: b.align, layout: b.layout }] : [],
+				b.type === 'text' && b.layout
+					? [{ id: b.id, text: b.text, align: b.align, style: b.style, link: siteHref(b.link, base), layout: b.layout }]
+					: [],
 			)
 		: [];
 	const canvasEmbeds: CanvasEmbed[] = hasCanvas
@@ -143,7 +190,7 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				return textLayoutChange && hasCanvas ? (
 					<DraggableFlowBlock
 						key={block.id}
-						boxSelector="p"
+						boxSelector=".text-block-content"
 						onPlace={(box) =>
 							textLayoutChange(
 								block.id,
@@ -153,10 +200,10 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 							)
 						}
 					>
-						<TextBlock text={block.text} align={block.align} />
+						<TextBlock text={block.text} align={block.align} style={block.style} link={siteHref(block.link, base)} />
 					</DraggableFlowBlock>
 				) : (
-					<TextBlock key={block.id} text={block.text} align={block.align} />
+					<TextBlock key={block.id} text={block.text} align={block.align} style={block.style} link={siteHref(block.link, base)} />
 				);
 			case 'embed':
 				// Pinned videos render inside the canvas instead of the page flow.
@@ -254,13 +301,71 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 					</div>
 				);
 			}
+			case 'button': {
+				const previewTarget = onNavigate ? previewPageKey(block.url, base, content.pages) : undefined;
+				return (
+					<PortfolioButton
+						key={block.id}
+						label={block.label}
+						url={siteHref(block.url, base) ?? block.url}
+						align={block.align}
+						appearance={block.appearance}
+						onClick={
+							previewTarget && onNavigate
+								? (event) => {
+										event.preventDefault();
+										onNavigate(previewTarget === 'home' ? '' : previewTarget);
+									}
+								: undefined
+						}
+					/>
+				);
+			}
+			case 'divider':
+				return <PortfolioDivider key={block.id} />;
+			case 'form':
+				return (
+					<ContactForm
+						key={block.id}
+						heading={block.heading}
+						action={block.action}
+						fallbackEmail={content.contact.email}
+						successMessage={block.successMessage}
+						fields={block.fields.map((field) => ({
+							name: field.id,
+							type: field.type,
+							label: field.label,
+							required: field.required,
+						}))}
+					/>
+				);
 		}
 	};
+	const pageParts = [
+		...(config.heading?.trim()
+			? [{ key: 'page:heading', className: 'portfolio-page-heading', rendered: <Hero heading={config.heading} /> }]
+			: []),
+		...blocks.flatMap((block) => {
+			const rendered = renderBlock(block);
+			return rendered ? [{ key: `block:${block.id}`, className: 'portfolio-page-block', rendered }] : [];
+		}),
+	];
+	if (isPhone && config.mobile)
+		pageParts.sort(
+			(a, b) =>
+				(pageOrder.get(a.key) ?? pageOrder.size + (automaticPageOrder.get(a.key) ?? 0)) -
+				(pageOrder.get(b.key) ?? pageOrder.size + (automaticPageOrder.get(b.key) ?? 0)),
+		);
 
 	return (
 		<>
-			<Hero heading={config.heading} />
-			{blocks.map(renderBlock)}
+			<div ref={setPageRoot} className="portfolio-page-body" data-phone-ready={isPhone ? 'true' : undefined}>
+				{pageParts.map((part) => (
+					<div className={`portfolio-page-part ${part.className}`} style={pagePartVars(part.key)} key={part.key}>
+						{part.rendered}
+					</div>
+				))}
+			</div>
 			{content.site.signature && <Signature data={content.site.signature} />}
 			{content.site.footer && <Footer text={content.site.footer} />}
 		</>

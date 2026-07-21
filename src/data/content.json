@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "site": {
     "name": "Your Name",
     "description": "Portfolio",
@@ -32,33 +32,59 @@
   ],
   "resume": {
     "label": "Résumé",
-    "url": "resume.pdf"
+    "url": ""
   },
   "pages": {
     "home": {
       "title": "{name} — Selected Works",
       "heading": "Selected Works",
-      "gallery": { "folder": "selected-works", "alt": "Selected work", "order": "desc" }
+      "gallery": { "folder": "selected-works", "alt": "Selected work", "order": "desc" },
+      "blocks": [{ "id": "gallery", "type": "gallery" }]
     },
     "art": {
       "title": "Art — {name}",
-      "gallery": { "folder": "art", "alt": "Art piece", "order": "asc" }
+      "gallery": { "folder": "art", "alt": "Art piece", "order": "asc" },
+      "blocks": [{ "id": "gallery", "type": "gallery" }]
     },
     "photography": {
       "title": "Photography — {name}",
-      "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc" }
+      "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc" },
+      "blocks": [{ "id": "gallery", "type": "gallery" }]
     },
     "bio": {
-      "title": "About — {name}"
+      "title": "About — {name}",
+      "blocks": [{ "id": "about", "type": "about" }]
     }
   },
   "galleries": {
-    "selected-works": { "items": {} },
-    "art": { "items": {} },
+    "selected-works": {
+      "items": {
+        "placeholder.png": {
+          "id": "image-selected-works-placeholder-png-1",
+          "title": "Sample piece",
+          "alt": "Sample portfolio artwork",
+          "description": "Replace this sample with your own work.",
+          "link": ""
+        }
+      }
+    },
+    "art": {
+      "items": {
+        "placeholder.png": {
+          "id": "image-art-placeholder-png-1",
+          "title": "Sample piece",
+          "alt": "Sample portfolio artwork",
+          "description": "Replace this sample with your own work.",
+          "link": ""
+        }
+      }
+    },
     "photography": {
       "items": {
         "placeholder.png": {
+          "id": "image-photography-placeholder-png-1",
           "title": "Sample piece",
+          "alt": "Sample portfolio artwork",
           "description": "Optional caption shown in the lightbox.",
           "link": ""
         }

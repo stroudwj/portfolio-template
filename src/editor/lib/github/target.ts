@@ -83,6 +83,11 @@ function referencedAssetPaths(content: Content): string[] {
 	if (content.site.logoImage) paths.push(`src/assets/${content.site.logoImage}`);
 	for (const page of Object.values(content.pages)) if (page.thumbnail) paths.push(`src/assets/${page.thumbnail}`);
 	for (const font of content.theme.customFonts ?? []) paths.push(`src/assets/${font.file}`);
+	for (const [folder, gallery] of Object.entries(content.galleries))
+		for (const filename of Object.keys(gallery.items)) paths.push(`src/assets/${folder}/${filename}`);
+	const resume = content.resume?.url.trim();
+	if (resume && !resume.startsWith('//') && !/^[a-z][a-z\d+.-]*:/i.test(resume))
+		paths.push(`public/${resume.replace(/^\/+/, '')}`);
 	return paths;
 }
 
@@ -194,14 +199,15 @@ export class GitHubTarget implements PublishTarget {
 			);
 		}
 
+		const referencedAssets = referencedAssetPaths(bundle.contentJson);
 		const keep = new Set(files.map((file) => file.path));
-		for (const path of referencedAssetPaths(bundle.contentJson)) keep.add(path);
+		for (const path of referencedAssets) keep.add(path);
 		const assetDeletions = (await listAssetPaths(client, ref, snapshot.tree)).filter((path) => !keep.has(path));
 		const previousPublic = (saved?.lastManifest ?? []).filter((path) => path.startsWith('public/'));
 		const dataDeletions = previousPublic.filter((path) => !keep.has(path));
 		const runtimeDeletions = removedManagedFiles(currentProject, runtime.managedFiles);
 		const deletions = [...new Set([...assetDeletions, ...dataDeletions, ...runtimeDeletions])];
-		const newManifest = [CONTENT_JSON_PATH, ...bundle.files.map((file) => file.path)];
+		const newManifest = [...new Set([CONTENT_JSON_PATH, ...bundle.files.map((file) => file.path), ...referencedAssets])];
 
 		report('Uploading your files…', `1 of ${files.length}`);
 		let commitSha: string;

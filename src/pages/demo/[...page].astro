@@ -20,6 +20,7 @@ const pageKey = Astro.params.page || 'home';
 const page = content.pages[pageKey];
 const galleries = await resolvePageGalleries(pageKey);
 const hasImages = Object.keys(galleries).length > 0;
+const hasInteractiveBlocks = !!page.mobile || page.blocks?.some((block) => block.type === 'form');
 const hasAbout = page.blocks?.some((b) => b.type === 'about');
 const profile = hasAbout ? await resolveProfileImage() : {};
 const pageThumbs = await resolveChildThumbs(pageKey);
@@ -35,9 +36,9 @@ const base = withBase(siteBase, 'demo');
 		<strong>{currentPriceText}, once</strong>
 	</a>
 	{
-		hasImages ? (
+		hasImages || hasInteractiveBlocks ? (
 			<PortfolioPage
-				client:visible
+				client:load
 				page={pageKey}
 				content={content}
 				galleries={galleries}

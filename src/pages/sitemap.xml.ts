@@ -14,7 +14,9 @@ export const GET: APIRoute = () => {
 	const base = import.meta.env.BASE_URL;
 	// Product site: the landing, examples, guides, and FAQ — /demo and /editor are noindex.
 	// Published sites: every page, including nested sub-pages (keys are paths).
-	const pagePaths = Object.keys(content.pages).map((key) => (key === 'home' ? '' : key));
+	const pagePaths = Object.entries(content.pages)
+		.filter(([, page]) => !page.noindex && !page.draft)
+		.map(([key]) => (key === 'home' ? '' : key));
 	const locs = IS_PRODUCT_SITE
 		? [
 				new URL(withBase(base), site).href,

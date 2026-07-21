@@ -7,7 +7,7 @@
 	color: var(--color-text);
 	font-family: var(--font-family);
 }
-.text-block p {
+.text-block .text-block-content {
 	max-width: 640px;
 	margin: 0;
 	font-size: 1rem;
@@ -16,14 +16,52 @@
 .text-block.align-center {
 	text-align: center;
 }
-.text-block.align-center p {
+.text-block.align-center .text-block-content {
 	margin-inline: auto;
 }
 .text-block.align-right {
 	text-align: right;
 }
-.text-block.align-right p {
+.text-block.align-right .text-block-content {
 	margin-left: auto;
+}
+
+.text-block-content.text-style-heading,
+.text-block-content.text-style-subheading {
+	font-family: var(--font-heading, var(--font-family));
+	font-weight: 500;
+	letter-spacing: -0.015em;
+}
+
+.text-block-content.text-style-heading {
+	font-size: clamp(1.75rem, 5vw, 3rem);
+	line-height: 1.12;
+}
+
+.text-block-content.text-style-subheading {
+	font-size: clamp(1.2rem, 3vw, 1.5rem);
+	line-height: 1.3;
+}
+
+.text-block-content.text-style-quote {
+	font-size: clamp(1.15rem, 3vw, 1.45rem);
+	font-style: italic;
+	line-height: 1.55;
+}
+
+.text-block-content a {
+	color: inherit;
+	text-decoration-thickness: 0.08em;
+	text-underline-offset: 0.16em;
+}
+
+.text-block-content a:hover {
+	color: var(--color-accent);
+}
+
+.text-block-content a:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 4px;
 }
 
 @media (max-width: 768px) {

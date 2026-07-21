@@ -17,7 +17,7 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
-	schemaVersion: 1,
+	schemaVersion: 2,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
@@ -37,10 +37,23 @@ export const blankContent: Content = {
 	social: [],
 	resume: { label: 'Résumé', url: '' },
 	pages: {
-		home: { title: '{name} — Selected Works', heading: 'Selected Works', gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc' } },
-		art: { title: 'Art — {name}', gallery: { folder: 'art', alt: 'Art piece', order: 'asc' } },
-		photography: { title: 'Photography — {name}', gallery: { folder: 'photography', alt: 'Photograph', order: 'asc' } },
-		bio: { title: 'About — {name}' },
+		home: {
+			title: '{name} — Selected Works',
+			heading: 'Selected Works',
+			gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc' },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		art: {
+			title: 'Art — {name}',
+			gallery: { folder: 'art', alt: 'Art piece', order: 'asc' },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		photography: {
+			title: 'Photography — {name}',
+			gallery: { folder: 'photography', alt: 'Photograph', order: 'asc' },
+			blocks: [{ id: 'gallery', type: 'gallery' }],
+		},
+		bio: { title: 'About — {name}', blocks: [{ id: 'about', type: 'about' }] },
 	},
 	galleries: { 'selected-works': { items: {} }, art: { items: {} }, photography: { items: {} } },
 };
@@ -49,10 +62,12 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 	const galleries: Record<string, ImageEntry[]> = {};
 	for (const [folder, data] of Object.entries(content.galleries)) {
 		galleries[folder] = Object.entries(data.items).map(([filename, meta]) => ({
-			id: uid('e'),
+			id: meta.id || uid('e'),
 			filename,
 			meta: {
+				...meta,
 				title: meta.title ?? '',
+				alt: meta.alt ?? '',
 				description: meta.description ?? '',
 				link: meta.link ?? '',
 				w: meta.w,
@@ -130,7 +145,7 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			// the untouched original via `full` (same split the published site makes).
 			src: getAssetPreviewUrl(e.assetId) ?? PLACEHOLDER_IMAGE,
 			full: getAssetUrl(e.assetId),
-			alt: e.meta.title || '',
+			alt: e.meta.alt || e.meta.title || '',
 			title: e.meta.title || undefined,
 			description: e.meta.description || undefined,
 			link: e.meta.link || undefined,

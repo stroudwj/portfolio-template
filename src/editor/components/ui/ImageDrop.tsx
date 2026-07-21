@@ -40,10 +40,12 @@ export function ImageDrop({
 	onFiles,
 	multiple = false,
 	children,
+	ariaLabel,
 }: {
 	onFiles: (files: File[]) => void;
 	multiple?: boolean;
 	children?: ReactNode;
+	ariaLabel?: string;
 }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +64,8 @@ export function ImageDrop({
 			const ready: File[] = [];
 			for (const f of multiple ? valid : valid.slice(0, 1)) ready.push(await compressImage(f));
 			onFiles(ready);
+		} catch {
+			setError('This image could not be prepared. Try saving it as a JPG, PNG, or WebP file, then upload it again.');
 		} finally {
 			setBusy(false);
 		}
@@ -72,6 +76,7 @@ export function ImageDrop({
 			<div
 				className={`imagedrop ${over ? 'over' : ''}`}
 				role="button"
+				aria-label={ariaLabel}
 				tabIndex={0}
 				onClick={(e) => {
 					// The drop zone often sits inside a <label> (Field). Without this,
@@ -81,7 +86,10 @@ export function ImageDrop({
 					inputRef.current?.click();
 				}}
 				onKeyDown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click();
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						inputRef.current?.click();
+					}
 				}}
 				onDragOver={(e) => {
 					e.preventDefault();
@@ -91,7 +99,9 @@ export function ImageDrop({
 				onDrop={(e) => {
 					e.preventDefault();
 					setOver(false);
-					void filesFromDrop(e.dataTransfer).then(handle);
+					void filesFromDrop(e.dataTransfer).then(handle, () =>
+						setError('That folder could not be read. Try choosing the images with the upload button instead.'),
+					);
 				}}
 			>
 				<input
