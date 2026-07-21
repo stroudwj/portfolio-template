@@ -359,7 +359,11 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 
 	return (
 		<>
-			<div ref={setPageRoot} className="portfolio-page-body" data-phone-ready={isPhone ? 'true' : undefined}>
+			<div
+				ref={setPageRoot}
+				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${config.heading?.trim() ? 'has-page-heading' : 'without-page-heading'}`}
+				data-phone-ready={isPhone ? 'true' : undefined}
+			>
 				{pageParts.map((part) => (
 					<div className={`portfolio-page-part ${part.className}`} style={pagePartVars(part.key)} key={part.key}>
 						{part.rendered}

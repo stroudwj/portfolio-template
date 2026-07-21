@@ -328,7 +328,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 				const textLabel = `text block ${index + 1} on ${pageName}`;
 				return (
 					<div className="block" key={block.id}>
-						<div className="block-head">
+						<div className="block-head text-block-head">
 							<span className="block-label">Text</span>
 							<select
 								className="select-input block-style-select"

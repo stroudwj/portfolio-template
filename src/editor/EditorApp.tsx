@@ -133,6 +133,7 @@ function Shell({ base }: { base: string }) {
 		saveError,
 	} = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
+	const controlsRef = useRef<HTMLDivElement>(null);
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
 		return EDITOR_TABS.some((t) => t.id === saved) ? (saved as EditorTab) : 'content';
@@ -143,6 +144,7 @@ function Shell({ base }: { base: string }) {
 
 	const pickTab = (next: EditorTab) => {
 		setTab(next);
+		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 		try {
 			window.localStorage.setItem(TAB_STORE, next);
 		} catch {
@@ -236,7 +238,7 @@ function Shell({ base }: { base: string }) {
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>
-				<div className="editor-controls">
+				<div className="editor-controls" ref={controlsRef}>
 					<nav className="editor-tabs" aria-label="Editor categories">
 						{EDITOR_TABS.map((t) => (
 							<button
@@ -255,14 +257,16 @@ function Shell({ base }: { base: string }) {
 						))}
 					</nav>
 					{issues.length > 0 && (
-						<div className="issues">
-							<strong>Before publishing:</strong>
+						<details className="issues issues-compact">
+							<summary>
+								{issues.length} publishing reminder{issues.length === 1 ? '' : 's'}
+							</summary>
 							<ul>
 								{issues.map((issue, i) => (
 									<li key={i}>{issue}</li>
 								))}
 							</ul>
-						</div>
+						</details>
 					)}
 					<div className={`editor-tab-pane ${tab === 'content' ? 'active' : ''}`}>
 						<PageManager />
@@ -272,8 +276,8 @@ function Shell({ base }: { base: string }) {
 						))}
 					</div>
 					<div className={`editor-tab-pane ${tab === 'theme' ? 'active' : ''}`}>
-						<ThemeEditor />
 						<LayoutEditor />
+						<ThemeEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'extras' ? 'active' : ''}`}>
 						<SocialLinksEditor />

@@ -310,10 +310,12 @@
 	cursor: pointer;
 }
 .section-chevron {
-	font-size: 15px;
+	font-size: 19px;
 	line-height: 1;
 	color: var(--ink-soft);
 	flex-shrink: 0;
+	width: 18px;
+	text-align: center;
 }
 .editor-section.collapsed .editor-section-head {
 	margin-bottom: 0;
@@ -372,8 +374,9 @@ select.select-input {
 	padding-right: 38px;
 }
 select.select-input {
-	background-size: 22px;
-	padding-right: 30px;
+	background-size: 25px;
+	background-position: right 5px center;
+	padding-right: 33px;
 }
 .text-input::placeholder,
 .text-area::placeholder {
@@ -472,8 +475,10 @@ select.select-input {
 	color: var(--ink);
 }
 .collapse-chevron {
-	font-size: 15px;
+	font-size: 19px;
 	line-height: 1;
+	width: 18px;
+	text-align: center;
 }
 .collapse-note {
 	font-weight: 400;
@@ -658,6 +663,19 @@ select.select-input {
 	margin: 6px 0 0;
 	padding-left: 18px;
 	color: var(--ink-soft);
+}
+.issues-compact {
+	background: transparent;
+	padding: 7px 10px;
+	color: var(--ink-soft);
+}
+.issues-compact > summary {
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 500;
+}
+.issues-compact[open] > summary {
+	color: var(--ink);
 }
 
 /* ---- Preview ---- */
@@ -898,33 +916,65 @@ a.resume-name:hover {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
-/* The card's colors/type come from the template itself — it previews the artist's
-   site, not the editor. Chrome adds only a hairline and a hover border. */
 .template-card {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 4px;
+	gap: 5px;
 	text-align: left;
 	border: 1px solid var(--wall-2);
 	border-radius: 4px;
-	padding: 14px 16px;
+	padding: 8px 8px 11px;
+	background: var(--paper);
+	color: var(--ink);
+	font: inherit;
 	cursor: pointer;
 }
 .template-card:hover {
 	border-color: var(--ink);
 }
+.template-preview {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	height: 52px;
+	box-sizing: border-box;
+	border: 1px solid rgba(127, 127, 127, 0.24);
+	border-radius: 3px;
+	padding: 10px;
+}
 .template-sample {
 	font-size: 24px;
 	line-height: 1;
 }
+.template-lines {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 5px;
+	width: 42%;
+}
+.template-lines i {
+	display: block;
+	height: 2px;
+	width: 100%;
+	opacity: 0.75;
+}
+.template-lines i:last-child {
+	width: 62%;
+	opacity: 0.45;
+}
 .template-name {
+	padding: 1px 7px 0;
 	font-size: 14px;
 	font-weight: 500;
 }
 .template-tagline {
+	padding: 0 7px;
 	font-size: 12px;
 	line-height: 1.45;
+	color: var(--ink-soft);
 }
 @media (max-width: 560px) {
 	.template-grid {
@@ -1287,36 +1337,94 @@ a.resume-name:hover {
 	margin-top: 12px;
 }
 
-.phone-layout-callout,
-.phone-layout-editor {
+.phone-layout-disclosure {
 	margin-top: 12px;
 	border: 1px solid var(--wall-2);
 	border-radius: 5px;
-	background: var(--wall-1);
-	padding: 11px;
+	background: var(--paper);
+	overflow: hidden;
 }
-.phone-layout-callout,
-.phone-layout-heading {
+.phone-layout-disclosure > summary {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
+	gap: 10px;
+	min-height: 42px;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
 }
-.phone-layout-callout strong,
-.phone-layout-heading strong {
+.phone-layout-disclosure > summary::-webkit-details-marker {
+	display: none;
+}
+.phone-layout-disclosure[open] > summary {
+	border-bottom: 1px solid var(--wall-2);
+}
+.phone-layout-summary-copy {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+}
+.phone-layout-summary-copy strong {
 	font-size: 13px;
 	font-weight: 500;
+}
+.phone-layout-summary-copy > span {
+	font-size: 11px;
+	color: var(--ink-soft);
+	background: var(--wall-1);
+	border-radius: 999px;
+	padding: 2px 7px;
+}
+.phone-layout-disclosure.is-custom .phone-layout-summary-copy > span {
+	color: var(--ink);
+	background: var(--wall-2);
+}
+.phone-layout-chevron {
+	font-size: 22px;
+	line-height: 1;
+	color: var(--ink-soft);
+	transition: transform 120ms ease;
+}
+.phone-layout-disclosure[open] .phone-layout-chevron {
+	transform: rotate(180deg);
+}
+.phone-layout-callout,
+.phone-layout-editor {
+	padding: 10px;
+	background: var(--wall-1);
+}
+.phone-layout-callout {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 }
 .phone-layout-callout p,
 .phone-layout-heading p {
 	font-size: 12px;
 	line-height: 1.45;
 	color: var(--ink-soft);
-	margin: 3px 0 0;
+	margin: 0;
 }
-.phone-layout-callout .btn-secondary,
+.phone-layout-callout .btn-secondary {
+	flex-shrink: 0;
+	font-size: 12px;
+	padding: 7px 10px;
+}
+.phone-layout-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
 .phone-layout-heading .btn-ghost {
 	flex-shrink: 0;
+	font-size: 11px;
+	padding: 5px 8px;
 }
 .phone-columns {
 	display: flex;
@@ -1329,29 +1437,29 @@ a.resume-name:hover {
 .phone-layout-list {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	margin-top: 12px;
+	gap: 5px;
+	margin-top: 10px;
 }
 .phone-layout-row {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
 	background: var(--paper);
 	border: 1px solid var(--wall-2);
 	border-radius: 4px;
-	padding: 6px;
-	flex-wrap: wrap;
+	padding: 7px;
 }
 .phone-layout-row.is-hidden {
-	opacity: 0.55;
+	background: var(--wall-1);
 }
 .phone-layout-item {
 	display: flex;
 	align-items: center;
 	gap: 7px;
+	flex: 1;
 	min-width: 0;
-	font-size: 11px;
+	font-size: 12px;
 }
 .phone-layout-item > span:last-child {
 	overflow: hidden;
@@ -1360,42 +1468,72 @@ a.resume-name:hover {
 }
 .phone-layout-item img,
 .phone-layout-kind {
-	width: 30px;
-	height: 30px;
+	width: 28px;
+	height: 28px;
 	border-radius: 3px;
 	object-fit: cover;
-	background: var(--wall-2);
+	background: var(--wall-1);
 	flex-shrink: 0;
 }
 .phone-layout-kind {
 	display: grid;
 	place-items: center;
-	font-size: 8px;
-	text-transform: uppercase;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-soft);
 }
 .phone-layout-actions {
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	flex-shrink: 0;
+}
+.phone-layout-actions.has-item-options {
 	width: 100%;
+	flex-basis: 100%;
 	flex-wrap: wrap;
-	padding-left: 37px;
+	padding-left: 35px;
 }
 .phone-layout-actions .select-input {
-	width: 100%;
-	max-width: none;
+	width: auto;
+	max-width: 145px;
 	padding: 5px;
+	padding-right: 30px;
 	font-size: 12px;
+}
+.phone-layout-actions .phone-move {
+	min-width: 30px;
+	width: 30px;
+	height: 30px;
+	font-size: 16px;
 }
 .phone-select-label {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	min-width: 100px;
+	min-width: 112px;
 	font-size: 11px;
 	color: var(--ink-soft);
 }
-.phone-hide,
+.phone-visibility {
+	min-height: 30px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	background: transparent;
+	padding: 4px 8px;
+	font: inherit;
+	font-size: 11px;
+	color: var(--ink-soft);
+	cursor: pointer;
+}
+.phone-visibility:hover {
+	color: var(--ink);
+	background: var(--wall-3);
+}
+.phone-visibility.is-hidden {
+	color: var(--ink);
+	background: var(--paper);
+}
 .compact-check {
 	display: inline-flex;
 	align-items: center;
@@ -1506,14 +1644,15 @@ a.resume-name:hover {
 @media (max-width: 720px) {
 	.page-manager-row,
 	.phone-layout-callout,
-	.phone-layout-heading,
 	.phone-layout-row {
 		align-items: stretch;
 		flex-wrap: wrap;
 	}
+	.phone-layout-heading {
+		align-items: flex-start;
+	}
 	.phone-layout-actions {
-		width: 100%;
-		flex-wrap: wrap;
+		margin-left: auto;
 	}
 	.block-field-grid,
 	.form-field-row {
@@ -1660,6 +1799,29 @@ a.live-url:hover {
 	gap: 8px;
 	margin-bottom: 6px;
 }
+.text-block-head {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		"label style controls"
+		"align align align";
+	justify-content: stretch;
+}
+.text-block-head .block-label {
+	grid-area: label;
+}
+.text-block-head .block-style-select {
+	grid-area: style;
+	justify-self: start;
+}
+.text-block-head .align-toggle {
+	grid-area: align;
+	justify-self: end;
+	margin: 0;
+}
+.text-block-head .block-controls {
+	grid-area: controls;
+}
 .block-label {
 	font-size: 13px;
 	font-weight: 500;
@@ -1740,7 +1902,7 @@ a.live-url:hover {
 }
 .select-input {
 	border: 1px solid var(--wall-2);
-	background: #fff;
+	background-color: #fff;
 	border-radius: 4px;
 	padding: 4px 6px;
 	font-size: 13px;

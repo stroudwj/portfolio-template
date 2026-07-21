@@ -5,6 +5,7 @@
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 
+const MIN_GAP = -140;
 const MAX_GAP = 400;
 
 export default function LayoutEditor() {
@@ -13,31 +14,31 @@ export default function LayoutEditor() {
 	const gap = doc.content.theme.contentGap ?? 0;
 
 	const applyGap = (value: number) => {
-		const clamped = Math.max(0, Math.min(Math.round(value), MAX_GAP));
-		setTheme({ contentGap: clamped > 0 ? clamped : undefined });
+		const clamped = Math.max(MIN_GAP, Math.min(Math.round(value), MAX_GAP));
+		setTheme({ contentGap: clamped !== 0 ? clamped : undefined });
 	};
 
 	return (
 		<Section title="Layout" sectionKey="_layout">
-			<Field label="Gap between header and content" hint="Pushes every page’s content down from the top of the site. The canvas grid toggle lives above the preview.">
+			<Field label="Space above page content" hint="Move every page up or down. Negative values bring the work closer to the header; 0 restores the original position.">
 				<div className="gap-row">
 					<input
 						type="range"
-						min={0}
+						min={MIN_GAP}
 						max={MAX_GAP}
 						step={1}
 						value={gap}
 						onChange={(e) => applyGap(Number(e.target.value))}
-						aria-label="Header gap"
+						aria-label="Space above page content"
 					/>
 					<input
 						className="text-input gap-input"
 						type="number"
-						min={0}
+						min={MIN_GAP}
 						max={MAX_GAP}
 						value={gap}
 						onChange={(e) => applyGap(Number(e.target.value) || 0)}
-						aria-label="Header gap in pixels"
+						aria-label="Space above page content in pixels"
 					/>
 					<span className="gap-unit">px</span>
 				</div>

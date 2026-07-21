@@ -87,7 +87,7 @@ export interface Theme {
 	fontFamily: string;
 	/** Font for headings (page titles + the text logo). Absent = same as fontFamily. */
 	headingFontFamily?: string;
-	/** Extra space (px) between the site header and the page content. Absent = 0. */
+	/** Signed vertical offset (px) between the site header and page content. Absent = 0. */
 	contentGap?: number;
 	/** Header logo size as a percentage (50–200) of the default. Absent = 100. */
 	logoScale?: number;

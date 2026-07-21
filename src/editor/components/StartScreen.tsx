@@ -6,26 +6,27 @@ import LoadPublishedModal from './LoadPublishedModal';
 import { isLicenseGateEnabled } from '../lib/license/config';
 import { SITE_TEMPLATES, type SiteTemplate } from '../lib/templates';
 
-/** A clickable template card: name, tagline, and the template's own colors/type. */
+/** A clickable template card with a contained theme swatch. Keeping the editor
+ * chrome neutral makes the different palettes easy to compare without turning
+ * the whole start screen into a patchwork of competing colors. */
 function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t: SiteTemplate) => void }) {
 	const { theme } = template.content;
 	return (
-		<button
-			type="button"
-			className="template-card"
-			style={{ background: theme.backgroundColor, color: theme.textColor, fontFamily: theme.fontFamily }}
-			onClick={() => onPick(template)}
-		>
-			<span
-				className="template-sample"
-				style={{ color: theme.accentColor, fontFamily: theme.headingFontFamily || theme.fontFamily }}
-			>
-				Aa
+		<button type="button" className="template-card" onClick={() => onPick(template)}>
+			<span className="template-preview" style={{ background: theme.backgroundColor, color: theme.textColor }} aria-hidden="true">
+				<span
+					className="template-sample"
+					style={{ color: theme.accentColor, fontFamily: theme.headingFontFamily || theme.fontFamily }}
+				>
+					Aa
+				</span>
+				<span className="template-lines">
+					<i style={{ background: theme.textColor }} />
+					<i style={{ background: theme.mutedTextColor }} />
+				</span>
 			</span>
 			<strong className="template-name">{template.name}</strong>
-			<span className="template-tagline" style={{ color: theme.mutedTextColor }}>
-				{template.tagline}
-			</span>
+			<span className="template-tagline">{template.tagline}</span>
 		</button>
 	);
 }
@@ -131,14 +132,14 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 							publish to a space you own — yours forever.
 						</p>
 						<div className="start-actions">
-							<button type="button" className="btn-primary" onClick={startExisting}>
-								Hang your first piece
+							<button type="button" className="btn-primary" onClick={startBlank}>
+								Start with a blank portfolio
 							</button>
-							<button type="button" className="btn-secondary" onClick={startBlank}>
-								Start from blank
+							<button type="button" className="btn-secondary" onClick={startExisting}>
+								Use the example portfolio
 							</button>
 						</div>
-						<p className="template-lead">Or pick a different look to start from:</p>
+						<p className="template-lead">Or choose a starter style:</p>
 						{templatePicker}
 						<ol className="how-it-works">
 							<li>Add your pieces, details, and links — the preview updates as you go.</li>

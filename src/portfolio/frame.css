@@ -32,8 +32,9 @@
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	/* Adjustable gap between the site header and the page content (Layout editor). */
-	padding: var(--content-gap, 0px) 0 0;
+	/* A signed offset lets the Layout control pull the work closer to the header
+	   as well as push it down. Unlike padding, a negative margin remains valid. */
+	margin-top: var(--content-gap, 0px);
 }
 
 .portfolio-page-body,
@@ -46,6 +47,14 @@
 /* Per-page body wrappers (ported from the Phase 1 page files). */
 .collage-container {
 	padding: 20px 40px 60px;
+}
+
+/* The home collage used to rely on its optional page heading for all of its
+   top clearance. Removing that heading therefore jumped the first artwork from
+   roughly 200px down to 20px. Keep a calm header-safe baseline even when the
+   optional heading is empty; the Layout control can still tighten it further. */
+.portfolio-page-body.page-home.without-page-heading .collage-container {
+	padding-top: 140px;
 }
 
 .page-content-wrapper {
