@@ -39,6 +39,9 @@ export interface PublishResult {
 	owner?: string;
 	repo?: string;
 	commitSha?: string;
+	/** Previous branch head, retained in Git history as the rollback point. */
+	previousCommitSha?: string;
+	runtimeVersion?: string;
 }
 
 /**

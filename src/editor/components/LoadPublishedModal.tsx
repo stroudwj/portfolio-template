@@ -41,7 +41,7 @@ export default function LoadPublishedModal({
 			const client = new GitHubClient(token);
 			const saved = loadRepoInfo();
 			const savedRef: RepoRef | null = saved ? { owner: saved.owner, repo: saved.repo, branch: saved.branch } : null;
-			const { doc, ref, managedPaths } = await loadPublishedPortfolio(client, savedRef, (p) =>
+			const { doc, ref, managedPaths, headSha, runtimeVersion, dataFileShas } = await loadPublishedPortfolio(client, savedRef, (p) =>
 				setLog((prev) => appendStep(prev, p)),
 			);
 			// Remember this repo so the next Publish UPDATES it instead of creating a new one
@@ -56,6 +56,9 @@ export default function LoadPublishedModal({
 				pagesUrl: domain ? `https://${domain}/` : (saved?.pagesUrl ?? pagesUrl(ref.owner, ref.repo)),
 				customDomain: domain ?? undefined,
 				lastManifest: managedPaths,
+				lastCommitSha: headSha,
+				runtimeVersion,
+				dataFileShas,
 			});
 			onLoaded(doc);
 		} catch (err) {

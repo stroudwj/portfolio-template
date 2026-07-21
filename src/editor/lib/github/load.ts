@@ -9,13 +9,14 @@
 // content.json only supplies optional captions on top.
 import type { GitHubClient } from './client';
 import { CONTENT_JSON_PATH, TEMPLATE_REPO } from './config';
-import { getRepo, getTree, type RepoRef, type TreeItem } from './repo';
-import { pageGalleryConfigs } from '../../../lib/content';
+import { getRepo, getRepoSnapshot, type RepoRef, type TreeItem } from './repo';
+import { pageGalleryConfigs, parseAndMigrateContent } from '../../../lib/content';
 import type { Content, EditorDoc, ImageEntry } from '../types';
 import type { PublishProgress } from '../exporter';
 import { initDocFromContent } from '../content-init';
 import { registerAsset, uid } from '../assets';
 import { base64ToBytes } from './base64';
+import { PublishConflictError, readProjectMetadata } from './runtime';
 
 /** Read a blob's raw bytes by sha. The Blobs API base64-encodes files of any size. */
 export async function readBlobBytes(client: GitHubClient, ref: RepoRef, sha: string): Promise<Uint8Array> {
@@ -73,6 +74,9 @@ export interface LoadedDoc {
 	doc: EditorDoc;
 	/** Managed paths present in the repo — content.json + every src/assets file. */
 	managedPaths: string[];
+	headSha: string;
+	runtimeVersion?: string;
+	dataFileShas: Record<string, string>;
 }
 
 /** Fetch content.json + all images from `ref` and rebuild the editor document. */
@@ -82,7 +86,7 @@ export async function loadDocFromRepo(
 	onProgress?: (p: PublishProgress) => void,
 ): Promise<LoadedDoc> {
 	onProgress?.({ step: 'Finding your published site…' });
-	const tree = await getTree(client, ref);
+	const { headSha, tree } = await getRepoSnapshot(client, ref);
 	const shaByPath = new Map(tree.map((t) => [t.path, t.sha]));
 
 	const contentSha = shaByPath.get(CONTENT_JSON_PATH);
@@ -90,7 +94,13 @@ export async function loadDocFromRepo(
 
 	onProgress?.({ step: 'Downloading your content…' });
 	const contentBytes = await readBlobBytes(client, ref, contentSha);
-	const content = JSON.parse(new TextDecoder().decode(contentBytes)) as Content;
+	let rawContent: unknown;
+	try {
+		rawContent = JSON.parse(new TextDecoder().decode(contentBytes));
+	} catch {
+		throw new Error('That site’s content file is not valid JSON. The repository was not changed.');
+	}
+	const content = parseAndMigrateContent(rawContent);
 
 	const folders = galleryFolders(content);
 	const folderFiles: Record<string, string[]> = {};
@@ -125,6 +135,9 @@ export async function loadDocFromRepo(
 			imagePaths.push(path);
 		}
 	}
+	const resumePath = content.resume.url ? `public/${content.resume.url.replace(/^\//, '')}` : '';
+	const hasResumeFile = !!resumePath && shaByPath.has(resumePath);
+	if (hasResumeFile) imagePaths.push(resumePath);
 
 	// Download each blob and register it as an editor asset, reporting progress.
 	const assetIdByPath = new Map<string, string>();
@@ -181,9 +194,28 @@ export async function loadDocFromRepo(
 			assetId: assetIdByPath.get(path) ?? null,
 		};
 	}
+	if (hasResumeFile) {
+		doc.resumeFile = {
+			filename: resumePath.slice(resumePath.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(resumePath) ?? null,
+		};
+	}
 
-	const managedPaths = [CONTENT_JSON_PATH, ...tree.map((t) => t.path).filter((p) => p.startsWith('src/assets/'))];
-	return { doc, managedPaths };
+	const managedPaths = [
+		CONTENT_JSON_PATH,
+		...tree.map((t) => t.path).filter((p) => p.startsWith('src/assets/')),
+		...(hasResumeFile ? [resumePath] : []),
+	];
+	const dataFileShas = Object.fromEntries(
+		tree.filter((item) => managedPaths.includes(item.path)).map((item) => [item.path, item.sha]),
+	);
+	let runtimeVersion: string | undefined;
+	try {
+		runtimeVersion = (await readProjectMetadata(client, ref, tree)).runtimeVersion;
+	} catch (error) {
+		if (!(error instanceof PublishConflictError) || error.kind !== 'unsupported-runtime') throw error;
+	}
+	return { doc, managedPaths, headSha, runtimeVersion, dataFileShas };
 }
 
 /** Repos on the account that were generated from our template (most-recently-pushed first). */
@@ -207,6 +239,9 @@ export interface LoadedPortfolio {
 	ref: RepoRef;
 	/** Managed paths currently in the repo — content.json + every src/assets file. */
 	managedPaths: string[];
+	headSha: string;
+	runtimeVersion?: string;
+	dataFileShas: Record<string, string>;
 }
 
 /**
@@ -228,6 +263,6 @@ export async function loadPublishedPortfolio(
 		);
 	}
 
-	const { doc, managedPaths } = await loadDocFromRepo(client, ref, onProgress);
-	return { doc, ref, managedPaths };
+	const { doc, managedPaths, headSha, runtimeVersion, dataFileShas } = await loadDocFromRepo(client, ref, onProgress);
+	return { doc, ref, managedPaths, headSha, runtimeVersion, dataFileShas };
 }

@@ -12,9 +12,9 @@ import { Modal } from './ui/Modal';
 import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken } from '../lib/github/session';
 import { loadRepoInfo, saveRepoInfo, type RepoInfo } from '../lib/github/store';
-import { ASTRO_CONFIG_PATH, TEMPLATE_REPO } from '../lib/github/config';
-import { commitFiles } from '../lib/github/gitdata';
-import { renameRepo, isRepoNameAvailable, readAstroConfig, rewriteSiteAndBase, setCustomDomain, pagesUrl, type RepoRef } from '../lib/github/repo';
+import { TEMPLATE_REPO } from '../lib/github/config';
+import { commitProjectLocation } from '../lib/github/runtime';
+import { renameRepo, isRepoNameAvailable, setCustomDomain, pagesUrl, type RepoRef } from '../lib/github/repo';
 import { slugifySiteName, subdomainFor, checkSubdomain, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
 
 type NameState = 'idle' | 'checking' | 'available' | 'taken' | 'same';
@@ -79,11 +79,24 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 				// The domain doesn't reference the repo name — nothing else to fix.
 				setNewUrl(info.pagesUrl ?? `https://${info.customDomain}/`);
 			} else if (isIncluded) {
-				const claimed = await claimSubdomain(token, slug).catch(() => null);
+				let claimed = await claimSubdomain(token, slug).catch(() => null);
 				if (claimed) {
-					await setCustomDomain(client, renamed, claimed).catch(() => null);
+					try {
+						await setCustomDomain(client, renamed, claimed);
+					} catch {
+						claimed = null;
+					}
+				}
+				if (claimed) {
+					const location = await commitProjectLocation(
+						client,
+						renamed,
+						{ siteUrl: `https://${claimed}`, basePath: '/' },
+						`Use ${claimed}`,
+					);
 					patch.customDomain = claimed;
 					patch.pagesUrl = `https://${claimed}/`;
+					patch.lastCommitSha = location.commitSha;
 					setNewUrl(patch.pagesUrl);
 				} else {
 					// Keep the old hangwork.art address — it still serves this repo fine,
@@ -92,17 +105,13 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 				}
 			} else {
 				// Bare github.io URL: base must move from /{old} to /{new} or every asset 404s.
-				const current = await readAstroConfig(client, renamed);
-				const desired = rewriteSiteAndBase(current, `https://${renamed.owner}.github.io`, `/${slug}`);
-				if (desired !== current) {
-					await commitFiles(client, {
-						owner: renamed.owner,
-						repo: renamed.repo,
-						branch: renamed.branch,
-						message: 'Rename site',
-						files: [{ path: ASTRO_CONFIG_PATH, text: desired }],
-					});
-				}
+				const location = await commitProjectLocation(
+					client,
+					renamed,
+					{ siteUrl: `https://${renamed.owner}.github.io`, basePath: `/${slug}` },
+					'Rename site',
+				);
+				patch.lastCommitSha = location.commitSha;
 				patch.pagesUrl = pagesUrl(renamed.owner, slug);
 				setNewUrl(patch.pagesUrl);
 			}

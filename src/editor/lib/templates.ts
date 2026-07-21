@@ -15,6 +15,7 @@ export interface SiteTemplate {
 /** Bold dark-room look: near-black canvas, warm accent, geometric sans, and a
  *  tight square work grid next to the freeform home collage. */
 const studioContent: Content = {
+	schemaVersion: 1,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#101014',
@@ -57,6 +58,7 @@ const studioContent: Content = {
 /** Quiet magazine look: warm paper background, serif type, big two-column
  *  project spreads plus a freeform gallery for looser work. */
 const editorialContent: Content = {
+	schemaVersion: 1,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#faf6f0',
@@ -99,6 +101,7 @@ const editorialContent: Content = {
 /** Brutalist index: pure white, typewriter mono, a dense numbered-archive feel —
  *  a loose 4-across index up front and a tight 6-across square archive behind it. */
 const archiveContent: Content = {
+	schemaVersion: 1,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#ffffff',
@@ -142,6 +145,7 @@ const archiveContent: Content = {
  *  sans body, a freeform home collage, and a Collections page built from TWO
  *  labeled image groups — showing off multiple galleries on one page. */
 const atelierContent: Content = {
+	schemaVersion: 1,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#eef0e9',

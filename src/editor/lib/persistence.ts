@@ -6,14 +6,20 @@ import type { EditorDoc } from './types';
 import { readJson, writeJson, hasKey } from './storage';
 
 const DOC_KEY = 'portfolio-editor:doc';
+const DOC_BACKUP_KEY = 'portfolio-editor:doc-backup';
 const ASSET_PREFIX = 'portfolio-editor:asset:';
 
 export function saveDoc(doc: EditorDoc): void {
 	writeJson(DOC_KEY, doc);
 }
 
-export function loadDoc(): EditorDoc | null {
-	return readJson<EditorDoc>(DOC_KEY);
+export function loadDoc(): unknown | null {
+	return readJson<unknown>(DOC_KEY);
+}
+
+/** Keep the untouched pre-migration JSON until the user deliberately resets. */
+export function backupDocBeforeMigration(doc: unknown): void {
+	writeJson(DOC_BACKUP_KEY, { savedAt: new Date().toISOString(), doc });
 }
 
 export function hasSavedDoc(): boolean {
@@ -52,6 +58,7 @@ export async function loadAllAssetBlobs(): Promise<StoredAsset[]> {
 export async function clearPersisted(): Promise<void> {
 	try {
 		localStorage.removeItem(DOC_KEY);
+		localStorage.removeItem(DOC_BACKUP_KEY);
 		const allKeys = (await keys()) as string[];
 		await Promise.all(
 			allKeys.filter((k) => typeof k === 'string' && k.startsWith(ASSET_PREFIX)).map((k) => del(k)),

@@ -1,0 +1,28 @@
+{
+  "content": {
+    "site": { "name": "Draft Artist", "description": "Draft", "favicon": "favicon.svg" },
+    "theme": {
+      "backgroundColor": "#fff",
+      "textColor": "#111",
+      "mutedTextColor": "#666",
+      "accentColor": "#000",
+      "fontFamily": "sans-serif",
+      "customFonts": [{ "name": "Draft Font", "file": "fonts/draft.woff2" }]
+    },
+    "nav": [{ "path": "", "label": "Home" }],
+    "profile": { "image": "profile.jpg", "bio": "Bio" },
+    "contact": { "email": "" },
+    "social": [],
+    "resume": { "label": "Résumé", "url": "resume.pdf" },
+    "pages": {
+      "home": {
+        "title": "{name}",
+        "gallery": { "folder": "selected-works", "alt": "Work", "order": "asc" }
+      }
+    },
+    "galleries": { "selected-works": { "items": {} } }
+  },
+  "galleries": { "selected-works": [] },
+  "profileImage": { "filename": "profile.jpg", "assetId": null },
+  "draftExtension": "keep-this"
+}

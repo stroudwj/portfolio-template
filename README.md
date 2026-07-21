@@ -67,6 +67,7 @@ want them to appear (e.g. `01.jpg`, `02.jpg`). An empty folder just shows a frie
 
 Everything the site *says* lives in **`src/data/content.json`**:
 
+- **`schemaVersion`** — the content-format version. Leave this in place; the editor uses it to migrate older sites safely.
 - **`site`** — your `name` (the logo and every browser-tab title), the `description` for
   search/social previews, the `favicon` file name, and an optional `logo`.
 - **`theme`** — colors and font (`backgroundColor`, `textColor`, `accentColor`, `fontFamily`).
@@ -130,8 +131,8 @@ GitHub; **Sign out** deletes it.
 
 **Fully by hand (no editor):**
 1. Create a free account at https://github.com and a new repository.
-2. In **`astro.config.mjs`**, set `site: 'https://YOUR-USERNAME.github.io'` and
-   `base: '/YOUR-REPO-NAME'`.
+2. In **`.hangwork/project.json`**, set `siteUrl` to `https://YOUR-USERNAME.github.io`,
+   `basePath` to `/YOUR-REPO-NAME`, and `isProductSite` to `false`.
 3. Push this project to that repository.
 4. In the repo, **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**.
 
@@ -157,6 +158,27 @@ falls back to the token flow and leaves publishing ungated — so you can do the
 - **Template source:** publishing clones the repo named in `src/editor/lib/github/config.ts`
   (`TEMPLATE_REPO`), which must be flagged a **Template repository** in its GitHub settings.
 
+### Releasing compatible editor/runtime updates
+
+Published sites keep their current renderer until their owner publishes again. A publish
+then migrates content and installs the renderer from the exact commit that built the editor;
+it never follows a moving branch. User content/assets are separate from system files, and a
+manually changed system file stops the upgrade until the owner explicitly approves replacing it.
+
+For every release:
+
+1. Add sequential content/draft migrations and permanent fixtures for every schema change.
+2. Bump `version` in `.hangwork/runtime-release.json`, then run `npm run runtime:generate`.
+3. Run `npm test`, `npm run check`, `npm run build`, and `npm run build:product`.
+4. Commit the code and generated manifests together, and create an immutable tag such as
+   `runtime-v1.1.0`. Keep the previous tagged deployment available for rollback.
+5. Cloudflare Pages supplies `CF_PAGES_COMMIT_SHA` automatically. On another host, set
+   `HANGWORK_RUNTIME_COMMIT` to the release's full 40-character commit SHA when building.
+
+`npm run build` fails if the runtime hashes are stale, preventing an editor deployment whose
+manifest does not match its source. Before promoting production, publish an older fixture to a
+canary repository and verify the GitHub Pages workflow for the resulting commit.
+
 ---
 
 ## Troubleshooting
@@ -174,6 +196,9 @@ falls back to the token flow and leaves publishing ungated — so you can do the
 | `npm install`     | Downloads what the site needs (first time only)       |
 | `npm run dev`     | Runs the site on your computer for editing            |
 | `npm run build`   | Builds the final site into `dist/`                    |
+| `npm run check`   | Type-checks Astro, React, scripts, and tests           |
+| `npm test`        | Runs migration, integrity, and publish-preflight tests |
+| `npm run runtime:generate` | Regenerates the system-file integrity manifest |
 | `npm run preview` | Previews the finished build                           |
 
 Built with [Astro](https://astro.build).

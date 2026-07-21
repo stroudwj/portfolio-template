@@ -50,9 +50,9 @@ export function SortableList({
 }
 
 export interface DragHandleProps {
-	setActivatorNodeRef: (el: HTMLElement | null) => void;
-	attributes: Record<string, unknown>;
-	listeners: Record<string, unknown> | undefined;
+	setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef'];
+	attributes: ReturnType<typeof useSortable>['attributes'];
+	listeners: ReturnType<typeof useSortable>['listeners'];
 }
 
 export function SortableItem({ id, children }: { id: string; children: (handle: DragHandleProps) => ReactNode }) {

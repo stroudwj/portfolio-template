@@ -2,8 +2,7 @@
 // astro.config.mjs for the new URL, enable GitHub Pages, and wait for the first build.
 import type { GitHubClient } from './client';
 import { GitHubError } from './client';
-import { TEMPLATE_REPO, ASTRO_CONFIG_PATH } from './config';
-import { base64ToUtf8 } from './base64';
+import { TEMPLATE_REPO } from './config';
 
 export interface RepoRef {
 	owner: string;
@@ -28,15 +27,47 @@ export interface TreeItem {
 
 /** All blob (file) entries in the repo, recursively. */
 export async function getTree(client: GitHubClient, ref: RepoRef): Promise<TreeItem[]> {
+	return getTreeAt(client, ref, ref.branch);
+}
+
+export async function getTreeAt(client: GitHubClient, ref: RepoRef, treeish: string): Promise<TreeItem[]> {
 	const { data } = await client.request<{ tree: TreeItem[] }>(
-		`/repos/${ref.owner}/${ref.repo}/git/trees/${ref.branch}?recursive=1`,
+		`/repos/${ref.owner}/${ref.repo}/git/trees/${treeish}?recursive=1`,
 	);
 	return data.tree.filter((t) => t.type === 'blob');
 }
 
+export async function getBranchHeadSha(client: GitHubClient, ref: RepoRef): Promise<string> {
+	const { data } = await client.request<{ object: { sha: string } }>(
+		`/repos/${ref.owner}/${ref.repo}/git/ref/heads/${ref.branch}`,
+	);
+	return data.object.sha;
+}
+
+export async function getRepoSnapshot(client: GitHubClient, ref: RepoRef): Promise<{ headSha: string; tree: TreeItem[] }> {
+	const headSha = await getBranchHeadSha(client, ref);
+	return { headSha, tree: await getTreeAt(client, ref, headSha) };
+}
+
+/** Template generation is asynchronous. Wait until its first commit and tree exist. */
+export async function waitForRepoTree(client: GitHubClient, ref: RepoRef): Promise<{ headSha: string; tree: TreeItem[] }> {
+	for (let attempt = 0; attempt < 10; attempt++) {
+		try {
+			return await getRepoSnapshot(client, ref);
+		} catch (error) {
+			if (error instanceof GitHubError && error.status === 404 && attempt < 9) {
+				await sleep(1500);
+				continue;
+			}
+			throw error;
+		}
+	}
+	throw new GitHubError(404, 'Could not read your new site after GitHub created it.');
+}
+
 /** Every image file currently under src/assets/ in the repo (blobs only). */
-export async function listAssetPaths(client: GitHubClient, ref: RepoRef): Promise<string[]> {
-	return (await getTree(client, ref)).map((t) => t.path).filter((p) => p.startsWith('src/assets/'));
+export async function listAssetPaths(client: GitHubClient, ref: RepoRef, tree?: TreeItem[]): Promise<string[]> {
+	return (tree ?? (await getTree(client, ref))).map((t) => t.path).filter((p) => p.startsWith('src/assets/'));
 }
 
 /**
@@ -64,42 +95,6 @@ export async function getRepo(client: GitHubClient, owner: string, repo: string)
 export async function isRepoNameAvailable(client: GitHubClient, owner: string, name: string): Promise<boolean> {
 	const { status } = await client.request(`/repos/${owner}/${name}`, { allow: [404] });
 	return status === 404;
-}
-
-/**
- * A generated repo isn't populated instantly. Poll a file read until it appears and
- * return the current astro.config.mjs source. Doubles as a readiness gate on first
- * publish (a successful read means the repo's initial commit exists).
- */
-export async function readAstroConfig(client: GitHubClient, ref: RepoRef): Promise<string> {
-	for (let attempt = 0; attempt < 10; attempt++) {
-		try {
-			const { data } = await client.request<{ content: string; encoding: string }>(
-				`/repos/${ref.owner}/${ref.repo}/contents/${ASTRO_CONFIG_PATH}`,
-			);
-			return base64ToUtf8(data.content);
-		} catch (err) {
-			if (err instanceof GitHubError && err.status === 404 && attempt < 9) {
-				await sleep(1500);
-				continue;
-			}
-			throw err;
-		}
-	}
-	throw new GitHubError(404, 'Could not read your new site’s settings.');
-}
-
-/**
- * Replace the real `site`/`base` values so links/assets resolve at the given URL —
- * https://{owner}.github.io + /{repo} normally, or https://{domain} + / when a custom
- * domain is set. Anchored to the start of a line (multiline flag) so it edits the actual
- * `defineConfig` lines and NOT the example lines in the top comment (which begin with
- * `//`). `[ \t]*` keeps the match on a single line.
- */
-export function rewriteSiteAndBase(source: string, siteUrl: string, basePath: string): string {
-	return source
-		.replace(/^([ \t]*site:[ \t]*)['"][^'"]*['"]/m, `$1'${siteUrl}'`)
-		.replace(/^([ \t]*base:[ \t]*)['"][^'"]*['"]/m, `$1'${basePath}'`);
 }
 
 /** Turn Pages on with the Actions workflow builder. Tolerates "already enabled". */

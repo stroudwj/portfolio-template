@@ -16,15 +16,22 @@ import type { RepoInfo, RepoStore } from '../src/editor/lib/github/store.ts';
 import { validateToken } from '../src/editor/lib/github/session.ts';
 import type { PortfolioBundle } from '../src/editor/lib/exporter.ts';
 import { blankContent } from '../src/editor/lib/content-init.ts';
-import { ASTRO_CONFIG_PATH, PRODUCT_SITE_FLAG_PATH } from '../src/editor/lib/github/config.ts';
 import { base64ToUtf8 } from '../src/editor/lib/github/base64.ts';
+import { CURRENT_RUNTIME_RELEASE, PROJECT_METADATA_PATH } from '../src/editor/lib/github/runtime.ts';
 
 const token = process.env.GH_TOKEN;
 if (!token) {
 	console.error('Set GH_TOKEN to a fine-grained token (Administration, Contents, Pages = write).');
 	process.exit(1);
 }
+const githubToken = token as string;
 const repoName = process.argv[2] || `portfolio-dryrun-${Date.now().toString(36)}`;
+const runtimeCommit = process.env.HANGWORK_RUNTIME_COMMIT;
+if (!runtimeCommit) {
+	console.error('Set HANGWORK_RUNTIME_COMMIT to the exact released template commit.');
+	process.exit(1);
+}
+const pinnedRuntimeCommit = runtimeCommit as string;
 
 // A trivial 1x1 PNG so we commit a real binary blob.
 const PNG_1x1 = Uint8Array.from(
@@ -46,10 +53,17 @@ function bundle(withSecondImage: boolean): PortfolioBundle {
 const log = (p: { step: string; detail?: string }) => console.log(`   • ${p.step}${p.detail ? ` (${p.detail})` : ''}`);
 
 async function main() {
-	const user = await validateToken(token);
+	const user = await validateToken(githubToken);
 	console.log(`Connected as @${user.login}. Repo: ${user.login}/${repoName}\n`);
 	const store = memStore(null);
-	const mk = () => new GitHubTarget({ client: new GitHubClient(token!), login: user.login, store, desiredRepoName: repoName });
+	const mk = () =>
+		new GitHubTarget({
+			client: new GitHubClient(githubToken),
+			login: user.login,
+			store,
+			desiredRepoName: repoName,
+			runtimeRelease: { ...CURRENT_RUNTIME_RELEASE, sourceCommit: pinnedRuntimeCommit },
+		});
 
 	console.log('First publish (creates repo):');
 	const first = await mk().publish(bundle(false), log);
@@ -59,20 +73,19 @@ async function main() {
 	const second = await mk().publish(bundle(true), log);
 	console.log(`\n✅ Updated: ${second.url}`);
 
-	// The published repo must NOT be a product site: flag flipped off, config rewritten.
-	const client = new GitHubClient(token!);
+	// The published repo must NOT be a product site, and its address is metadata-driven.
+	const client = new GitHubClient(githubToken);
 	const read = async (path: string) => {
 		const { data } = await client.request<{ content: string }>(
 			`/repos/${user.login}/${repoName}/contents/${path}`,
 		);
 		return base64ToUtf8(data.content);
 	};
-	const flag = await read(PRODUCT_SITE_FLAG_PATH);
-	if (!flag.includes('IS_PRODUCT_SITE = false')) throw new Error(`${PRODUCT_SITE_FLAG_PATH} was not flipped to false`);
-	const config = await read(ASTRO_CONFIG_PATH);
-	if (!config.includes(`site: 'https://${user.login}.github.io'`) || !config.includes(`base: '/${repoName}'`))
-		throw new Error('astro.config.mjs site/base were not rewritten for the published repo');
-	console.log('✅ Published repo checks: product-site flag off, site/base rewritten.');
+	const project = JSON.parse(await read(PROJECT_METADATA_PATH));
+	if (project.isProductSite !== false) throw new Error(`${PROJECT_METADATA_PATH} did not disable the product site`);
+	if (project.siteUrl !== `https://${user.login}.github.io` || project.basePath !== `/${repoName}`)
+		throw new Error('Project metadata does not contain the published repo address');
+	console.log('✅ Published repo checks: product site off, address metadata correct.');
 	console.log('\nDone. Verify the site loads, then delete the repo from GitHub if this was a test.');
 }
 main().catch((e) => {

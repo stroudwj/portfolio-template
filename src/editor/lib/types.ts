@@ -40,6 +40,8 @@ export interface SingleImage {
  * turns back into the folder-based Content schema).
  */
 export interface EditorDoc {
+	/** Version of the browser-only working document shape. */
+	docVersion: 1;
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;

@@ -11,7 +11,9 @@ import {
 	hasSavedDoc,
 	loadAllAssetBlobs,
 	clearPersisted,
+	backupDocBeforeMigration,
 } from './lib/persistence';
+import { parseAndMigrateEditorDoc } from './lib/doc-schema';
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 	const next = arr.slice();
@@ -69,6 +71,7 @@ function fontNameFromFile(filename: string): string {
 export interface EditorContextValue {
 	doc: EditorDoc | null;
 	hasDraft: boolean;
+	draftError: string | null;
 	// lifecycle
 	startBlank(): void;
 	startExisting(): void;
@@ -174,6 +177,7 @@ export function useEditor(): EditorContextValue {
 export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const [doc, setDoc] = useState<EditorDoc | null>(null);
 	const [hasDraft, setHasDraft] = useState<boolean>(() => hasSavedDoc());
+	const [draftError, setDraftError] = useState<string | null>(null);
 	// Downscaled asset previews finish async; bumping this re-renders every consumer
 	// so getAssetPreviewUrl() calls pick up the light copies.
 	const assetsVersion = useSyncExternalStore(subscribeAssets, getAssetsVersion, getAssetsVersion);
@@ -229,16 +233,41 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const value = useMemo<EditorContextValue>(() => ({
 		doc,
 		hasDraft,
+		draftError,
 
 		startBlank: () => openFresh(blankDoc()),
 		startExisting: () => openFresh(existingDoc()),
 		startTemplate: (content) => openFresh(initDocFromContent(content)),
 		resumeDraft: async () => {
-			const stored = await loadAllAssetBlobs();
-			for (const a of stored) restoreAsset(a.id, a.blob, a.filename);
-			const saved = loadSavedDoc();
-			if (saved) openFresh(upgradeDoc(saved));
-			else openFresh(existingDoc());
+			setDraftError(null);
+			try {
+				const saved = loadSavedDoc();
+				if (!saved) {
+					openFresh(existingDoc());
+					return;
+				}
+				const upgraded = parseAndMigrateEditorDoc(saved);
+				const rawVersion =
+					typeof saved === 'object' && saved !== null && 'docVersion' in saved
+						? (saved as { docVersion?: unknown }).docVersion
+						: 0;
+				const rawContentVersion =
+					typeof saved === 'object' &&
+					saved !== null &&
+					'content' in saved &&
+					typeof (saved as { content?: unknown }).content === 'object' &&
+					(saved as { content?: unknown }).content !== null &&
+					'schemaVersion' in ((saved as { content: object }).content)
+						? ((saved as { content: { schemaVersion?: unknown } }).content.schemaVersion ?? 0)
+						: 0;
+				if (rawVersion !== upgraded.docVersion || rawContentVersion !== upgraded.content.schemaVersion)
+					backupDocBeforeMigration(saved);
+				const stored = await loadAllAssetBlobs();
+				for (const a of stored) restoreAsset(a.id, a.blob, a.filename);
+				openFresh(upgraded);
+			} catch (error) {
+				setDraftError(error instanceof Error ? error.message : 'This saved draft could not be opened safely.');
+			}
 		},
 		openDoc: (next: EditorDoc) => {
 			setHasDraft(true);
@@ -247,6 +276,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		reset: async () => {
 			await clearPersisted();
 			setHasDraft(false);
+			setDraftError(null);
 			openFresh(null);
 		},
 

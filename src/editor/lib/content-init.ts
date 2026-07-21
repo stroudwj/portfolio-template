@@ -5,6 +5,7 @@ import type { Content } from '../../lib/content';
 import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
 import { getAssetUrl, getAssetPreviewUrl, uid } from './assets';
+import { parseAndMigrateEditorDoc } from './doc-schema';
 
 /** Gray placeholder shown for images referenced by name but not uploaded this session. */
 export const PLACEHOLDER_IMAGE =
@@ -16,6 +17,7 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
+	schemaVersion: 1,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
@@ -98,6 +100,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 	}
 
 	return {
+		docVersion: 1,
 		content: cloned,
 		galleries,
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
@@ -112,17 +115,9 @@ export function initDocFromContent(content: Content): EditorDoc {
 export const blankDoc = (): EditorDoc => initDocFromContent(blankContent);
 export const existingDoc = (): EditorDoc => initDocFromContent(bundledContent);
 
-/** Upgrade a document saved by an older editor: migrate content, backfill new fields. */
+/** Validate/upgrade a document supplied by an already-typed editor boundary. */
 export function upgradeDoc(doc: EditorDoc): EditorDoc {
-	const resumeUrl = doc.content.resume?.url ?? '';
-	return {
-		...doc,
-		content: migrateContent(doc.content),
-		logoImage: doc.logoImage ?? { filename: doc.content.site.logoImage || '', assetId: null },
-		pageThumbs: doc.pageThumbs ?? {},
-		fonts: doc.fonts ?? {},
-		resumeFile: doc.resumeFile ?? { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
-	};
+	return parseAndMigrateEditorDoc(doc);
 }
 
 /** Live document -> resolved data the shared portfolio components can render. */

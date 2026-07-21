@@ -20,6 +20,18 @@ export interface CommitArgs {
 	files: CommitFile[];
 	/** Paths to remove from the tree (previously published, now gone). */
 	deletions?: string[];
+	/** Optimistic concurrency guard: abort rather than commit on a newer head. */
+	expectedHeadSha?: string;
+}
+
+export class CommitHeadChangedError extends Error {
+	constructor(
+		public readonly expected: string,
+		public readonly actual: string,
+	) {
+		super('The repository changed while this update was being prepared.');
+		this.name = 'CommitHeadChangedError';
+	}
 }
 
 const BLOB_MODE = '100644';
@@ -40,12 +52,13 @@ export async function commitFiles(
 	args: CommitArgs,
 	onBlob?: (done: number, total: number) => void,
 ): Promise<string> {
-	const { owner, repo, branch, message, files, deletions = [] } = args;
+	const { owner, repo, branch, message, files, deletions = [], expectedHeadSha } = args;
 	const base = `/repos/${owner}/${repo}`;
 
 	// Current head + its tree.
 	const ref = await client.request<{ object: { sha: string } }>(`${base}/git/ref/heads/${branch}`);
 	const headSha = ref.data.object.sha;
+	if (expectedHeadSha && headSha !== expectedHeadSha) throw new CommitHeadChangedError(expectedHeadSha, headSha);
 	const headCommit = await client.request<{ tree: { sha: string } }>(`${base}/git/commits/${headSha}`);
 	const baseTreeSha = headCommit.data.tree.sha;
 

@@ -1,0 +1,42 @@
+{
+  "site": {
+    "name": "Legacy Artist",
+    "description": "Legacy portfolio",
+    "favicon": "favicon.svg",
+    "creative": { "quietMode": true, "wallNote": "retired", "grain": 5 },
+    "extensionFlag": "preserve-me"
+  },
+  "theme": {
+    "backgroundColor": "#fff",
+    "textColor": "#111",
+    "mutedTextColor": "#666",
+    "accentColor": "#000",
+    "fontFamily": "sans-serif"
+  },
+  "nav": [
+    { "path": "", "label": "Home" },
+    { "path": "work", "label": "Work" },
+    { "path": "bio", "label": "About" }
+  ],
+  "profile": { "image": "", "bio": "Legacy bio" },
+  "contact": { "email": "artist@example.com" },
+  "social": [],
+  "resume": { "label": "Résumé", "url": "" },
+  "pages": {
+    "home": {
+      "title": "{name}",
+      "gallery": { "folder": "selected-works", "alt": "Work", "order": "asc" },
+      "children": ["work"]
+    },
+    "work": {
+      "title": "Work — {name}",
+      "gallery": { "folder": "work", "alt": "Work", "order": "asc" }
+    },
+    "bio": { "title": "About — {name}" }
+  },
+  "galleries": {
+    "selected-works": { "items": {} },
+    "work": { "items": {} }
+  },
+  "customRoot": { "kept": true }
+}

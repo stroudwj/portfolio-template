@@ -1,5 +1,5 @@
 // Connect a custom domain to the published site without ever opening GitHub: we set the
-// domain in the repo's Pages settings via the API, rewrite astro.config's site/base and
+// domain in the repo's Pages settings via the API, update project address metadata, and
 // commit it (so links/assets resolve at the domain), and show the exact DNS records to
 // add at the registrar — the one step GitHub can't do for us. The repo's Pages cname is
 // the source of truth; publishes read it back, so the domain survives every re-publish.
@@ -8,16 +8,13 @@ import { Modal } from './ui/Modal';
 import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken } from '../lib/github/session';
 import { loadRepoInfo, saveRepoInfo } from '../lib/github/store';
-import { ASTRO_CONFIG_PATH } from '../lib/github/config';
-import { commitFiles } from '../lib/github/gitdata';
+import { commitProjectLocation } from '../lib/github/runtime';
 import {
 	getPagesInfo,
 	setCustomDomain,
 	removeCustomDomain,
 	getDomainHealth,
 	enforceHttps,
-	readAstroConfig,
-	rewriteSiteAndBase,
 	getBuildStatus,
 	pagesUrl,
 	type DomainHealth,
@@ -87,23 +84,22 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 		);
 	}
 
-	// Rewrite astro.config for `domain` (or back to the github.io URL when null) and wait
+	// Update project metadata for `domain` (or the github.io URL when null) and wait
 	// for the Pages rebuild, so the site's links/assets actually resolve at the new address.
 	// Skipped when the config already matches (e.g. re-applying the same domain).
 	const applyConfig = async (domain: string | null) => {
-		const current = await readAstroConfig(client, ref);
-		const desired = domain
-			? rewriteSiteAndBase(current, `https://${domain}`, '/')
-			: rewriteSiteAndBase(current, `https://${ref.owner}.github.io`, `/${ref.repo}`);
-		if (desired === current) return;
+		const siteUrl = domain ? `https://${domain}` : `https://${ref.owner}.github.io`;
+		const basePath = domain ? '/' : `/${ref.repo}`;
+		const { commitSha: sha, changed } = await commitProjectLocation(
+			client,
+			ref,
+			{ siteUrl, basePath },
+			domain ? `Use custom domain ${domain}` : 'Use the github.io address',
+		);
+		const latest = loadRepoInfo() ?? info;
+		saveRepoInfo({ ...latest, lastCommitSha: sha });
+		if (!changed) return;
 		setRebuild('building');
-		const sha = await commitFiles(client, {
-			owner: ref.owner,
-			repo: ref.repo,
-			branch: ref.branch,
-			message: domain ? `Use custom domain ${domain}` : 'Use the github.io address',
-			files: [{ path: ASTRO_CONFIG_PATH, text: desired }],
-		});
 		const started = Date.now();
 		while (Date.now() - started < 3 * 60_000) {
 			await new Promise((r) => setTimeout(r, 5000));

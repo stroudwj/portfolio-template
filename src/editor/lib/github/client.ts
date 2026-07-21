@@ -59,6 +59,29 @@ export class GitHubClient {
 		}
 		throw new GitHubError(res.status, friendlyMessage(res.status, data), data);
 	}
+
+	/** Fetch a binary GitHub response (used for the pinned source zip archive). */
+	async requestBytes(path: string): Promise<Uint8Array> {
+		const url = path.startsWith('http') ? path : GITHUB_API + path;
+		let res: Response;
+		try {
+			res = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${this.token}`,
+					Accept: 'application/vnd.github+json',
+					'X-GitHub-Api-Version': '2022-11-28',
+				},
+			});
+		} catch (err) {
+			console.error('[GitHub] binary request was blocked before reaching GitHub:', url, err);
+			throw new GitHubError(0, 'Couldn’t reach GitHub to download the verified site runtime. Check your network or privacy extensions.');
+		}
+		if (!res.ok) {
+			const text = await res.text();
+			throw new GitHubError(res.status, friendlyMessage(res.status, text ? safeJson(text) : undefined));
+		}
+		return new Uint8Array(await res.arrayBuffer());
+	}
 }
 
 function safeJson(text: string): unknown {

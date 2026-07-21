@@ -5,6 +5,9 @@
 // components. The shapes below describe that file so editors get autocomplete and
 // the build fails loudly if the data drifts from what the pages expect.
 import data from '../data/content.json';
+import { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema';
+
+export { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema';
 
 /** Credit seeded into every new portfolio. Artists can edit or remove it in Extras. */
 export const DEFAULT_FOOTER = 'Made with hangwork.art';
@@ -182,7 +185,7 @@ export interface PageConfig {
 	heading?: string;
 	/** Present on gallery pages; absent on text-only pages like About. */
 	gallery?: GalleryConfig;
-	/** Ordered body blocks. Filled in by migrateContent() for pre-block content. */
+	/** Ordered body blocks. Filled by the versioned parser for pre-block content. */
 	blocks?: PageBlock[];
 	/** Ordered sub-page keys, shown as thumbnail cards via the 'children' block. */
 	children?: string[];
@@ -221,6 +224,7 @@ export interface GalleryData {
 }
 
 export interface Content {
+	schemaVersion: typeof CONTENT_SCHEMA_VERSION;
 	site: Site;
 	theme: Theme;
 	nav: NavItem[];
@@ -242,35 +246,14 @@ export function pageGalleryConfigs(page: PageConfig): GalleryConfig[] {
 }
 
 /**
- * Upgrade pre-block content in place: every page gets `blocks` (its gallery, or the
- * About section for the galleryless 'bio' page) and a `label` (from its nav entry).
- * Idempotent, so already-migrated content passes through untouched. Shared by the
- * site build, the editor, and the published-site loader — one upgrade path.
+ * Backward-compatible alias for callers that already have a typed Content object.
+ * The parser clones, migrates, and validates rather than mutating the input.
  */
 export function migrateContent(c: Content): Content {
-	// Retired Fun-tab fields are removed from older saved drafts and imported sites.
-	// The cast only describes legacy data that can still exist at runtime.
-	if (c.site.creative) {
-		const creative = c.site.creative as CreativeConfig & { quietMode?: boolean; wallNote?: string };
-		delete creative.quietMode;
-		delete creative.wallNote;
-		if (Object.keys(creative).length === 0) c.site.creative = undefined;
-	}
-	const labelByPath = new Map(c.nav.map((item) => [item.path || 'home', item.label]));
-	for (const [key, page] of Object.entries(c.pages)) {
-		if (!page.blocks) {
-			if (page.gallery) page.blocks = [{ id: 'gallery', type: 'gallery' }];
-			else if (key === 'bio') page.blocks = [{ id: 'about', type: 'about' }];
-			else page.blocks = [];
-		}
-		if (page.children?.length && !page.blocks.some((b) => b.type === 'children'))
-			page.blocks.push({ id: 'children', type: 'children' });
-		if (!page.label) page.label = labelByPath.get(key) ?? key;
-	}
-	return c;
+	return parseAndMigrateContent(c);
 }
 
-export const content = migrateContent(data as Content);
+export const content = parseAndMigrateContent(data);
 
 /** Resolve a title template, replacing "{name}" with the site name. */
 export const pageTitle = (template: string): string =>

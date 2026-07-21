@@ -12,6 +12,12 @@ export interface RepoInfo {
 	customDomain?: string;
 	/** Managed paths written by the last publish (content.json + image paths). */
 	lastManifest: string[];
+	/** Repository commit this browser last loaded or successfully published. */
+	lastCommitSha?: string;
+	/** Runtime paired with that commit. */
+	runtimeVersion?: string;
+	/** Git blob ids for user data, used to detect edits made outside this session. */
+	dataFileShas?: Record<string, string>;
 }
 
 const REPO_KEY = 'portfolio-editor:gh-repo';

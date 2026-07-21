@@ -6,10 +6,16 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "runtime:generate": "node scripts/generate-runtime-release.mjs",
+    "runtime:check": "node scripts/generate-runtime-release.mjs --check",
+    "prebuild": "npm run runtime:check",
+    "prebuild:product": "npm run runtime:check",
     "dev": "astro dev",
     "build": "astro build",
     "build:product": "astro build --config astro.config.product.mjs",
     "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
     "astro": "astro"
   },
   "dependencies": {
@@ -21,10 +27,15 @@
     "fflate": "^0.8.3",
     "idb-keyval": "^6.3.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }

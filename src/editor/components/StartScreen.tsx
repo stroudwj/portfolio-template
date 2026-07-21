@@ -31,7 +31,7 @@ function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t
 }
 
 export default function StartScreen({ brandLockup }: { brandLockup: string }) {
-	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft } = useEditor();
+	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError } = useEditor();
 	const gh = useGitHub();
 	const [showConnect, setShowConnect] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
@@ -68,6 +68,7 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 				</h1>
 
 				{!connected && gh.error && <p className="field-error start-error">{gh.error}</p>}
+				{draftError && <p className="field-error start-error">{draftError}</p>}
 
 				{connected ? (
 					<>

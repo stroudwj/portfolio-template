@@ -9,6 +9,7 @@ import { collectIssues } from '../lib/validation';
 import { GitHubClient, GitHubError } from '../lib/github/client';
 import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
+import { PublishConflictError } from '../lib/github/runtime';
 import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
 import { getRepo, getBuildStatus, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
 import { slugifySiteName, subdomainFor, checkSubdomain, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
@@ -34,6 +35,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	const [result, setResult] = useState<PublishResult | null>(null);
 	const [build, setBuild] = useState<BuildState>('building');
 	const [error, setError] = useState<string | null>(null);
+	const [conflict, setConflict] = useState<PublishConflictError | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [showDomain, setShowDomain] = useState(false);
 
@@ -135,10 +137,11 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		}
 	};
 
-	const runPublish = async () => {
+	const runPublish = async (forceRuntimeUpgrade = false) => {
 		setPhase('publishing');
 		setLog([]);
 		setError(null);
+		setConflict(null);
 		setBuild('building');
 		try {
 			const bundle = await buildBundle(doc);
@@ -148,11 +151,13 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 				store: localRepoStore,
 				desiredRepoName: repoName.trim(),
 				claimAddress: (name) => claimSubdomain(getToken() ?? '', name),
+				forceRuntimeUpgrade,
 			});
 			const res = await target.publish(bundle, (p) => setLog((prev) => appendStep(prev, p)));
 			setResult(res);
 			setPhase('success');
 		} catch (err) {
+			if (err instanceof PublishConflictError) setConflict(err);
 			setError(err instanceof GitHubError ? err.friendly : err instanceof Error ? err.message : 'Publishing failed.');
 			setPhase('error');
 		}
@@ -185,7 +190,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 		return (
 			<Modal title="Published" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
 				<div className="publish-success">
-					<h3>{build === 'failed' ? 'Published, but the site build hit a problem' : 'Your site is live.'}</h3>
+					<h3>{build === 'failed' ? 'The update was saved, but its build failed' : 'Your site is live.'}</h3>
 					<a className="live-url" href={result.url} target="_blank" rel="noopener noreferrer">
 						{result.url}
 					</a>
@@ -200,7 +205,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 					)}
 					{build === 'failed' && result.repoUrl && (
 						<p className="modal-note">
-							The site build reported an error — check the{' '}
+							Your previous successful deployment remains the rollback point in Git history. Check the{' '}
 							<a href={`${result.repoUrl}/actions`} target="_blank" rel="noopener noreferrer">
 								build log
 							</a>{' '}
@@ -239,6 +244,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 
 	// ---- Error screen ----
 	if (phase === 'error') {
+		const canReplaceRuntime = conflict?.kind === 'managed-file-change';
 		return (
 			<Modal
 				title="Publishing failed"
@@ -248,13 +254,27 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 						<button type="button" className="btn-ghost" onClick={onClose}>
 							Close
 						</button>
-						<button type="button" className="btn-primary" onClick={() => setPhase('configure')}>
-							Try again
-						</button>
+						{canReplaceRuntime ? (
+							<button type="button" className="btn-primary" onClick={() => void runPublish(true)}>
+								Replace system files and publish
+							</button>
+						) : (
+							<button type="button" className="btn-primary" onClick={() => setPhase('configure')}>
+								Try again
+							</button>
+						)}
 					</>
 				}
 			>
 				<p className="publish-error">{error}</p>
+				{conflict?.paths.length ? (
+					<ul className="issues">
+						{conflict.paths.map((path) => <li key={path}><code>{path}</code></li>)}
+					</ul>
+				) : null}
+				{canReplaceRuntime && (
+					<p className="modal-note">Replacing these files keeps the previous versions in Git history, but discards their current custom code.</p>
+				)}
 			</Modal>
 		);
 	}
@@ -269,7 +289,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 					<button type="button" className="btn-ghost" onClick={onClose}>
 						Cancel
 					</button>
-					<button type="button" className="btn-primary" onClick={runPublish} disabled={!repoName.trim()}>
+					<button type="button" className="btn-primary" onClick={() => void runPublish()} disabled={!repoName.trim()}>
 						{firstPublish ? 'Publish' : 'Publish update'}
 					</button>
 				</>
