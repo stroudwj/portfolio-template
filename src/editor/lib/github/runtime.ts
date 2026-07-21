@@ -1,11 +1,11 @@
-import { unzipSync } from 'fflate';
 import { z } from 'zod';
 import bundledProject from '../../../../.hangwork/project.json';
 import bundledRelease from '../../../../.hangwork/runtime-release.json';
+import { base64ToBytes } from './base64';
 import type { GitHubClient } from './client';
 import { TEMPLATE_REPO } from './config';
 import { commitFiles, type CommitFile } from './gitdata';
-import { getRepoSnapshot, getTree, type RepoRef, type TreeItem } from './repo';
+import { getRepoSnapshot, getTree, getTreeAt, type RepoRef, type TreeItem } from './repo';
 
 export const PROJECT_METADATA_PATH = '.hangwork/project.json';
 export const RUNTIME_RELEASE_PATH = '.hangwork/runtime-release.json';
@@ -128,10 +128,9 @@ export function parseProjectMetadata(raw: unknown): ProjectMetadata {
 	return result.data as ProjectMetadata;
 }
 
-async function readBlob(client: GitHubClient, ref: RepoRef, sha: string): Promise<Uint8Array> {
+async function readBlob(client: GitHubClient, ref: Pick<RepoRef, 'owner' | 'repo'>, sha: string): Promise<Uint8Array> {
 	const { data } = await client.request<{ content: string }>(`/repos/${ref.owner}/${ref.repo}/git/blobs/${sha}`);
-	const binary = atob(data.content.replace(/\s/g, ''));
-	return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+	return base64ToBytes(data.content);
 }
 
 export async function readProjectMetadata(
@@ -152,17 +151,6 @@ export async function readProjectMetadata(
 	return parseProjectMetadata(raw);
 }
 
-function archiveFiles(bytes: Uint8Array): Map<string, Uint8Array> {
-	const archive = unzipSync(bytes);
-	const files = new Map<string, Uint8Array>();
-	for (const [archivePath, contents] of Object.entries(archive)) {
-		const slash = archivePath.indexOf('/');
-		if (slash < 0 || archivePath.endsWith('/')) continue;
-		files.set(archivePath.slice(slash + 1), contents);
-	}
-	return files;
-}
-
 function sameManifest(a: RuntimeManifest, b: RuntimeManifest): boolean {
 	return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -172,19 +160,21 @@ export interface RuntimeFiles {
 	managedFiles: Record<string, FileDigest>;
 }
 
-/** Download the source archive for one exact commit, select only declared system
- * files, and verify every byte before it can enter a user's repository. */
+/** Fetch every declared system file from one exact commit and verify each byte before
+ * it can enter a user's repository. Files come one blob at a time through the Git Data
+ * API because the zipball endpoint redirects to codeload.github.com, which browsers
+ * cannot read cross-origin. */
 export async function fetchRuntimeFiles(
 	client: GitHubClient,
 	release: RuntimeRelease = CURRENT_RUNTIME_RELEASE,
 ): Promise<RuntimeFiles> {
 	assertPinnedRuntimeRelease(release);
-	const bytes = await client.requestBytes(
-		`/repos/${TEMPLATE_REPO.owner}/${TEMPLATE_REPO.repo}/zipball/${release.sourceCommit}`,
-	);
-	const archive = archiveFiles(bytes);
-	const manifestBytes = archive.get(RUNTIME_RELEASE_PATH);
-	if (!manifestBytes) throw new Error(`Runtime archive is missing ${RUNTIME_RELEASE_PATH}.`);
+	const tree = await getTreeAt(client, TEMPLATE_REPO, release.sourceCommit);
+	const shaByPath = new Map(tree.map((entry) => [entry.path, entry.sha]));
+
+	const manifestSha = shaByPath.get(RUNTIME_RELEASE_PATH);
+	if (!manifestSha) throw new Error(`The pinned source commit is missing ${RUNTIME_RELEASE_PATH}.`);
+	const manifestBytes = await readBlob(client, TEMPLATE_REPO, manifestSha);
 
 	let sourceManifest: RuntimeManifest;
 	try {
@@ -203,14 +193,26 @@ export async function fetchRuntimeFiles(
 	)
 		throw new Error('The editor runtime manifest does not match its pinned source commit.');
 
-	const files: CommitFile[] = [];
-	for (const [path, expected] of Object.entries(release.files)) {
-		const contents = archive.get(path);
-		if (!contents) throw new Error(`Runtime archive is missing ${path}.`);
-		if ((await sha256(contents)) !== expected.sha256 || (await gitBlobSha(contents)) !== expected.gitBlobSha)
-			throw new Error(`Runtime integrity check failed for ${path}.`);
-		files.push({ path, bytes: contents });
+	const entries = Object.entries(release.files);
+	for (const [path, expected] of entries) {
+		const treeSha = shaByPath.get(path);
+		if (!treeSha) throw new Error(`The pinned source commit is missing ${path}.`);
+		if (treeSha !== expected.gitBlobSha) throw new Error(`Runtime integrity check failed for ${path}.`);
 	}
+
+	const files: CommitFile[] = new Array(entries.length);
+	let nextEntry = 0;
+	const fetchNextBlob = async (): Promise<void> => {
+		while (nextEntry < entries.length) {
+			const index = nextEntry++;
+			const [path, expected] = entries[index];
+			const contents = await readBlob(client, TEMPLATE_REPO, expected.gitBlobSha);
+			if ((await sha256(contents)) !== expected.sha256 || (await gitBlobSha(contents)) !== expected.gitBlobSha)
+				throw new Error(`Runtime integrity check failed for ${path}.`);
+			files[index] = { path, bytes: contents };
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(8, entries.length) }, fetchNextBlob));
 
 	const manifestDigest = await digestBytes(manifestBytes);
 	return {

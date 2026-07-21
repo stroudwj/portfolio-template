@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "version": "1.1.3",
+  "version": "1.1.4",
   "files": {
     ".github/workflows/deploy.yml": {
       "sha256": "a91217fe70cfddd29d426dd41fedbc902e29e596759912b1e26856698b82b06c",
@@ -207,8 +207,8 @@
       "gitBlobSha": "3c02a8a68cefda7c592f9261e9e53b40be0ebe33"
     },
     "src/editor/lib/github/client.ts": {
-      "sha256": "620e6f07905e528b7ca610cce7dc09f903350e47e13a98651b79654f8806cf4e",
-      "gitBlobSha": "70cc59a1df054462f7f4829515169c1033b6835a"
+      "sha256": "89d214958dcbb554df0f8d60b1d7c822385542af7c557dc7424cf36d65778b86",
+      "gitBlobSha": "d193fbbcb7f20314b5881de7bfebea62214965f0"
     },
     "src/editor/lib/github/config.ts": {
       "sha256": "9994b40af614c2ae225eac5e33cfb76bfbcb2729161d8f0157df4934cb430c19",
@@ -223,12 +223,12 @@
       "gitBlobSha": "d3d7155e6b44e46cd4aab4765fa76a3556e45b7f"
     },
     "src/editor/lib/github/repo.ts": {
-      "sha256": "29ad72f3a10a928341fbd7d8681779df3d2ae484a7652b19c2fbc1eb3420639e",
-      "gitBlobSha": "44ffaba3a36ce811e28046ea8f9df3b5b1756a7b"
+      "sha256": "b4499c8291480412b78c1fa10915c205831bb375413fa3d6f07d148e82f1637b",
+      "gitBlobSha": "bd20835c8572c2cbeaf826ef3d9721ad7a43ce2a"
     },
     "src/editor/lib/github/runtime.ts": {
-      "sha256": "c1ed3b8b33992c75485efcd9660b35cc920523cf90bc7862d9f134ba79c612e1",
-      "gitBlobSha": "b5921ee513ce43e7959e288a67a8de32829d3a3a"
+      "sha256": "027a9d54b0e5c70fa4f0cf2713bc3bb5f2d7f4f2bf4b50dd8f0d7a25ecbfddff",
+      "gitBlobSha": "a390838361c90cc00e0d8beb02df804e4575510e"
     },
     "src/editor/lib/github/session.ts": {
       "sha256": "04001416e3c1bb202888acaf3b64514c3dd57d298804c527670002bcafe006f0",
@@ -251,8 +251,8 @@
       "gitBlobSha": "90b3009dc4eccb087918afc8ef4ea3921e54dd47"
     },
     "src/editor/lib/license/config.ts": {
-      "sha256": "db3d42b6f8bcf709115ddef65b56cdd8ed62c0a62c531a2b7f58bffc84ac5dd0",
-      "gitBlobSha": "32502b3fed26c1b09954a0f886252299fea07b28"
+      "sha256": "31426ecadab9c26b39d62bc471e10fe5d03ba643c3c505415716262ce890d104",
+      "gitBlobSha": "666a1fcb1c8cb8e8bec5060efe8b4ccf7f73805e"
     },
     "src/editor/lib/license/flow.ts": {
       "sha256": "f11a5daa304af45292896683e88a1f4e625b9fa0dd2efd647826973a8a554136",

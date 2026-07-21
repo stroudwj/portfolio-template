@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { GitHubClient } from '../src/editor/lib/github/client';
 import { CommitHeadChangedError, commitFiles } from '../src/editor/lib/github/gitdata';
@@ -25,26 +24,69 @@ function digest(value: string) {
 	};
 }
 
+function releaseFixture() {
+	const source = 'export const compatible = true;\n';
+	const release: RuntimeRelease = {
+		formatVersion: 1,
+		version: '9.0.0-test',
+		sourceCommit: 'a'.repeat(40),
+		files: { 'src/runtime.ts': digest(source) },
+	};
+	const manifest = `${JSON.stringify({ formatVersion: 1, version: release.version, files: release.files }, null, 2)}\n`;
+	return { source, release, manifest, manifestDigest: digest(manifest) };
+}
+
+/** Serve the pinned tree and content-addressed blobs the way the Git Data API does. */
+function gitDataClient(tree: Array<{ path: string; sha: string }>, blobs: Map<string, string>): GitHubClient {
+	return {
+		request: async (path: string) => {
+			if (path.includes('/git/trees/')) {
+				return { status: 200, data: { tree: tree.map((entry) => ({ ...entry, type: 'blob' })) } };
+			}
+			const sha = path.split('/git/blobs/')[1];
+			const contents = blobs.get(sha ?? '');
+			if (contents === undefined) throw new Error(`unexpected request: ${path}`);
+			return { status: 200, data: { content: Buffer.from(contents).toString('base64') } };
+		},
+	} as unknown as GitHubClient;
+}
+
 describe('runtime release integrity', () => {
-	it('verifies a pinned archive and produces project-managed files', async () => {
-		const source = 'export const compatible = true;\n';
-		const release: RuntimeRelease = {
-			formatVersion: 1,
-			version: '9.0.0-test',
-			sourceCommit: 'a'.repeat(40),
-			files: { 'src/runtime.ts': digest(source) },
-		};
-		const manifest = `${JSON.stringify({ formatVersion: 1, version: release.version, files: release.files }, null, 2)}\n`;
-		const zip = zipSync({
-			'owner-repo-sha/src/runtime.ts': strToU8(source),
-			[`owner-repo-sha/${RUNTIME_RELEASE_PATH}`]: strToU8(manifest),
-		});
-		const client = { requestBytes: async () => zip } as unknown as GitHubClient;
+	it('verifies pinned blobs and produces project-managed files', async () => {
+		const { source, release, manifest, manifestDigest } = releaseFixture();
+		const client = gitDataClient(
+			[
+				{ path: 'src/runtime.ts', sha: release.files['src/runtime.ts'].gitBlobSha },
+				{ path: RUNTIME_RELEASE_PATH, sha: manifestDigest.gitBlobSha },
+			],
+			new Map([
+				[release.files['src/runtime.ts'].gitBlobSha, source],
+				[manifestDigest.gitBlobSha, manifest],
+			]),
+		);
 
 		const result = await fetchRuntimeFiles(client, release);
 		expect(result.files.map((file) => file.path)).toEqual(['src/runtime.ts', RUNTIME_RELEASE_PATH]);
 		expect(result.managedFiles['src/runtime.ts']).toEqual(release.files['src/runtime.ts']);
-		expect(result.managedFiles[RUNTIME_RELEASE_PATH]).toEqual(await digestBytes(strToU8(manifest)));
+		expect(result.managedFiles[RUNTIME_RELEASE_PATH]).toEqual(await digestBytes(new TextEncoder().encode(manifest)));
+	});
+
+	it('rejects a pinned commit whose tree does not match the release digests', async () => {
+		const { source, release, manifest, manifestDigest } = releaseFixture();
+		const client = gitDataClient(
+			[
+				{ path: 'src/runtime.ts', sha: '9'.repeat(40) },
+				{ path: RUNTIME_RELEASE_PATH, sha: manifestDigest.gitBlobSha },
+			],
+			new Map([
+				['9'.repeat(40), source],
+				[manifestDigest.gitBlobSha, manifest],
+			]),
+		);
+
+		await expect(fetchRuntimeFiles(client, release)).rejects.toThrow(
+			'Runtime integrity check failed for src/runtime.ts.',
+		);
 	});
 
 	it('detects edited and missing system files from tree blob ids', () => {

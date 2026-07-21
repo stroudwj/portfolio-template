@@ -35,7 +35,7 @@ export async function getTree(client: GitHubClient, ref: RepoRef): Promise<TreeI
 	return getTreeAt(client, ref, ref.branch);
 }
 
-export async function getTreeAt(client: GitHubClient, ref: RepoRef, treeish: string): Promise<TreeItem[]> {
+export async function getTreeAt(client: GitHubClient, ref: Pick<RepoRef, 'owner' | 'repo'>, treeish: string): Promise<TreeItem[]> {
 	const { data } = await client.request<{ tree: TreeItem[] }>(
 		`/repos/${ref.owner}/${ref.repo}/git/trees/${treeish}?recursive=1`,
 	);
