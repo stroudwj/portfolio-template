@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor } from '../store';
 import { useGitHub } from './useGitHub';
 import ConnectGitHubModal from './ConnectGitHubModal';
 import LoadPublishedModal from './LoadPublishedModal';
 import { isLicenseGateEnabled } from '../lib/license/config';
 import { SITE_TEMPLATES, type SiteTemplate } from '../lib/templates';
+import { consumeOAuthReturnTarget } from '../lib/oauth/flow';
 
 /** A clickable template card with a contained theme swatch. Keeping the editor
  * chrome neutral makes the different palettes easy to compare without turning
@@ -39,6 +40,13 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 
 	const connected = gh.status === 'connected';
 	const licenseGated = isLicenseGateEnabled();
+
+	// Connecting from an open draft temporarily reloads the app. Restore that draft
+	// automatically once the OAuth exchange succeeds instead of showing starter themes.
+	useEffect(() => {
+		if (!connected || !hasDraft) return;
+		if (consumeOAuthReturnTarget() === 'editor') void resumeDraft();
+	}, [connected, hasDraft, resumeDraft]);
 
 	// Starting fresh throws away the autosaved draft — confirm first so a stray click
 	// can't wipe someone's work (only matters when a draft actually exists).

@@ -4,7 +4,7 @@
 // the same stored-token state.
 import { useCallback, useEffect, useState } from 'react';
 import { getToken, setToken, clearToken, validateToken, type GitHubUser } from '../lib/github/session';
-import { completeOAuthRedirect, startOAuth } from '../lib/oauth/flow';
+import { completeOAuthRedirect, startOAuth, type OAuthReturnTarget } from '../lib/oauth/flow';
 import { isOAuthConfigured, WORKER_REVOKE_URL } from '../lib/oauth/config';
 
 export type ConnectionStatus = 'checking' | 'idle' | 'connected';
@@ -15,7 +15,7 @@ export interface GitHubSession {
 	/** Validate + store a pasted token. Throws GitHubError if the token is bad. */
 	connect(token: string): Promise<GitHubUser>;
 	/** Start the one-click OAuth flow (redirects to GitHub). */
-	authorize(): void;
+	authorize(returnTarget?: OAuthReturnTarget): void;
 	signOut(): void;
 	/** Whether the OAuth App + Worker are configured (else only the token flow is offered). */
 	oauthEnabled: boolean;
@@ -69,8 +69,8 @@ export function useGitHub(): GitHubSession {
 		return u;
 	}, []);
 
-	const authorize = useCallback(() => {
-		startOAuth(); // navigates away
+	const authorize = useCallback((returnTarget: OAuthReturnTarget = 'published-site') => {
+		startOAuth(returnTarget); // navigates away
 	}, []);
 
 	const signOut = useCallback(() => {

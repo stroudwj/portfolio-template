@@ -192,7 +192,7 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 			{showConnect && (
 				<ConnectGitHubModal
 					connect={gh.connect}
-					authorize={gh.authorize}
+					authorize={() => gh.authorize('editor')}
 					oauthEnabled={gh.oauthEnabled}
 					onClose={() => setShowConnect(false)}
 					onConnected={() => {

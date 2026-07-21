@@ -9,6 +9,7 @@ import { CONTENT_JSON_PATH, TEMPLATE_REPO } from './config';
 import { CommitHeadChangedError, commitFiles, type CommitFile } from './gitdata';
 import {
 	generateFromTemplate,
+	findRecoverableTemplateRepo,
 	getRepo,
 	getRepoSnapshot,
 	waitForRepoTree,
@@ -107,8 +108,12 @@ export class GitHubTarget implements PublishTarget {
 		if (!ref) {
 			const name = this.opts.desiredRepoName?.trim();
 			if (!name) throw new Error('A website name is required for the first publish.');
-			report('Creating your space…', name);
-			ref = await generateFromTemplate(client, login, name);
+			ref = await findRecoverableTemplateRepo(client, login, name);
+			if (ref) report('Finishing your space…', name);
+			else {
+				report('Creating your space…', name);
+				ref = await generateFromTemplate(client, login, name);
+			}
 		}
 		if (ref.owner === TEMPLATE_REPO.owner && ref.repo === TEMPLATE_REPO.repo)
 			throw new Error('This name belongs to the template itself — pick a different website name.');

@@ -354,8 +354,12 @@
 .modal-figure {
 	margin: 0;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: 12px;
+	max-width: 90vw;
+	max-height: 92vh;
 }
 
 .lightbox-heading {
@@ -372,7 +376,7 @@
 
 .modal img {
 	max-width: 90vw;
-	max-height: 85vh;
+	max-height: 74vh;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 	object-fit: contain;
 	transform: scale(0.95);
@@ -384,11 +388,9 @@
 }
 
 .modal-caption {
-	position: absolute;
-	left: 50%;
-	bottom: 4vh;
-	transform: translateX(-50%);
-	max-width: 90vw;
+	position: static;
+	max-width: 100%;
+	max-height: 15vh;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -398,6 +400,7 @@
 	font-size: 0.95rem;
 	line-height: 1.4;
 	pointer-events: auto;
+	overflow: auto;
 }
 
 .modal-caption-title {
@@ -483,6 +486,12 @@
 }
 
 @media (max-width: 639px) {
+	.modal img {
+		max-height: 68vh;
+	}
+	.modal-caption {
+		max-height: 18vh;
+	}
 	.close-btn {
 		top: 12px;
 		right: 12px;

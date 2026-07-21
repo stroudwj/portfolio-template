@@ -4,6 +4,9 @@
 import { AUTHORIZE_URL, OAUTH_CLIENT_ID, SCOPES, WORKER_TOKEN_URL, redirectUri } from './config';
 
 const STATE_KEY = 'portfolio-editor:oauth-state';
+const RETURN_TARGET_KEY = 'portfolio-editor:oauth-return-target';
+
+export type OAuthReturnTarget = 'editor' | 'published-site';
 
 export interface OAuthResult {
 	/** A user access token, if we just completed a sign-in this page load. */
@@ -13,10 +16,11 @@ export interface OAuthResult {
 }
 
 /** Redirect to GitHub's consent screen. Returns to `redirectUri()` with `?code=&state=`. */
-export function startOAuth(): void {
+export function startOAuth(returnTarget: OAuthReturnTarget = 'published-site'): void {
 	const state = crypto.randomUUID();
 	try {
 		sessionStorage.setItem(STATE_KEY, state);
+		sessionStorage.setItem(RETURN_TARGET_KEY, returnTarget);
 	} catch {
 		/* private mode / disabled storage — the exchange will fail the state check and report it */
 	}
@@ -27,6 +31,17 @@ export function startOAuth(): void {
 		state,
 	});
 	window.location.assign(`${AUTHORIZE_URL}?${params.toString()}`);
+}
+
+/** Read and clear where the user was working before GitHub temporarily navigated away. */
+export function consumeOAuthReturnTarget(): OAuthReturnTarget | null {
+	try {
+		const target = sessionStorage.getItem(RETURN_TARGET_KEY);
+		sessionStorage.removeItem(RETURN_TARGET_KEY);
+		return target === 'editor' || target === 'published-site' ? target : null;
+	} catch {
+		return null;
+	}
 }
 
 // Single-use: memoize so multiple useGitHub() instances mounting on the same page all await

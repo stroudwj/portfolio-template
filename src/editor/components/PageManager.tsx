@@ -21,6 +21,11 @@ export default function PageManager() {
 		});
 	};
 
+	const deletePage = (pageKey: string, label: string, hasChildren = false) => {
+		const extra = hasChildren ? ' and all of its sub-pages' : '';
+		if (confirm(`Delete the “${label}” page${extra}? Its images will be removed too.`)) editor.removePage(pageKey);
+	};
+
 	return (
 		<Section title="Pages" sectionKey="_pages">
 			<p className="muted">See your whole site at a glance. Copies start as drafts, so they cannot go live by accident.</p>
@@ -46,6 +51,16 @@ export default function PageManager() {
 								<button type="button" className="btn-secondary" aria-label={`Edit ${addressLabel}`} onClick={() => openPage(pageKey)}>
 									Edit page
 								</button>
+								{pageKey !== 'home' && (
+									<button
+										type="button"
+										className="btn-icon danger"
+										aria-label={`Delete ${addressLabel}`}
+										onClick={() => deletePage(pageKey, label, Boolean(page.children?.length))}
+									>
+										✕
+									</button>
+								)}
 								<div className="block-controls" role="group" aria-label={`Change where ${addressLabel} appears in the site menu`}>
 									<button type="button" className="btn-icon" disabled={index === 0} aria-label={`Move ${addressLabel} earlier in the site menu`} onClick={() => movePage(index, index - 1)}>↑</button>
 									<button type="button" className="btn-icon" disabled={index === pages.length - 1} aria-label={`Move ${addressLabel} later in the site menu`} onClick={() => movePage(index, index + 1)}>↓</button>
@@ -102,7 +117,17 @@ export default function PageManager() {
 										return (
 											<div className="page-child-summary" key={childKey}>
 												<span>↳ {child.label || childKey}{child.draft ? ' · Draft' : ''}</span>
-												<button type="button" className="btn-link" aria-label={`Edit sub-page ${child.label || childKey} under ${label}`} onClick={() => openPage(childKey)}>Edit sub-page</button>
+												<div className="page-child-actions">
+													<button type="button" className="btn-link" aria-label={`Edit sub-page ${child.label || childKey} under ${label}`} onClick={() => openPage(childKey)}>Edit sub-page</button>
+													<button
+														type="button"
+														className="btn-icon danger"
+														aria-label={`Delete sub-page ${child.label || childKey} under ${label}`}
+														onClick={() => deletePage(childKey, child.label || childKey, Boolean(child.children?.length))}
+													>
+														✕
+													</button>
+												</div>
 											</div>
 										);
 									})}

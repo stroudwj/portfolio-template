@@ -10,6 +10,11 @@ export interface RepoRef {
 	branch: string;
 }
 
+interface RepoLookup {
+	default_branch: string;
+	template_repository?: { full_name?: string } | null;
+}
+
 /** Create a new public repo in `owner`'s account from the template. Returns its ref. */
 export async function generateFromTemplate(client: GitHubClient, owner: string, name: string): Promise<RepoRef> {
 	const { data } = await client.request<{ default_branch: string }>(
@@ -51,18 +56,21 @@ export async function getRepoSnapshot(client: GitHubClient, ref: RepoRef): Promi
 
 /** Template generation is asynchronous. Wait until its first commit and tree exist. */
 export async function waitForRepoTree(client: GitHubClient, ref: RepoRef): Promise<{ headSha: string; tree: TreeItem[] }> {
-	for (let attempt = 0; attempt < 10; attempt++) {
+	const attempts = 20;
+	for (let attempt = 0; attempt < attempts; attempt++) {
 		try {
-			return await getRepoSnapshot(client, ref);
+			const snapshot = await getRepoSnapshot(client, ref);
+			// A generated template is never genuinely empty. GitHub can expose the repo
+			// before its first tree is ready, so treat an empty tree as another transient.
+			if (snapshot.tree.length > 0) return snapshot;
 		} catch (error) {
-			if (error instanceof GitHubError && error.status === 404 && attempt < 9) {
-				await sleep(1500);
-				continue;
-			}
-			throw error;
+			// During template generation GitHub alternates between 404 and 409
+			// ("Git Repository is empty") until the first commit is attached.
+			if (!(error instanceof GitHubError) || (error.status !== 404 && error.status !== 409)) throw error;
 		}
+		if (attempt < attempts - 1) await sleep(1500);
 	}
-	throw new GitHubError(404, 'Could not read your new site after GitHub created it.');
+	throw new GitHubError(409, 'GitHub created your repository, but its files are still being prepared. Wait a moment and try publishing again.');
 }
 
 /** Every image file currently under src/assets/ in the repo (blobs only). */
@@ -84,17 +92,44 @@ export async function renameRepo(client: GitHubClient, ref: RepoRef, newName: st
 
 /** Look up an existing repo. Returns null on 404 (e.g. the user deleted it). */
 export async function getRepo(client: GitHubClient, owner: string, repo: string): Promise<RepoRef | null> {
-	const { status, data } = await client.request<{ default_branch: string }>(`/repos/${owner}/${repo}`, {
+	const { status, data } = await client.request<RepoLookup>(`/repos/${owner}/${repo}`, {
 		allow: [404],
 	});
 	if (status === 404) return null;
 	return { owner, repo, branch: data.default_branch || 'main' };
 }
 
+/** An earlier template-generation attempt can create the repo before the editor times
+ * out reading it. Only an untouched, one-commit repo from our template is safe to adopt. */
+export async function findRecoverableTemplateRepo(client: GitHubClient, owner: string, repo: string): Promise<RepoRef | null> {
+	const { status, data } = await client.request<RepoLookup>(`/repos/${owner}/${repo}`, { allow: [404] });
+	if (status === 404 || data.template_repository?.full_name?.toLowerCase() !== `${TEMPLATE_REPO.owner}/${TEMPLATE_REPO.repo}`.toLowerCase())
+		return null;
+
+	const ref = { owner, repo, branch: data.default_branch || 'main' };
+	try {
+		const commits = await client.request<Array<{ sha: string }>>(`/repos/${owner}/${repo}/commits?per_page=2`);
+		return commits.data.length === 1 ? ref : null;
+	} catch (error) {
+		// A just-generated repository can return 404/409 until GitHub attaches its first
+		// commit. Its template provenance still makes this empty state safe to resume.
+		if (error instanceof GitHubError && (error.status === 404 || error.status === 409)) return ref;
+		throw error;
+	}
+}
+
+export type RepoNameStatus = 'available' | 'recoverable' | 'taken';
+
+/** Availability for first publish, distinguishing an orphaned Hangwork setup from a collision. */
+export async function getRepoNameStatus(client: GitHubClient, owner: string, name: string): Promise<RepoNameStatus> {
+	const { status } = await client.request(`/repos/${owner}/${name}`, { allow: [404] });
+	if (status === 404) return 'available';
+	return (await findRecoverableTemplateRepo(client, owner, name)) ? 'recoverable' : 'taken';
+}
+
 /** True if `owner/name` is free to use (404 = available). */
 export async function isRepoNameAvailable(client: GitHubClient, owner: string, name: string): Promise<boolean> {
-	const { status } = await client.request(`/repos/${owner}/${name}`, { allow: [404] });
-	return status === 404;
+	return (await getRepoNameStatus(client, owner, name)) === 'available';
 }
 
 /** Turn Pages on with the Actions workflow builder. Tolerates "already enabled". */

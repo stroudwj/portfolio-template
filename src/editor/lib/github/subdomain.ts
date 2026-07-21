@@ -13,21 +13,28 @@ export function subdomainFor(name: string): string {
 	return `${name}.${SITES_ROOT_DOMAIN}`;
 }
 
+/** Clean a name while it is being typed. Unlike slugifySiteName, this deliberately
+ * preserves an empty value and one trailing dash so normal editing is not interrupted. */
+export function sanitizeSiteNameInput(s: string): string {
+	return s
+		.toLowerCase()
+		.replace(/[^a-z0-9-]+/g, '-')
+		.replace(/-{2,}/g, '-')
+		.replace(/^-+/, '')
+		.slice(0, 63);
+}
+
+/** A finished site name is a valid DNS label: no empty value or edge dashes. */
+export function isValidSiteName(s: string): boolean {
+	return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(s);
+}
+
 /**
  * A site name must work as BOTH a repo name and a DNS label: lowercase letters, digits
  * and inner hyphens, ≤63 chars. (Stricter than repo names — no dots/underscores.)
  */
 export function slugifySiteName(s: string): string {
-	return (
-		s
-			.toLowerCase()
-			.trim()
-			.replace(/[^a-z0-9-]+/g, '-')
-			.replace(/-{2,}/g, '-')
-			.replace(/^-+|-+$/g, '')
-			.slice(0, 63)
-			.replace(/-+$/, '') || 'my-portfolio'
-	);
+	return sanitizeSiteNameInput(s.trim()).replace(/-+$/, '') || 'my-portfolio';
 }
 
 export type SubdomainAvailability = 'available' | 'taken' | 'unknown';

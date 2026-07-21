@@ -11,8 +11,16 @@ import { getToken, type GitHubUser } from '../lib/github/session';
 import { GitHubTarget } from '../lib/github/target';
 import { PublishConflictError } from '../lib/github/runtime';
 import { localRepoStore, loadRepoInfo, clearRepoInfo } from '../lib/github/store';
-import { getRepo, getBuildStatus, isRepoNameAvailable, pagesUrl } from '../lib/github/repo';
-import { slugifySiteName, subdomainFor, checkSubdomain, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
+import { getRepo, getBuildStatus, getRepoNameStatus, pagesUrl } from '../lib/github/repo';
+import {
+	checkSubdomain,
+	claimSubdomain,
+	isValidSiteName,
+	sanitizeSiteNameInput,
+	slugifySiteName,
+	subdomainFor,
+	SITES_ROOT_DOMAIN,
+} from '../lib/github/subdomain';
 import { ProgressList, appendStep } from './ui/ProgressList';
 import CustomDomainModal from './CustomDomainModal';
 
@@ -29,7 +37,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	const firstPublish = !saved;
 
 	const [repoName, setRepoName] = useState(() => saved?.repo ?? slugifySiteName(doc?.content.site.name || user.login + '-portfolio'));
-	const [nameState, setNameState] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+	const [nameState, setNameState] = useState<'idle' | 'checking' | 'available' | 'recoverable' | 'taken'>('idle');
 	const [phase, setPhase] = useState<Phase>('configure');
 	const [log, setLog] = useState<PublishProgress[]>([]);
 	const [result, setResult] = useState<PublishResult | null>(null);
@@ -107,9 +115,17 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	if (!doc) return null;
 	if (showDomain) return <CustomDomainModal onClose={closeDomainModal} />;
 	const issues = collectIssues(doc);
+	const nameIsValid = !firstPublish || isValidSiteName(repoName);
+	const nameProblem = !repoName
+		? 'Enter a website name before publishing.'
+		: repoName.endsWith('-')
+			? 'A website name cannot end with a dash.'
+			: !nameIsValid
+				? 'Use only letters, numbers and dashes.'
+				: null;
 	// The default address for a new site. If the address service is unreachable at
 	// publish time, the publish still succeeds at pagesUrl(login, repoName) instead.
-	const targetUrl = `https://${subdomainFor(repoName)}`;
+	const targetUrl = `https://${subdomainFor(nameIsValid ? repoName : 'your-name')}`;
 
 	// ---- Verifying the saved repo still exists (avoids flashing "update" for a deleted site) ----
 	if (verifying) {
@@ -121,23 +137,24 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 	}
 
 	const checkName = async () => {
-		if (!firstPublish || !repoName.trim()) return;
+		if (!firstPublish || !isValidSiteName(repoName)) return;
 		setNameState('checking');
 		try {
 			const name = repoName.trim();
 			// The name must be free in BOTH namespaces: the user's repos and *.hangwork.art.
 			// 'unknown' (address service unreachable) doesn't block — publish falls back.
-			const [repoFree, sub] = await Promise.all([
-				isRepoNameAvailable(new GitHubClient(getToken() ?? ''), user.login, name),
+			const [repoStatus, sub] = await Promise.all([
+				getRepoNameStatus(new GitHubClient(getToken() ?? ''), user.login, name),
 				checkSubdomain(getToken() ?? '', name),
 			]);
-			setNameState(repoFree && sub !== 'taken' ? 'available' : 'taken');
+			setNameState(repoStatus !== 'taken' && sub !== 'taken' ? repoStatus : 'taken');
 		} catch {
 			setNameState('idle');
 		}
 	};
 
 	const runPublish = async (forceRuntimeUpgrade = false) => {
+		if (firstPublish && (!isValidSiteName(repoName) || nameState === 'taken')) return;
 		setPhase('publishing');
 		setLog([]);
 		setError(null);
@@ -289,7 +306,7 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 					<button type="button" className="btn-ghost" onClick={onClose}>
 						Cancel
 					</button>
-					<button type="button" className="btn-primary" onClick={() => void runPublish()} disabled={!repoName.trim()}>
+					<button type="button" className="btn-primary" onClick={() => void runPublish()} disabled={!nameIsValid || nameState === 'taken'}>
 						{firstPublish ? 'Publish' : 'Publish update'}
 					</button>
 				</>
@@ -315,17 +332,22 @@ export default function PublishModal({ user, onClose }: { user: GitHubUser; onCl
 							className="text-input"
 							value={repoName}
 							onChange={(e) => {
-								setRepoName(slugifySiteName(e.target.value));
+								setRepoName(sanitizeSiteNameInput(e.target.value));
 								setNameState('idle');
 							}}
 							onBlur={checkName}
 							placeholder="my-portfolio"
 						/>
 						<span className="field-hint">
-							{nameState === 'checking' && 'Checking availability…'}
-							{nameState === 'available' && 'Available.'}
-							{nameState === 'taken' && 'That name is taken — pick another.'}
-							{nameState === 'idle' && 'Letters, numbers and dashes. This becomes your web address.'}
+							{nameProblem ?? (
+								<>
+									{nameState === 'checking' && 'Checking availability…'}
+									{nameState === 'available' && 'Available.'}
+									{nameState === 'recoverable' && 'Ready to finish the repository GitHub already created.'}
+									{nameState === 'taken' && 'That name is taken — pick another.'}
+									{nameState === 'idle' && 'Letters, numbers and dashes. This becomes your web address.'}
+								</>
+							)}
 						</span>
 					</label>
 					<p className="url-preview">

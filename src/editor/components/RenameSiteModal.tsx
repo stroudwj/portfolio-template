@@ -15,7 +15,14 @@ import { loadRepoInfo, saveRepoInfo, type RepoInfo } from '../lib/github/store';
 import { TEMPLATE_REPO } from '../lib/github/config';
 import { commitProjectLocation } from '../lib/github/runtime';
 import { renameRepo, isRepoNameAvailable, setCustomDomain, pagesUrl, type RepoRef } from '../lib/github/repo';
-import { slugifySiteName, subdomainFor, checkSubdomain, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
+import {
+	checkSubdomain,
+	claimSubdomain,
+	isValidSiteName,
+	sanitizeSiteNameInput,
+	subdomainFor,
+	SITES_ROOT_DOMAIN,
+} from '../lib/github/subdomain';
 
 type NameState = 'idle' | 'checking' | 'available' | 'taken' | 'same';
 type Phase = 'idle' | 'renaming' | 'done' | 'error';
@@ -36,12 +43,21 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 		);
 	}
 
-	const slug = slugifySiteName(input);
+	const slug = input;
+	const nameIsValid = isValidSiteName(slug);
+	const nameProblem = !slug
+		? 'Enter a website name.'
+		: slug.endsWith('-')
+			? 'A website name cannot end with a dash.'
+			: !nameIsValid
+				? 'Use only letters, numbers and dashes.'
+				: null;
 	const unchanged = slug === info.repo;
 	const isIncluded = info.customDomain?.endsWith(`.${SITES_ROOT_DOMAIN}`) ?? false;
 	const hasOwnDomain = Boolean(info.customDomain) && !isIncluded;
 
 	const checkName = async () => {
+		if (!nameIsValid) return;
 		if (unchanged) {
 			setNameState('same');
 			return;
@@ -60,7 +76,7 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 	};
 
 	const rename = async () => {
-		if (unchanged || nameState === 'taken') return;
+		if (!nameIsValid || unchanged || nameState === 'taken') return;
 		if (slug === info.repo || (info.owner === TEMPLATE_REPO.owner && slug === TEMPLATE_REPO.repo)) {
 			setError('That name isn’t available — pick another.');
 			return;
@@ -154,7 +170,7 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 						type="button"
 						className="btn-primary"
 						onClick={rename}
-						disabled={phase === 'renaming' || !slug || unchanged || nameState === 'taken'}
+						disabled={phase === 'renaming' || !nameIsValid || unchanged || nameState === 'taken'}
 					>
 						{phase === 'renaming' ? 'Renaming…' : 'Rename'}
 					</button>
@@ -170,7 +186,7 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 					className="text-input"
 					value={input}
 					onChange={(e) => {
-						setInput(slugifySiteName(e.target.value));
+						setInput(sanitizeSiteNameInput(e.target.value));
 						setNameState('idle');
 					}}
 					onBlur={checkName}
@@ -178,14 +194,18 @@ export default function RenameSiteModal({ onClose }: { onClose: () => void }) {
 					disabled={phase === 'renaming'}
 				/>
 				<span className="field-hint">
-					{nameState === 'checking' && 'Checking availability…'}
-					{nameState === 'available' && 'Available.'}
-					{nameState === 'taken' && 'That name is taken — pick another.'}
-					{nameState === 'same' && 'That’s already your site’s name.'}
-					{nameState === 'idle' && 'Letters, numbers and dashes.'}
+					{nameProblem ?? (
+						<>
+							{nameState === 'checking' && 'Checking availability…'}
+							{nameState === 'available' && 'Available.'}
+							{nameState === 'taken' && 'That name is taken — pick another.'}
+							{nameState === 'same' && 'That’s already your site’s name.'}
+							{nameState === 'idle' && 'Letters, numbers and dashes.'}
+						</>
+					)}
 				</span>
 			</label>
-			{!unchanged && (
+			{!unchanged && nameIsValid && (
 				<p className="url-preview">
 					{hasOwnDomain
 						? `Your custom domain (${info.customDomain}) stays the same.`

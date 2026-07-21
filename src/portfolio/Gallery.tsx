@@ -297,7 +297,7 @@ export default function Gallery({
 						{open.title && <span className="modal-caption-title">{open.title}</span>}
 						{open.description && <span className="modal-caption-description">{open.description}</span>}
 						{open.link && (
-							<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener">
+							<a className="modal-caption-link" href={safeHref(open.link)} target="_blank" rel="noopener noreferrer">
 								View project ↗
 							</a>
 						)}

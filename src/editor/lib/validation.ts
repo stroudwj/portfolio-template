@@ -3,19 +3,14 @@
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
+import { safeWebHref } from '../../portfolio/safeHref';
 
 export const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export const isUrl = (value: string): boolean => {
-	if (!value.trim()) return false;
-	try {
-		// Only web links: anything else (javascript:, data:, file:, …) would ship verbatim
-		// as an href on the published site — a script-injection vector, not a portfolio link.
-		const { protocol } = new URL(value);
-		return protocol === 'http:' || protocol === 'https:';
-	} catch {
-		return false;
-	}
+	// safeWebHref also accepts a familiar scheme-less domain such as example.com/work
+	// and normalizes it to https:// when rendered.
+	return safeWebHref(value) !== undefined;
 };
 
 // Ingest cap only — images are downscaled/re-encoded on upload (lib/compressImage.ts),
