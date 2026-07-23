@@ -1,24 +1,23 @@
-// Pulls the user's live portfolio back into the editor. Resolves which repo is theirs
-// (the saved one, or discovered from the template), downloads content + images, then
-// opens the document. All GitHub specifics live behind loadPublishedPortfolio — this
-// component only shows progress and, on success, hands the finished doc to the editor.
+// Pulls the user's live portfolio back into the editor. The published site carries its
+// own editable source (_hw/content.json + _hw/files.json), so this just downloads it —
+// all hosting specifics live behind loadPublishedSite; this component only shows
+// progress and, on success, hands the finished doc to the editor.
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from './ui/Modal';
 import type { EditorDoc } from '../lib/types';
 import type { PublishProgress } from '../lib/exporter';
-import { GitHubClient, GitHubError } from '../lib/github/client';
-import { getToken } from '../lib/github/session';
-import { loadPublishedPortfolio } from '../lib/github/load';
-import { loadRepoInfo, saveRepoInfo } from '../lib/github/store';
-import { pagesUrl, getPagesInfo, type RepoRef } from '../lib/github/repo';
+import { loadPublishedSite } from '../lib/account/load';
+import type { AccountSiteSummary } from '../lib/account/session';
 import { ProgressList, appendStep } from './ui/ProgressList';
 
 type Phase = 'loading' | 'error';
 
 export default function LoadPublishedModal({
+	site,
 	onClose,
 	onLoaded,
 }: {
+	site: AccountSiteSummary | null;
 	onClose: () => void;
 	onLoaded: (doc: EditorDoc) => void | Promise<void>;
 }) {
@@ -31,38 +30,16 @@ export default function LoadPublishedModal({
 		setPhase('loading');
 		setLog([]);
 		setError(null);
-		const token = getToken();
-		if (!token) {
-			setError('Connect your GitHub account first, then try again.');
+		if (!site?.subdomain) {
+			setError('This account hasn’t published a site yet. Publish once, then you can edit it from anywhere.');
 			setPhase('error');
 			return;
 		}
 		try {
-			const client = new GitHubClient(token);
-			const saved = loadRepoInfo();
-			const savedRef: RepoRef | null = saved ? { owner: saved.owner, repo: saved.repo, branch: saved.branch } : null;
-			const { doc, ref, managedPaths, headSha, runtimeVersion, dataFileShas } = await loadPublishedPortfolio(client, savedRef, (p) =>
-				setLog((prev) => appendStep(prev, p)),
-			);
-			// Remember this repo so the next Publish UPDATES it instead of creating a new one
-			// (crucial when the repo was discovered on a fresh browser with no saved info).
-			// The Pages cname is the source of truth for the site's address — a fresh browser
-			// must recover the hangwork.art/custom domain, not fall back to github.io.
-			const domain = (await getPagesInfo(client, ref).catch(() => null))?.cname ?? null;
-			saveRepoInfo({
-				owner: ref.owner,
-				repo: ref.repo,
-				branch: ref.branch,
-				pagesUrl: domain ? `https://${domain}/` : (saved?.pagesUrl ?? pagesUrl(ref.owner, ref.repo)),
-				customDomain: domain ?? undefined,
-				lastManifest: managedPaths,
-				lastCommitSha: headSha,
-				runtimeVersion,
-				dataFileShas,
-			});
+			const doc = await loadPublishedSite(site, (p) => setLog((prev) => appendStep(prev, p)));
 			await onLoaded(doc);
 		} catch (err) {
-			setError(err instanceof GitHubError ? err.friendly : err instanceof Error ? err.message : 'Could not load your site.');
+			setError(err instanceof Error ? err.message : 'Could not load your site.');
 			setPhase('error');
 		}
 	};

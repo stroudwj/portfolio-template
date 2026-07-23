@@ -13,7 +13,7 @@ import CreativeEditor from './components/CreativeEditor';
 import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
-import GitHubControls from './components/GitHubControls';
+import AccountControls from './components/AccountControls';
 import MobileDoor from './components/MobileDoor';
 import { onShowEditorTab } from './components/ui/controls';
 import { useLicense } from './components/useLicense';
@@ -166,7 +166,7 @@ function Shell({ base }: { base: string }) {
 	useUndoShortcuts(undo, redo);
 
 	// Returning from checkout reloads the page onto the Start screen. If the buyer set out to
-	// publish, resume their saved draft automatically so they land back in the editor (GitHubControls
+	// publish, resume their saved draft automatically so they land back in the editor (AccountControls
 	// then reopens Publish once the license activates) instead of having to click "Continue" again.
 	useEffect(() => {
 		if (doc || !hasDraft) return;
@@ -242,7 +242,7 @@ function Shell({ base }: { base: string }) {
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset
 				</button>
-				<GitHubControls license={license} />
+				<AccountControls license={license} />
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>

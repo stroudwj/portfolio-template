@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useEditor } from '../store';
-import { useGitHub } from './useGitHub';
-import ConnectGitHubModal from './ConnectGitHubModal';
+import { useAccount } from './useAccount';
+import SignInModal from './SignInModal';
 import LoadPublishedModal from './LoadPublishedModal';
 import { isLicenseGateEnabled } from '../lib/license/config';
 import { SITE_TEMPLATES, type SiteTemplate } from '../lib/templates';
-import { consumeOAuthReturnTarget } from '../lib/oauth/flow';
 
 /** A clickable template card with a contained theme swatch. Keeping the editor
  * chrome neutral makes the different palettes easy to compare without turning
@@ -34,19 +33,13 @@ function TemplateCard({ template, onPick }: { template: SiteTemplate; onPick: (t
 
 export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError } = useEditor();
-	const gh = useGitHub();
-	const [showConnect, setShowConnect] = useState(false);
+	const account = useAccount();
+	const [showSignIn, setShowSignIn] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
 
-	const connected = gh.status === 'connected';
+	const signedIn = account.status === 'signed-in';
+	const hasPublished = Boolean(account.site?.subdomain);
 	const licenseGated = isLicenseGateEnabled();
-
-	// Connecting from an open draft temporarily reloads the app. Restore that draft
-	// automatically once the OAuth exchange succeeds instead of showing starter themes.
-	useEffect(() => {
-		if (!connected || !hasDraft) return;
-		if (consumeOAuthReturnTarget() === 'editor') void resumeDraft();
-	}, [connected, hasDraft, resumeDraft]);
 
 	// Starting fresh throws away the autosaved draft — confirm first so a stray click
 	// can't wipe someone's work (only matters when a draft actually exists).
@@ -76,21 +69,25 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 					<img className="start-brand-logo" src={brandLockup} alt="Hangwork" />
 				</h1>
 
-				{!connected && gh.error && <p className="field-error start-error">{gh.error}</p>}
+				{!signedIn && account.error && <p className="field-error start-error">{account.error}</p>}
 				{draftError && <p className="field-error start-error">{draftError}</p>}
 
-				{connected ? (
+				{signedIn ? (
 					<>
 						<p>
-							Signed in as <strong>@{gh.user?.login}</strong>. Load your live portfolio to edit it from any device — your
-							changes go back to the same website when you publish.
+							Signed in as <strong>{account.user?.email}</strong>.
+							{hasPublished
+								? ' Load your live portfolio to edit it from any device — your changes go back to the same website when you publish.'
+								: ' Your site will live in this account once you publish it.'}
 						</p>
 						<div className="start-actions">
-							<button type="button" className="btn-primary" onClick={() => setShowLoad(true)}>
-								Edit my published site
-							</button>
+							{hasPublished && (
+								<button type="button" className="btn-primary" onClick={() => setShowLoad(true)}>
+									Edit my published site
+								</button>
+							)}
 							{hasDraft && (
-								<button type="button" className="btn-secondary" onClick={() => resumeDraft()}>
+								<button type="button" className={hasPublished ? 'btn-secondary' : 'btn-primary'} onClick={() => resumeDraft()}>
 									Continue local draft
 								</button>
 							)}
@@ -120,10 +117,10 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 							<button
 								type="button"
 								className="btn-link"
-								onClick={() => setShowConnect(true)}
-								disabled={gh.status === 'checking'}
+								onClick={() => setShowSignIn(true)}
+								disabled={account.status === 'checking'}
 							>
-								{gh.status === 'checking' ? 'Checking GitHub…' : 'Connect GitHub to edit your published site'}
+								{account.status === 'checking' ? 'Checking sign-in…' : 'Sign in to edit your published site'}
 							</button>
 							<button type="button" className="btn-link" onClick={startOver}>
 								Start over from the classic template
@@ -162,29 +159,25 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 							<button
 								type="button"
 								className="btn-link"
-								onClick={() => setShowConnect(true)}
-								disabled={gh.status === 'checking'}
+								onClick={() => setShowSignIn(true)}
+								disabled={account.status === 'checking'}
 							>
-								{gh.status === 'checking' ? 'Checking GitHub…' : 'Already published? Connect GitHub to edit your live site'}
+								{account.status === 'checking' ? 'Checking sign-in…' : 'Already published? Sign in to edit your live site'}
 							</button>
 						</div>
 					</>
 				)}
 			</div>
 
-			{showConnect && (
-				<ConnectGitHubModal
-					connect={gh.connect}
-					authorize={gh.authorize}
-					oauthEnabled={gh.oauthEnabled}
-					onClose={() => setShowConnect(false)}
-					onConnected={() => {
-						setShowConnect(false);
-						setShowLoad(true);
-					}}
+			{showSignIn && (
+				<SignInModal
+					sendMagicLink={account.sendMagicLink}
+					signInWithGoogle={account.signInWithGoogle}
+					googleEnabled={account.googleEnabled}
+					onClose={() => setShowSignIn(false)}
 				/>
 			)}
-			{showLoad && <LoadPublishedModal onClose={() => setShowLoad(false)} onLoaded={openDoc} />}
+			{showLoad && <LoadPublishedModal site={account.site} onClose={() => setShowLoad(false)} onLoaded={openDoc} />}
 		</div>
 	);
 }

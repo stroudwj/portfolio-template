@@ -25,7 +25,40 @@ EMAIL_FROM = "Hangwork <hello@hangwork.art>"
 LS_STORE_ID = "431697"
 LS_PRODUCT_ID = "1221404"
 
+# Google OAuth ("Continue with Google" in the editor). Create an OAuth client
+# (Web application) in Google Cloud Console; authorized redirect URI = the editor URL
+# (e.g. https://hangwork.art/editor/). /auth/google answers 503 until this + the
+# GOOGLE_CLIENT_SECRET secret are set — magic-link sign-in works either way.
+GOOGLE_CLIENT_ID = "132981170943-auqcp7i1vrh5eulgvd05mhv1e7dg7426.apps.googleusercontent.com"
+
+# ---- Hangwork hosting (Direction D) ------------------------------------------------
+# The bindings below power accounts (/auth/*), publishing (/publish, /upload) and site
+# management (/site/*). Create the resources once:
+#   wrangler d1 create hangwork                 → paste database_id below
+#   wrangler kv namespace create hangwork-kv    → paste id below
+#   wrangler r2 bucket create hangwork-sites
+#   wrangler d1 migrations apply hangwork --remote   (schema in migrations/)
+# Local dev needs none of that: `wrangler dev --local` + `--persist-to` uses Miniflare
+# with local D1/KV/R2 (still run the migrations with --local).
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hangwork"
+database_id = "c9ebbf38-345b-4da6-b88f-3f425bc47bab"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "bc2a0a342a834ffab9eeb90888ba0440"
+
+[[r2_buckets]]
+binding = "SITES"
+bucket_name = "hangwork-sites"
+
 # SECRETS — do NOT put them here. Set them with:
 #   wrangler secret put GITHUB_CLIENT_SECRET
 #   wrangler secret put CF_DNS_TOKEN        (Cloudflare API token, DNS:Edit on the hangwork.art zone)
-#   wrangler secret put RESEND_API_KEY      (Resend API key for /handoff emails)
+#   wrangler secret put RESEND_API_KEY      (Resend API key for /handoff + magic-link emails)
+#   wrangler secret put SESSION_SECRET      (long random string; signs session JWTs + upload tickets)
+#   wrangler secret put GOOGLE_CLIENT_SECRET (Google OAuth client secret, if Google sign-in is on)
+#   wrangler secret put LS_WEBHOOK_SECRET   (Lemon Squeezy webhook signing secret for /webhooks/lemonsqueezy)
+#   wrangler secret put CF_SAAS_TOKEN       (Cloudflare API token, SSL and Certificates:Edit — custom hostnames)

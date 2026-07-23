@@ -1,0 +1,31 @@
+name = "hangwork-site-server"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# The serving Worker for published portfolios: *.hangwork.art (one wildcard DNS record —
+# no per-user DNS) plus Cloudflare-for-SaaS custom hostnames.
+#
+# One-time zone setup (dashboard / API):
+#   1. DNS: a proxied wildcard record  *.hangwork.art → 100::  (AAAA, placeholder; the
+#      Worker route below intercepts everything).
+#   2. Cloudflare for SaaS: set the zone's fallback origin to a proxied hostname in this
+#      zone covered by this Worker (e.g. sites-fallback.hangwork.art → 100::, plus a
+#      route "sites-fallback.hangwork.art/*" if custom hostnames are enabled). Custom
+#      hostnames keep the visitor's Host header, which is all this Worker keys on.
+#   3. Cache Rules: cache-eligible everything on *.hangwork.art, respecting origin
+#      Cache-Control — repeat hits then never touch the Worker or R2.
+#
+# IMPORTANT: KV + R2 below must reference the SAME namespace/bucket as
+# ../oauth-proxy/wrangler.toml — the API Worker writes what this Worker serves.
+
+routes = [
+	{ pattern = "*.hangwork.art/*", zone_name = "hangwork.art" },
+]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "bc2a0a342a834ffab9eeb90888ba0440" # same namespace as oauth-proxy/wrangler.toml
+
+[[r2_buckets]]
+binding = "SITES"
+bucket_name = "hangwork-sites"

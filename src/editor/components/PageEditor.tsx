@@ -9,6 +9,7 @@ import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArr
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { parseAspect, uniformColumns } from '../../portfolio/Gallery';
 import { DEFAULT_AR, flowMissing, roundLayout, uniformGridLayouts } from '../../portfolio/canvasLayout';
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
@@ -394,7 +395,8 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 				);
 			}
 			case 'embed': {
-				const invalid = !!block.url.trim() && !videoEmbedSrc(block.url);
+				const isBuy = !!stripePaymentLink(block.url);
+				const invalid = !!block.url.trim() && !videoEmbedSrc(block.url) && !isBuy;
 				const videoLabel = `video block ${index + 1} on ${pageName}`;
 				return (
 					<div className="block" key={block.id}>
@@ -404,13 +406,13 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						</div>
 						<input
 							className={`text-input ${invalid ? 'invalid' : ''}`}
-							aria-label={`YouTube or Vimeo link for ${videoLabel}`}
-							placeholder="Paste a YouTube or Vimeo link (https://…)"
+							aria-label={`YouTube, Vimeo or Stripe link for ${videoLabel}`}
+							placeholder="Paste a YouTube, Vimeo or Stripe payment link (https://…)"
 							value={block.url}
 							onChange={(e) => editor.updateEmbedBlock(pageKey, block.id, e.target.value)}
 						/>
 						{invalid ? (
-							<span className="field-error">That doesn’t look like a YouTube or Vimeo link.</span>
+							<span className="field-error">That doesn’t look like a YouTube, Vimeo or Stripe payment link.</span>
 						) : block.layout ? (
 							<p className="muted">
 								Placed on the canvas — drag it to move, drag its corner handle to resize.{' '}

@@ -8,8 +8,9 @@
   "scripts": {
     "runtime:generate": "node scripts/generate-runtime-release.mjs",
     "runtime:check": "node scripts/generate-runtime-release.mjs --check",
-    "prebuild": "npm run runtime:check",
-    "prebuild:product": "npm run runtime:check",
+    "runtime:hydration": "node scripts/build-hydration-runtime.mjs",
+    "prebuild": "npm run runtime:check && npm run runtime:hydration",
+    "prebuild:product": "npm run runtime:check && npm run runtime:hydration",
     "dev": "astro dev",
     "build": "astro build",
     "build:product": "astro build --config astro.config.product.mjs",

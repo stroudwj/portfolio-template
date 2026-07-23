@@ -1,21 +1,31 @@
-// Portfolio editor — GitHub OAuth token-exchange proxy (Cloudflare Worker).
+// Hangwork API Worker — accounts, publishing, site management, plus the original
+// GitHub OAuth token-exchange proxy (kept for the optional GitHub mirror).
 //
-// The ONLY server-side piece in this product. It exists for one reason: an OAuth App's
-// client secret cannot live in the browser, and GitHub's token endpoint isn't CORS-
-// accessible from a page. So the editor sends us the short-lived `code`, we swap it for a
-// user access token using the secret, and hand the token back to the editor. No database,
-// no per-user state, no logging of tokens.
+// Modules: auth.js (accounts/licenses), publish.js (R2 publishing), site.js
+// (subdomains/custom hostnames/export). This file owns routing + the fail-closed
+// CORS gate. The serving Worker for *.hangwork.art lives in ../site-server/.
 //
-// Routes (all POST):
+// Routes:
+//   POST /auth/magic/start            — email a single-use sign-in link
+//   POST /auth/magic/verify           — sign-in link token → session JWT
+//   POST /auth/google                 — Google OAuth code → session JWT
+//   POST /auth/session                — validate session, return account summary
+//   POST /auth/license/bind           — attach a Lemon Squeezy key to the account
+//   POST /webhooks/lemonsqueezy       — signed LS webhook (no CORS gate; signature auth)
+//   POST /publish                     — authz + quota + manifest diff → upload tickets
+//   PUT  /upload?ticket=…             — one file's bytes into R2 (hash-verified)
+//   POST /publish/complete            — apply deletions, update D1/KV, answer live URL
+//   POST /site/subdomain/check|claim  — [name].hangwork.art via D1/KV (no per-user DNS)
+//   POST /site/custom-hostname[/status|/remove] — Cloudflare-for-SaaS custom domains
+//   GET  /site/export                 — zip of the published site (ownership guarantee)
+//
+// Legacy GitHub routes (all POST, kept only for the optional mirror flow):
 //   /                 — exchange { code } for an access token
 //   /revoke           — revoke { token } on sign-out (DELETE /applications/{client_id}/grant needs
 //                       the client secret, so it has to happen here, not in the browser)
-//   /subdomain/check  — { token, name }: is name.hangwork.art free to claim?
+//   /subdomain/check  — { token, name }: is name.hangwork.art free to claim? (DNS-ledger flavor)
 //   /subdomain/claim  — { token, name }: create the DNS record name.hangwork.art →
 //                       {login}.github.io for the GitHub account the token belongs to.
-//                       The record's CNAME target doubles as the ownership ledger: a
-//                       record pointing at someone else's github.io means "taken", a
-//                       record pointing at your own means the claim is idempotent.
 //   /handoff          — email the sender's editor link ("open this on your computer").
 //                       { license_key }: validate the key with Lemon Squeezy, then send
 //                       the post-purchase email to the BUYER's address (from the key —
@@ -44,6 +54,20 @@
 // answers 503 the same way until RESEND_API_KEY + EMAIL_FROM are set; the editor
 // then falls back to showing a copy-the-link flow instead of sending email.
 
+import { cors, json, isEmailAddress } from './lib/http.js';
+import { emailHtml, sendEmail } from './lib/email.js';
+import { magicStart, magicVerify, google, session, licenseBind, lsWebhook } from './auth.js';
+import { publish, upload, publishComplete } from './publish.js';
+import {
+	subdomainCheck,
+	subdomainClaim,
+	customHostnameCreate,
+	customHostnameStatus,
+	customHostnameRemove,
+	exportSite,
+	isValidSubdomain,
+} from './site.js';
+
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
 export default {
@@ -60,13 +84,18 @@ export default {
 		// endpoint mints credentials. Non-matches get the first configured origin (used only
 		// on the error response, which the browser discards anyway).
 		const corsOrigin = isAllowed ? origin : allowlist[0] || '';
+		const path = new URL(request.url).pathname;
 
 		if (request.method === 'OPTIONS') {
 			return new Response(null, { status: 204, headers: cors(corsOrigin) });
 		}
-		if (request.method !== 'POST') {
-			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
+
+		// Server-to-server webhooks carry no Origin — they authenticate with the signing
+		// secret instead of the CORS gate. Everything else stays origin-locked.
+		if (path === '/webhooks/lemonsqueezy' && request.method === 'POST') {
+			return lsWebhook(request, env);
 		}
+
 		// Require an Origin in the allowlist — browsers always send Origin on cross-origin
 		// fetch, so only the editor passes; requests with a missing or foreign Origin (curl,
 		// other sites, server-to-server) are rejected outright. Fail closed if ALLOWED_ORIGIN
@@ -75,7 +104,33 @@ export default {
 			return json({ error: 'forbidden_origin' }, 403, corsOrigin);
 		}
 
-		const path = new URL(request.url).pathname;
+		if (request.method === 'PUT') {
+			if (path === '/upload') return upload(request, env, corsOrigin);
+			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
+		}
+		if (request.method === 'GET') {
+			if (path === '/site/export') return exportSite(request, env, corsOrigin);
+			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
+		}
+		if (request.method !== 'POST') {
+			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
+		}
+
+		// Accounts + hosting (Direction D).
+		if (path === '/auth/magic/start') return magicStart(request, env, corsOrigin, origin);
+		if (path === '/auth/magic/verify') return magicVerify(request, env, corsOrigin);
+		if (path === '/auth/google') return google(request, env, corsOrigin);
+		if (path === '/auth/session') return session(request, env, corsOrigin);
+		if (path === '/auth/license/bind') return licenseBind(request, env, corsOrigin);
+		if (path === '/publish') return publish(request, env, corsOrigin);
+		if (path === '/publish/complete') return publishComplete(request, env, corsOrigin);
+		if (path === '/site/subdomain/check') return subdomainCheck(request, env, corsOrigin);
+		if (path === '/site/subdomain/claim') return subdomainClaim(request, env, corsOrigin);
+		if (path === '/site/custom-hostname') return customHostnameCreate(request, env, corsOrigin);
+		if (path === '/site/custom-hostname/status') return customHostnameStatus(request, env, corsOrigin);
+		if (path === '/site/custom-hostname/remove') return customHostnameRemove(request, env, corsOrigin);
+
+		// Legacy GitHub flow (optional mirror).
 		if (path === '/revoke') return revoke(request, env, corsOrigin);
 		if (path === '/subdomain/check') return subdomain(request, env, corsOrigin, false);
 		if (path === '/subdomain/claim') return subdomain(request, env, corsOrigin, true);
@@ -86,20 +141,6 @@ export default {
 };
 
 const CF_API = 'https://api.cloudflare.com/client/v4';
-
-// Subdomains we will never hand out: infrastructure, mail, and anything that could be
-// mistaken for the product itself.
-const RESERVED_SUBDOMAINS = new Set([
-	'www', 'mail', 'email', 'smtp', 'imap', 'pop', 'ftp', 'ns1', 'ns2', 'mx',
-	'api', 'cdn', 'static', 'assets', 'admin', 'root', 'dev', 'test', 'staging',
-	'app', 'editor', 'demo', 'docs', 'help', 'support', 'status', 'blog', 'shop',
-	'account', 'accounts', 'login', 'auth', 'pay', 'payments', 'billing', 'hangwork',
-]);
-
-/** One DNS label: a–z, 0–9, inner hyphens, ≤63 chars. Mirrors the editor's slugify. */
-function isValidSubdomain(name) {
-	return typeof name === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(name) && !RESERVED_SUBDOMAINS.has(name);
-}
 
 /**
  * Grant (or probe) a hangwork.art subdomain. The caller proves who they are with their
@@ -223,24 +264,6 @@ function handoffRateLimited(ip) {
 	return false;
 }
 
-function isEmailAddress(value) {
-	return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
-/** Shared minimal HTML shell — paper/ink, one Klein-blue button, no images. */
-function emailHtml(paragraphsBefore, buttonLabel, link, paragraphsAfter) {
-	const p = (text) =>
-		`<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1a1a1a;">${text}</p>`;
-	return [
-		`<div style="background:#faf8f5;padding:40px 24px;font-family:Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">`,
-		`<div style="max-width:480px;margin:0 auto;">`,
-		...paragraphsBefore.map(p),
-		`<p style="margin:24px 0;"><a href="${link}" style="display:inline-block;background:#002fa7;color:#faf8f5;text-decoration:none;border-radius:4px;padding:12px 22px;font-size:15px;font-weight:500;">${buttonLabel}</a></p>`,
-		...paragraphsAfter.map(p),
-		`</div></div>`,
-	].join('');
-}
-
 /** The email for someone who hasn't bought yet: just the way back to the canvas. */
 function handoffEmail(link) {
 	return {
@@ -331,14 +354,7 @@ async function handoff(request, env, corsOrigin, origin) {
 		return json({ error: 'missing_email' }, 400, corsOrigin);
 	}
 
-	try {
-		const res = await fetch('https://api.resend.com/emails', {
-			method: 'POST',
-			headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-			body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
-		});
-		if (!res.ok) return json({ error: 'email_send_failed' }, 502, corsOrigin);
-	} catch {
+	if (!(await sendEmail(env, to, mail))) {
 		return json({ error: 'email_send_failed' }, 502, corsOrigin);
 	}
 	// Echo the recipient so the editor can show "Sent to …" (it's the caller's own
@@ -419,21 +435,4 @@ async function revoke(request, env, corsOrigin) {
 	} catch {
 		return json({ error: 'github_unreachable' }, 502, corsOrigin);
 	}
-}
-
-function cors(origin) {
-	return {
-		'Access-Control-Allow-Origin': origin,
-		'Access-Control-Allow-Methods': 'POST, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type',
-		'Access-Control-Max-Age': '86400',
-		Vary: 'Origin',
-	};
-}
-
-function json(body, status, origin) {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { 'Content-Type': 'application/json', ...cors(origin) },
-	});
 }

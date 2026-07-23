@@ -1,18 +1,22 @@
 // The 🚀 Publish tab: everything about where the site lives — web address
-// (subdomain or custom domain), GitHub connection, license status — plus the
+// (subdomain or custom domain), Hangwork account, license status — plus the
 // same Publish action as the topbar button (which stays where it is).
 import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Section } from './ui/controls';
-import { useGitHub } from './useGitHub';
+import { useAccount } from './useAccount';
 import type { LicenseSession } from './useLicense';
 import { hasPublishableContent } from '../lib/validation';
 import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
-import { loadRepoInfo } from '../lib/github/store';
+import { loadSiteInfo } from '../lib/account/site-store';
+import { AccountError } from '../lib/account/client';
+import { ACCOUNT_API_URL } from '../lib/account/config';
+import { getSession } from '../lib/account/session';
+import { getLicense } from '../lib/license/session';
 import { SITES_ROOT_DOMAIN, slugifySiteName, subdomainFor } from '../lib/github/subdomain';
 import { downloadEditorBackup, importEditorBackup, readEditorBackup } from '../lib/backup';
 import { saveNamedVersion } from '../lib/persistence';
-import ConnectGitHubModal from './ConnectGitHubModal';
+import SignInModal from './SignInModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 import CustomDomainModal from './CustomDomainModal';
@@ -21,8 +25,8 @@ import VersionHistory from './VersionHistory';
 
 export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const { doc, openDoc } = useEditor();
-	const gh = useGitHub();
-	const [showConnect, setShowConnect] = useState(false);
+	const account = useAccount();
+	const [showSignIn, setShowSignIn] = useState(false);
 	// Why the license modal is open decides its copy + what follows unlocking:
 	// 'publish' resumes into Publish, 'unlock' (paying upfront) just unlocks.
 	const [showLicense, setShowLicense] = useState<null | 'publish' | 'unlock'>(null);
@@ -33,29 +37,34 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const [backupError, setBackupError] = useState('');
 	const [restoreState, setRestoreState] = useState<'idle' | 'restoring' | 'restored' | 'error'>('idle');
 	const [restoreError, setRestoreError] = useState('');
+	const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done' | 'error'>('idle');
+	const [exportError, setExportError] = useState('');
 	const restoreInput = useRef<HTMLInputElement>(null);
-	// Re-read the saved repo pointer after any modal closes (publish/domain change it).
+	// Re-read the saved site pointer after any modal closes (publish/domain change it).
 	const [, setRefresh] = useState(0);
 	const bump = () => setRefresh((n) => n + 1);
 
 	if (!doc) return null;
-	const info = loadRepoInfo();
-	const connected = gh.status === 'connected' && gh.user;
+	const info = loadSiteInfo();
+	const signedIn = account.status === 'signed-in';
+	const published = Boolean(info?.subdomain || account.site?.subdomain);
 	// Two independent publish conditions, satisfiable in either order: the site is
 	// built, and the account is unlocked. Built-but-unpaid gets the license gate;
 	// paid-but-empty just waits for content (no payment prompt).
 	const built = hasPublishableContent(doc);
-	const needsLicense = license.required && license.status !== 'licensed';
+	const unlocked = account.licensed || !license.required || license.status === 'licensed';
 	const onPublishClick = () => {
 		if (!built) return;
-		if (!connected) setShowConnect(true);
-		else if (needsLicense) setShowLicense('publish');
+		if (!signedIn) setShowSignIn(true);
+		else if (!unlocked) setShowLicense('publish');
 		else setShowPublish(true);
 	};
 
-	const liveUrl = info?.customDomain ? `https://${info.customDomain}` : info?.pagesUrl;
-	const isSubdomain = info?.customDomain?.endsWith(`.${SITES_ROOT_DOMAIN}`);
+	const liveUrl = info?.customDomain
+		? `https://${info.customDomain}`
+		: info?.url ?? (account.site?.subdomain ? `https://${subdomainFor(account.site.subdomain)}` : undefined);
 	const plannedAddress = `https://${subdomainFor(slugifySiteName(doc.content.site.name || 'my-portfolio'))}`;
+
 	const downloadBackup = async () => {
 		setBackupState('saving');
 		setBackupError('');
@@ -83,10 +92,43 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 		}
 	};
 
+	// The ownership guarantee, in a button: the Worker zips the site's served files on
+	// demand — the exact artifact any static host (Netlify Drop, Cloudflare Pages,
+	// a plain web server) can serve as-is.
+	const exportSite = async () => {
+		setExportState('exporting');
+		setExportError('');
+		try {
+			const token = getSession()?.token;
+			if (!token) throw new AccountError(401, 'invalid_session', 'Sign in first, then export.');
+			// AccountClient parses JSON; the zip needs the raw response — fetch directly.
+			const res = await fetch(`${ACCOUNT_API_URL}/site/export`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			if (!res.ok) {
+				const data = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new AccountError(res.status, data.error ?? '', data.error === 'nothing_published' ? 'Publish once first — then your site can be exported.' : 'The export couldn’t be prepared. Please try again.');
+			}
+			const blob = await res.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${info?.subdomain ?? 'site'}-export.zip`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+			setExportState('done');
+		} catch (error) {
+			setExportError(error instanceof AccountError ? error.friendly : error instanceof Error ? error.message : 'The export failed.');
+			setExportState('error');
+		}
+	};
+
 	return (
 		<>
 			<Section title="Your web address" sectionKey="_publish-address">
-				{info && liveUrl ? (
+				{published && liveUrl ? (
 					<>
 						<p className="muted" style={{ marginTop: 0 }}>
 							Your site is published at
@@ -94,14 +136,14 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 						<a className="live-url" href={liveUrl} target="_blank" rel="noopener noreferrer">
 							{liveUrl}
 						</a>
-						{info.customDomain && !isSubdomain && (
+						{info?.customDomain && !info.customDomain.endsWith(`.${SITES_ROOT_DOMAIN}`) && (
 							<p className="muted">Custom domain connected: {info.customDomain}</p>
 						)}
 						<div className="publish-panel-actions">
-							<button type="button" className="btn-secondary" onClick={() => setShowDomain(true)} disabled={!connected}>
-								{info.customDomain && !isSubdomain ? 'Manage custom domain…' : 'Use a custom domain…'}
+							<button type="button" className="btn-secondary" onClick={() => setShowDomain(true)} disabled={!signedIn}>
+								{info?.customDomain ? 'Manage custom domain…' : 'Use a custom domain…'}
 							</button>
-							<button type="button" className="btn-secondary" onClick={() => setShowRename(true)} disabled={!connected}>
+							<button type="button" className="btn-secondary" onClick={() => setShowRename(true)} disabled={!signedIn}>
 								Rename site…
 							</button>
 						</div>
@@ -119,16 +161,14 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 
 			<Section title="Account & license" sectionKey="_publish-account">
 				<div className="status-row">
-					<span className="status-label">GitHub</span>
-					{connected ? (
-						<span className="status-value">
-							<img src={gh.user!.avatarUrl} alt="" className="gh-avatar" /> @{gh.user!.login}
-						</span>
-					) : gh.status === 'checking' ? (
+					<span className="status-label">Account</span>
+					{signedIn && account.user ? (
+						<span className="status-value">{account.user.email}</span>
+					) : account.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
-						<button type="button" className="btn-secondary" onClick={() => setShowConnect(true)}>
-							Connect
+						<button type="button" className="btn-secondary" onClick={() => setShowSignIn(true)}>
+							Sign in
 						</button>
 					)}
 				</div>
@@ -136,9 +176,9 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 					<span className="status-label">License</span>
 					{!license.required ? (
 						<span className="status-value">Not required</span>
-					) : license.status === 'licensed' ? (
+					) : unlocked ? (
 						<span className="status-value">✓ Unlocked — yours forever</span>
-					) : license.status === 'checking' ? (
+					) : license.status === 'checking' || account.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
 						<button type="button" className="btn-secondary" onClick={() => setShowLicense('unlock')}>
@@ -148,7 +188,7 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				</div>
 				{/* Quiet, optional pay-upfront path. The default flow stays pay-at-publish —
 				    this is only for people who prefer to settle it before they build. */}
-				{license.required && license.status === 'unlicensed' && pricing.launchPricingActive && (
+				{license.required && !unlocked && license.status === 'unlicensed' && pricing.launchPricingActive && (
 					<p className="muted license-lock-note">
 						Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price, forever. You
 						can also just pay when you publish.
@@ -162,10 +202,32 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 						disabled={!built}
 						title={built ? undefined : 'Hang your first piece, then publish.'}
 					>
-						{info ? 'Publish update' : 'Publish website'}
+						{published ? 'Publish update' : 'Publish website'}
 					</button>
 				</div>
 				{!built && <p className="muted">Hang your first piece, then publish.</p>}
+			</Section>
+
+			<Section title="Own it forever" sectionKey="_publish-own">
+				<p className="muted" style={{ marginTop: 0 }}>
+					Download your published site as plain files — HTML, images, everything. It works on any web host
+					exactly as it is, with or without Hangwork.
+				</p>
+				<div className="publish-panel-actions">
+					<button
+						type="button"
+						className="btn-secondary"
+						onClick={exportSite}
+						disabled={exportState === 'exporting' || !signedIn || !published}
+						title={!signedIn ? 'Sign in first.' : !published ? 'Publish once first.' : undefined}
+					>
+						{exportState === 'exporting' ? 'Preparing your files…' : 'Download my site (zip)'}
+					</button>
+				</div>
+				<p className="muted" role="status" aria-live="polite">
+					{exportState === 'done' && 'Downloaded. Drop the unzipped folder on Netlify, Cloudflare Pages, or any host.'}
+					{exportState === 'error' && exportError}
+				</p>
 			</Section>
 
 			<VersionHistory />
@@ -213,20 +275,12 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				</p>
 			</Section>
 
-			{showConnect && (
-				<ConnectGitHubModal
-					connect={gh.connect}
-					authorize={() => gh.authorize('editor')}
-					oauthEnabled={gh.oauthEnabled}
-					onClose={() => setShowConnect(false)}
-					onConnected={() => {
-						setShowConnect(false);
-						// Same gate as the topbar: unlicensed users see the license modal first,
-						// and nothing opens until there's something to publish.
-						if (!built) return;
-						if (needsLicense) setShowLicense('publish');
-						else setShowPublish(true);
-					}}
+			{showSignIn && (
+				<SignInModal
+					sendMagicLink={account.sendMagicLink}
+					signInWithGoogle={account.signInWithGoogle}
+					googleEnabled={account.googleEnabled}
+					onClose={() => setShowSignIn(false)}
 				/>
 			)}
 			{showLicense && (
@@ -237,16 +291,18 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 					onClose={() => setShowLicense(null)}
 					onUnlocked={() => {
 						setShowLicense(null);
+						// Record the unlock on the ACCOUNT too (the server-side gate).
+						const stored = getLicense();
+						if (stored) void account.bindLicense(stored.key).catch(() => {});
 						// Unlocking is an account property, not a publish step: only continue
-						// into Publish when there's actually something to publish (and GitHub —
-						// the publish click re-checks that path).
-						if (built && connected) setShowPublish(true);
+						// into Publish when there's actually something to publish.
+						if (built && signedIn) setShowPublish(true);
 					}}
 				/>
 			)}
-			{showPublish && gh.user && (
+			{showPublish && (
 				<PublishModal
-					user={gh.user}
+					account={account}
 					onClose={() => {
 						setShowPublish(false);
 						bump();

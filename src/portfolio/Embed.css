@@ -19,3 +19,24 @@
 	text-decoration: underline;
 	text-underline-offset: 0.2em;
 }
+
+/* Stripe Payment Link → a buy button linking out to the artist's own checkout. */
+.embed-buy {
+	text-align: center;
+}
+
+.embed-buy-button {
+	display: inline-block;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font-family: var(--font-family);
+	font-size: 1rem;
+	text-decoration: none;
+	padding: 0.7em 1.6em;
+	border-radius: 4px;
+	transition: opacity 0.15s ease;
+}
+
+.embed-buy-button:hover {
+	opacity: 0.85;
+}

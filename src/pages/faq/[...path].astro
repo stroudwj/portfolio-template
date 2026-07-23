@@ -70,14 +70,13 @@ const groups: Group[] = [
 			},
 			{
 				slug: 'why-github-account',
-				q: 'Why do I need a GitHub account?',
-				a: "Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and the setup guide walks you through it.",
-				aHtml: `Your site is stored in a free account that belongs to you, not to us. That's what makes one-time pricing possible, and it's what makes your site permanently yours. Setting up the account takes about two minutes, and the <a href="${guideUrl}#claim-your-space">setup guide</a> walks you through it.`,
+				q: 'Do I need an account?',
+				a: "A free Hangwork account, yes — it’s where your published site lives, and it’s how you edit from any device. There’s no password to invent: sign in with your email (we send you a link) or with Google. Setting it up takes under a minute.",
 			},
 			{
 				slug: 'my-web-address',
 				q: "What's my web address?",
-				a: "You get yourname.hangwork.art at no extra cost, and you pick the name — it doesn't have to match your GitHub username. If you already own a domain, you can connect that instead.",
+				a: "You get yourname.hangwork.art at no extra cost, and you pick the name. If you already own a domain, you can connect that instead.",
 			},
 		],
 	},
@@ -92,17 +91,17 @@ const groups: Group[] = [
 			{
 				slug: 'if-hangwork-shuts-down',
 				q: 'What happens if Hangwork shuts down?',
-				a: "Your site keeps working. It lives in your own account on GitHub's infrastructure, not on our servers, so you keep the site and all its files. The editor might stop getting updates, but nothing you've published goes offline. This is the exact situation Hangwork is built to survive.",
+				a: "You keep your site. It’s built as plain web files — the kind any host can serve — and the editor has a download button that hands you the whole thing as a folder, anytime, no permission needed. If we ever wind down, we’ve committed to sending every artist their complete site files before anything goes dark, so you can put them on any free host and nothing you’ve shared ever hits a dead link. No proprietary format, no export fee, no hostage-taking.",
 			},
 			{
 				slug: 'who-owns-my-work',
 				q: 'Who owns my images and my site?',
-				a: "You do, entirely. We never claim rights to your work, we don't watermark it, and we don't train anything on it. Your files sit in your own account, and you can download them anytime.",
+				a: "You do, entirely. We never claim rights to your work, we don’t watermark it, and we don’t train anything on it. You can download your complete site — pages, images, everything — anytime.",
 			},
 			{
 				slug: 'can-i-leave',
 				q: 'Can I leave?',
-				a: "Yes, and there's nothing to cancel. Your site is a folder of ordinary web files in your account, so you can take it to any host whenever you want.",
+				a: "Yes, and there’s nothing to cancel. Download your site from the editor and you’re holding a folder of ordinary web files that works on any host, exactly as it is.",
 			},
 		],
 	},
@@ -112,12 +111,12 @@ const groups: Group[] = [
 			{
 				slug: 'unlimited-images',
 				q: 'Is it really unlimited images?',
-				a: "There's no image count and no fee that grows with use, but the free hosting has real limits: each file must be under 100 MB, sites work best under about 1 GB total, and very high-traffic sites — around 100 GB of bandwidth a month, far more than a portfolio ever sees — can be throttled. For nearly every artist this is effectively unlimited. If you're posting hundreds of full-resolution TIFFs, export them for web first, and embed long videos from YouTube or Vimeo rather than uploading them.",
+				a: "There’s no image count and no fee that grows with use, but hosting has real limits: each file must be under 18 MB, and a site can hold about 1 GB in total — room for well over a thousand web-ready images. Traffic isn’t metered against you; only sites drawing extraordinary, non-portfolio levels of traffic can be throttled. If you’re posting hundreds of full-resolution TIFFs, export them for web first, and embed long videos from YouTube or Vimeo rather than uploading them.",
 			},
 			{
 				slug: 'selling-work',
-				q: "Why can't I sell work directly on my site?",
-				a: "Two reasons, both honest: the free hosting's terms don't allow e-commerce, and building checkout would mean subscriptions and platform cuts — the things Hangwork exists to avoid. You can link out to your shop on Etsy, Big Cartel, or your gallery, list an email for commissions and inquiries, and add donation or crowdfunding links.",
+				q: 'Can I sell work on my site?',
+				a: "Yes — through your own Stripe account. Paste a Stripe payment link into any page and it becomes a buy button; the money goes straight to you, and Stripe handles the checkout, card details, and receipts. There’s no Hangwork cut and no marketplace in between. What we don’t build is a full cart system — for a catalog with inventory, link out to your shop on Etsy, Big Cartel, or your gallery.",
 			},
 			{
 				slug: 'is-my-site-private',

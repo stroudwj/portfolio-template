@@ -5,7 +5,8 @@
     "**/*"
   ],
   "exclude": [
-    "dist"
+    "dist",
+    "public/hangwork-runtime"
   ],
   "compilerOptions": {
     "jsx": "react-jsx",

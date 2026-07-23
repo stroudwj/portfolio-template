@@ -1,28 +1,16 @@
-// Connect a custom domain to the published site without ever opening GitHub: we set the
-// domain in the repo's Pages settings via the API, update project address metadata, and
-// commit it (so links/assets resolve at the domain), and show the exact DNS records to
-// add at the registrar — the one step GitHub can't do for us. The repo's Pages cname is
-// the source of truth; publishes read it back, so the domain survives every re-publish.
+// Connect a custom domain to the published site — Cloudflare-for-SaaS edition. The
+// Worker registers the hostname (Cloudflare issues + renews the certificate) and this
+// modal shows the exact DNS records to add at the registrar: one CNAME that routes the
+// domain here, plus the TXT records that prove ownership and pass certificate checks.
+// D1's hostnames table is the source of truth; the local SiteInfo only mirrors it.
 import { useEffect, useState } from 'react';
 import { Modal } from './ui/Modal';
-import { GitHubClient, GitHubError } from '../lib/github/client';
-import { getToken } from '../lib/github/session';
-import { loadRepoInfo, saveRepoInfo } from '../lib/github/store';
-import { commitProjectLocation } from '../lib/github/runtime';
-import {
-	getPagesInfo,
-	setCustomDomain,
-	removeCustomDomain,
-	getDomainHealth,
-	enforceHttps,
-	getBuildStatus,
-	pagesUrl,
-	type DomainHealth,
-	type RepoRef,
-} from '../lib/github/repo';
-import { subdomainFor, claimSubdomain, SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
+import { AccountClient, AccountError } from '../lib/account/client';
+import { getSession } from '../lib/account/session';
+import { loadSiteInfo, saveSiteInfo } from '../lib/account/site-store';
+import { SITES_ROOT_DOMAIN } from '../lib/github/subdomain';
 
-/** "https://www.Example.com/x." → "www.example.com" (what Pages stores as the cname). */
+/** "https://www.Example.com/x." → "www.example.com". */
 export function normalizeDomain(input: string): string {
 	return input
 		.trim()
@@ -41,34 +29,52 @@ export function isValidDomain(domain: string): boolean {
 	);
 }
 
+interface DnsRecord {
+	purpose: 'routing' | 'ownership' | 'certificate';
+	type: string;
+	name: string;
+	value: string;
+}
+
+interface HostnameView {
+	domain: string;
+	status: string;
+	sslStatus?: string;
+	records: DnsRecord[];
+}
+
 type Busy = 'none' | 'loading' | 'saving' | 'removing' | 'checking';
-type Rebuild = 'idle' | 'building' | 'done' | 'failed';
+
+const PURPOSE_LABEL: Record<DnsRecord['purpose'], string> = {
+	routing: 'Points your domain at your site',
+	ownership: 'Proves the domain is yours',
+	certificate: 'Enables HTTPS (the padlock)',
+};
 
 export default function CustomDomainModal({ onClose }: { onClose: () => void }) {
-	const info = loadRepoInfo();
-	const [busy, setBusy] = useState<Busy>('loading');
-	const [cname, setCname] = useState<string | null>(null);
+	const [info, setInfo] = useState(() => loadSiteInfo());
+	const [busy, setBusy] = useState<Busy>(info?.customDomain ? 'loading' : 'none');
+	const [view, setView] = useState<HostnameView | null>(null);
 	const [input, setInput] = useState('');
-	const [health, setHealth] = useState<DomainHealth | null>(null);
-	const [rebuild, setRebuild] = useState<Rebuild>('idle');
 	const [error, setError] = useState<string | null>(null);
 
-	const client = new GitHubClient(getToken() ?? '');
-	const ref: RepoRef | null = info ? { owner: info.owner, repo: info.repo, branch: info.branch } : null;
+	const client = () => new AccountClient(getSession()?.token ?? null);
 
+	// A saved custom domain? Load its live status (and the records, for re-display).
 	useEffect(() => {
-		if (!ref) return;
+		const domain = info?.customDomain;
+		if (!domain) return;
 		let alive = true;
-		getPagesInfo(client, ref)
-			.then((pages) => {
+		client()
+			.request<HostnameView>('/site/custom-hostname/status', { body: { domain } })
+			.then(({ data }) => {
 				if (!alive) return;
-				setCname(pages?.cname ?? null);
+				setView(data);
 				setBusy('none');
 			})
-			.catch((err) => {
+			.catch(() => {
 				if (!alive) return;
-				setError(err instanceof GitHubError ? err.friendly : 'Couldn’t read your site’s settings.');
-				setBusy('none');
+				setBusy('none'); // records unavailable right now — the domain itself stands
 			});
 		return () => {
 			alive = false;
@@ -76,7 +82,7 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	if (!info || !ref) {
+	if (!info) {
 		return (
 			<Modal title="Custom domain" onClose={onClose}>
 				<p className="modal-note">Publish your website first — then you can connect a custom domain to it.</p>
@@ -84,42 +90,7 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 		);
 	}
 
-	// Update project metadata for `domain` (or the github.io URL when null) and wait
-	// for the Pages rebuild, so the site's links/assets actually resolve at the new address.
-	// Skipped when the config already matches (e.g. re-applying the same domain).
-	const applyConfig = async (domain: string | null) => {
-		const siteUrl = domain ? `https://${domain}` : `https://${ref.owner}.github.io`;
-		const basePath = domain ? '/' : `/${ref.repo}`;
-		const { commitSha: sha, changed } = await commitProjectLocation(
-			client,
-			ref,
-			{ siteUrl, basePath },
-			domain ? `Use custom domain ${domain}` : 'Use the github.io address',
-		);
-		const latest = loadRepoInfo() ?? info;
-		saveRepoInfo({ ...latest, lastCommitSha: sha });
-		if (!changed) return;
-		setRebuild('building');
-		const started = Date.now();
-		while (Date.now() - started < 3 * 60_000) {
-			await new Promise((r) => setTimeout(r, 5000));
-			let status;
-			try {
-				status = await getBuildStatus(client, ref.owner, ref.repo, sha);
-			} catch {
-				break; // can't tell — the build finishes on its own
-			}
-			if (status === 'success') {
-				setRebuild('done');
-				return;
-			}
-			if (status === 'failure') {
-				setRebuild('failed');
-				return;
-			}
-		}
-		setRebuild('done'); // polling gave out; the build almost certainly finishes on its own
-	};
+	const connected = view?.status === 'active' && (view.sslStatus === 'active' || !view.sslStatus);
 
 	const save = async () => {
 		const domain = normalizeDomain(input);
@@ -132,64 +103,50 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 			return;
 		}
 		setError(null);
-		setHealth(null);
 		setBusy('saving');
 		try {
-			await setCustomDomain(client, ref, domain);
-			saveRepoInfo({ ...info, customDomain: domain, pagesUrl: `https://${domain}/` });
-			setCname(domain);
-			await applyConfig(domain);
+			const { data } = await client().request<HostnameView>('/site/custom-hostname', { body: { domain } });
+			setView(data);
+			const latest = loadSiteInfo() ?? info;
+			saveSiteInfo({ ...latest, customDomain: domain });
+			setInfo({ ...latest, customDomain: domain });
 		} catch (err) {
-			setError(err instanceof GitHubError ? err.friendly : 'Couldn’t set the domain.');
+			setError(err instanceof AccountError ? err.friendly : 'Couldn’t set the domain.');
+		}
+		setBusy('none');
+	};
+
+	const check = async () => {
+		if (!info.customDomain) return;
+		setBusy('checking');
+		try {
+			const { data } = await client().request<HostnameView>('/site/custom-hostname/status', {
+				body: { domain: info.customDomain },
+			});
+			setView(data);
+		} catch {
+			/* transient — keep showing what we have */
 		}
 		setBusy('none');
 	};
 
 	const remove = async () => {
-		if (!confirm(`Disconnect ${cname}? Your site will go back to https://${subdomainFor(info.repo)}`)) return;
+		if (!info.customDomain) return;
+		if (!confirm(`Disconnect ${info.customDomain}? Your site stays live at https://${info.subdomain}.${SITES_ROOT_DOMAIN}`)) return;
 		setError(null);
-		setHealth(null);
 		setBusy('removing');
 		try {
-			// Prefer returning to the site's included hangwork.art address (idempotent
-			// re-claim of our own DNS record); if the address service can't confirm it,
-			// fall back to the plain github.io URL so links always resolve somewhere.
-			const included = await claimSubdomain(getToken() ?? '', info.repo);
-			if (included) {
-				await setCustomDomain(client, ref, included);
-				saveRepoInfo({ ...info, customDomain: included, pagesUrl: `https://${included}/` });
-				setCname(included);
-				setInput('');
-				await applyConfig(included);
-			} else {
-				await removeCustomDomain(client, ref);
-				saveRepoInfo({ ...info, customDomain: undefined, pagesUrl: pagesUrl(ref.owner, ref.repo) });
-				setCname(null);
-				setInput('');
-				await applyConfig(null);
-			}
+			await client().request('/site/custom-hostname/remove', { body: { domain: info.customDomain } });
+			const latest = loadSiteInfo() ?? info;
+			saveSiteInfo({ ...latest, customDomain: undefined });
+			setInfo({ ...latest, customDomain: undefined });
+			setView(null);
+			setInput('');
 		} catch (err) {
-			setError(err instanceof GitHubError ? err.friendly : 'Couldn’t remove the domain.');
+			setError(err instanceof AccountError ? err.friendly : 'Couldn’t remove the domain.');
 		}
 		setBusy('none');
 	};
-
-	const checkDns = async () => {
-		setBusy('checking');
-		const result = await getDomainHealth(client, ref);
-		setHealth(result);
-		if (result === 'live') void enforceHttps(client, ref).catch(() => {});
-		setBusy('none');
-	};
-
-	// Apex domains (example.com) need A records; subdomains (www.example.com) use a CNAME.
-	const isApex = cname != null && cname.split('.').length === 2;
-
-	// The site's assigned [name].hangwork.art address is NOT a user custom domain: we
-	// manage its DNS, so never show registrar instructions for it — offer to connect
-	// their own domain instead.
-	const isIncluded = cname != null && cname.endsWith(`.${SITES_ROOT_DOMAIN}`);
-	const currentAddress = isIncluded ? `https://${cname}` : pagesUrl(ref.owner, ref.repo);
 
 	return (
 		<Modal
@@ -203,11 +160,14 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 		>
 			{busy === 'loading' ? (
 				<p className="modal-note">Checking your domain settings…</p>
-			) : cname === null || isIncluded ? (
+			) : !info.customDomain ? (
 				<>
 					<p className="modal-lead">
 						Point a domain you own at your site — like <strong>www.yourname.com</strong> instead of{' '}
-						<strong>{currentAddress.replace('https://', '')}</strong>.
+						<strong>
+							{info.subdomain}.{SITES_ROOT_DOMAIN}
+						</strong>
+						.
 					</p>
 					<label className="field">
 						<span className="field-label">Your domain</span>
@@ -230,56 +190,31 @@ export default function CustomDomainModal({ onClose }: { onClose: () => void }) 
 			) : (
 				<>
 					<p className="modal-lead">
-						Your site is set to <strong>https://{cname}</strong>. One thing left: add this DNS record at your domain
-						registrar (where you bought the domain).
+						Your site is set to <strong>https://{info.customDomain}</strong>.
+						{connected
+							? ' The domain is connected and HTTPS is on.'
+							: ' One thing left: add these DNS records at your domain registrar (where you bought the domain).'}
 					</p>
-					{isApex ? (
+					{!connected && view?.records?.length ? (
 						<div className="dns-records">
-							<p className="modal-note">
-								Add these four <strong>A records</strong> for <code>{cname}</code> (host/name: <code>@</code>):
-							</p>
-							<code>185.199.108.153</code> <code>185.199.109.153</code> <code>185.199.110.153</code>{' '}
-							<code>185.199.111.153</code>
-							<p className="modal-note">
-								Tip: also add <code>www</code> as a CNAME pointing to <code>{ref.owner}.github.io</code> so
-								www.{cname} works too.
-							</p>
+							{view.records.map((record) => (
+								<p className="modal-note" key={`${record.type}:${record.name}`}>
+									<strong>{record.type} record</strong> — {PURPOSE_LABEL[record.purpose]}:<br />
+									name/host <code>{record.name}</code> → <code>{record.value}</code>
+								</p>
+							))}
 						</div>
-					) : (
-						<div className="dns-records">
-							<p className="modal-note">
-								Add a <strong>CNAME record</strong> — host/name <code>{cname.split('.')[0]}</code>, pointing to:
-							</p>
-							<code>{ref.owner}.github.io</code>
-						</div>
-					)}
-					<p className="modal-note">
-						DNS changes usually take a few minutes, sometimes up to an hour. GitHub turns on HTTPS automatically once
-						it can see your records.
-					</p>
-					{rebuild === 'building' && <p className="modal-note">Rebuilding your site for the new address…</p>}
-					{rebuild === 'failed' && (
-						<p className="publish-error">
-							The site rebuild reported an error — check the{' '}
-							<a href={`https://github.com/${ref.owner}/${ref.repo}/actions`} target="_blank" rel="noopener noreferrer">
-								build log
-							</a>{' '}
-							to see what happened.
-						</p>
-					)}
-					{health === 'live' && <p className="modal-note">DNS looks good — your domain is connected.</p>}
-					{health === 'pending' && (
-						<p className="modal-note">DNS isn’t pointing at GitHub yet — records can take up to an hour to propagate.</p>
-					)}
-					{health === 'unknown' && (
+					) : null}
+					{!connected && (
 						<p className="modal-note">
-							We couldn’t verify automatically. Your site will work once the DNS records above are in place.
+							DNS changes usually take a few minutes, sometimes up to an hour. HTTPS switches on automatically once the
+							records are visible.
 						</p>
 					)}
 					{error && <p className="publish-error">{error}</p>}
 					<div className="success-actions">
-						<button type="button" className="btn-secondary" onClick={checkDns} disabled={busy !== 'none'}>
-							{busy === 'checking' ? 'Checking…' : 'Check DNS'}
+						<button type="button" className="btn-secondary" onClick={check} disabled={busy !== 'none'}>
+							{busy === 'checking' ? 'Checking…' : connected ? 'Re-check' : 'Check connection'}
 						</button>
 						<button type="button" className="btn-ghost" onClick={remove} disabled={busy !== 'none'}>
 							{busy === 'removing' ? 'Disconnecting…' : 'Disconnect domain'}

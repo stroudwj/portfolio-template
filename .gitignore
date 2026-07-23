@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# wrangler local dev
+.wrangler/
+.dev.vars
+
+# generated: published-site client runtime (scripts/build-hydration-runtime.mjs)
+public/hangwork-runtime/
