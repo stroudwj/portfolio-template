@@ -105,7 +105,14 @@ function versionAssetIds(doc: EditorDoc): Set<string> {
 	const ids = new Set<string>();
 	for (const entries of Object.values(doc.galleries))
 		for (const entry of entries) if (entry.assetId) ids.add(entry.assetId);
-	for (const slot of [doc.profileImage, doc.logoImage, doc.resumeFile, ...Object.values(doc.pageThumbs), ...Object.values(doc.fonts)])
+	for (const slot of [
+		doc.profileImage,
+		doc.logoImage,
+		doc.resumeFile,
+		...Object.values(doc.pageThumbs),
+		...Object.values(doc.productImages),
+		...Object.values(doc.fonts),
+	])
 		if (slot?.assetId) ids.add(slot.assetId);
 	return ids;
 }

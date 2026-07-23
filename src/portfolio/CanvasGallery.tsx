@@ -36,6 +36,7 @@ import {
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
 import { videoEmbedSrc } from './videoEmbed';
+import { stripePaymentLink } from './paymentEmbed';
 import { safeHref } from './safeHref';
 import { TextContent } from './TextBlock';
 import { automaticPhoneOrder } from './mobileOrder';
@@ -429,12 +430,49 @@ export default function CanvasGallery({
 						'--w': String(l.w), '--ar': String(l.ar), zIndex: dragId === embed.id ? DRAG_Z : embedZ(i),
 					} as CSSProperties;
 					const src = videoEmbedSrc(embed.url);
-					const href = src ? null : safeHref(embed.url);
+					const buyHref = src ? null : stripePaymentLink(embed.url);
+					const href = src || buyHref ? null : safeHref(embed.url);
 					return (
-						<div key={item.key} className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`} style={vars}
-							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}>
-							{src ? <iframe src={src} title="Embedded video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : (
-								<div className="canvas-embed-fallback">{href && /^https?:/.test(href) && !editable ? <a href={href} target="_blank" rel="noopener">Watch video ↗</a> : <span>Video</span>}</div>
+						<div
+							key={item.key}
+							className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`}
+							style={vars}
+							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
+						>
+							{src ? (
+								<iframe
+									src={src}
+									title="Embedded video"
+									loading="lazy"
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+									allowFullScreen
+								/>
+							) : buyHref ? (
+								<div className="canvas-embed-fallback canvas-embed-buy">
+									{editable ? (
+										<span className="canvas-embed-buy-button">Buy</span>
+									) : (
+										<a
+											className="canvas-embed-buy-button"
+											href={buyHref}
+											target="_blank"
+											rel="noopener noreferrer"
+											aria-label="Buy on Stripe"
+										>
+											Buy ↗
+										</a>
+									)}
+								</div>
+							) : (
+								<div className="canvas-embed-fallback">
+									{href && /^https?:/.test(href) && !editable ? (
+										<a href={href} target="_blank" rel="noopener noreferrer">
+											Watch video ↗
+										</a>
+									) : (
+										<span>Video</span>
+									)}
+								</div>
 							)}
 							{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
 							{editable && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}

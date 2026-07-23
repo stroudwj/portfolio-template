@@ -7,7 +7,7 @@
 import Layout from '../layouts/Layout.astro';
 import PortfolioPage from '../portfolio/PortfolioPage';
 import { content, pageTitle } from '../lib/content';
-import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
+import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs, resolveProductImages } from '../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../lib/productSite';
 
 export function getStaticPaths() {
@@ -25,6 +25,8 @@ const hasInteractiveBlocks = !!page.mobile || page.blocks?.some((block) => block
 const hasAbout = page.blocks?.some((b) => b.type === 'about');
 const profile = hasAbout ? await resolveProfileImage() : {};
 const pageThumbs = await resolveChildThumbs(pageKey);
+const hasProducts = page.blocks?.some((block) => block.type === 'products');
+const productImageSrcs = hasProducts ? await resolveProductImages() : {};
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -38,6 +40,7 @@ const base = import.meta.env.BASE_URL;
 				galleries={galleries}
 				profileImageSrc={profile.src}
 				pageThumbs={pageThumbs}
+				productImageSrcs={productImageSrcs}
 				base={base}
 			/>
 		) : (
@@ -47,6 +50,7 @@ const base = import.meta.env.BASE_URL;
 				galleries={{}}
 				profileImageSrc={profile.src}
 				pageThumbs={pageThumbs}
+				productImageSrcs={productImageSrcs}
 				base={base}
 			/>
 		)

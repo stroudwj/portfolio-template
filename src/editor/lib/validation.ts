@@ -1,6 +1,7 @@
 // Small, dependency-free validators used for live inline feedback and the
 // pre-export summary.
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 import { safeWebHref } from '../../portfolio/safeHref';
@@ -58,6 +59,9 @@ export function hasPublishableContent(doc: EditorDoc): boolean {
 		// name but never uploaded render as gray placeholders, not publishable work.
 		if (entries.some((e) => e.assetId)) return true;
 	}
+	for (const product of doc.content.store?.products ?? []) {
+		if (product.status !== 'draft' && doc.productImages[product.id]?.assetId) return true;
+	}
 	for (const page of Object.values(doc.content.pages)) {
 		for (const block of page.blocks ?? []) {
 			if (block.type === 'text' && block.text.trim()) return true;
@@ -96,9 +100,9 @@ export function collectIssues(doc: EditorDoc): string[] {
 		if (!page.title.trim()) issues.push(`The page “${page.label ?? key}” needs a browser and search title.`);
 		for (const block of page.blocks ?? []) {
 			if (block.type === 'embed') {
-				if (!block.url.trim()) issues.push(`A video on “${page.label ?? key}” has no link yet.`);
-				else if (!videoEmbedSrc(block.url))
-					issues.push(`A video link on “${page.label ?? key}” isn’t a YouTube or Vimeo URL.`);
+				if (!block.url.trim()) issues.push(`An embed on “${page.label ?? key}” has no link yet.`);
+				else if (!videoEmbedSrc(block.url) && !stripePaymentLink(block.url))
+					issues.push(`An embed link on “${page.label ?? key}” isn’t a YouTube, Vimeo, or Stripe Payment Link.`);
 			}
 			if (
 				block.type === 'button' &&

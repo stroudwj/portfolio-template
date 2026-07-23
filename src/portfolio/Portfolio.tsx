@@ -21,7 +21,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const creativeClasses = [
 		content.site.creative?.looseHang && 'creative-loose-hang',
@@ -49,6 +49,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					galleries={galleries}
 					profileImageSrc={profileImageSrc}
 					pageThumbs={pageThumbs}
+					productImageSrcs={productImageSrcs}
 					resumeHref={resumeHref}
 					base={base}
 					onNavigate={onNavigate}

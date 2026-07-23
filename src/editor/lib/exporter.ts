@@ -9,6 +9,7 @@ import type { EditorDoc, ImageEntry, ImageMeta } from './types';
 import { getAssetBlob } from './assets';
 import { cloneContent } from './content-init';
 import { sanitizeFilename } from './validation';
+import { isTestStripePaymentLink, normalizeStripePaymentLink } from '../../lib/stripe-payment-link';
 
 export interface BundleFile {
 	/** Project-relative path, e.g. src/assets/art/01-piece.jpg */
@@ -135,6 +136,7 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	const content = cloneContent(doc.content);
 	const files: BundleFile[] = [];
 	const referencedFiles = new Set<string>();
+	const emittedImagePathByAssetId = new Map<string, string>();
 
 	// Draft pages stay safely in the browser document but never enter a published
 	// bundle. Removing them here keeps the live runtime simple and means artists do
@@ -158,6 +160,20 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		content.nav = content.nav.filter((item) => !draftKeys.has(item.path));
 		for (const page of Object.values(content.pages)) {
 			if (page.children) page.children = page.children.filter((key) => !draftKeys.has(key));
+		}
+	}
+
+	// Draft products are editable work, like draft pages, but are not public data.
+	// Explicit product selections must be normalized at the same boundary so the
+	// published Content document never contains a dangling catalog reference.
+	if (content.store) {
+		content.store.products = content.store.products.filter((product) => product.status !== 'draft');
+		const publishedProductIds = new Set(content.store.products.map((product) => product.id));
+		for (const page of Object.values(content.pages)) {
+			for (const block of page.blocks ?? []) {
+				if (block.type === 'products' && block.productIds)
+					block.productIds = block.productIds.filter((productId) => publishedProductIds.has(productId));
+			}
 		}
 	}
 
@@ -218,7 +234,11 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			usedNames.add(finalName);
 			const meta = metaObject({ ...entry.meta, id: entry.id });
 			if (meta) items[finalName] = meta;
-			if (blob) files.push({ path: `src/assets/${folder}/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+			if (blob) {
+				files.push({ path: `src/assets/${folder}/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+				if (entry.assetId && !emittedImagePathByAssetId.has(entry.assetId))
+					emittedImagePathByAssetId.set(entry.assetId, `${folder}/${finalName}`);
+			}
 			else referencedFiles.add(`src/assets/${folder}/${finalName}`);
 			if (doc.ogImage && doc.ogImage.folder === folder && doc.ogImage.entryId === entry.id)
 				ogPath = `${folder}/${finalName}`;
@@ -228,6 +248,56 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			for (const config of configsByFolder.get(folder) ?? []) config.order = 'asc';
 	}
 	content.site.ogImage = ogPath;
+
+	// Resolve product images after galleries so selecting existing artwork can point
+	// at the already-emitted gallery file instead of publishing a second copy.
+	for (const product of content.store?.products ?? []) {
+		const displayName = product.name.trim() || 'Untitled product';
+		const slot = doc.productImages[product.id];
+		const reusedPath = slot?.assetId ? emittedImagePathByAssetId.get(slot.assetId) : undefined;
+		if (reusedPath) {
+			product.image = reusedPath;
+		} else if (slot?.filename) {
+			const blob = localAssetBlob(slot.assetId, slot.filename || displayName);
+			if (blob) {
+				const finalName = `products/${pageKeyToken(product.id)}/${sanitizeFilename(slot.filename || 'product')}`;
+				files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
+				product.image = finalName;
+				if (slot.assetId) emittedImagePathByAssetId.set(slot.assetId, finalName);
+			} else if (product.image) {
+				referencedFiles.add(`src/assets/${product.image}`);
+			} else {
+				product.image = undefined;
+			}
+		} else {
+			product.image = undefined;
+		}
+
+		product.name = product.name.trim();
+		product.imageAlt = product.imageAlt.trim();
+		for (const offer of product.offers) {
+			offer.label = offer.label.trim();
+			const normalized = normalizeStripePaymentLink(offer.checkout.url);
+			offer.checkout.url = normalized ?? '';
+		}
+
+		if (product.status !== 'available') continue;
+		const problem = (detail: string) => {
+			throw new Error(`“${displayName}” cannot be published as Available: ${detail}`);
+		};
+		if (!product.name) problem('add a product name.');
+		if (!product.imageAlt) problem('add an image description for visitors who cannot see it.');
+		if (!product.image) problem('choose or upload a product image.');
+		if (!product.offers.length) problem('add at least one purchase option.');
+		for (const offer of product.offers) {
+			if (!offer.label) problem('give every purchase option a label.');
+			if (!Number.isSafeInteger(offer.amountMinor) || offer.amountMinor <= 0)
+				problem('give every purchase option a positive display price.');
+			if (!offer.checkout.url) problem('give every purchase option a valid buy.stripe.com Payment Link.');
+			if (isTestStripePaymentLink(offer.checkout.url))
+				problem('replace the Stripe test Payment Link with a live Payment Link.');
+		}
+	}
 
 	// Résumé PDF, served from public/ at the site root. Uploaded this session ->
 	// write the file and point resume.url at it; loaded from the repo without

@@ -83,6 +83,8 @@ function referencedAssetPaths(content: Content): string[] {
 	if (content.profile.image) paths.push(`src/assets/${content.profile.image}`);
 	if (content.site.logoImage) paths.push(`src/assets/${content.site.logoImage}`);
 	for (const page of Object.values(content.pages)) if (page.thumbnail) paths.push(`src/assets/${page.thumbnail}`);
+	for (const product of content.store?.products ?? [])
+		if (product.status !== 'draft' && product.image) paths.push(`src/assets/${product.image}`);
 	for (const font of content.theme.customFonts ?? []) paths.push(`src/assets/${font.file}`);
 	for (const [folder, gallery] of Object.entries(content.galleries))
 		for (const filename of Object.keys(gallery.items)) paths.push(`src/assets/${folder}/${filename}`);
@@ -205,6 +207,18 @@ export class GitHubTarget implements PublishTarget {
 		}
 
 		const referencedAssets = referencedAssetPaths(bundle.contentJson);
+		const emittedPaths = new Set(bundle.files.map((file) => file.path));
+		const existingPaths = new Set(snapshot.tree.map((item) => item.path));
+		const missingReferences = referencedAssets.filter(
+			(path) => !emittedPaths.has(path) && !existingPaths.has(path),
+		);
+		if (missingReferences.length) {
+			throw new Error(
+				`Missing from this browser and GitHub: ${missingReferences
+					.map((path) => path.split('/').pop() ?? path)
+					.join(', ')}. Re-upload ${missingReferences.length === 1 ? 'it' : 'them'} before publishing.`,
+			);
+		}
 		const keep = new Set(files.map((file) => file.path));
 		for (const path of referencedAssets) keep.add(path);
 		const assetDeletions = (await listAssetPaths(client, ref, snapshot.tree)).filter((path) => !keep.has(path));

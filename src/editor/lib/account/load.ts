@@ -96,6 +96,15 @@ export async function loadPublishedSite(
 			wanted.push(`assets/${page.thumbnail}`);
 		}
 	}
+	const productPathById = new Map<string, string>();
+	for (const product of content.store?.products ?? []) {
+		if (!product.image) continue;
+		const path = `assets/${product.image}`;
+		if (has(path)) {
+			productPathById.set(product.id, path);
+			wanted.push(path);
+		}
+	}
 	const profilePath = content.profile.image ? `assets/${content.profile.image}` : '';
 	if (profilePath && has(profilePath)) wanted.push(profilePath);
 	const logoPath = content.site.logoImage ? `assets/${content.site.logoImage}` : '';
@@ -112,11 +121,12 @@ export async function loadPublishedSite(
 	const hasResume = !!resumePath && has(resumePath);
 	if (hasResume) wanted.push(resumePath);
 
+	const downloadPaths = [...new Set(wanted)];
 	const assetIdByPath = new Map<string, string>();
-	const total = wanted.length;
-	for (let i = 0; i < wanted.length; i++) {
+	const total = downloadPaths.length;
+	for (let i = 0; i < downloadPaths.length; i++) {
 		onProgress?.({ step: 'Downloading your images…', detail: `${i} of ${total}` });
-		const path = wanted[i];
+		const path = downloadPaths[i];
 		const bytes = await fetchBytes(siteUrl, path);
 		if (!bytes) continue; // a missing file renders as a placeholder, not a dead end
 		const filename = path.slice(path.lastIndexOf('/') + 1);
@@ -155,6 +165,14 @@ export async function loadPublishedSite(
 	doc.logoImage = { filename: content.site.logoImage || '', assetId: assetIdByPath.get(logoPath) ?? null };
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = { filename: path.slice(path.lastIndexOf('/') + 1), assetId: assetIdByPath.get(path) ?? null };
+	}
+	for (const product of content.store?.products ?? []) {
+		if (!product.image) continue;
+		const path = productPathById.get(product.id) ?? `assets/${product.image}`;
+		doc.productImages[product.id] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+		};
 	}
 	for (const [name, path] of fontPathByName) {
 		doc.fonts[name] = { filename: path.slice(path.lastIndexOf('/') + 1), assetId: assetIdByPath.get(path) ?? null };

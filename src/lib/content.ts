@@ -125,6 +125,38 @@ export interface Resume {
 	url: string;
 }
 
+/** One Stripe-hosted checkout choice for a product, such as a size or edition. */
+export interface StoreOffer {
+	id: string;
+	label: string;
+	/** Display price in the store currency's smallest unit (for example, cents). */
+	amountMinor: number;
+	checkout: {
+		provider: 'stripe_payment_link';
+		url: string;
+	};
+}
+
+/** A reusable catalog item that can appear in any products page block. */
+export interface StoreProduct {
+	id: string;
+	name: string;
+	description?: string;
+	/** Path under src/assets/. The editor keeps working image slots separately. */
+	image?: string;
+	/** Accessibility description for the product image. */
+	imageAlt: string;
+	status: 'draft' | 'available' | 'sold_out';
+	offers: StoreOffer[];
+}
+
+export interface StoreConfig {
+	/** ISO 4217 currency code used to format every display price in this catalog. */
+	currency: string;
+	/** Catalog order is storefront order unless a products block selects explicit ids. */
+	products: StoreProduct[];
+}
+
 export type GalleryLayoutMode = 'freeform' | 'grid';
 
 /** Optional phone-only presentation for one item. Automatic phone layouts do not
@@ -212,6 +244,13 @@ export type PageBlock =
 	| { id: string; type: 'divider' }
 	| {
 			id: string;
+			type: 'products';
+			/** Omitted means every non-draft catalog product in catalog order. */
+			productIds?: string[];
+			layout?: 'grid' | 'featured';
+		}
+	| {
+			id: string;
 			type: 'form';
 			heading?: string;
 			action: string;
@@ -290,6 +329,8 @@ export interface Content {
 	contact: Contact;
 	social: SocialLink[];
 	resume: Resume;
+	/** Optional sales catalog. Existing portfolios omit it and render unchanged. */
+	store?: StoreConfig;
 	pages: Record<string, PageConfig>;
 	galleries: Record<string, GalleryData>;
 }

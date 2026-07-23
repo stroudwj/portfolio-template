@@ -31,7 +31,14 @@ function assetSlots(doc: EditorDoc): Array<{ id: string; filename: string }> {
 	const slots: Array<{ id: string; filename: string }> = [];
 	for (const entries of Object.values(doc.galleries))
 		for (const entry of entries) if (entry.assetId) slots.push({ id: entry.assetId, filename: entry.filename });
-	for (const slot of [doc.profileImage, doc.logoImage, doc.resumeFile, ...Object.values(doc.pageThumbs), ...Object.values(doc.fonts)])
+	for (const slot of [
+		doc.profileImage,
+		doc.logoImage,
+		doc.resumeFile,
+		...Object.values(doc.pageThumbs),
+		...Object.values(doc.productImages),
+		...Object.values(doc.fonts),
+	])
 		if (slot?.assetId) slots.push({ id: slot.assetId, filename: slot.filename });
 	return [...new Map(slots.map((slot) => [slot.id, slot])).values()];
 }
@@ -142,7 +149,14 @@ function remapAssetIds(doc: EditorDoc, ids: ReadonlyMap<string, string>): Editor
 	const remap = (id: string | null): string | null => (id ? (ids.get(id) ?? id) : null);
 	for (const entries of Object.values(next.galleries))
 		for (const entry of entries) entry.assetId = remap(entry.assetId);
-	for (const slot of [next.profileImage, next.logoImage, next.resumeFile, ...Object.values(next.pageThumbs), ...Object.values(next.fonts)])
+	for (const slot of [
+		next.profileImage,
+		next.logoImage,
+		next.resumeFile,
+		...Object.values(next.pageThumbs),
+		...Object.values(next.productImages),
+		...Object.values(next.fonts),
+	])
 		if (slot) slot.assetId = remap(slot.assetId);
 	return next;
 }

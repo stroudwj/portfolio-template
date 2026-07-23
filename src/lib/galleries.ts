@@ -9,8 +9,8 @@ import type { ImageMeta } from './content';
 
 const assets = import.meta.glob<{ default: ImageMetadata }>(
 	[
-		'/src/assets/*.{jpeg,jpg,png,gif,webp,svg}',
-		'/src/assets/**/*.{jpeg,jpg,png,gif,webp,svg}',
+		'/src/assets/*.{jpeg,jpg,png,gif,webp,avif,svg}',
+		'/src/assets/**/*.{jpeg,jpg,png,gif,webp,avif,svg}',
 	],
 	{ eager: true },
 );
@@ -32,7 +32,12 @@ export function getGallery(
 	items: Record<string, ImageMeta> = {},
 ): GalleryImage[] {
 	const prefix = `/src/assets/${folder}/`;
-	const entries = Object.entries(assets).filter(([key]) => key.startsWith(prefix));
+	const entries = Object.entries(assets).filter(([key]) => {
+		if (!key.startsWith(prefix)) return false;
+		// Product assets and other feature-owned files may live in nested folders.
+		// A gallery owns only its direct files, matching browser static generation.
+		return !key.slice(prefix.length).includes('/');
+	});
 
 	if (order === 'desc') entries.reverse();
 

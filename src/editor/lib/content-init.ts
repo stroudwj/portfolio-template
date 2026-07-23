@@ -17,7 +17,7 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
-	schemaVersion: 2,
+	schemaVersion: 3,
 	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
@@ -102,6 +102,14 @@ export function initDocFromContent(content: Content): EditorDoc {
 	}
 	const resumeUrl = cloned.resume?.url ?? '';
 	const galleries = entriesFromContent(cloned);
+	const productImages: EditorDoc['productImages'] = {};
+	for (const product of cloned.store?.products ?? []) {
+		const image = product.image ?? '';
+		productImages[product.id] = {
+			filename: image.slice(Math.max(image.lastIndexOf('/'), image.lastIndexOf('\\')) + 1),
+			assetId: null,
+		};
+	}
 
 	// Map a stored social-card image ("folder/file.jpg") back to its entry so the
 	// Sharing tab shows the current choice and the next publish keeps it.
@@ -115,12 +123,13 @@ export function initDocFromContent(content: Content): EditorDoc {
 	}
 
 	return {
-		docVersion: 1,
+		docVersion: 2,
 		content: cloned,
 		galleries,
 		profileImage: { filename: cloned.profile.image || '', assetId: null },
 		logoImage: { filename: cloned.site.logoImage || '', assetId: null },
 		pageThumbs,
+		productImages,
 		fonts,
 		resumeFile: { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
 		ogImage,
@@ -173,6 +182,15 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		if (src) pageThumbs[key] = src;
 	}
 
+	const productImageSrcs: Record<string, string> = {};
+	for (const product of doc.content.store?.products ?? []) {
+		const image = doc.productImages[product.id];
+		const src =
+			getAssetPreviewUrl(image?.assetId ?? null) ??
+			(image?.filename || product.image ? PLACEHOLDER_IMAGE : undefined);
+		if (src) productImageSrcs[product.id] = src;
+	}
+
 	// Uploaded fonts render in the preview from their blob URLs; fonts referenced
 	// but not uploaded this session simply fall back to the next family in the stack.
 	const fontFaces = (doc.content.theme.customFonts ?? []).flatMap((font) => {
@@ -183,5 +201,14 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	// A résumé uploaded this session opens from its blob URL in the preview.
 	const resumeHref = getAssetUrl(doc.resumeFile?.assetId);
 
-	return { content: doc.content, galleries, profileImageSrc, logoImageSrc, pageThumbs, fontFaces, resumeHref };
+	return {
+		content: doc.content,
+		galleries,
+		profileImageSrc,
+		logoImageSrc,
+		pageThumbs,
+		productImageSrcs,
+		fontFaces,
+		resumeHref,
+	};
 }

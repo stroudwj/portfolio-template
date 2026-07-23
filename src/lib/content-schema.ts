@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Content } from './content';
 
-export const CONTENT_SCHEMA_VERSION = 2 as const;
+export const CONTENT_SCHEMA_VERSION = 3 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 
@@ -56,6 +56,53 @@ const galleryConfigSchema = passthrough({
 	mobile: mobileCompositionSchema.optional(),
 });
 
+const storeOfferSchema = passthrough({
+	id: z.string().min(1),
+	label: z.string(),
+	amountMinor: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+	checkout: passthrough({
+		provider: z.literal('stripe_payment_link'),
+		url: z.string(),
+	}),
+});
+
+const storeImagePathSchema = z
+	.string()
+	.min(1)
+	.refine(
+		(value) =>
+			!value.includes('\\') &&
+			!value.includes(':') &&
+			!/[?#\u0000-\u001f\u007f]/.test(value) &&
+			!/%(?:2e|2f|5c)/i.test(value) &&
+			value.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..'),
+		{ message: 'Use a safe path relative to the site assets folder' },
+	);
+
+const storeProductSchema = passthrough({
+	id: z.string().min(1),
+	name: z.string(),
+	description: z.string().optional(),
+	image: storeImagePathSchema.optional(),
+	imageAlt: z.string(),
+	status: z.enum(['draft', 'available', 'sold_out']),
+	offers: z.array(storeOfferSchema),
+});
+
+const supportedCurrencyCodes =
+	typeof Intl.supportedValuesOf === 'function'
+		? new Set(Intl.supportedValuesOf('currency'))
+		: null;
+
+const storeConfigSchema = passthrough({
+	currency: z
+		.string()
+		.regex(/^[A-Z]{3}$/, 'Use a three-letter uppercase currency code')
+		.refine((value) => !supportedCurrencyCodes || supportedCurrencyCodes.has(value), 'Use an ISO 4217 currency code')
+		.default('USD'),
+	products: z.array(storeProductSchema),
+});
+
 const pageBlockSchema = z.discriminatedUnion('type', [
 	passthrough({
 		id: z.string(),
@@ -89,6 +136,12 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		appearance: z.enum(['solid', 'outline']).optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('divider') }),
+	passthrough({
+		id: z.string(),
+		type: z.literal('products'),
+		productIds: z.array(z.string()).optional(),
+		layout: z.enum(['grid', 'featured']).optional(),
+	}),
 	passthrough({
 		id: z.string(),
 		type: z.literal('form'),
@@ -158,6 +211,7 @@ export const contentSchema = passthrough({
 	contact: passthrough({ email: z.string() }),
 	social: z.array(passthrough({ label: z.string(), url: z.string() })),
 	resume: passthrough({ label: z.string(), url: z.string() }),
+	store: storeConfigSchema.optional(),
 	pages: z.record(
 		z.string(),
 		passthrough({
@@ -178,6 +232,26 @@ export const contentSchema = passthrough({
 }).superRefine((value, ctx) => {
 	if (!value.pages.home)
 		ctx.addIssue({ code: 'custom', path: ['pages', 'home'], message: 'A home page is required' });
+	const productIds = new Set<string>();
+	(value.store?.products ?? []).forEach((product, productIndex) => {
+		if (productIds.has(product.id))
+			ctx.addIssue({
+				code: 'custom',
+				path: ['store', 'products', productIndex, 'id'],
+				message: 'Product id must be unique',
+			});
+		productIds.add(product.id);
+		const offerIds = new Set<string>();
+		product.offers.forEach((offer, offerIndex) => {
+			if (offerIds.has(offer.id))
+				ctx.addIssue({
+					code: 'custom',
+					path: ['store', 'products', productIndex, 'offers', offerIndex, 'id'],
+					message: 'Offer id must be unique within its product',
+				});
+			offerIds.add(offer.id);
+		});
+	});
 	const navPaths = new Set<string>();
 	value.nav.forEach((item, index) => {
 		const key = item.path || 'home';
@@ -206,6 +280,24 @@ export const contentSchema = passthrough({
 				block.fields.forEach((field, fieldIndex) => {
 					if (fieldIds.has(field.id)) ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'blocks', index, 'fields', fieldIndex, 'id'], message: 'Form field id must be unique' });
 					fieldIds.add(field.id);
+				});
+			}
+			if (block.type === 'products' && block.productIds) {
+				const selectedIds = new Set<string>();
+				block.productIds.forEach((productId, productIndex) => {
+					if (selectedIds.has(productId))
+						ctx.addIssue({
+							code: 'custom',
+							path: ['pages', pageKey, 'blocks', index, 'productIds', productIndex],
+							message: 'Product appears in this block more than once',
+						});
+					selectedIds.add(productId);
+					if (!productIds.has(productId))
+						ctx.addIssue({
+							code: 'custom',
+							path: ['pages', pageKey, 'blocks', index, 'productIds', productIndex],
+							message: 'Products block points to a product that does not exist',
+						});
 				});
 			}
 		});
@@ -376,9 +468,19 @@ export function migrateContentV1ToV2(raw: unknown): unknown {
 	return next;
 }
 
+/** Schema 3 adds an optional store catalog and products page blocks. Existing
+ * sites omit the store entirely, so migration changes no rendered behavior. */
+export function migrateContentV2ToV3(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+	next.schemaVersion = 3;
+	return next;
+}
+
 const contentMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateContentV0ToV1,
 	1: migrateContentV1ToV2,
+	2: migrateContentV2ToV3,
 };
 
 function readVersion(raw: unknown): number {

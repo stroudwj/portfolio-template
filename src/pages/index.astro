@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import PortfolioPage from '../portfolio/PortfolioPage';
 import Landing from '../components/Landing.astro';
 import { content, pageTitle } from '../lib/content';
-import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs } from '../lib/resolveImages';
+import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs, resolveProductImages } from '../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../lib/productSite';
 
 // The root page is two different things: on the product site it's the sales landing
@@ -14,6 +14,8 @@ const galleries = IS_PRODUCT_SITE ? {} : await resolvePageGalleries('home');
 const hasAbout = !IS_PRODUCT_SITE && page.blocks?.some((b) => b.type === 'about');
 const profile = hasAbout ? await resolveProfileImage() : {};
 const pageThumbs = IS_PRODUCT_SITE ? {} : await resolveChildThumbs('home');
+const hasProducts = !IS_PRODUCT_SITE && page.blocks?.some((block) => block.type === 'products');
+const productImageSrcs = hasProducts ? await resolveProductImages() : {};
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -28,6 +30,7 @@ const base = import.meta.env.BASE_URL;
 				galleries={galleries}
 				profileImageSrc={profile.src}
 				pageThumbs={pageThumbs}
+				productImageSrcs={productImageSrcs}
 				base={base}
 			/>
 		</Layout>

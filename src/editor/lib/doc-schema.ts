@@ -3,7 +3,7 @@ import { contentSchema, parseAndMigrateContent } from '../../lib/content-schema'
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 
-export const EDITOR_DOC_VERSION = 1 as const;
+export const EDITOR_DOC_VERSION = 2 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 const singleImageSchema = passthrough({ filename: z.string(), assetId: z.string().nullable() });
@@ -40,10 +40,28 @@ export const editorDocSchema = passthrough({
 	profileImage: singleImageSchema,
 	logoImage: singleImageSchema,
 	pageThumbs: z.record(z.string(), singleImageSchema),
+	productImages: z.record(z.string(), singleImageSchema),
 	fonts: z.record(z.string(), singleImageSchema),
 	resumeFile: singleImageSchema,
 	ogImage: passthrough({ folder: z.string(), entryId: z.string() }).optional(),
 }).superRefine((value, ctx) => {
+	const productIds = new Set((value.content.store?.products ?? []).map((product) => product.id));
+	for (const productId of productIds) {
+		if (!(productId in value.productImages))
+			ctx.addIssue({
+				code: 'custom',
+				path: ['productImages', productId],
+				message: 'The image slot used by this product is missing',
+			});
+	}
+	for (const productId of Object.keys(value.productImages)) {
+		if (!productIds.has(productId))
+			ctx.addIssue({
+				code: 'custom',
+				path: ['productImages', productId],
+				message: 'Product image points to a product that does not exist',
+			});
+	}
 	for (const [pageKey, page] of Object.entries(value.content.pages)) {
 		for (const [galleryIndex, gallery] of pageGalleryConfigs(page).entries()) {
 			if (!(gallery.folder in value.galleries))
@@ -112,7 +130,7 @@ export function migrateEditorDocV0ToV1(raw: unknown): unknown {
 	const next = cloneUnknown(raw);
 	if (!isObject(next)) return next;
 	if ('content' in next) next.content = parseAndMigrateContent(next.content);
-	next.docVersion = EDITOR_DOC_VERSION;
+	next.docVersion = 1;
 
 	const content = isObject(next.content) ? next.content : {};
 	const site = isObject(content.site) ? content.site : {};
@@ -140,7 +158,42 @@ export function migrateEditorDocV0ToV1(raw: unknown): unknown {
 	return next;
 }
 
-const docMigrations: Record<number, (raw: unknown) => unknown> = { 0: migrateEditorDocV0ToV1 };
+function filenameFromAssetPath(path: string): string {
+	return path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
+}
+
+/** Editor document v2 adds one standalone image slot per catalog product. The
+ * slot is reference-only when loaded from published content; uploaded pixels
+ * remain in the browser asset registry as usual. */
+export function migrateEditorDocV1ToV2(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+	if ('content' in next) next.content = parseAndMigrateContent(next.content);
+
+	const productImages = isObject(next.productImages) ? next.productImages : {};
+	const content = isObject(next.content) ? next.content : {};
+	const store = isObject(content.store) ? content.store : {};
+	if (Array.isArray(store.products)) {
+		for (const product of store.products) {
+			if (!isObject(product) || typeof product.id !== 'string' || !product.id) continue;
+			if (!(product.id in productImages)) {
+				const image = typeof product.image === 'string' ? product.image : '';
+				productImages[product.id] = {
+					filename: image ? filenameFromAssetPath(image) : '',
+					assetId: null,
+				};
+			}
+		}
+	}
+	next.productImages = productImages;
+	next.docVersion = 2;
+	return next;
+}
+
+const docMigrations: Record<number, (raw: unknown) => unknown> = {
+	0: migrateEditorDocV0ToV1,
+	1: migrateEditorDocV1ToV2,
+};
 
 function readDocVersion(raw: unknown): number {
 	if (!isObject(raw) || raw.docVersion === undefined) return 0;

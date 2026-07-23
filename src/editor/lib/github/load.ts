@@ -118,6 +118,15 @@ export async function loadDocFromRepo(
 			imagePaths.push(path);
 		}
 	}
+	const productPathById = new Map<string, string>();
+	for (const product of content.store?.products ?? []) {
+		if (!product.image) continue;
+		const path = `src/assets/${product.image}`;
+		if (shaByPath.has(path)) {
+			productPathById.set(product.id, path);
+			imagePaths.push(path);
+		}
+	}
 	const profileName = content.profile.image;
 	const profilePath = profileName ? `src/assets/${profileName}` : '';
 	const hasProfileFile = !!profilePath && shaByPath.has(profilePath);
@@ -140,11 +149,12 @@ export async function loadDocFromRepo(
 	if (hasResumeFile) imagePaths.push(resumePath);
 
 	// Download each blob and register it as an editor asset, reporting progress.
+	const downloadPaths = [...new Set(imagePaths)];
 	const assetIdByPath = new Map<string, string>();
-	const total = imagePaths.length;
-	for (let i = 0; i < imagePaths.length; i++) {
+	const total = downloadPaths.length;
+	for (let i = 0; i < downloadPaths.length; i++) {
 		onProgress?.({ step: 'Downloading your images…', detail: `${i} of ${total}` });
-		const path = imagePaths[i];
+		const path = downloadPaths[i];
 		const bytes = await readBlobBytes(client, ref, shaByPath.get(path)!);
 		const filename = path.slice(path.lastIndexOf('/') + 1);
 		const blob = new Blob([bytes as BlobPart], { type: mimeFromName(filename) });
@@ -186,6 +196,14 @@ export async function loadDocFromRepo(
 		: { filename: logoName, assetId: null };
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+		};
+	}
+	for (const product of content.store?.products ?? []) {
+		if (!product.image) continue;
+		const path = productPathById.get(product.id) ?? `src/assets/${product.image}`;
+		doc.productImages[product.id] = {
 			filename: path.slice(path.lastIndexOf('/') + 1),
 			assetId: assetIdByPath.get(path) ?? null,
 		};

@@ -104,6 +104,24 @@ export async function resolveChildThumbs(pageKey: string): Promise<Record<string
 	return out;
 }
 
+/** Optimized Store catalog images, keyed by stable product ID. */
+export async function resolveProductImages(): Promise<Record<string, string>> {
+	const out: Record<string, string> = {};
+	for (const product of content.store?.products ?? []) {
+		if (product.status === 'draft' || !product.image) continue;
+		const image = getAsset(product.image);
+		if (!image) continue;
+		out[product.id] = (
+			await getImage({
+				src: image,
+				width: Math.min(image.width || 1200, 1200),
+				quality: 85,
+			})
+		).src;
+	}
+	return out;
+}
+
 /** Optimized profile image src (undefined if the file isn't found). */
 export async function resolveProfileImage(): Promise<{ src?: string }> {
 	const image = getAsset(content.profile.image);

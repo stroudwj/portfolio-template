@@ -15,7 +15,7 @@ export default function Embed({ url }: { url: string }) {
 	if (buyHref) {
 		return (
 			<div className="embed-block embed-buy">
-				<a className="embed-buy-button" href={buyHref} target="_blank" rel="noopener">
+				<a className="embed-buy-button" href={buyHref} target="_blank" rel="noopener noreferrer">
 					Buy ↗
 				</a>
 			</div>
@@ -27,7 +27,7 @@ export default function Embed({ url }: { url: string }) {
 		if (!href || !/^https?:/.test(href)) return null;
 		return (
 			<div className="embed-block">
-				<a className="embed-fallback" href={href} target="_blank" rel="noopener">
+				<a className="embed-fallback" href={href} target="_blank" rel="noopener noreferrer">
 					Watch video ↗
 				</a>
 			</div>

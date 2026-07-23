@@ -15,7 +15,7 @@
 // browser, so pages reference the original uploaded files directly (src == full) and
 // skip srcset. Publish once, and the served artifact IS the exportable artifact.
 import { createElement } from 'react';
-import type { Content, GalleryConfig, PageConfig } from '../../../lib/content';
+import type { Content, PageConfig } from '../../../lib/content';
 import { pageGalleryConfigs } from '../../../lib/content';
 import Portfolio from '../../../portfolio/Portfolio';
 import { fontFacesCss, themeToRootCss } from '../../../portfolio/theme';
@@ -62,6 +62,8 @@ export function referencedAssetPaths(content: Content): string[] {
 	for (const font of content.theme.customFonts ?? []) paths.push(`src/assets/${font.file}`);
 	for (const [folder, gallery] of Object.entries(content.galleries))
 		for (const filename of Object.keys(gallery.items)) paths.push(`src/assets/${folder}/${filename}`);
+	for (const product of content.store?.products ?? [])
+		if (product.status !== 'draft' && product.image) paths.push(`src/assets/${product.image}`);
 	const resume = content.resume?.url.trim();
 	if (resume && !resume.startsWith('//') && !/^[a-z][a-z\d+.-]*:/i.test(resume))
 		paths.push(`public/${resume.replace(/^\/+/, '')}`);
@@ -84,15 +86,6 @@ async function computeAspectRatios(bundle: PortfolioBundle): Promise<Map<string,
 		}
 	}
 	return ratios;
-}
-
-/** The config that owns a folder (mirrors resolveImages.ts configForFolder). */
-function configForFolder(content: Content, folder: string): GalleryConfig | undefined {
-	for (const page of Object.values(content.pages)) {
-		const found = pageGalleryConfigs(page).find((g) => g.folder === folder);
-		if (found) return found;
-	}
-	return undefined;
 }
 
 /**
@@ -156,6 +149,16 @@ function resolvePageThumbs(content: Content, galleries: Record<string, ResolvedI
 	return thumbs;
 }
 
+/** Store catalog images use their stable content paths directly in browser-built sites. */
+function resolveProductImageSrcs(content: Content): Record<string, string> {
+	const images: Record<string, string> = {};
+	for (const product of content.store?.products ?? []) {
+		if (product.status !== 'draft' && product.image)
+			images[product.id] = `/assets/${product.image}`;
+	}
+	return images;
+}
+
 /** site.ogImage first, else the profile photo, else home's first image (resolveOgImage). */
 function resolveOgImage(content: Content, galleries: Record<string, ResolvedImage[]>, siteUrl: string): string | undefined {
 	if (content.site.ogImage) return `${siteUrl}/assets/${content.site.ogImage}`;
@@ -210,6 +213,7 @@ export async function generateStaticSite(bundle: PortfolioBundle, opts: StaticSi
 		profileImageSrc: content.profile.image ? `/assets/${content.profile.image}` : undefined,
 		logoImageSrc: content.site.logoImage ? `/assets/${content.site.logoImage}` : undefined,
 		pageThumbs: resolvePageThumbs(content, galleries),
+		productImageSrcs: resolveProductImageSrcs(content),
 		fontFaces: (content.theme.customFonts ?? []).map((font) => ({ name: font.name, url: `/assets/${font.file}` })),
 	};
 

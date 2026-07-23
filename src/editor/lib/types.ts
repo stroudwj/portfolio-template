@@ -46,7 +46,7 @@ export interface SingleImage {
  */
 export interface EditorDoc {
 	/** Version of the browser-only working document shape. */
-	docVersion: 1;
+	docVersion: 2;
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;
@@ -55,6 +55,8 @@ export interface EditorDoc {
 	logoImage: SingleImage;
 	/** page key -> its sub-page card thumbnail. */
 	pageThumbs: Record<string, SingleImage>;
+	/** product id -> its editable image slot (uploaded or shared with gallery artwork). */
+	productImages: Record<string, SingleImage>;
 	/** custom font name (content.theme.customFonts) -> its uploaded file. */
 	fonts: Record<string, SingleImage>;
 	/** The résumé PDF linked from the About section (empty filename = none). */

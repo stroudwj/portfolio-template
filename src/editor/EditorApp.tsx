@@ -6,6 +6,7 @@ import ThemeEditor from './components/ThemeEditor';
 import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
 import PageManager from './components/PageManager';
+import StoreEditor from './components/StoreEditor';
 import SocialLinksEditor from './components/SocialLinksEditor';
 import SignatureEditor from './components/SignatureEditor';
 import FooterEditor from './components/FooterEditor';
@@ -27,6 +28,7 @@ import './editor.css';
  *  collapse state and the preview's scroll-to-section keep working. */
 const EDITOR_TABS = [
 	{ id: 'content', icon: '🖼️', label: 'Content', title: 'Your pages — images, text, videos & profile' },
+	{ id: 'store', icon: '🛍️', label: 'Store', title: 'Products, prices & Stripe checkout links' },
 	{ id: 'theme', icon: '🎨', label: 'Theme', title: 'Colors, fonts & site layout' },
 	{ id: 'extras', icon: '🖋️', label: 'Extras', title: 'Finishing touches — signature, footer & links' },
 	{ id: 'creative', icon: '✨', label: 'Fun', title: 'Optional playful touches for the whole site' },
@@ -282,6 +284,9 @@ function Shell({ base }: { base: string }) {
 						{doc.content.nav.map((item) => (
 							<PageEditor key={item.path || 'home'} pageKey={item.path || 'home'} />
 						))}
+					</div>
+					<div className={`editor-tab-pane ${tab === 'store' ? 'active' : ''}`}>
+						<StoreEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'theme' ? 'active' : ''}`}>
 						<LayoutEditor />

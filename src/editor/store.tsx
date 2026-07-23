@@ -9,6 +9,8 @@ import type {
 	MobileComposition,
 	SignatureData,
 	SocialLink,
+	StoreOffer,
+	StoreProduct,
 	Theme,
 	PageBlock,
 	PageConfig,
@@ -51,6 +53,10 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 
 /** Page keys that can never be minted for a new page (routes/folders the site owns). */
 const RESERVED_KEYS = new Set(['home', 'editor', 'demo', 'thumbs', '404']);
+const SUPPORTED_CURRENCY_CODES =
+	typeof Intl.supportedValuesOf === 'function'
+		? new Set(Intl.supportedValuesOf('currency'))
+		: null;
 
 /** How many full-document states Cmd+Z can walk back through. */
 const HISTORY_LIMIT = 100;
@@ -69,7 +75,7 @@ function slugify(value: string): string {
 }
 
 /** A page key that collides with nothing: not reserved, not an existing page. */
-function uniquePageKey(desired: string, pages: Record<string, PageConfig>): string {
+export function uniquePageKey(desired: string, pages: Record<string, PageConfig>): string {
 	let key = desired;
 	for (let n = 2; RESERVED_KEYS.has(key) || key in pages; n++) key = `${desired}-${n}`;
 	return key;
@@ -77,8 +83,8 @@ function uniquePageKey(desired: string, pages: Record<string, PageConfig>): stri
 
 /** A gallery folder that collides with nothing the document already uses. */
 function uniqueFolder(desired: string, doc: EditorDoc): string {
-	// 'fonts' and 'thumbs' are special src/assets/ subfolders the exporter owns.
-	const taken = new Set(['fonts', 'thumbs', ...Object.keys(doc.content.galleries), ...Object.keys(doc.galleries)]);
+	// These src/assets/ subfolders are owned by non-gallery export features.
+	const taken = new Set(['fonts', 'thumbs', 'products', ...Object.keys(doc.content.galleries), ...Object.keys(doc.galleries)]);
 	for (const page of Object.values(doc.content.pages))
 		for (const config of pageGalleryConfigs(page)) taken.add(config.folder);
 	let folder = desired;
@@ -106,7 +112,14 @@ function referencedAssetIds(doc: EditorDoc): Set<string> {
 	const ids = new Set<string>();
 	for (const entries of Object.values(doc.galleries))
 		for (const entry of entries) if (entry.assetId) ids.add(entry.assetId);
-	for (const slot of [doc.profileImage, doc.logoImage, doc.resumeFile, ...Object.values(doc.pageThumbs), ...Object.values(doc.fonts)])
+	for (const slot of [
+		doc.profileImage,
+		doc.logoImage,
+		doc.resumeFile,
+		...Object.values(doc.pageThumbs),
+		...Object.values(doc.productImages),
+		...Object.values(doc.fonts),
+	])
 		if (slot?.assetId) ids.add(slot.assetId);
 	return ids;
 }
@@ -265,6 +278,29 @@ export interface EditorContextValue {
 	updateSocial(index: number, patch: Partial<SocialLink>): void;
 	removeSocial(index: number): void;
 	moveSocial(from: number, to: number): void;
+	// store
+	/** Initialize a USD catalog and add a visible, collision-safe Shop page. */
+	setupStore(): void;
+	setStoreCurrency(currency: string): void;
+	addProduct(): void;
+	updateProduct(
+		productId: string,
+		patch: Partial<Omit<StoreProduct, 'id' | 'offers' | 'image'>>,
+	): void;
+	removeProduct(productId: string): void;
+	moveProduct(from: number, to: number): void;
+	setProductImage(productId: string, file: File): void;
+	/** Reuse one gallery artwork by sharing its browser asset id. */
+	setProductImageFromGallery(productId: string, folder: string, entryId: string): void;
+	removeProductImage(productId: string): void;
+	addProductOffer(productId: string): void;
+	updateProductOffer(
+		productId: string,
+		offerId: string,
+		patch: Partial<Omit<StoreOffer, 'id'>>,
+	): void;
+	removeProductOffer(productId: string, offerId: string): void;
+	moveProductOffer(productId: string, from: number, to: number): void;
 	// pages
 	addPage(label: string): void;
 	addChildPage(parentKey: string, label: string): void;
@@ -328,6 +364,12 @@ export interface EditorContextValue {
 		key: string,
 		blockId: string,
 		patch: Partial<Extract<PageBlock, { type: 'form' }>>,
+	): void;
+	addProductsBlock(key: string): void;
+	updateProductsBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Pick<Extract<PageBlock, { type: 'products' }>, 'productIds' | 'layout'>>,
 	): void;
 	removeBlock(key: string, blockId: string): void;
 	moveBlock(key: string, from: number, to: number): void;
@@ -684,6 +726,316 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			),
 		removeSocial: (index) => patchContent((c) => ({ ...c, social: c.social.filter((_, i) => i !== index) })),
 		moveSocial: (from, to) => patchContent((c) => ({ ...c, social: arrayMove(c.social, from, to) })),
+
+		// ---- store ----
+		setupStore: () =>
+			commitDoc((prev) => {
+				if (prev.content.store) return prev;
+				const key = uniquePageKey('shop', prev.content.pages);
+				const block: Extract<PageBlock, { type: 'products' }> = {
+					id: uid('products'),
+					type: 'products',
+					layout: 'grid',
+				};
+				const page: PageConfig = {
+					title: 'Shop — {name}',
+					label: 'Shop',
+					heading: 'Shop',
+					blocks: [block],
+				};
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: { currency: 'USD', products: [] },
+						nav: [...prev.content.nav, { path: key, label: 'Shop' }],
+						pages: { ...prev.content.pages, [key]: page },
+					},
+				};
+			}),
+		setStoreCurrency: (currency) => {
+			const normalized = currency.trim().toUpperCase();
+			patchContent((content) =>
+				content.store &&
+				/^[A-Z]{3}$/.test(normalized) &&
+				(!SUPPORTED_CURRENCY_CODES || SUPPORTED_CURRENCY_CODES.has(normalized))
+					? {
+							...content,
+							store: { ...content.store, currency: normalized },
+						}
+					: content,
+			);
+		},
+		addProduct: () =>
+			commitDoc((prev) => {
+				if (!prev.content.store) return prev;
+				const productId = uid('product');
+				const product: StoreProduct = {
+					id: productId,
+					name: '',
+					imageAlt: '',
+					status: 'draft',
+					offers: [
+						{
+							id: uid('offer'),
+							label: '',
+							amountMinor: 0,
+							checkout: { provider: 'stripe_payment_link', url: '' },
+						},
+					],
+				};
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: { ...prev.content.store, products: [...prev.content.store.products, product] },
+					},
+					productImages: {
+						...prev.productImages,
+						[productId]: { filename: '', assetId: null },
+					},
+				};
+			}),
+		updateProduct: (productId, patch) =>
+			patchContent(
+				(content) =>
+					content.store
+						? {
+								...content,
+								store: {
+									...content.store,
+									products: content.store.products.map((product) =>
+										product.id === productId
+											? {
+													...product,
+													...patch,
+													id: product.id,
+													image: product.image,
+													offers: product.offers,
+												}
+											: product,
+									),
+								},
+							}
+						: content,
+				true,
+				`store:product:${productId}:${Object.keys(patch).sort().join(',')}`,
+			),
+		removeProduct: (productId) =>
+			commitDoc((prev) => {
+				if (!prev.content.store?.products.some((product) => product.id === productId)) return prev;
+				const productImages = { ...prev.productImages };
+				delete productImages[productId];
+				const pages = Object.fromEntries(
+					Object.entries(prev.content.pages).map(([key, page]) => [
+						key,
+						{
+							...page,
+							blocks: page.blocks?.map((block) =>
+								block.type === 'products' && block.productIds
+									? {
+											...block,
+											productIds: block.productIds.filter((id) => id !== productId),
+										}
+									: block,
+							),
+						},
+					]),
+				);
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: {
+							...prev.content.store,
+							products: prev.content.store.products.filter((product) => product.id !== productId),
+						},
+						pages,
+					},
+					productImages,
+				};
+			}),
+		moveProduct: (from, to) =>
+			patchContent((content) => {
+				if (
+					!content.store ||
+					from === to ||
+					from < 0 ||
+					to < 0 ||
+					from >= content.store.products.length ||
+					to >= content.store.products.length
+				)
+					return content;
+				return {
+					...content,
+					store: { ...content.store, products: arrayMove(content.store.products, from, to) },
+				};
+			}),
+		setProductImage: (productId, file) => {
+			if (!docRef.current?.content.store?.products.some((product) => product.id === productId)) return;
+			const assetId = registerAsset(file, file.name);
+			commitDoc((prev) => {
+				if (!prev.content.store?.products.some((product) => product.id === productId)) return prev;
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: {
+							...prev.content.store,
+							products: prev.content.store.products.map((product) =>
+								product.id === productId ? { ...product, image: undefined } : product,
+							),
+						},
+					},
+					productImages: {
+						...prev.productImages,
+						[productId]: { filename: file.name, assetId },
+					},
+				};
+			});
+		},
+		setProductImageFromGallery: (productId, folder, entryId) =>
+			commitDoc((prev) => {
+				if (!prev.content.store?.products.some((product) => product.id === productId)) return prev;
+				const entry = prev.galleries[folder]?.find((candidate) => candidate.id === entryId);
+				if (!entry) return prev;
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: {
+							...prev.content.store,
+							products: prev.content.store.products.map((product) =>
+								product.id === productId
+									? { ...product, image: `${folder}/${entry.filename}` }
+									: product,
+							),
+						},
+					},
+					productImages: {
+						...prev.productImages,
+						[productId]: { filename: entry.filename, assetId: entry.assetId },
+					},
+				};
+			}),
+		removeProductImage: (productId) =>
+			commitDoc((prev) => {
+				if (!prev.content.store?.products.some((product) => product.id === productId)) return prev;
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						store: {
+							...prev.content.store,
+							products: prev.content.store.products.map((product) =>
+								product.id === productId ? { ...product, image: undefined } : product,
+							),
+						},
+					},
+					productImages: {
+						...prev.productImages,
+						[productId]: { filename: '', assetId: null },
+					},
+				};
+			}),
+		addProductOffer: (productId) =>
+			patchContent((content) => {
+				if (!content.store) return content;
+				const offer: StoreOffer = {
+					id: uid('offer'),
+					label: '',
+					amountMinor: 0,
+					checkout: { provider: 'stripe_payment_link', url: '' },
+				};
+				return {
+					...content,
+					store: {
+						...content.store,
+						products: content.store.products.map((product) =>
+							product.id === productId
+								? { ...product, offers: [...product.offers, offer] }
+								: product,
+						),
+					},
+				};
+			}),
+		updateProductOffer: (productId, offerId, patch) =>
+			patchContent(
+				(content) =>
+					content.store
+						? {
+								...content,
+								store: {
+									...content.store,
+									products: content.store.products.map((product) =>
+										product.id === productId
+											? {
+													...product,
+													offers: product.offers.map((offer) =>
+														offer.id === offerId
+															? {
+																	...offer,
+																	...patch,
+																	id: offer.id,
+																	checkout: patch.checkout
+																		? { ...offer.checkout, ...patch.checkout, provider: 'stripe_payment_link' }
+																		: offer.checkout,
+																}
+															: offer,
+													),
+												}
+											: product,
+									),
+								},
+							}
+						: content,
+				true,
+				`store:product:${productId}:offer:${offerId}:${Object.keys(patch).sort().join(',')}`,
+			),
+		removeProductOffer: (productId, offerId) =>
+			patchContent((content) =>
+				content.store
+					? {
+							...content,
+							store: {
+								...content.store,
+								products: content.store.products.map((product) =>
+									product.id === productId
+										? {
+												...product,
+												offers: product.offers.filter((offer) => offer.id !== offerId),
+											}
+										: product,
+								),
+							},
+						}
+					: content,
+			),
+		moveProductOffer: (productId, from, to) =>
+			patchContent((content) => {
+				if (!content.store) return content;
+				const product = content.store.products.find((candidate) => candidate.id === productId);
+				if (
+					!product ||
+					from === to ||
+					from < 0 ||
+					to < 0 ||
+					from >= product.offers.length ||
+					to >= product.offers.length
+				)
+					return content;
+				return {
+					...content,
+					store: {
+						...content.store,
+						products: content.store.products.map((candidate) =>
+							candidate.id === productId
+								? { ...candidate, offers: arrayMove(candidate.offers, from, to) }
+								: candidate,
+						),
+					},
+				};
+			}),
 
 		// ---- pages ----
 		addPage: (label) =>
@@ -1201,6 +1553,27 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					block.id === blockId && block.type === 'form' ? { ...block, ...patch, id: block.id, type: 'form' } : block,
 				),
 			true, `page:${key}:form:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addProductsBlock: (key) =>
+			patchBlocks(key, (blocks) => [
+				...blocks,
+				{ id: uid('products'), type: 'products', layout: 'grid' },
+			]),
+		updateProductsBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) => {
+				const knownProductIds = new Set(
+					docRef.current?.content.store?.products.map((product) => product.id) ?? [],
+				);
+				const normalized = { ...patch };
+				if ('productIds' in patch && patch.productIds)
+					normalized.productIds = [
+						...new Set(patch.productIds.filter((productId) => knownProductIds.has(productId))),
+					];
+				return blocks.map((block) =>
+					block.id === blockId && block.type === 'products'
+						? { ...block, ...normalized, id: block.id, type: 'products' }
+						: block,
+				);
+			}, true, `page:${key}:products:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		removeBlock: (key, blockId) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];

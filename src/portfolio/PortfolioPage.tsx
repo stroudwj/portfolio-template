@@ -6,6 +6,7 @@ import TextBlock from './TextBlock';
 import Embed from './Embed';
 import ContactForm from './ContactForm';
 import { PortfolioButton, PortfolioDivider } from './PageBlocks';
+import Products from './Products';
 import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
@@ -132,7 +133,7 @@ function DraggableFlowBlock({
  * so the page composition lives in exactly one place. Content is always migrated
  * (migrateContent) before it gets here, so `blocks` is present.
  */
-export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioPageProps) {
+export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, productImageSrcs, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 	const [isPhone, setIsPhone] = useState(false);
 	const setPageRoot = useCallback((element: HTMLDivElement | null) => {
@@ -252,6 +253,18 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				}));
 				return <ChildPages key={block.id} items={items} style={block.style} onNavigate={onNavigate} />;
 			}
+			case 'products':
+				if (!content.store) return null;
+				return (
+					<Products
+						key={block.id}
+						store={content.store}
+						productImageSrcs={productImageSrcs}
+						productIds={block.productIds}
+						layout={block.layout}
+						locale={content.site.language}
+					/>
+				);
 			case 'gallery': {
 				const galleryEl = (
 					<Gallery

@@ -5,9 +5,31 @@
 // framework-neutral they never touch Astro's image pipeline — callers resolve
 // images to plain `src` strings first (Astro via getImage(), the editor via
 // object URLs) and pass them in as `ResolvedImage`.
-import type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout, TextStyle } from '../lib/content';
+import type {
+	Content,
+	GalleryConfig,
+	ImageLayout,
+	NavItem,
+	SocialLink,
+	StoreConfig,
+	StoreProduct,
+	TextAlign,
+	TextLayout,
+	TextStyle,
+} from '../lib/content';
 
-export type { Content, GalleryConfig, ImageLayout, NavItem, SocialLink, TextAlign, TextLayout, TextStyle };
+export type {
+	Content,
+	GalleryConfig,
+	ImageLayout,
+	NavItem,
+	SocialLink,
+	StoreConfig,
+	StoreProduct,
+	TextAlign,
+	TextLayout,
+	TextStyle,
+};
 
 /** A text block placed on the freeform canvas (its `layout` is present). */
 export interface CanvasText {
@@ -59,6 +81,8 @@ export interface PortfolioData {
 	logoImageSrc?: string;
 	/** Page key -> resolved thumbnail URL, for rendering sub-page cards. */
 	pageThumbs?: Record<string, string>;
+	/** Product ID -> resolved catalog image URL. */
+	productImageSrcs?: Record<string, string>;
 	/** Custom fonts with resolved URLs (the editor preview passes blob: URLs). */
 	fontFaces?: Array<{ name: string; url: string }>;
 	/** Resolved resume URL override (the editor preview passes a blob: URL). */

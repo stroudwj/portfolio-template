@@ -141,11 +141,12 @@ describe('browser draft compatibility', () => {
 		const doc = parseAndMigrateEditorDoc(raw);
 
 		expect(raw).toEqual(original);
-		expect(doc.docVersion).toBe(1);
+		expect(doc.docVersion).toBe(2);
 		expect(doc.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
 		expect(doc.logoImage).toEqual({ filename: '', assetId: null });
 		expect(doc.resumeFile.filename).toBe('resume.pdf');
 		expect(doc.fonts['Draft Font']).toEqual({ filename: 'draft.woff2', assetId: null });
+		expect(doc.productImages).toEqual({});
 		expect((doc as unknown as Record<string, unknown>).draftExtension).toBe('keep-this');
 
 		const bundle = await buildBundle(doc);
@@ -154,7 +155,7 @@ describe('browser draft compatibility', () => {
 
 	it('rejects future draft versions', () => {
 		const raw = fixture('editor-doc-v0.json') as Record<string, unknown>;
-		expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 2 })).toThrow(UnsupportedEditorDocVersionError);
+		expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 3 })).toThrow(UnsupportedEditorDocVersionError);
 	});
 
 	it('clears a stale sharing-image choice instead of rejecting the whole draft', () => {

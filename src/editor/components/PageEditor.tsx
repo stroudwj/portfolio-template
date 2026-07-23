@@ -3,7 +3,7 @@
 // (thumbnail cards). Sub-pages get their own nested PageEditor so their galleries
 // and text are edited in place; nesting is one level deep by design.
 import { useEditor } from '../store';
-import { Field, TextInput, TextArea, Section } from './ui/controls';
+import { Field, TextInput, TextArea, Section, showEditorTab } from './ui/controls';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
 import { ImageDrop } from './ui/ImageDrop';
@@ -239,6 +239,8 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 								? `Button: ${block.label || 'Untitled'}`
 								: block.type === 'divider'
 									? 'Divider line'
+									: block.type === 'products'
+										? 'Products'
 									: block.type === 'form'
 										? block.heading || 'Contact form'
 										: block.type === 'about'
@@ -287,6 +289,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 			block.type === 'images' ? block.name || 'image group' :
 			block.type === 'embed' ? 'video' :
 			block.type === 'children' ? 'sub-pages' :
+			block.type === 'products' ? 'products' :
 			block.type === 'form' ? 'contact form' :
 			block.type === 'divider' ? 'divider' : block.type;
 		const blockLabel = `${name} block ${index + 1} on ${pageName}`;
@@ -576,6 +579,154 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						<hr />
 					</div>
 				);
+			case 'products': {
+				const products = doc.content.store?.products ?? [];
+				const selected = block.productIds;
+				const selectedSet = new Set(selected ?? []);
+				const orderedProducts = selected
+					? [
+							...selected
+								.map((productId) => products.find((product) => product.id === productId))
+								.filter((product): product is (typeof products)[number] => !!product),
+							...products.filter((product) => !selectedSet.has(product.id)),
+						]
+					: products;
+				const visibleCatalog = products.filter((product) => product.status !== 'draft');
+				const productBlockLabel = `products block ${index + 1} on ${pageName}`;
+				const toggleProduct = (productId: string, checked: boolean) => {
+					const current = selected ?? [];
+					editor.updateProductsBlock(pageKey, block.id, {
+						productIds: checked
+							? [...current, productId]
+							: current.filter((id) => id !== productId),
+					});
+				};
+				const moveSelected = (productId: string, direction: -1 | 1) => {
+					if (!selected) return;
+					const from = selected.indexOf(productId);
+					const to = from + direction;
+					if (from < 0 || to < 0 || to >= selected.length) return;
+					const next = selected.slice();
+					const [item] = next.splice(from, 1);
+					next.splice(to, 0, item);
+					editor.updateProductsBlock(pageKey, block.id, { productIds: next });
+				};
+				return (
+					<div className="block products-editor-block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label">Products</span>
+							<select
+								className="select-input products-layout-select"
+								value={block.layout ?? 'grid'}
+								aria-label={`Layout for ${productBlockLabel}`}
+								onChange={(event) =>
+									editor.updateProductsBlock(pageKey, block.id, {
+										layout: event.target.value as 'grid' | 'featured',
+									})
+								}
+							>
+								<option value="grid">Product grid</option>
+								<option value="featured">Featured list</option>
+							</select>
+							{controls(index, block, true)}
+						</div>
+						{doc.content.store ? (
+							<>
+								<div className="block-choice-row products-source-choice" role="group" aria-label={`Products shown by ${productBlockLabel}`}>
+									<label>
+										<input
+											type="radio"
+											name={`products-source-${block.id}`}
+											checked={selected === undefined}
+											onChange={() =>
+												editor.updateProductsBlock(pageKey, block.id, {
+													productIds: undefined,
+												})
+											}
+										/>
+										All products
+									</label>
+									<label>
+										<input
+											type="radio"
+											name={`products-source-${block.id}`}
+											checked={selected !== undefined}
+											onChange={() =>
+												editor.updateProductsBlock(pageKey, block.id, {
+													productIds: visibleCatalog.map((product) => product.id),
+												})
+											}
+										/>
+										Choose products
+									</label>
+								</div>
+								<p className="muted">
+									{selected === undefined
+										? 'Shows every non-draft product in Store order, including products you add later.'
+										: 'Choose and order the products shown in this block. Draft products stay hidden when published.'}
+								</p>
+								{selected !== undefined && (
+									<div className="products-selection-list">
+										{orderedProducts.map((product) => {
+											const selectedIndex = selected.indexOf(product.id);
+											const checked = selectedIndex >= 0;
+											return (
+												<div className="products-selection-row" key={product.id}>
+													<label>
+														<input
+															type="checkbox"
+															checked={checked}
+															onChange={(event) =>
+																toggleProduct(product.id, event.target.checked)
+															}
+														/>
+														<span>{product.name || 'Untitled product'}</span>
+														{product.status === 'draft' && <small>Draft</small>}
+														{product.status === 'sold_out' && <small>Sold out</small>}
+													</label>
+													{checked && (
+														<div className="block-controls" role="group" aria-label={`Order ${product.name || 'untitled product'} in ${productBlockLabel}`}>
+															<button
+																type="button"
+																className="btn-icon"
+																disabled={selectedIndex === 0}
+																onClick={() => moveSelected(product.id, -1)}
+																aria-label={`Move ${product.name || 'untitled product'} earlier in ${productBlockLabel}`}
+															>
+																↑
+															</button>
+															<button
+																type="button"
+																className="btn-icon"
+																disabled={selectedIndex === selected.length - 1}
+																onClick={() => moveSelected(product.id, 1)}
+																aria-label={`Move ${product.name || 'untitled product'} later in ${productBlockLabel}`}
+															>
+																↓
+															</button>
+														</div>
+													)}
+												</div>
+											);
+										})}
+										{products.length === 0 && (
+											<p className="muted">Add products in the Store tab, then choose them here.</p>
+										)}
+									</div>
+								)}
+							</>
+						) : (
+							<p className="muted">
+								Set up your catalog in{' '}
+								<button type="button" className="btn-link" onClick={() => showEditorTab('store')}>
+									Store
+								</button>{' '}
+								before choosing products.
+							</p>
+						)}
+					</div>
+				);
+			}
 			case 'form': {
 				const endpointInvalid = !!block.action && (!isUrl(block.action) || !block.action.startsWith('https://'));
 				const updateFields = (fields: FormField[]) => editor.updateFormBlock(pageKey, block.id, { fields });
@@ -778,6 +929,17 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 						<button type="button" className="btn-link" aria-label={`Add a button to ${pageName}`} onClick={() => editor.addButtonBlock(pageKey)}>Add button</button>
 						<button type="button" className="btn-link" aria-label={`Add a divider to ${pageName}`} onClick={() => editor.addDividerBlock(pageKey)}>Add divider</button>
 						<button type="button" className="btn-link" aria-label={`Add a contact form to ${pageName}`} onClick={() => editor.addFormBlock(pageKey)}>Add contact form</button>
+						<button
+							type="button"
+							className="btn-link"
+							aria-label={`${doc.content.store ? 'Add products to' : 'Set up products for'} ${pageName}`}
+							onClick={() => {
+								if (doc.content.store) editor.addProductsBlock(pageKey);
+								else showEditorTab('store');
+							}}
+						>
+							{doc.content.store ? 'Add products' : 'Set up products…'}
+						</button>
 						{!nested && <button type="button" className="btn-link" aria-label={`Add a sub-page under ${pageName}`} onClick={addChild}>Add sub-page</button>}
 					</div>
 				</details>

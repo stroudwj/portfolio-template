@@ -41,13 +41,21 @@ const sections: LegalSection[] = [
 			<h3>Account information</h3>
 			<p>Your email address, and — if you sign in with Google — your name and the basic profile information Google shares for sign-in. We don’t receive your Google password.</p>
 			<h3>Your site content</h3>
-			<p>The images, text, and files you upload, and the site you build. Published sites are public by design.</p>
+			<p>The images, text, files, product catalog, display prices, and Stripe Payment Links you add, and the site you build. Published sites are public by design.</p>
 			<h3>Payment information</h3>
 			<p>Purchases are handled by Lemon Squeezy as merchant of record. They collect your payment details directly; we receive order and license information (such as your email, the product, and whether the purchase is valid) but not your full card number.</p>
 			<h3>Technical and log data</h3>
 			<p>Like any website, our infrastructure automatically records data such as IP address, browser type, and requests, used for security, abuse prevention, and keeping the Service running.</p>
 			<h3>Support messages</h3>
 			<p>If you email us, we keep the message and our reply so we can help you.</p>
+		`,
+	},
+	{
+		id: 'artist-sales',
+		heading: 'Sales through an artist’s Stripe account',
+		html: `
+			<p>A product button on a published portfolio sends the buyer to checkout hosted by Stripe for that artist. Stripe and the artist — not Hangwork — handle the checkout, buyer information, orders, receipts, tax settings, shipping, refunds, and fulfillment. Hangwork does not receive or store the artist’s buyer or order data and does not provide an order dashboard.</p>
+			<p>The public catalog, display prices, availability labels, and Payment Link URLs are part of the artist’s published site. Buyers should review Stripe’s and the artist’s own privacy information before purchasing.</p>
 		`,
 	},
 	{
@@ -82,6 +90,7 @@ const sections: LegalSection[] = [
 				<li><strong>Resend</strong> — sending sign-in links and transactional email.</li>
 				<li><strong>Google</strong> — only if you choose “Continue with Google,” to authenticate you.</li>
 			</ul>
+			<p>Stripe is not a Hangwork subprocessor for purchases from an artist’s catalog: the buyer leaves the portfolio for the artist’s own Stripe-hosted checkout, and Hangwork does not receive that transaction data.</p>
 			<p>We may also disclose data if required by law, to protect people’s safety, or as part of a business transfer. We don’t otherwise share your personal data.</p>
 		`,
 	},
@@ -89,7 +98,7 @@ const sections: LegalSection[] = [
 		id: 'public-content',
 		heading: 'Content you publish is public',
 		html: `
-			<p>When you publish, your site and its contents are visible to anyone on the internet, and search engines may index them. Don’t put anything on a published page that you need to keep private. Drafts you haven’t published stay hidden.</p>
+			<p>When you publish, your site and its contents — including product names, images, descriptions, display prices, availability, and Payment Link URLs — are visible to anyone on the internet, and search engines may index them. Don’t put anything on a published page that you need to keep private. Draft products and pages you haven’t published stay hidden.</p>
 		`,
 	},
 	{
