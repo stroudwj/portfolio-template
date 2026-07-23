@@ -88,17 +88,21 @@ export class CloudflareTarget implements PublishTarget {
 			manifest[file.path] = { hash: await sha256Hex(file.bytes), size: file.bytes.length };
 			byPath.set(file.path, file);
 		}
-		const missing: string[] = [];
+		const missing = new Set<string>();
 		for (const projectPath of referencedAssetPaths(bundle.contentJson)) {
 			const path = servedPath(projectPath);
 			if (manifest[path]) continue;
 			const carried = saved?.lastManifest?.[path];
 			if (carried) manifest[path] = carried;
-			else missing.push(path.split('/').pop() ?? path);
+			// Drop the leading "assets/" so the message reads as a page-relative path
+			// (e.g. "selected-works/placeholder.png") instead of a bare filename —
+			// several sample images share the name "placeholder.png".
+			else missing.add(path.replace(/^assets\//, ''));
 		}
-		if (missing.length) {
+		if (missing.size) {
+			const list = [...missing];
 			throw new Error(
-				`Missing from this browser: ${missing.join(', ')}. Re-upload ${missing.length === 1 ? 'it' : 'them'} before publishing.`,
+				`Still using the sample image${list.length === 1 ? '' : 's'} for: ${list.join(', ')}. Replace ${list.length === 1 ? 'it' : 'them'} with your own before publishing.`,
 			);
 		}
 

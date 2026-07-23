@@ -222,9 +222,13 @@ function ProductEditor({
 					!!image?.filename &&
 					product.image === `${choice.folder}/${choice.filename}`),
 		)?.key ?? '';
+	const hasChosenImage = Boolean(image?.filename || product.image);
 	const availableProblems = [
 		!product.name.trim() && 'a name',
-		!(image?.filename || product.image) && 'an image',
+		!hasChosenImage && 'an image',
+		hasChosenImage &&
+			!image?.assetId &&
+			'a real product photo — the sample image can’t be published; upload your own or replace it',
 		!product.imageAlt.trim() && 'an image description',
 		product.offers.length === 0 && 'at least one buying option',
 		product.offers.some((offer) => !offer.label.trim()) && 'a name for every buying option',
