@@ -6,7 +6,7 @@ export const SEO_ARTICLES = [
 		title: 'A Squarespace alternative for artists — Hangwork',
 		heading: 'A Squarespace alternative for artists, built around the artwork.',
 		description:
-			'Compare Hangwork and Squarespace for an artist portfolio: cost model, ownership, design freedom, hosting, domains, and the tradeoffs that matter.',
+			'Compare Hangwork and Squarespace for an artist portfolio: real pricing, what you own, custom domains, selling through your own Stripe checkout, and the features that match.',
 	},
 	{
 		slug: 'portfolio-website-without-subscription',

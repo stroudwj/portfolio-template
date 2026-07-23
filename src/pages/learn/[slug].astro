@@ -122,10 +122,23 @@ const howToLd = isHowTo
 						<div class="article-body">
 							<section>
 								<p class="standfirst">
-									Squarespace is a broad website platform. Hangwork is a focused portfolio builder for visual artists.
-									The useful question isn't which one can make a website; both can. It's which tradeoffs fit the job
-									your portfolio needs to do.
+									Squarespace is a broad website platform. Hangwork is a focused portfolio builder for visual artists. The useful question isn't which one can make a website; both can. It's which tradeoffs fit the job your portfolio actually needs to do — and, for most artists, what it costs to keep it online year after year.
 								</p>
+							</section>
+
+							<section>
+								<h2>The cost difference, in real numbers</h2>
+								<p>
+									For a portfolio, the fair comparison is Squarespace's entry tier — not its commerce plans. As of mid-2026, that plan runs about $16/month billed annually (roughly $190 a year), or $25/month month-to-month. Wix's cheapest ad-free plan is nearly identical, so the same math applies to both.
+								</p>
+								<p>Now put that next to Hangwork's one-time <strong>{currentPriceText}</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}:</p>
+								<ul>
+									<li><strong>By your fourth month</strong> on Squarespace's cheapest plan, you've already paid more than Hangwork costs in total — and the billing keeps going.</li>
+									<li>On month-to-month pricing, you pass Hangwork's full price in <strong>two months</strong>.</li>
+									<li><strong>Three years in,</strong> Squarespace's entry plan comes to around <strong>$575</strong>. Hangwork is still {currentPriceText}, once.</li>
+								</ul>
+								<p>The subscription never buys you out — it buys you another year. Hangwork is a single payment, and the published site isn't tied to keeping a plan active.</p>
+								<p class="source-note">Plan names and prices change, and vary by region and billing term. Check Squarespace's <a href="https://www.squarespace.com/pricing">live pricing page</a> for current figures before deciding.</p>
 							</section>
 
 							<section>
@@ -134,56 +147,47 @@ const howToLd = isHowTo
 									<table>
 										<thead><tr><th>Question</th><th>Hangwork</th><th>Squarespace</th></tr></thead>
 										<tbody>
-											<tr><th>Cost model</th><td><strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}</td><td>Ongoing plan billed monthly or annually</td></tr>
+											<tr><th>Cost model</th><td><strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}</td><td>~$16/mo billed annually (~$190/yr), or $25/mo monthly — recurring</td></tr>
 											<tr><th>Primary job</th><td>Image-first artist portfolios</td><td>General websites, services, stores, and portfolios</td></tr>
 											<tr><th>Site storage</th><td>A free account owned by the artist</td><td>Squarespace's hosted platform</td></tr>
-											<tr><th>Included address</th><td>Your chosen hangwork.art subdomain</td><td>Squarespace subdomain; annual plans may include a domain offer</td></tr>
-											<tr><th>Commerce</th><td>Product catalog with artist-owned Stripe checkout; no cart or order dashboard</td><td>Built-in selling tools on eligible plans</td></tr>
+											<tr><th>Custom domain</th><td><strong>Connect your own at no extra cost</strong></td><td>Free for year one on annual plans, then renews — and only while the plan is active</td></tr>
+											<tr><th>Portfolio features</th><td>Galleries, project pages, captions, video, about, contact</td><td>The same, plus broader business tools</td></tr>
+											<tr><th>Selling directly</th><td>Your own Stripe checkout for prints, editions, and commissions — no cart or order dashboard</td><td>Built-in cart and checkout on eligible plans</td></tr>
 											<tr><th>Exit path</th><td>Ordinary site files stay in your account</td><td>Content export is available, with platform-specific limits</td></tr>
 										</tbody>
 									</table>
 								</div>
-								<p class="source-note">
-									Squarespace plan names, features, and prices change. Check its <a href="https://www.squarespace.com/pricing">live pricing page</a> and <a href="https://support.squarespace.com/hc/en-us/articles/29215717722637-Selling-on-the-Basic-Core-Plus-and-Advanced-plans">current plan guide</a> before deciding.
-								</p>
+								<p class="source-note">Squarespace plan names, features, and prices change. Check its <a href="https://www.squarespace.com/pricing">live pricing page</a> and <a href="https://support.squarespace.com/hc/en-us/articles/29215717722637-Selling-on-the-Basic-Core-Plus-and-Advanced-plans">current plan guide</a> before deciding.</p>
 							</section>
 
 							<section>
-								<h2>Choose Hangwork when the portfolio is the whole point</h2>
-								<p>
-									Hangwork starts with the work: freeform walls and grids, project pages, captions, video embeds,
-									an about page, contact details, and a live phone-and-desktop preview. There are fewer business
-									features to sort through because the editor is shaped around presenting art.
-								</p>
-								<p>
-									The ownership model is the larger difference. Publishing places the website and its files in a free
-									account you control. That makes one-time pricing possible and means the published site isn't tied to
-									an active Hangwork subscription. Read exactly <a href={`${faqUrl}#if-hangwork-shuts-down`}>what happens if Hangwork shuts down</a>.
-								</p>
+								<h2>What you're not giving up</h2>
+								<p>The worry with a "focused" tool is that focus means missing pieces. For everything a portfolio actually does, it doesn't.</p>
+								<p>Hangwork starts with the work: freeform walls and grids, project pages, captions, video embeds, an about page, contact details, and a live phone-and-desktop preview so you can see the site the way visitors will. You can connect your own custom domain at no additional cost, and the site is hosted for you.</p>
+								<p>And you can sell your work. A Store tab builds a product catalog and a Shop page — prints, editions, originals, or commissions — and each size or format opens its own checkout in <strong>your own Stripe account</strong>. The money, buyer details, and receipts go straight to you, with no Hangwork cut and no marketplace in between. Prefer to point people elsewhere instead? You can still link a piece straight to a gallery's page, an existing shop, or an email. Here's <a href={`${faqUrl}#selling-work`}>exactly how selling works</a>.</p>
+								<p>What Hangwork isn't is a full store backend: there's no multi-item cart, synchronized inventory, or order dashboard — you mark a piece sold out yourself, and Stripe handles the transaction. For most artists selling a handful of pieces, that's plenty. If you need carts, taxes, and shipping rules, see the section below.</p>
+							</section>
+
+							<section>
+								<h2>The part you own</h2>
+								<p>The ownership model is the larger difference underneath the price. Publishing places the website and its files in a free account you control. That's what makes one-time pricing possible, and it's why the published site isn't tied to an active Hangwork subscription. Your custom domain points at a site that stays yours. Read exactly <a href={`${faqUrl}#if-hangwork-shuts-down`}>what happens if Hangwork shuts down</a>.</p>
+								<p class="source-note">Hangwork charges nothing to connect a custom domain, but you register the domain itself through a third-party registrar such as <a href="https://porkbun.com">Porkbun</a>. A domain typically costs around $10–15 a year, paid to the registrar, not to Hangwork.</p>
 							</section>
 
 							<section>
 								<h2>Choose Squarespace when you need a broader business platform</h2>
-								<p>
-									A gallery, shop, design studio, or artist running paid memberships may need integrated checkout,
-									inventory, scheduling, email campaigns, or customer accounts. Hangwork deliberately doesn't process
-									transactions. Its catalog sends each purchase option to the artist’s Stripe-hosted checkout, with
-									availability updated manually; it has no multi-item cart, synchronized inventory, or Hangwork order
-									dashboard. It isn't a substitute for a full ecommerce system.
-								</p>
-								<p>
-									That narrower scope is a benefit only when it matches your needs. If selling directly on the site is
-									central, Squarespace or a dedicated commerce platform is likely the better fit.
-								</p>
+								<p>This is a real category, and Hangwork isn't it. A gallery, shop, design studio, or artist running paid memberships may need a full checkout with a cart, taxes, and shipping, plus inventory, scheduling, email campaigns, or customer accounts. Hangwork sells through your own Stripe checkout, but it isn't a substitute for a complete ecommerce system. If a synchronized store is central to what you're building, Squarespace or a dedicated commerce platform is the better fit, and the subscription buys tools Hangwork doesn't include.</p>
+								<p>That narrower scope is a benefit only when it matches your needs. If the site's main job is to present the work beautifully — and offer a few pieces for sale — the extra platform is weight you're paying for every month.</p>
+							</section>
+
+							<section>
+								<h2>See it before you pay</h2>
+								<p>You don't have to take any of this on faith. Browse real <a href={examplesUrl}>portfolios made with Hangwork</a> to see how the work sits on the wall — then build your own draft in the editor and preview it fully before spending anything. You only pay when the site's ready to publish.</p>
 							</section>
 
 							<section>
 								<h2>The decision in one sentence</h2>
-								<p>
-									Choose Hangwork for a focused, no-subscription art portfolio you own; choose Squarespace for a wider
-									set of managed website and commerce tools. If you want to see the difference in practice, browse
-									<a href={examplesUrl}> sites made with Hangwork</a> or build a draft before paying.
-								</p>
+								<p>Choose Hangwork for a focused, no-subscription art portfolio you own — with a custom domain, your own Stripe checkout when you want to sell, and everything the work needs to shine; choose Squarespace when a full synchronized store and a wider set of managed business tools are the point.</p>
 							</section>
 						</div>
 					)
@@ -220,7 +224,8 @@ const howToLd = isHowTo
 								<ul>
 									<li><strong>Your included address:</strong> a hangwork.art subdomain costs nothing extra.</li>
 									<li><strong>A custom domain:</strong> if you want yourname.com, you pay the domain registrar's yearly renewal. Hangwork doesn't add a domain connection fee.</li>
-									<li><strong>External services:</strong> a shop, newsletter, analytics service, or video host may have its own plan. None is required for a basic portfolio.</li>
+									<li><strong>Selling:</strong> the built-in store runs on your own Stripe account, so Stripe's standard per-sale fee applies — but there's no monthly charge and no Hangwork cut.</li>
+									<li><strong>External services:</strong> a newsletter, analytics service, or video host may have its own plan. None is required for a basic portfolio.</li>
 									<li><strong>Your time:</strong> the site still benefits from a careful edit and occasional updates. Ownership removes rent, not maintenance.</li>
 								</ul>
 							</section>
@@ -228,13 +233,14 @@ const howToLd = isHowTo
 							<section>
 								<h2>How free hosting works</h2>
 								<p>
-									Hangwork publishes to GitHub Pages, a static-site hosting service available with a free GitHub account.
-									GitHub documents a 1 GB published-site limit and a soft 100 GB monthly bandwidth limit. A considered
-									portfolio of web-sized images normally sits far below those numbers, but full-resolution source files
-									should stay in your archive rather than on the website.
+									Hangwork publishes your site to a free account in your name and serves it from a fast global host, so
+									there's no separate hosting bill and nothing to configure. A site can hold about 1 GB in total, with
+									each file under 18 MB — room for well over a thousand web-ready images. Traffic isn't metered against
+									you; only sites drawing extraordinary, non-portfolio levels of traffic can be throttled. Full-resolution
+									source files should still stay in your archive rather than on the website.
 								</p>
 								<p class="source-note">
-									Read the official <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub Pages overview</a> and <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits">usage limits</a>. The hosting isn't intended for ecommerce or sensitive transactions, which is why Hangwork links out to shops instead of running checkout.
+									Your published portfolio is plain web files you can <a href={`${faqUrl}#who-owns-my-work`}>download as a folder anytime</a>, so it's never locked to Hangwork. And if you sell, each piece links to its own <a href={`${faqUrl}#selling-work`}>Stripe-hosted checkout</a> — the money and orders stay in your Stripe account, not ours. See <a href={`${faqUrl}#unlimited-images`}>the hosting limits in full</a>.
 								</p>
 							</section>
 
@@ -242,8 +248,9 @@ const howToLd = isHowTo
 								<h2>Who a no-subscription portfolio suits</h2>
 								<p>
 									It suits artists, photographers, illustrators, and designers who need a public body of work, a short
-									biography, contact details, and links. It is less suited to someone who needs private client galleries,
-									built-in sales, appointment booking, or a large database behind the site.
+									biography, contact details, and links — and it can sell work through your own Stripe checkout. It is
+									less suited to someone who needs private client galleries, a full store with carts and inventory,
+									appointment booking, or a large database behind the site.
 								</p>
 								<p>
 									Before choosing any platform, write down the features the portfolio actually needs. If that list is

@@ -391,8 +391,8 @@
       "gitBlobSha": "60d65e7e710203e9ce7f68bfeb98e52aa8175c80"
     },
     "src/lib/seoArticles.ts": {
-      "sha256": "235ec008f117fceb228f6d7f5977f5d9acbae68efe128cf3b526b7da36a9a47b",
-      "gitBlobSha": "3320519ef20684afb321c624bf4bfd593fb176b5"
+      "sha256": "cc104457ffaa1158f17d076b8e000df2964825154a6b8ab624357286cc48ecd8",
+      "gitBlobSha": "ae560eb63e357543f1a7e3c189d9e024a8a3d5dd"
     },
     "src/lib/stripe-payment-link.ts": {
       "sha256": "b24d867e978eb6fe81675fece9ba6e0d9023b28a3b29230da278c3cdcc29c3ec",
@@ -431,8 +431,8 @@
       "gitBlobSha": "cbdc88e0b75b8a6dfa1bf2d558b7796581dbd749"
     },
     "src/pages/learn/[slug].astro": {
-      "sha256": "d4134b3caeaeef9ba8d64ef6de2b41389fb28e7bd166fc75322992ff3b6f35ac",
-      "gitBlobSha": "0664840993bef62f41a34ad2edd79ea92bb4265b"
+      "sha256": "b8ef9dee1598446649f0523fa03dbd2ef301f317cf5ed5b9250f5b1577556af4",
+      "gitBlobSha": "88695a7071d730b0d44d782604bba2d9daeafd36"
     },
     "src/pages/privacy/[...path].astro": {
       "sha256": "ee4e59ea0e27a57dda79f1049a8a905de36a5d1cec718588655948352636531f",
