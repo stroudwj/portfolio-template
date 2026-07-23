@@ -81,7 +81,7 @@ Wordmark: "hangwork" in Inter 500, ink, with the period in "hangwork.art" in --k
 ## Voice
 
 - The name is a verb — use it: "Hang your first piece", "Rehang anytime", "Your wall".
-- Never in user-facing text: "repository", "repo", "git", "commit", "deploy", "push". GitHub is "a free account where your site is stored"; signup is "Claim your space".
+- Never in user-facing text: "repository", "repo", "git", "commit", "deploy", "push". The published site "lives in a free Hangwork account you own"; signup is "Claim your space".
 - Never: "simply", "just", "easy", "seamless", "unlock", "empower", "leverage".
 - Contractions yes; exclamation marks no.
 - The ownership story leads: "Your portfolio lives in an account you own — not ours." "One payment. No subscription. No hostage fees."

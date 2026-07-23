@@ -33,4 +33,6 @@ Flow gotchas that cost time:
 ## What's worth driving per area
 - Canvas: upload 2–3 solid-color PNGs, drag one onto another, check paint order + computed
   z-index; grid overlay chips live in the preview toolbar.
-- Publishing: do NOT drive live GitHub publish; `scripts/gh-publish-dryrun.mts` exists.
+- Publishing: don't drive a live publish against production. The live flow is Hangwork
+  accounts (sign in → license → `staticgen` upload to the API Worker), not GitHub;
+  `scripts/gh-publish-dryrun.mts` is the offline dry-run.
