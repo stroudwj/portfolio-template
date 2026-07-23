@@ -32,6 +32,10 @@ export interface AccountSession {
 	signInWithGoogle(): void;
 	/** Attach a purchased license key to the signed-in account. Throws AccountError. */
 	bindLicense(key: string): Promise<void>;
+	/** Change the published site's visibility: 'active' | 'offline' | 'under_construction'. */
+	setSiteStatus(status: string): Promise<void>;
+	/** Permanently delete the published site. `confirm` must echo the site's name. */
+	deleteSite(confirm: string): Promise<void>;
 	/** Re-fetch the account summary (e.g. after checkout in another tab). */
 	refresh(): Promise<void>;
 	signOut(): void;
@@ -135,6 +139,25 @@ export function useAccount(): AccountSession {
 		[applySummary],
 	);
 
+	const setSiteStatus = useCallback(async (nextStatus: string) => {
+		const stored = getSession();
+		if (!stored) throw new AccountError(401, 'invalid_session', 'Sign in before changing your site.');
+		const { data } = await new AccountClient(stored.token).request<{ status: string }>('/site/status', {
+			body: { status: nextStatus },
+		});
+		setSite((prev) => (prev ? { ...prev, status: data.status } : prev));
+	}, []);
+
+	const deleteSite = useCallback(async (confirm: string) => {
+		const stored = getSession();
+		if (!stored) throw new AccountError(401, 'invalid_session', 'Sign in before deleting your site.');
+		await new AccountClient(stored.token).request('/site/delete', { body: { confirm } });
+		// The site is gone server-side; forget this browser's pointer so a fresh publish
+		// starts a brand-new site rather than diffing against the deleted one.
+		clearSiteInfo();
+		setSite(null);
+	}, []);
+
 	const refresh = useCallback(async () => {
 		const stored = getSession();
 		if (!stored) return;
@@ -165,6 +188,8 @@ export function useAccount(): AccountSession {
 		sendMagicLink,
 		signInWithGoogle,
 		bindLicense,
+		setSiteStatus,
+		deleteSite,
 		refresh,
 		signOut,
 		accountsEnabled: isAccountsConfigured(),

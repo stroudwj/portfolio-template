@@ -623,6 +623,7 @@ select.select-input {
 .btn-primary,
 .btn-secondary,
 .btn-ghost,
+.btn-danger,
 .btn-link {
 	font: inherit;
 	font-size: 14px;
@@ -631,6 +632,19 @@ select.select-input {
 	padding: 8px 14px;
 	cursor: pointer;
 	border: 1px solid transparent;
+}
+/* Destructive primary — the confirm button in the delete-site modal. */
+.btn-danger {
+	background: var(--error);
+	border-color: var(--error);
+	color: var(--paper);
+}
+.btn-danger:hover:not(:disabled) {
+	filter: brightness(0.93);
+}
+.btn-danger:disabled {
+	opacity: 0.5;
+	cursor: default;
 }
 .btn-primary {
 	background: var(--klein);
@@ -2184,6 +2198,58 @@ a.live-url:hover {
 	gap: 10px;
 	margin-top: 12px;
 	flex-wrap: wrap;
+}
+
+/* Owner-set site visibility: three stacked choices, the active one filled. */
+.visibility-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 4px;
+}
+.visibility-option {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	text-align: left;
+	padding: 10px 12px;
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
+	background: transparent;
+	cursor: pointer;
+	color: var(--ink);
+}
+.visibility-option:hover:not(:disabled) {
+	background: var(--wall-3);
+}
+.visibility-option:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+.visibility-option.active {
+	border-color: var(--klein);
+	background: var(--wall-1);
+}
+.visibility-option-label {
+	font-size: 14px;
+	font-weight: 500;
+}
+.visibility-option-hint {
+	font-size: 12.5px;
+	color: var(--ink-soft);
+	line-height: 1.4;
+}
+
+/* The "download your site first" nudge inside the delete-site modal. */
+.delete-export-nudge {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	align-items: flex-start;
+	padding: 12px;
+	margin: 12px 0;
+	background: var(--wall-1);
+	border-radius: 6px;
 }
 
 /* DNS records shown in the custom-domain modal — copy-paste friendly. */

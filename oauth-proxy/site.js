@@ -17,7 +17,25 @@
 import { Zip, ZipPassThrough } from 'fflate';
 import { json, readJson } from './lib/http.js';
 import { sessionUser } from './auth.js';
-import { getSite, getSiteForUser, createSite, mirrorHostname, dropHostname } from './lib/db.js';
+import {
+	getSite,
+	getSiteForUser,
+	createSite,
+	mirrorHostname,
+	dropHostname,
+	mirrorSite,
+	setSiteStatus,
+	listHostnames,
+	deleteSiteRows,
+} from './lib/db.js';
+
+// Statuses the site's OWNER can set from the editor. Admin/legal states
+// (suspended, taken_down, over_quota) are deliberately excluded — a flip into
+// or out of those is never a self-serve action.
+export const USER_SITE_STATUSES = new Set(['active', 'offline', 'under_construction']);
+// While a site is in one of these, the owner cannot change its visibility or
+// delete it from the editor — an operator has locked it.
+const ADMIN_LOCKED_STATUSES = new Set(['suspended', 'taken_down']);
 
 const CF_API = 'https://api.cloudflare.com/client/v4';
 
@@ -211,6 +229,20 @@ export async function customHostnameStatus(request, env, corsOrigin) {
 	return json(hostnameView(env, result), 200, corsOrigin);
 }
 
+/** Detach a Cloudflare-for-SaaS custom hostname at the edge. Best-effort: a missing
+ *  token or a hostname CF has already forgotten is fine — the D1/KV rows are what
+ *  actually stop routing. Shared by customHostnameRemove and siteDelete. */
+async function removeCustomHostnameAtEdge(env, domain) {
+	if (!env.CF_SAAS_TOKEN || !env.CF_ZONE_ID) return;
+	const result = await findCustomHostname(env, domain);
+	if (result?.id) {
+		await fetch(`${CF_API}/zones/${env.CF_ZONE_ID}/custom_hostnames/${result.id}`, {
+			method: 'DELETE',
+			headers: cfHeaders(env),
+		}).catch(() => {});
+	}
+}
+
 export async function customHostnameRemove(request, env, corsOrigin) {
 	if (!ready(env) || !env.CF_SAAS_TOKEN || !env.CF_ZONE_ID) return json({ error: 'custom_domains_unconfigured' }, 503, corsOrigin);
 	const got = await requireUserSite(request, env);
@@ -220,16 +252,79 @@ export async function customHostnameRemove(request, env, corsOrigin) {
 	const row = await env.DB.prepare('SELECT site_id FROM hostnames WHERE hostname = ?').bind(domain).first();
 	if (!row || row.site_id !== got.site.id) return json({ error: 'not_found' }, 404, corsOrigin);
 
-	const result = await findCustomHostname(env, domain);
-	if (result?.id) {
-		await fetch(`${CF_API}/zones/${env.CF_ZONE_ID}/custom_hostnames/${result.id}`, {
-			method: 'DELETE',
-			headers: cfHeaders(env),
-		}).catch(() => {});
-	}
+	await removeCustomHostnameAtEdge(env, domain);
 	await env.DB.prepare('DELETE FROM hostnames WHERE hostname = ?').bind(domain).run();
 	await dropHostname(env.KV, domain);
 	return json({ removed: true }, 200, corsOrigin);
+}
+
+// ---- visibility (owner-controlled status) ----------------------------------
+
+/**
+ * POST /site/status { status } — the owner takes their own site offline, shows an
+ * "under construction" holding page, or brings it back live. The serving Worker reads
+ * status from the KV mirror, so one D1 write + re-mirror flips what every visitor sees;
+ * publishing still works in any of these states, so a site can be updated while paused.
+ */
+export async function siteStatusSet(request, env, corsOrigin) {
+	if (!ready(env)) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
+	const got = await requireUserSite(request, env);
+	if (got.error) return json({ error: got.error }, got.status, corsOrigin);
+	const body = await readJson(request);
+	const status = typeof body?.status === 'string' ? body.status : '';
+	if (!USER_SITE_STATUSES.has(status)) return json({ error: 'invalid_status' }, 400, corsOrigin);
+	// An operator-locked site is not the owner's to toggle.
+	if (ADMIN_LOCKED_STATUSES.has(got.site.status)) return json({ error: 'site_locked' }, 403, corsOrigin);
+
+	await setSiteStatus(env.DB, got.site.id, status);
+	await mirrorSite(env.DB, env.KV, got.site.id);
+	return json({ status }, 200, corsOrigin);
+}
+
+// ---- delete (permanent) ----------------------------------------------------
+
+/** Delete every R2 object under a site's key prefix, a page (≤1000 keys) at a time. */
+async function purgeSiteObjects(bucket, siteId) {
+	const prefix = `${siteId}/`;
+	let cursor;
+	do {
+		const page = await bucket.list({ prefix, cursor });
+		const keys = page.objects.map((object) => object.key);
+		if (keys.length) await bucket.delete(keys);
+		cursor = page.truncated ? page.cursor : undefined;
+	} while (cursor);
+}
+
+/**
+ * POST /site/delete { confirm } — permanently erase the site: all R2 objects, every
+ * hostname (custom hostnames detached at the Cloudflare edge too), and the D1 rows. The
+ * user and their license are deliberately kept — the license is theirs and a fresh
+ * publish starts a brand-new site (new id, new R2 prefix). Irreversible; `confirm` must
+ * echo the site's subdomain (or "DELETE" for a never-published site) so a stray call
+ * can't wipe a site.
+ */
+export async function siteDelete(request, env, corsOrigin) {
+	if (!ready(env) || !env.SITES) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
+	const got = await requireUserSite(request, env);
+	if (got.error) return json({ error: got.error }, got.status, corsOrigin);
+	const site = got.site;
+	if (ADMIN_LOCKED_STATUSES.has(site.status)) return json({ error: 'site_locked' }, 403, corsOrigin);
+
+	const body = await readJson(request);
+	const confirm = typeof body?.confirm === 'string' ? body.confirm.trim() : '';
+	const expected = site.subdomain || 'DELETE';
+	if (confirm !== expected) return json({ error: 'confirm_mismatch' }, 400, corsOrigin);
+
+	// Detach custom hostnames at the edge + drop every KV route BEFORE removing objects,
+	// so nothing can be served from a half-deleted site.
+	const hostnames = await listHostnames(env.DB, site.id);
+	for (const row of hostnames) {
+		if (row.kind === 'custom') await removeCustomHostnameAtEdge(env, row.hostname);
+		await dropHostname(env.KV, row.hostname);
+	}
+	await purgeSiteObjects(env.SITES, site.id);
+	await deleteSiteRows(env.DB, site.id);
+	return json({ deleted: true }, 200, corsOrigin);
 }
 
 // ---- export (the ownership guarantee) --------------------------------------

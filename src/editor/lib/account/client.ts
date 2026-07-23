@@ -56,6 +56,14 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'That sign-in link has expired or was already used. Request a fresh one.';
 		case 'domain_taken':
 			return 'That domain is already connected to another Hangwork site.';
+		case 'no_site':
+			return 'Publish your site once before changing its visibility or deleting it.';
+		case 'invalid_status':
+			return 'That isn’t a visibility option we recognise. Please try again.';
+		case 'site_locked':
+			return 'This site is locked by Hangwork support and can’t be changed here. Contact support.';
+		case 'confirm_mismatch':
+			return 'The confirmation didn’t match. Type your site’s name exactly to continue.';
 		default:
 			if (status === 0)
 				return 'Couldn’t reach Hangwork. Check your connection (or an ad/privacy blocker) and try again.';

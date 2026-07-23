@@ -67,6 +67,23 @@ export async function createSite(db, userId) {
 	return await getSite(db, id);
 }
 
+/** Flip a site's status (active | offline | under_construction | suspended | …). */
+export async function setSiteStatus(db, siteId, status) {
+	await db.prepare('UPDATE sites SET status = ? WHERE id = ?').bind(status, siteId).run();
+}
+
+/** Every hostname (subdomain + custom) routed to a site, with its kind. */
+export async function listHostnames(db, siteId) {
+	const { results } = await db.prepare('SELECT hostname, kind FROM hostnames WHERE site_id = ?').bind(siteId).all();
+	return results ?? [];
+}
+
+/** Delete a site and its hostname rows (D1). Callers purge R2/KV/edge separately. */
+export async function deleteSiteRows(db, siteId) {
+	await db.prepare('DELETE FROM hostnames WHERE site_id = ?').bind(siteId).run();
+	await db.prepare('DELETE FROM sites WHERE id = ?').bind(siteId).run();
+}
+
 /** Summarize a user's account for the editor (used by /auth/session). */
 export async function accountSummary(db, user) {
 	await adoptLicensesForUser(db, user);

@@ -1,0 +1,191 @@
+---
+// Hangwork's Terms of Service + Acceptable Use, at /terms. Product-site only — buyer
+// repos emit no /terms (getStaticPaths returns [] on the wrong side, same gate as
+// faq/[...path].astro). Rendered through the shared LegalPage shell.
+//
+// STARTING-POINT TEMPLATE, NOT LEGAL ADVICE. Have a lawyer skim it if you can.
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { pricing } from '../../lib/pricing';
+import LegalPage, { type LegalSection } from '../../components/LegalPage.astro';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
+const governingState = 'Virginia'; // US state whose law governs
+
+const lastUpdated = 'July 23, 2026';
+const abuseEmail = 'abuse@hangwork.art';
+const supportEmail = 'william.stroud100@gmail.com';
+const refundDays = pricing.refundDays;
+
+const title = 'Terms of Service — Hangwork';
+const description =
+	'The terms for using Hangwork: your account, payment, the content you can publish, and what each of us is responsible for.';
+const intro =
+	'These terms are the agreement between you and the person who runs Hangwork. Please read them — using Hangwork means you accept them.';
+
+const sections: LegalSection[] = [
+	{
+		id: 'who-we-are',
+		heading: 'Who these terms are with',
+		html: `
+			<p>Hangwork is a portfolio site builder operated by ${operatorName}, an individual doing business as “Hangwork” (“Hangwork”, “we”, “us”). These Terms of Service (the “Terms”) govern your use of the Hangwork editor, the sites it publishes, and everything at hangwork.art (the “Service”).</p>
+			<p>By creating an account or using the Service, you agree to these Terms and to our <a href="/privacy">Privacy Policy</a>. If you don’t agree, don’t use the Service.</p>
+		`,
+	},
+	{
+		id: 'eligibility',
+		heading: 'Who can use Hangwork',
+		html: `
+			<p>You must be at least 18, or the age of majority where you live, and able to enter a binding contract. If you use Hangwork on behalf of an organization, you confirm you’re authorized to accept these Terms for it.</p>
+		`,
+	},
+	{
+		id: 'your-account',
+		heading: 'Your account',
+		html: `
+			<p>You sign in with your email (we send a link) or with Google — there’s no password to manage. You’re responsible for keeping access to your email or Google account secure, and for everything done through your Hangwork account.</p>
+			<p>Give accurate information and keep it current. Tell us promptly at <a href="mailto:${supportEmail}">${supportEmail}</a> if you think someone has gained access to your account.</p>
+		`,
+	},
+	{
+		id: 'payment',
+		heading: 'Payment, price, and refunds',
+		html: `
+			<p>Hangwork is a one-time purchase. There is no subscription and no renewal. The price shown at checkout is what you pay, once, for the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates.</p>
+			<p>Payments are processed by <strong>Lemon Squeezy</strong>, which acts as the merchant of record and handles checkout, card details, receipts, and any applicable sales tax or VAT. We don’t see or store your full card details.</p>
+			<p>If Hangwork isn’t for you, email <a href="mailto:${supportEmail}">${supportEmail}</a> within ${refundDays} days of your purchase for a full refund, no questions asked. After ${refundDays} days the purchase is non-refundable except where the law requires otherwise.</p>
+		`,
+	},
+	{
+		id: 'your-content',
+		heading: 'Your content and who owns it',
+		html: `
+			<p>Everything you upload or create — your images, text, videos, and site design (“Your Content”) — stays yours. We claim no ownership of it, we don’t watermark it, and we don’t use it to train any model.</p>
+			<p>To run the Service, you grant us a limited, non-exclusive, worldwide, royalty-free license to store, host, back up, reproduce, and publicly display Your Content <strong>only</strong> as needed to operate and improve the Service and to publish your site as you direct. This license ends when you delete the content or close your account, except for backups that age out on a normal cycle and anything we must keep to comply with law.</p>
+			<p>You are responsible for Your Content. By publishing it you confirm you own it or have the rights and permissions to use and share it, including any rights of people pictured, and that it doesn’t break these Terms or any law.</p>
+		`,
+	},
+	{
+		id: 'acceptable-use',
+		heading: 'Acceptable use',
+		html: `
+			<p>Hangwork is for publishing your own creative portfolio. You agree not to use it to store, publish, or link to content, or to do anything, that:</p>
+			<ul>
+				<li>is illegal, or promotes or facilitates illegal activity;</li>
+				<li><strong>sexually exploits or endangers minors in any way.</strong> This is an absolute line. Such content is reported to the appropriate authorities and the account is terminated immediately;</li>
+				<li>infringes someone else’s copyright, trademark, or other rights;</li>
+				<li>is non-consensual intimate imagery, or pornographic or sexually explicit material;</li>
+				<li>harasses, threatens, defames, or incites violence, or promotes hatred against people based on who they are;</li>
+				<li>violates others’ privacy or shares their personal information without permission;</li>
+				<li>contains malware, phishing, or attempts to gain unauthorized access to any system;</li>
+				<li>is spam, or uses the Service mainly as a file host, backup drive, or content-delivery network for material unrelated to your portfolio;</li>
+				<li>places an unreasonable load on our infrastructure. Fair-use limits apply: each file must be under 18 MB, a site holds roughly 1 GB in total, and sites drawing extraordinary, non-portfolio levels of traffic may be throttled.</li>
+			</ul>
+			<p>If you’re unsure whether something is allowed, ask us first.</p>
+		`,
+	},
+	{
+		id: 'selling',
+		heading: 'Selling work from your site',
+		html: `
+			<p>You can add your own Stripe payment links to sell work. Those sales are between you and your buyer. You use your own Stripe account, you receive the money directly, and you are solely responsible for fulfillment, refunds, taxes, and any consumer-protection obligations. Hangwork is not a party to your sales and takes no cut.</p>
+		`,
+	},
+	{
+		id: 'enforcement',
+		heading: 'Enforcement, suspension, and termination',
+		html: `
+			<p>If content or conduct breaks these Terms, we may remove or disable the content, and suspend or terminate the account. Where we reasonably can, we’ll tell you why and give you a chance to fix it — but serious violations, legal risk, or anything involving the safety line above may mean immediate action without notice.</p>
+			<p>You can stop using Hangwork at any time. Because your site files are yours, you can download your complete site from the editor before you go — see the wind-down commitment below.</p>
+		`,
+	},
+	{
+		id: 'copyright',
+		heading: 'Copyright complaints (DMCA)',
+		html: `
+			<p>We respond to notices of alleged copyright infringement. If you believe content on a Hangwork site infringes your copyright, send a notice to <a href="mailto:${abuseEmail}">${abuseEmail}</a> that includes:</p>
+			<ul>
+				<li>your physical or electronic signature;</li>
+				<li>identification of the work you say is infringed;</li>
+				<li>the URL of the material you want removed, with enough detail to find it;</li>
+				<li>your name, address, and contact details;</li>
+				<li>a statement that you believe in good faith the use isn’t authorized by the owner, its agent, or the law;</li>
+				<li>a statement, under penalty of perjury, that the information is accurate and you are the owner or authorized to act for them.</li>
+			</ul>
+			<p>We remove or disable properly notified content and, where appropriate, notify the person who posted it, who may submit a counter-notice. We terminate the accounts of repeat infringers.</p>
+		`,
+	},
+	{
+		id: 'reporting-abuse',
+		heading: 'Reporting abuse',
+		html: `
+			<p>To report content or behavior that breaks these Terms — abuse, illegal material, security problems, or safety concerns — email <a href="mailto:${abuseEmail}">${abuseEmail}</a>. We review reports and act on them, and we treat child-safety and security reports as urgent.</p>
+		`,
+	},
+	{
+		id: 'availability',
+		heading: 'Availability and “as is”',
+		html: `
+			<p>We work to keep the Service and published sites running, but we provide them “as is” and “as available,” without warranties of any kind, whether express or implied, including merchantability, fitness for a particular purpose, and non-infringement. We don’t promise the Service will be uninterrupted, error-free, or that it will meet every need. Some places don’t allow these exclusions, so parts of this section may not apply to you.</p>
+		`,
+	},
+	{
+		id: 'ownership-export',
+		heading: 'Your files and our wind-down commitment',
+		html: `
+			<p>Your site is built as plain web files — the kind any host can serve. The editor has a download button that hands you the whole site as a folder, anytime, with no permission needed and no export fee.</p>
+			<p>If we ever wind Hangwork down, we commit to sending every artist their complete site files before anything goes offline, so you can move to any host without a broken link. No proprietary format, no lock-in.</p>
+		`,
+	},
+	{
+		id: 'liability',
+		heading: 'Limitation of liability',
+		html: `
+			<p>To the fullest extent the law allows, Hangwork and its operator won’t be liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, data, or goodwill, arising from your use of the Service. Our total liability for any claim relating to the Service is limited to the amount you paid us in the 12 months before the claim.</p>
+			<p>You are responsible for keeping your own copies of Your Content. The download button exists so you always can.</p>
+		`,
+	},
+	{
+		id: 'indemnity',
+		heading: 'Indemnification',
+		html: `
+			<p>You agree to defend and indemnify Hangwork and its operator against claims, damages, and costs (including reasonable legal fees) arising from Your Content, your use of the Service, your sales to your buyers, or your breach of these Terms.</p>
+		`,
+	},
+	{
+		id: 'changes',
+		heading: 'Changes to the Service and these Terms',
+		html: `
+			<p>We may update the Service and these Terms. If we make a material change, we’ll update the “Last updated” date and, where reasonable, give notice. Continuing to use the Service after a change means you accept the updated Terms.</p>
+		`,
+	},
+	{
+		id: 'governing-law',
+		heading: 'Governing law',
+		html: `
+			<p>These Terms are governed by the laws of the State of ${governingState}, United States, without regard to its conflict-of-laws rules. The courts located in ${governingState} will have exclusive jurisdiction over any dispute, unless mandatory local consumer law gives you other rights.</p>
+		`,
+	},
+	{
+		id: 'contact',
+		heading: 'Contact',
+		html: `
+			<p>General questions: <a href="mailto:${supportEmail}">${supportEmail}</a>. Abuse, copyright, and legal notices: <a href="mailto:${abuseEmail}">${abuseEmail}</a>.</p>
+		`,
+	},
+];
+---
+
+<LegalPage
+	title={title}
+	h1="Terms of Service"
+	description={description}
+	slug="terms"
+	lastUpdated={lastUpdated}
+	intro={intro}
+	sections={sections}
+/>

@@ -17,6 +17,8 @@
 //   POST /publish/complete            — apply deletions, update D1/KV, answer live URL
 //   POST /site/subdomain/check|claim  — [name].hangwork.art via D1/KV (no per-user DNS)
 //   POST /site/custom-hostname[/status|/remove] — Cloudflare-for-SaaS custom domains
+//   POST /site/status                 — owner takes the site offline / under construction / live
+//   POST /site/delete                 — permanently erase the site (R2 + hostnames + rows)
 //   GET  /site/export                 — zip of the published site (ownership guarantee)
 //
 // Legacy GitHub routes (all POST, kept only for the optional mirror flow):
@@ -64,6 +66,8 @@ import {
 	customHostnameCreate,
 	customHostnameStatus,
 	customHostnameRemove,
+	siteStatusSet,
+	siteDelete,
 	exportSite,
 	isValidSubdomain,
 } from './site.js';
@@ -129,6 +133,8 @@ export default {
 		if (path === '/site/custom-hostname') return customHostnameCreate(request, env, corsOrigin);
 		if (path === '/site/custom-hostname/status') return customHostnameStatus(request, env, corsOrigin);
 		if (path === '/site/custom-hostname/remove') return customHostnameRemove(request, env, corsOrigin);
+		if (path === '/site/status') return siteStatusSet(request, env, corsOrigin);
+		if (path === '/site/delete') return siteDelete(request, env, corsOrigin);
 
 		// Legacy GitHub flow (optional mirror).
 		if (path === '/revoke') return revoke(request, env, corsOrigin);

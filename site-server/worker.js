@@ -24,6 +24,12 @@ function statusPage(title, message) {
 	return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><div style="font-family:Inter,-apple-system,'Segoe UI',sans-serif;background:#faf8f5;color:#1a1a1a;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;padding:24px;"><div style="max-width:420px;text-align:center;"><h1 style="font-size:20px;font-weight:500;">${title}</h1><p style="font-size:15px;line-height:1.6;color:#555;">${message}</p></div></div>`;
 }
 
+/** The owner-set "under construction" holding page — a friendlier, deliberate placeholder
+ *  (not an error), so a brand-new address the artist is still building looks intentional. */
+function constructionPage() {
+	return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Coming soon</title><div style="font-family:Inter,-apple-system,'Segoe UI',sans-serif;background:#faf8f5;color:#1a1a1a;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0;padding:24px;"><div style="max-width:440px;text-align:center;"><div style="font-size:34px;line-height:1;margin-bottom:18px;">🚧</div><h1 style="font-size:22px;font-weight:500;margin:0 0 8px;">Coming soon</h1><p style="font-size:15px;line-height:1.6;color:#555;margin:0;">This site is being put together right now. Please check back shortly.</p></div></div>`;
+}
+
 function html(body, status, extra = {}) {
 	return new Response(body, {
 		status,
@@ -88,6 +94,18 @@ export default {
 				),
 				taken ? 451 : 503,
 			);
+		}
+		// Owner-set states: offline (pulled down for now) and under construction (a
+		// deliberate holding page). Both noindex so a paused/placeholder address never
+		// gets indexed; offline is a true 503, under construction is an intentional page.
+		if (route.status === 'offline') {
+			return html(statusPage('Site offline', 'This site is currently offline. Please check back later.'), 503, {
+				'Retry-After': '3600',
+				'X-Robots-Tag': 'noindex',
+			});
+		}
+		if (route.status === 'under_construction') {
+			return html(constructionPage(), 200, { 'X-Robots-Tag': 'noindex' });
 		}
 		if (route.status === 'over_quota' || (await overRequestCeiling(env.KV, route.siteId))) {
 			return html(statusPage('Too much traffic', 'This site is over its usage limit right now. Please try again later.'), 429, {

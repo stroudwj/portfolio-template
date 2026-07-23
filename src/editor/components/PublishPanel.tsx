@@ -21,7 +21,16 @@ import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 import CustomDomainModal from './CustomDomainModal';
 import RenameSiteModal from './RenameSiteModal';
+import DeleteSiteModal from './DeleteSiteModal';
 import VersionHistory from './VersionHistory';
+
+// The visibility states a site owner controls. `active` serves the site; the others are
+// enforced by the serving Worker (a "coming soon" page / a short offline notice).
+const VISIBILITY_OPTIONS: { key: string; label: string; hint: string }[] = [
+	{ key: 'active', label: 'Live', hint: 'Anyone with the link sees your site.' },
+	{ key: 'under_construction', label: 'Under construction', hint: 'Visitors see a “coming soon” page. You can still edit and publish.' },
+	{ key: 'offline', label: 'Offline', hint: 'Your site is hidden — the address shows a short “offline” note.' },
+];
 
 export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const { doc, openDoc } = useEditor();
@@ -33,6 +42,11 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	const [showPublish, setShowPublish] = useState(false);
 	const [showDomain, setShowDomain] = useState(false);
 	const [showRename, setShowRename] = useState(false);
+	const [showDelete, setShowDelete] = useState(false);
+	const [deleted, setDeleted] = useState(false);
+	// Which visibility we're mid-applying (for the button label), and any failure.
+	const [visBusy, setVisBusy] = useState<string | null>(null);
+	const [visError, setVisError] = useState('');
 	const [backupState, setBackupState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 	const [backupError, setBackupError] = useState('');
 	const [restoreState, setRestoreState] = useState<'idle' | 'restoring' | 'restored' | 'error'>('idle');
@@ -64,6 +78,26 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 		? `https://${info.customDomain}`
 		: info?.url ?? (account.site?.subdomain ? `https://${subdomainFor(account.site.subdomain)}` : undefined);
 	const plannedAddress = `https://${subdomainFor(slugifySiteName(doc.content.site.name || 'my-portfolio'))}`;
+
+	// Visibility + delete only make sense once there's a real site the server knows about.
+	// account.site (from /auth/session) carries its status; fall back to the local pointer
+	// for the name so a fresh-device session still shows the controls.
+	const siteName = account.site?.subdomain ?? info?.subdomain ?? '';
+	const hasLiveSite = Boolean(account.site?.subdomain);
+	const currentStatus = account.site?.status ?? 'active';
+	const adminLocked = currentStatus === 'suspended' || currentStatus === 'taken_down';
+
+	const changeVisibility = async (next: string) => {
+		if (next === currentStatus || visBusy) return;
+		setVisBusy(next);
+		setVisError('');
+		try {
+			await account.setSiteStatus(next);
+		} catch (error) {
+			setVisError(error instanceof AccountError ? error.friendly : 'Could not change your site’s visibility.');
+		}
+		setVisBusy(null);
+	};
 
 	const downloadBackup = async () => {
 		setBackupState('saving');
@@ -158,6 +192,41 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 					</>
 				)}
 			</Section>
+
+			{hasLiveSite && (
+				<Section title="Site visibility" sectionKey="_publish-visibility">
+					{adminLocked ? (
+						<p className="muted" style={{ marginTop: 0 }}>
+							This site is currently locked by Hangwork support. Contact us if you think this is a mistake.
+						</p>
+					) : (
+						<>
+							<div className="visibility-group" role="group" aria-label="Site visibility">
+								{VISIBILITY_OPTIONS.map((opt) => {
+									const active = currentStatus === opt.key;
+									return (
+										<button
+											key={opt.key}
+											type="button"
+											className={`visibility-option${active ? ' active' : ''}`}
+											aria-pressed={active}
+											onClick={() => void changeVisibility(opt.key)}
+											disabled={visBusy !== null}
+										>
+											<span className="visibility-option-label">
+												{opt.label}
+												{visBusy === opt.key ? ' …' : active ? ' ✓' : ''}
+											</span>
+											<span className="visibility-option-hint">{opt.hint}</span>
+										</button>
+									);
+								})}
+							</div>
+							{visError && <p className="publish-error">{visError}</p>}
+						</>
+					)}
+				</Section>
+			)}
 
 			<Section title="Account & license" sectionKey="_publish-account">
 				<div className="status-row">
@@ -275,6 +344,28 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				</p>
 			</Section>
 
+			{(hasLiveSite || deleted) && !adminLocked && (
+				<Section title="Delete this site" sectionKey="_publish-delete">
+					{deleted ? (
+						<p className="muted" style={{ marginTop: 0 }}>
+							Your site has been deleted. Publish again any time to start a fresh one.
+						</p>
+					) : (
+						<>
+							<p className="muted" style={{ marginTop: 0 }}>
+								Permanently remove your published site — every page, image, and custom domain. This can’t be undone.
+								Your account and license stay yours, and your editable work in this browser is untouched.
+							</p>
+							<div className="publish-panel-actions">
+								<button type="button" className="btn-ghost danger" onClick={() => setShowDelete(true)} disabled={!signedIn}>
+									Delete this site…
+								</button>
+							</div>
+						</>
+					)}
+				</Section>
+			)}
+
 			{showSignIn && (
 				<SignInModal
 					sendMagicLink={account.sendMagicLink}
@@ -321,6 +412,21 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				<RenameSiteModal
 					onClose={() => {
 						setShowRename(false);
+						bump();
+					}}
+				/>
+			)}
+			{showDelete && (
+				<DeleteSiteModal
+					account={account}
+					siteName={siteName}
+					liveUrl={liveUrl}
+					onExport={() => void exportSite()}
+					exporting={exportState === 'exporting'}
+					onClose={() => setShowDelete(false)}
+					onDeleted={() => {
+						setShowDelete(false);
+						setDeleted(true);
 						bump();
 					}}
 				/>

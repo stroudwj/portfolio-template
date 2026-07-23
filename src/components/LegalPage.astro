@@ -1,0 +1,436 @@
+---
+// Shared shell for Hangwork's standalone legal documents (/terms, /privacy). Like
+// Landing.astro and faq/[...path].astro it deliberately does NOT use Layout.astro
+// (that carries the portfolio's sidebar chrome + theme) — the marketing tokens and
+// styles are its own, copied from the FAQ page so the pages read as one site.
+//
+// Content lives in the calling page as a `sections` array so the doc stays readable
+// and the visible copy is the single source of truth. Voice: plain and honest, no
+// exclamation marks, and never the words repo/repository/git/commit/deploy — say
+// "your account" and "your site files".
+import { withBase } from '../portfolio/types';
+import Favicons from './Favicons.astro';
+
+export interface LegalSection {
+	id: string;
+	heading: string;
+	html: string;
+}
+
+interface Props {
+	title: string; // browser tab + <title>
+	h1: string; // visible page heading
+	description: string;
+	slug: string; // 'terms' | 'privacy' — for the canonical URL
+	lastUpdated: string; // e.g. 'July 23, 2026'
+	intro: string; // lede paragraph under the h1
+	sections: LegalSection[];
+}
+
+const { title, h1, description, slug, lastUpdated, intro, sections } = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const examplesUrl = withBase(base, 'examples');
+const faqUrl = withBase(base, 'faq');
+const guideUrl = withBase(base, 'guide');
+const termsUrl = withBase(base, 'terms');
+const privacyUrl = withBase(base, 'privacy');
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+const supportEmail = 'william.stroud100@gmail.com';
+const canonicalUrl = Astro.site ? new URL(withBase(base, slug), Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<meta name="robots" content="index, follow" />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav class="topnav">
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="legal-hero">
+				<h1>{h1}</h1>
+				<p class="lede">{intro}</p>
+				<p class="updated">Last updated {lastUpdated}</p>
+			</section>
+
+			<nav class="toc" aria-label="On this page">
+				<span class="toc-label">On this page</span>
+				<ol>
+					{sections.map((s) => (
+						<li>
+							<a href={`#${s.id}`}>{s.heading}</a>
+						</li>
+					))}
+				</ol>
+			</nav>
+
+			<article class="legal">
+				{sections.map((s, i) => (
+					<section class="legal-section">
+						<h2 id={s.id}>
+							<a class="h-anchor" href={`#${s.id}`}>
+								<span class="h-num">{i + 1}.</span> {s.heading}
+							</a>
+						</h2>
+						<div class="prose" set:html={s.html} />
+					</section>
+				))}
+			</article>
+
+			<p class="closing">
+				Questions about these terms? <a href={`mailto:${supportEmail}`}>Email us</a>.
+			</p>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav>
+				<a href={examplesUrl}>Examples</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={termsUrl}>Terms</a>
+				<a href={privacyUrl}>Privacy</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments and refunds are handled by Lemon Squeezy.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+			sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible {
+		outline: 2px solid var(--klein);
+		outline-offset: 3px;
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+	}
+	.brand-logo {
+		display: block;
+		width: auto;
+		height: 50px;
+	}
+
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav {
+		display: flex;
+		align-items: baseline;
+		gap: 28px;
+	}
+	.topnav a {
+		color: var(--ink-soft);
+		text-decoration: none;
+		font-size: 15px;
+		white-space: nowrap;
+	}
+	.topnav a:hover {
+		color: var(--ink);
+	}
+
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 0 32px;
+	}
+
+	/* Prose reads best in a narrow column, left-aligned within the wider chrome. */
+	.legal-hero {
+		max-width: 44rem;
+		padding: 56px 0 8px;
+	}
+	.legal-hero h1 {
+		font-size: clamp(30px, 5vw, 44px);
+		font-weight: 500;
+		line-height: 1.14;
+		letter-spacing: -0.02em;
+		margin: 0 0 18px;
+	}
+	.lede {
+		font-size: 17px;
+		color: var(--ink-soft);
+		margin: 0;
+		max-width: 34em;
+	}
+	.updated {
+		font-size: 14px;
+		color: var(--ink-soft);
+		margin: 14px 0 0;
+	}
+
+	.toc {
+		max-width: 44rem;
+		margin: 40px 0 0;
+		padding: 22px 26px;
+		background: var(--wall-3);
+		border-radius: 10px;
+	}
+	.toc-label {
+		display: block;
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		margin-bottom: 10px;
+	}
+	.toc ol {
+		margin: 0;
+		padding-left: 1.3em;
+		columns: 2;
+		column-gap: 32px;
+	}
+	.toc li {
+		margin: 4px 0;
+		break-inside: avoid;
+	}
+	.toc a {
+		color: var(--klein);
+		text-decoration: none;
+		font-size: 15px;
+	}
+	.toc a:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.legal {
+		max-width: 44rem;
+	}
+	.legal-section {
+		padding: 40px 0;
+		border-top: 1px solid var(--wall-3);
+	}
+	.legal-section:first-child {
+		border-top: none;
+	}
+	.legal-section h2 {
+		/* Deep-link target: keep the heading clear of the viewport top on jump. */
+		scroll-margin-top: 88px;
+		position: relative;
+		font-size: 22px;
+		font-weight: 500;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+		margin: 0 0 14px;
+	}
+	.h-anchor {
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.h-num {
+		color: var(--ink-soft);
+		font-weight: 400;
+	}
+	.h-anchor::before {
+		content: '#';
+		position: absolute;
+		left: -1.15em;
+		color: var(--klein);
+		opacity: 0;
+		transition: opacity 0.12s ease;
+	}
+	.legal-section h2:hover .h-anchor::before,
+	.h-anchor:focus-visible::before {
+		opacity: 1;
+	}
+
+	.prose {
+		color: var(--ink);
+		max-width: 40em;
+	}
+	.prose p {
+		margin: 0 0 14px;
+	}
+	.prose h3 {
+		font-size: 16px;
+		font-weight: 500;
+		margin: 24px 0 8px;
+	}
+	.prose ul,
+	.prose ol {
+		margin: 0 0 14px;
+		padding-left: 1.4em;
+	}
+	.prose li {
+		margin: 6px 0;
+	}
+	.prose a {
+		color: var(--klein);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.prose a:hover {
+		color: var(--klein-dark);
+	}
+	.prose strong {
+		font-weight: 500;
+	}
+	.prose .fill {
+		/* Marks a placeholder the operator must complete before launch. */
+		background: #fff3cd;
+		padding: 0 4px;
+		border-radius: 3px;
+		font-weight: 500;
+	}
+
+	.closing {
+		max-width: 44rem;
+		padding: 40px 0 8px;
+		border-top: 1px solid var(--wall-2);
+		color: var(--ink-soft);
+		font-size: 15px;
+	}
+	.closing a {
+		color: var(--klein);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.closing a:hover {
+		color: var(--klein-dark);
+	}
+
+	.footer {
+		max-width: 1100px;
+		margin: 40px auto 0;
+		border-top: 1px solid var(--wall-2);
+		padding: 40px 32px 56px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+		font-size: 14px;
+		color: var(--ink-soft);
+	}
+	.footer nav {
+		display: flex;
+		gap: 24px;
+		flex-wrap: wrap;
+	}
+	.footer a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.footer a:hover {
+		color: var(--ink);
+	}
+	.footer .brand {
+		margin-bottom: 2px;
+	}
+	.footer .brand-logo {
+		height: 40px;
+	}
+	.footer-note {
+		font-size: 13px;
+	}
+
+	@media (max-width: 700px) {
+		.topbar {
+			padding: 20px;
+		}
+		.topnav {
+			gap: 20px;
+		}
+		main {
+			padding: 0 20px;
+		}
+		.legal-hero {
+			padding: 40px 0 8px;
+		}
+		.toc ol {
+			columns: 1;
+		}
+		.footer {
+			padding: 32px 20px 44px;
+		}
+		.h-anchor::before {
+			display: none;
+		}
+	}
+
+	@media (max-width: 460px) {
+		.topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
+		}
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			scroll-behavior: smooth;
+		}
+	}
+</style>

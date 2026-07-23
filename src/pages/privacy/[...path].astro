@@ -1,0 +1,163 @@
+---
+// Hangwork's Privacy Policy, at /privacy. Product-site only — buyer repos emit no
+// /privacy (getStaticPaths returns [] on the wrong side, same gate as
+// faq/[...path].astro). Rendered through the shared LegalPage shell.
+//
+// STARTING-POINT TEMPLATE, NOT LEGAL ADVICE. The subprocessor list reflects the stack
+// in wrangler.toml (Cloudflare, Lemon Squeezy, Resend, Google OAuth) — keep it in sync
+// if that changes.
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import LegalPage, { type LegalSection } from '../../components/LegalPage.astro';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
+
+const lastUpdated = 'July 23, 2026';
+const abuseEmail = 'abuse@hangwork.art';
+const supportEmail = 'william.stroud100@gmail.com';
+
+const title = 'Privacy Policy — Hangwork';
+const description =
+	'What Hangwork collects, why, who processes it, and the choices you have. We don’t sell your data and we don’t train anything on your work.';
+const intro =
+	'This policy explains what we collect, why, and the control you have over it. The short version: we take what’s needed to run your site and process your payment, nothing to sell, and nothing to train on.';
+
+const sections: LegalSection[] = [
+	{
+		id: 'who-we-are',
+		heading: 'Who is responsible for your data',
+		html: `
+			<p>Hangwork is operated by ${operatorName} (“Hangwork”, “we”, “us”), and we are the controller of the personal data described here. Contact us about privacy at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+		`,
+	},
+	{
+		id: 'what-we-collect',
+		heading: 'What we collect',
+		html: `
+			<h3>Account information</h3>
+			<p>Your email address, and — if you sign in with Google — your name and the basic profile information Google shares for sign-in. We don’t receive your Google password.</p>
+			<h3>Your site content</h3>
+			<p>The images, text, and files you upload, and the site you build. Published sites are public by design.</p>
+			<h3>Payment information</h3>
+			<p>Purchases are handled by Lemon Squeezy as merchant of record. They collect your payment details directly; we receive order and license information (such as your email, the product, and whether the purchase is valid) but not your full card number.</p>
+			<h3>Technical and log data</h3>
+			<p>Like any website, our infrastructure automatically records data such as IP address, browser type, and requests, used for security, abuse prevention, and keeping the Service running.</p>
+			<h3>Support messages</h3>
+			<p>If you email us, we keep the message and our reply so we can help you.</p>
+		`,
+	},
+	{
+		id: 'how-we-use',
+		heading: 'How we use it',
+		html: `
+			<ul>
+				<li>to run the editor, publish and serve your site, and let you sign in from any device;</li>
+				<li>to process your purchase and confirm your license, through Lemon Squeezy;</li>
+				<li>to send you necessary emails — sign-in links, purchase confirmations, and important service notices — through our email provider;</li>
+				<li>to keep the Service secure, prevent abuse, and comply with the law;</li>
+				<li>to answer your support requests.</li>
+			</ul>
+			<p>We do <strong>not</strong> sell your personal data, we don’t show third-party advertising, and we don’t use your work to train machine-learning models.</p>
+		`,
+	},
+	{
+		id: 'legal-bases',
+		heading: 'Legal bases (EEA/UK)',
+		html: `
+			<p>If you’re in the EEA or UK, we rely on: <strong>contract</strong> (to provide the Service you signed up and paid for), <strong>legitimate interests</strong> (to secure the Service and prevent abuse), <strong>consent</strong> (where we ask for it, such as optional emails), and <strong>legal obligation</strong> (to meet our legal duties).</p>
+		`,
+	},
+	{
+		id: 'subprocessors',
+		heading: 'Who we share it with',
+		html: `
+			<p>We share data only with the service providers that help us run Hangwork, each handling data on our behalf:</p>
+			<ul>
+				<li><strong>Cloudflare</strong> — hosting, storage of your site files and account data, DNS, and content-safety scanning of uploaded images.</li>
+				<li><strong>Lemon Squeezy</strong> — payment processing as merchant of record.</li>
+				<li><strong>Resend</strong> — sending sign-in links and transactional email.</li>
+				<li><strong>Google</strong> — only if you choose “Continue with Google,” to authenticate you.</li>
+			</ul>
+			<p>We may also disclose data if required by law, to protect people’s safety, or as part of a business transfer. We don’t otherwise share your personal data.</p>
+		`,
+	},
+	{
+		id: 'public-content',
+		heading: 'Content you publish is public',
+		html: `
+			<p>When you publish, your site and its contents are visible to anyone on the internet, and search engines may index them. Don’t put anything on a published page that you need to keep private. Drafts you haven’t published stay hidden.</p>
+		`,
+	},
+	{
+		id: 'cookies',
+		heading: 'Cookies and sessions',
+		html: `
+			<p>We use a small number of strictly necessary cookies and similar storage to keep you signed in and to operate the editor securely. We don’t use advertising or cross-site tracking cookies.</p>
+		`,
+	},
+	{
+		id: 'retention',
+		heading: 'How long we keep it',
+		html: `
+			<p>We keep your account and site data for as long as your account is active. If you close your account or ask us to delete your data, we remove it within a reasonable period, except for backups that age out on a normal cycle and anything we must keep for legal, security, or accounting reasons (for example, records of a purchase).</p>
+		`,
+	},
+	{
+		id: 'your-rights',
+		heading: 'Your rights and choices',
+		html: `
+			<p>You can access and update your account details in the editor, and download your complete site — pages, images, everything — at any time using the export button. Depending on where you live, you may also have the right to request access to, correction of, or deletion of your personal data, to object to or restrict certain processing, and to data portability. Residents of California and similar regimes have equivalent rights, and we don’t sell personal information.</p>
+			<p>To make a request, email <a href="mailto:${supportEmail}">${supportEmail}</a>. We’ll respond as the law requires. You also have the right to complain to your local data-protection authority.</p>
+		`,
+	},
+	{
+		id: 'security',
+		heading: 'Security',
+		html: `
+			<p>We use reputable infrastructure and reasonable measures to protect your data, including encrypted connections and access controls. No method of storage or transmission is completely secure, so we can’t guarantee absolute security — keeping your own copy of your site (the export button) is always the safest backup.</p>
+		`,
+	},
+	{
+		id: 'children',
+		heading: 'Children',
+		html: `
+			<p>Hangwork isn’t directed to children, and you must be 18 or the age of majority where you live to use it. We don’t knowingly collect data from children. If you believe a child has given us data, contact <a href="mailto:${supportEmail}">${supportEmail}</a> and we’ll delete it.</p>
+		`,
+	},
+	{
+		id: 'international',
+		heading: 'International transfers',
+		html: `
+			<p>Hangwork and our providers operate globally, including in the United States. Using the Service may involve transferring your data across borders. Where required, we rely on appropriate safeguards for those transfers.</p>
+		`,
+	},
+	{
+		id: 'changes',
+		heading: 'Changes to this policy',
+		html: `
+			<p>We may update this policy as the Service evolves. We’ll change the “Last updated” date above and, for material changes, give reasonable notice.</p>
+		`,
+	},
+	{
+		id: 'contact',
+		heading: 'Contact',
+		html: `
+			<p>Privacy questions or requests: <a href="mailto:${supportEmail}">${supportEmail}</a>. To report abuse or a safety concern: <a href="mailto:${abuseEmail}">${abuseEmail}</a>.</p>
+		`,
+	},
+];
+---
+
+<LegalPage
+	title={title}
+	h1="Privacy Policy"
+	description={description}
+	slug="privacy"
+	lastUpdated={lastUpdated}
+	intro={intro}
+	sections={sections}
+/>

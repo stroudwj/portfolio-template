@@ -23,6 +23,8 @@ export const GET: APIRoute = () => {
 				new URL(withBase(base, 'examples'), site).href,
 				new URL(withBase(base, 'guide'), site).href,
 				new URL(withBase(base, 'faq'), site).href,
+				new URL(withBase(base, 'terms'), site).href,
+				new URL(withBase(base, 'privacy'), site).href,
 				...SEO_ARTICLES.map((article) => new URL(withBase(base, `learn/${article.slug}`), site).href),
 			]
 		: pagePaths.map((path) => new URL(withBase(base, path && `${path}/`), site).href);
