@@ -11,6 +11,7 @@ import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
 import { stripSlashes, withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
+import { backgroundBlockVars } from './theme';
 import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
 
@@ -377,11 +378,19 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${config.heading?.trim() ? 'has-page-heading' : 'without-page-heading'}`}
 				data-phone-ready={isPhone ? 'true' : undefined}
 			>
-				{pageParts.map((part) => (
-					<div className={`portfolio-page-part ${part.className}`} style={pagePartVars(part.key)} key={part.key}>
-						{part.rendered}
-					</div>
-				))}
+				{pageParts.map((part) => {
+					const sectionColor = config.sectionColors?.[part.key];
+					const partStyle = { ...pagePartVars(part.key), ...backgroundBlockVars(sectionColor) } as CSSProperties;
+					return (
+						<div
+							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}`}
+							style={partStyle}
+							key={part.key}
+						>
+							{part.rendered}
+						</div>
+					);
+				})}
 			</div>
 			{content.site.signature && <Signature data={content.site.signature} />}
 			{content.site.footer && <Footer text={content.site.footer} />}

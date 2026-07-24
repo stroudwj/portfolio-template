@@ -1,7 +1,8 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
 import CreativeEffects from './CreativeEffects';
-import { themeToVars, fontFacesCss } from './theme';
+import type { CSSProperties } from 'react';
+import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
 import type { ImageLayout, PortfolioData, TextLayout } from './types';
 
 export interface PortfolioProps extends PortfolioData {
@@ -23,6 +24,8 @@ export interface PortfolioProps extends PortfolioData {
  */
 export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
+	const pageBackground = content.pages[page]?.background;
+	const rootStyle: CSSProperties = { ...themeToVars(content.theme), ...backgroundBlockVars(pageBackground) };
 	const creativeClasses = [
 		content.site.creative?.looseHang && 'creative-loose-hang',
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
@@ -32,7 +35,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 		.filter(Boolean)
 		.join(' ');
 	return (
-		<div className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={themeToVars(content.theme)}>
+		<div className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={rootStyle}>
 			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
 			<CreativeEffects creative={content.site.creative} />
 			<PortfolioFrame
@@ -41,6 +44,8 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				logoImageSrc={logoImageSrc}
 				base={base}
 				current={current}
+				navStyle={content.theme.navStyle}
+				fullscreenMobile={content.theme.fullscreenMobileMenu}
 				onNavigate={onNavigate}
 			>
 				<PortfolioPage

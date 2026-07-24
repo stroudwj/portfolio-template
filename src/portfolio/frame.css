@@ -44,6 +44,60 @@
 	min-width: 0;
 }
 
+/* Color blocking: a section that carries its own background reads as a full-width
+   band. pagePartVars sets --color-bg + auto-contrast text vars on the wrapper. */
+.portfolio-page-part.has-section-color {
+	background: var(--color-bg);
+	color: var(--color-text);
+	padding: 48px 40px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Navigation layouts — position the fixed .sidebar per nav style.
+ * The centered logo (a sibling) stays put; each layout coexists with it.
+ * ------------------------------------------------------------------ */
+
+/* Topbar: a full-width top bar with the links pushed to the right. */
+.portfolio-container.nav-style-topbar > .sidebar {
+	left: 0;
+	right: 0;
+	padding: 28px 36px;
+}
+.portfolio-container.nav-style-topbar > .sidebar .navigation-shell {
+	width: 100%;
+	align-items: flex-end;
+}
+
+/* Centered: links centered just beneath the centered logo. */
+.portfolio-container.nav-style-centered > .sidebar {
+	left: 0;
+	right: 0;
+	top: 88px;
+	padding: 0 24px;
+}
+.portfolio-container.nav-style-centered > .sidebar .navigation-shell {
+	width: 100%;
+	align-items: center;
+}
+
+/* Pill: a floating capsule centered along the bottom edge. */
+.portfolio-container.nav-style-pill > .sidebar {
+	left: 0;
+	right: 0;
+	top: auto;
+	bottom: 28px;
+	padding: 0;
+}
+.portfolio-container.nav-style-pill > .sidebar .navigation-shell {
+	width: 100%;
+	align-items: center;
+}
+
+/* Minimal: only the fixed hamburger + overlay live here (positioned in Nav.css). */
+.portfolio-container.nav-style-minimal > .sidebar {
+	padding: 0;
+}
+
 /* Per-page body wrappers (ported from the Phase 1 page files). */
 .collage-container {
 	padding: 20px 40px 60px;
@@ -71,6 +125,9 @@
 	}
 	.page-content-wrapper {
 		padding: 80px 20px 40px;
+	}
+	.portfolio-page-part.has-section-color {
+		padding: 40px 20px;
 	}
 }
 

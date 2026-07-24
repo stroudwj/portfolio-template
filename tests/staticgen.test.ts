@@ -109,4 +109,40 @@ describe('staticgen', () => {
 		expect(site.assetPaths).toContain('assets/selected-works/01-blue.jpg');
 		expect(site.assetPaths).toContain('assets/selected-works/02-red.jpg');
 	});
+
+	it('renders the chosen nav style and color-blocking into the published HTML', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			theme: { ...base.contentJson.theme, navStyle: 'topbar', fullscreenMobileMenu: true },
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					background: '#101014', // dark page → auto-contrast should flip text to light
+					sectionColors: { 'page:heading': '#e0685b' },
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(site.files.find((f) => f.path === 'index.html')!.bytes);
+
+		// Nav style: the wrapper class + horizontal row links, plus the full-screen
+		// mobile overlay markup (opt-in via fullscreenMobileMenu) and its trigger.
+		expect(home).toContain('nav-style-topbar');
+		expect(home).toContain('row-link');
+		expect(home).toContain('nav-menu-trigger');
+		expect(home).toContain('nav-menu-overlay');
+
+		// Per-page background: the root carries the override + the flipped (light) text.
+		expect(home).toContain('--color-bg:#101014');
+		expect(home).toContain('--color-text:#f5f5f2');
+
+		// Per-section color: the heading band is a color-blocked part.
+		expect(home).toContain('has-section-color');
+		expect(home).toContain('--color-bg:#e0685b');
+	});
 });

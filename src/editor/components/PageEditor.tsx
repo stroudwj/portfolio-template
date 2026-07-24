@@ -4,6 +4,7 @@
 // and text are edited in place; nesting is one level deep by design.
 import { useEditor } from '../store';
 import { Field, TextInput, TextArea, Section, showEditorTab } from './ui/controls';
+import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
 import { ImageDrop } from './ui/ImageDrop';
@@ -172,6 +173,12 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	const isHome = pageKey === 'home';
 	const pageName = page.label || (isHome ? 'Home' : pageKey);
 	const blocks = page.blocks ?? [];
+	// Offer the site's own palette first in every color-blocking picker.
+	const themeColors = [
+		doc.content.theme.backgroundColor,
+		doc.content.theme.textColor,
+		doc.content.theme.accentColor,
+	].filter(Boolean);
 	const galleryMode = page.gallery?.layout === 'grid' ? 'grid' : 'freeform';
 	/** Text can be dragged onto the canvas only when the page shows a freeform gallery. */
 	const hasFreeCanvas = !!page.gallery && galleryMode === 'freeform' && blocks.some((b) => b.type === 'gallery');
@@ -294,6 +301,12 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 			block.type === 'divider' ? 'divider' : block.type;
 		const blockLabel = `${name} block ${index + 1} on ${pageName}`;
 		return <div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
+			<ColorSwatchPicker
+				label={`Background color for ${blockLabel}`}
+				value={page.sectionColors?.[`block:${block.id}`]}
+				themeColors={themeColors}
+				onChange={(color) => editor.setSectionColor(pageKey, `block:${block.id}`, color)}
+			/>
 			<button
 				type="button"
 				className="btn-icon"
@@ -898,6 +911,31 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 					placeholder="Shown at the top of the page"
 					onChange={(e) => editor.setPageHeading(pageKey, e.target.value)}
 				/>
+			</Field>
+
+			<Field
+				label="Page background (color blocking)"
+				hint="Give this whole page its own background color. Text adjusts automatically to stay readable."
+			>
+				<div className="color-block-row">
+					<ColorSwatchPicker
+						label={`Background color for ${pageName}`}
+						value={page.background}
+						themeColors={themeColors}
+						onChange={(color) => editor.setPageBackground(pageKey, color)}
+					/>
+					{page.heading?.trim() && (
+						<label className="color-block-inline">
+							<span>Heading band</span>
+							<ColorSwatchPicker
+								label={`Background color behind the ${pageName} heading`}
+								value={page.sectionColors?.['page:heading']}
+								themeColors={themeColors}
+								onChange={(color) => editor.setSectionColor(pageKey, 'page:heading', color)}
+							/>
+						</label>
+					)}
+				</div>
 			</Field>
 
 			{(pagePhoneItems.length > 0 || page.mobile) && (

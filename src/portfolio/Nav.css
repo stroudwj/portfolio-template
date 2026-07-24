@@ -4,77 +4,15 @@
 	align-items: flex-start;
 }
 
+/* ------------------------------------------------------------------ *
+ * Dock (default) — vertical Mac-dock magnify list
+ * ------------------------------------------------------------------ */
 .mac-dock-vertical {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 	padding: 5px 5px; /* top/bottom, left/right */
 	background: transparent;
-}
-
-.mobile-nav {
-	display: none;
-	position: fixed;
-	top: 16px;
-	left: 16px;
-	z-index: 2000;
-	background: transparent;
-	padding: 0;
-	width: fit-content;
-}
-
-.mobile-nav[open] {
-	background: var(--color-bg);
-	padding: 6px 8px 8px;
-}
-
-.mobile-nav-trigger {
-	list-style: none;
-	cursor: pointer;
-	display: flex;
-	flex-direction: column;
-	gap: 5px;
-	padding: 6px 4px;
-	background: transparent;
-	border: 0;
-}
-
-.mobile-nav-trigger::-webkit-details-marker {
-	display: none;
-}
-
-.hamburger-line {
-	display: block;
-	width: 24px;
-	height: 2px;
-	background: var(--color-accent);
-	border-radius: 999px;
-}
-
-.mobile-nav-panel {
-	margin-top: 10px;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	padding: 8px 4px 2px;
-	background: transparent;
-	border: 0;
-	border-radius: 0;
-	box-shadow: none;
-	min-width: 120px;
-}
-
-.mobile-nav-link {
-	font-family: var(--font-family);
-	font-size: 0.85rem;
-	font-weight: 700;
-	color: var(--color-text);
-	text-decoration: none;
-}
-
-.mobile-nav-link.active {
-	text-decoration: underline;
-	text-underline-offset: 0.18em;
 }
 
 .dock-link {
@@ -92,7 +30,7 @@
 	font-family: var(--font-family);
 	font-size: 0.7rem;
 	font-weight: 700;
-	color: #333333;
+	color: var(--color-text);
 	letter-spacing: 0.3px;
 	white-space: nowrap;
 	display: inline-block;
@@ -154,11 +92,225 @@
 	}
 }
 
+/* ------------------------------------------------------------------ *
+ * Horizontal row — topbar / centered / pill
+ * ------------------------------------------------------------------ */
+.nav-links-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 1.4rem;
+}
+
+.row-link {
+	position: relative;
+	font-family: var(--font-family);
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.3px;
+	color: var(--color-text);
+	text-decoration: none;
+	white-space: nowrap;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.row-link::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: -3px;
+	height: 2px;
+	width: 100%;
+	background-color: var(--color-accent);
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform 0.2s ease;
+}
+
+.row-link:hover::after,
+.row-link.active::after {
+	transform: scaleX(1);
+}
+.row-link.active {
+	color: var(--color-accent);
+}
+
+/* Centered — quiet, letter-spaced, uppercase */
+.nav-centered .nav-links-row {
+	justify-content: center;
+}
+.nav-centered .row-link {
+	text-transform: uppercase;
+	letter-spacing: 1.6px;
+	font-size: 0.72rem;
+}
+
+/* Pill — translucent floating capsule with a blur behind it */
+.nav-pill .nav-links-row {
+	padding: 10px 22px;
+	border-radius: 999px;
+	background: var(--color-bg);
+	background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* ------------------------------------------------------------------ *
+ * Hamburger trigger (mobile always; desktop only for the minimal style)
+ * ------------------------------------------------------------------ */
+.nav-menu-trigger {
+	display: none;
+	position: fixed;
+	top: 16px;
+	left: 16px;
+	z-index: 2100;
+	flex-direction: column;
+	gap: 5px;
+	padding: 8px 4px;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.hamburger-line {
+	display: block;
+	width: 24px;
+	height: 2px;
+	background: var(--color-accent);
+	border-radius: 999px;
+	transition: transform 0.3s ease, opacity 0.2s ease;
+}
+
+.nav-menu-trigger.is-open .hamburger-line:nth-child(1) {
+	transform: translateY(7px) rotate(45deg);
+}
+.nav-menu-trigger.is-open .hamburger-line:nth-child(2) {
+	opacity: 0;
+}
+.nav-menu-trigger.is-open .hamburger-line:nth-child(3) {
+	transform: translateY(-7px) rotate(-45deg);
+}
+
+/* The minimal style shows the trigger on desktop too, tucked top-right. */
+.navigation-shell.nav-minimal .nav-menu-trigger {
+	display: flex;
+	top: 24px;
+	right: 28px;
+	left: auto;
+}
+
+/* ------------------------------------------------------------------ *
+ * The opened menu — compact dropdown or full-screen overlay
+ * ------------------------------------------------------------------ */
+.nav-menu {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+.nav-menu-link {
+	font-family: var(--font-family);
+	font-weight: 700;
+	color: var(--color-text);
+	text-decoration: none;
+}
+.nav-menu-link.active {
+	color: var(--color-accent);
+	text-decoration: underline;
+	text-underline-offset: 0.18em;
+}
+
+/* Compact — a small dropdown under the hamburger (the classic behavior) */
+.nav-menu-compact {
+	position: fixed;
+	top: 52px;
+	left: 16px;
+	z-index: 2000;
+	padding: 10px 14px 12px;
+	border-radius: 10px;
+	background: var(--color-bg);
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+	transform: translateY(-6px);
+	transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+.nav-menu-compact.is-open {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+	transform: none;
+}
+.nav-menu-compact .nav-menu-inner {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-width: 120px;
+}
+.nav-menu-compact .nav-menu-link {
+	font-size: 0.9rem;
+}
+
+/* Overlay — fills the screen, links stacked and fading in with a stagger */
+.nav-menu-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 2000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--color-bg);
+	transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+.nav-menu-overlay.is-open {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+.nav-menu-overlay .nav-menu-inner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.6rem;
+	padding: 2rem;
+}
+.nav-menu-overlay .nav-menu-link {
+	font-size: clamp(1.6rem, 6vw, 2.6rem);
+	letter-spacing: 0.5px;
+	opacity: 0;
+	transform: translateY(10px);
+	transition: opacity 0.4s ease, transform 0.4s ease;
+	transition-delay: calc(var(--nav-menu-index, 0) * 60ms);
+}
+.nav-menu-overlay.is-open .nav-menu-link {
+	opacity: 1;
+	transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nav-menu-overlay,
+	.nav-menu-overlay .nav-menu-link,
+	.nav-menu-compact,
+	.hamburger-line {
+		transition: none;
+	}
+}
+
+/* ------------------------------------------------------------------ *
+ * Show/hide desktop list vs. hamburger by width
+ * ------------------------------------------------------------------ */
 @media (max-width: 768px) {
 	.desktop-nav {
 		display: none;
 	}
-	.mobile-nav {
-		display: block;
+	.nav-menu-trigger {
+		display: flex;
+	}
+	/* On phones the trigger always sits top-left, even for the minimal style. */
+	.navigation-shell.nav-minimal .nav-menu-trigger {
+		top: 16px;
+		left: 16px;
+		right: auto;
 	}
 }

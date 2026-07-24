@@ -91,9 +91,16 @@ export interface Theme {
 	contentGap?: number;
 	/** Header logo size as a percentage (50–200) of the default. Absent = 100. */
 	logoScale?: number;
+	/** Site-wide navigation layout. Absent = 'dock' (the classic left magnify sidebar). */
+	navStyle?: NavStyle;
+	/** Phones open the menu as a full-screen fade-in overlay instead of the compact corner box. */
+	fullscreenMobileMenu?: boolean;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
 }
+
+/** The navigation layouts an artist can pick from in the Theme tab. */
+export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
 
 export interface NavItem {
 	/** Page file name in src/pages/ without extension ('' for the Home page). */
@@ -282,6 +289,10 @@ export interface PageConfig {
 	children?: string[];
 	/** Card image for this page when it appears as a sub-page (path under src/assets/). */
 	thumbnail?: string;
+	/** Whole-page background color (color-blocking). Absent = the site background color. */
+	background?: string;
+	/** Per-section background colors keyed by page-part key ('block:<id>' / 'page:heading'). */
+	sectionColors?: Record<string, string>;
 }
 
 /**

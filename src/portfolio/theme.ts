@@ -5,7 +5,10 @@ import type { CSSProperties } from 'react';
 import type { Theme } from '../lib/content';
 
 /** The string-valued theme fields that map 1:1 onto CSS variables. */
-type ThemeVarKey = Exclude<keyof Theme, 'customFonts' | 'contentGap' | 'headingFontFamily' | 'logoScale'>;
+type ThemeVarKey = Exclude<
+	keyof Theme,
+	'customFonts' | 'contentGap' | 'headingFontFamily' | 'logoScale' | 'navStyle' | 'fullscreenMobileMenu'
+>;
 
 const VARS: Array<[string, ThemeVarKey]> = [
 	['--color-bg', 'backgroundColor'],
@@ -39,6 +42,48 @@ export function themeToVars(theme: Theme): CSSProperties {
 export function themeToRootCss(theme: Theme): string {
 	const body = VARS.map(([cssVar, key]) => `${cssVar}:${theme[key]};`).join('');
 	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};}`;
+}
+
+/** Parse a #rgb / #rrggbb hex string to [r,g,b] in 0–255, or null if not hex. */
+function parseHex(color: string): [number, number, number] | null {
+	const hex = color.trim().replace(/^#/, '');
+	const full = hex.length === 3 ? hex.replace(/./g, (c) => c + c) : hex;
+	if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+	return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
+}
+
+/** WCAG relative luminance (0 = black, 1 = white) of an sRGB triple. */
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+	const lin = (v: number) => {
+		const c = v / 255;
+		return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+	};
+	return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * Color-blocking auto-contrast: given a section/page background color, return the
+ * `--color-text` / `--color-text-muted` overrides that stay legible on it (dark ink
+ * on light backgrounds, light ink on dark). Returns `{}` for non-hex input so the
+ * inherited theme colors are left untouched.
+ */
+export function readableTextVars(bgColor: string): Record<string, string> {
+	const rgb = parseHex(bgColor);
+	if (!rgb) return {};
+	const dark = relativeLuminance(rgb) < 0.5;
+	return dark
+		? { '--color-text': '#f5f5f2', '--color-text-muted': 'rgba(245,245,242,0.72)' }
+		: { '--color-text': '#111111', '--color-text-muted': 'rgba(17,17,17,0.62)' };
+}
+
+/**
+ * The inline CSS-variable overrides for a color-blocked background (a section or a
+ * whole page): sets `--color-bg` plus the auto-contrast text colors. Empty when no
+ * color is set, so callers can spread it unconditionally.
+ */
+export function backgroundBlockVars(bgColor: string | undefined): Record<string, string> {
+	if (!bgColor) return {};
+	return { '--color-bg': bgColor, ...readableTextVars(bgColor) };
 }
 
 /** A custom font ready to load: display name + a resolved URL (hashed asset or blob:). */

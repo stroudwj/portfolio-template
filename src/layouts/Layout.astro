@@ -5,7 +5,7 @@
 import { content } from '../lib/content';
 import { resolveOgImage, resolveLogoImage } from '../lib/resolveImages';
 import { getFontUrl } from '../lib/galleries';
-import { themeToRootCss, fontFacesCss } from '../portfolio/theme';
+import { themeToRootCss, fontFacesCss, backgroundBlockVars } from '../portfolio/theme';
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
 import CreativeEffects from '../portfolio/CreativeEffects';
@@ -29,6 +29,12 @@ const { site, theme, nav } = content;
 const logo = site.logo || site.name;
 const logoImageSrc = await resolveLogoImage();
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
+// Site-wide nav layout + the current page's color-blocking background (if any).
+const navStyle = theme.navStyle ?? 'dock';
+const pageConfig = content.pages[current || 'home'];
+const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background))
+	.map(([prop, value]) => `${prop}:${value}`)
+	.join(';');
 // Uploaded fonts become @font-face rules ahead of the theme variables that use them.
 const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
 	const url = getFontUrl(font.file);
@@ -52,7 +58,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 ---
 
 <!doctype html>
-<html lang={site.language || 'en'}>
+<html lang={site.language || 'en'} style={pageBgStyle || undefined}>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="description" content={description} />
@@ -86,10 +92,17 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 			)
 		}
 		{showLogo && <Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} />}
-		<div class="portfolio-container">
+		<div class={`portfolio-container nav-style-${navStyle}`}>
 			<!-- The menu lives here permanently; hydrated for the hover-magnify. -->
 			<nav class="sidebar">
-				<Nav client:idle items={nav} base={base} current={current} />
+				<Nav
+					client:idle
+					items={nav}
+					base={base}
+					current={current}
+					navStyle={navStyle}
+					fullscreenMobile={theme.fullscreenMobileMenu}
+				/>
 			</nav>
 
 			<!-- Each page injects its unique content here. -->

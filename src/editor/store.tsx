@@ -386,6 +386,11 @@ export interface EditorContextValue {
 	// creative extras
 	/** Optional site-wide flourishes configured in the Fun tab. */
 	setCreative(patch: Partial<CreativeConfig>): void;
+	// color blocking
+	/** Whole-page background color (undefined = the site background). */
+	setPageBackground(key: string, color: string | undefined): void;
+	/** Background color of one page section, keyed 'block:<id>' / 'page:heading'. */
+	setSectionColor(key: string, partKey: string, color: string | undefined): void;
 	// sharing / SEO
 	/** Meta description used for search results and social link previews. */
 	setSiteDescription(value: string): void;
@@ -1698,6 +1703,20 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			})),
 		setPageDescription: (key, value) =>
 			patchPage(key, (page) => ({ ...page, description: value || undefined }), true, `page:${key}:description`),
+		setPageBackground: (key, color) =>
+			patchPage(key, (page) => ({ ...page, background: color || undefined }), true, `page:${key}:background`),
+		setSectionColor: (key, partKey, color) =>
+			patchPage(
+				key,
+				(page) => {
+					const next = { ...(page.sectionColors ?? {}) };
+					if (color) next[partKey] = color;
+					else delete next[partKey];
+					return { ...page, sectionColors: Object.keys(next).length ? next : undefined };
+				},
+				true,
+				`page:${key}:sectioncolor:${partKey}`,
+			),
 		setOgImage: (sel) => commitDoc((prev) => ({ ...prev, ogImage: sel })),
 
 		undo: () => {

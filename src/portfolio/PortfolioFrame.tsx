@@ -1,6 +1,6 @@
 import Nav from './Nav';
 import Logo from './Logo';
-import { withBase, type NavItem } from './types';
+import { withBase, type NavItem, type NavStyle } from './types';
 import './frame.css';
 
 export interface PortfolioFrameProps {
@@ -11,6 +11,10 @@ export interface PortfolioFrameProps {
 	base: string;
 	/** Current page path, stripped ('' = Home). */
 	current: string;
+	/** Site-wide navigation layout. Absent = 'dock'. */
+	navStyle?: NavStyle;
+	/** Phones open the menu as a full-screen fade-in overlay. */
+	fullscreenMobile?: boolean;
 	onNavigate?: (path: string) => void;
 	children: React.ReactNode;
 }
@@ -22,15 +26,24 @@ export default function PortfolioFrame({
 	logoImageSrc,
 	base,
 	current,
+	navStyle = 'dock',
+	fullscreenMobile,
 	onNavigate,
 	children,
 }: PortfolioFrameProps) {
 	return (
 		<>
 			<Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} onNavigate={onNavigate} />
-			<div className="portfolio-container">
+			<div className={`portfolio-container nav-style-${navStyle}`}>
 				<nav className="sidebar">
-					<Nav items={nav} base={base} current={current} onNavigate={onNavigate} />
+					<Nav
+						items={nav}
+						base={base}
+						current={current}
+						navStyle={navStyle}
+						fullscreenMobile={fullscreenMobile}
+						onNavigate={onNavigate}
+					/>
 				</nav>
 				<section className="content-view">{children}</section>
 			</div>

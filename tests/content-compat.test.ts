@@ -54,6 +54,32 @@ describe('content compatibility', () => {
 		);
 	});
 
+	it('preserves nav-style and color-blocking fields with no schema-version bump', () => {
+		const content = parseAndMigrateContent(fixture('content-v0.json'));
+		const withExtras = structuredClone(content) as typeof content;
+		withExtras.theme.navStyle = 'pill';
+		withExtras.theme.fullscreenMobileMenu = true;
+		withExtras.pages.home.background = '#101014';
+		withExtras.pages.home.sectionColors = { 'block:gallery': '#e0685b', 'page:heading': '#f7ecc9' };
+
+		const parsed = parseAndMigrateContent(withExtras);
+		expect(parsed.schemaVersion).toBe(CONTENT_SCHEMA_VERSION); // optional fields → no migration
+		expect(parsed.theme.navStyle).toBe('pill');
+		expect(parsed.theme.fullscreenMobileMenu).toBe(true);
+		expect(parsed.pages.home.background).toBe('#101014');
+		expect(parsed.pages.home.sectionColors).toEqual({
+			'block:gallery': '#e0685b',
+			'page:heading': '#f7ecc9',
+		});
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed); // idempotent
+	});
+
+	it('rejects an unknown nav style value', () => {
+		const content = parseAndMigrateContent(fixture('content-v0.json'));
+		const invalid = { ...content, theme: { ...content.theme, navStyle: 'spinny' } };
+		expect(() => parseAndMigrateContent(invalid)).toThrow(ContentValidationError);
+	});
+
 	it('rejects unknown renderer block types instead of silently deleting them', () => {
 		const content = parseAndMigrateContent(fixture('content-v0.json'));
 		const invalid = structuredClone(content) as unknown as { pages: { home: { blocks: unknown[] } } };
