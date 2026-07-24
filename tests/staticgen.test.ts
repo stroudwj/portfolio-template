@@ -125,6 +125,8 @@ describe('staticgen', () => {
 				fullscreenMobileMenu: true,
 				stabilizeNavigation: false,
 				subheadingScale: 130,
+				pageHeadingScale: 145,
+				pageHeadingPosition: 'center',
 				logoPosition: 'left',
 			},
 			pages: {
@@ -132,6 +134,10 @@ describe('staticgen', () => {
 				home: {
 					...base.contentJson.pages.home,
 					background: '#101014', // dark page → auto-contrast should flip text to light
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{ id: 'youtube', type: 'embed', url: 'https://youtu.be/M7lc1UVf-VE' },
+					],
 					sectionColors: { 'page:heading': '#e0685b' },
 					sectionHeights: {
 						'page:heading': { desktop: 260, phone: 180 },
@@ -154,6 +160,10 @@ describe('staticgen', () => {
 		expect(home).toContain('nav-menu-overlay');
 		expect(home).toContain('logo-position-left');
 		expect(home).toContain('--subheading-scale:1.3');
+		expect(home).toContain('--page-heading-scale:1.45');
+		expect(home).toContain('heading-position-center');
+		expect(home).toContain('https://www.youtube.com/embed/M7lc1UVf-VE');
+		expect(home).toContain('referrerPolicy="strict-origin-when-cross-origin"');
 
 		// Per-page background: the root carries the override + the flipped (light) text.
 		expect(home).toContain('--color-bg:#101014');

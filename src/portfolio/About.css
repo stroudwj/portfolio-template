@@ -8,6 +8,7 @@
 	width: 33.333%;
 	min-width: 300px;
 	font-weight: 500;
+	color: var(--color-text);
 }
 
 .profile-image {

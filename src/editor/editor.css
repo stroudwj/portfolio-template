@@ -958,6 +958,16 @@ select.select-input {
 	font-size: 13px;
 	color: var(--ink-soft);
 }
+.freeform-position-controls {
+	display: grid;
+	gap: 10px;
+	margin-top: 12px;
+}
+.freeform-position-controls .gap-row > span:first-child {
+	width: 48px;
+	font-size: 13px;
+	color: var(--ink-soft);
+}
 
 /* ---- Signature drawing pad ---- */
 .signature-pad {

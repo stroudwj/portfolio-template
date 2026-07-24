@@ -20,6 +20,7 @@ import {
 	snapSpanToEdges,
 } from '../src/portfolio/canvasLayout';
 import { backgroundBlockVars } from '../src/portfolio/theme';
+import { videoEmbedSrc } from '../src/portfolio/videoEmbed';
 
 function fixture(name: string): unknown {
 	return JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'));
@@ -73,6 +74,10 @@ describe('content compatibility', () => {
 		withExtras.theme.automaticTextContrast = false;
 		withExtras.theme.stabilizeNavigation = false;
 		withExtras.theme.subheadingScale = 135;
+		withExtras.theme.pageHeadingScale = 145;
+		withExtras.theme.pageHeadingPosition = 'freeform';
+		withExtras.theme.pageHeadingX = 32;
+		withExtras.theme.pageHeadingY = 74;
 		withExtras.theme.logoPosition = 'freeform';
 		withExtras.theme.logoX = 24;
 		withExtras.theme.logoY = 86;
@@ -91,6 +96,10 @@ describe('content compatibility', () => {
 		expect(parsed.theme.automaticTextContrast).toBe(false);
 		expect(parsed.theme.stabilizeNavigation).toBe(false);
 		expect(parsed.theme.subheadingScale).toBe(135);
+		expect(parsed.theme.pageHeadingScale).toBe(145);
+		expect(parsed.theme.pageHeadingPosition).toBe('freeform');
+		expect(parsed.theme.pageHeadingX).toBe(32);
+		expect(parsed.theme.pageHeadingY).toBe(74);
 		expect(parsed.theme.logoPosition).toBe('freeform');
 		expect(parsed.theme.logoX).toBe(24);
 		expect(parsed.theme.logoY).toBe(86);
@@ -105,6 +114,15 @@ describe('content compatibility', () => {
 			'block:gallery': { desktop: 720 },
 		});
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed); // idempotent
+	});
+
+	it('uses the identified YouTube embed endpoint for supported link shapes', () => {
+		expect(videoEmbedSrc('https://youtu.be/M7lc1UVf-VE')).toBe(
+			'https://www.youtube.com/embed/M7lc1UVf-VE',
+		);
+		expect(videoEmbedSrc('https://www.youtube.com/watch?v=M7lc1UVf-VE')).toBe(
+			'https://www.youtube.com/embed/M7lc1UVf-VE',
+		);
 	});
 
 	it('can disable derived text colors while retaining a chosen background', () => {

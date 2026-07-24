@@ -2,7 +2,7 @@
 // and id-validated so arbitrary URLs can never become an iframe src on the published
 // site — anything unrecognized returns null and the caller falls back to a plain link.
 
-const YT_EMBED = 'https://www.youtube-nocookie.com/embed/';
+const YT_EMBED = 'https://www.youtube.com/embed/';
 const VIMEO_EMBED = 'https://player.vimeo.com/video/';
 
 const ytId = (value: string | null | undefined): string | null =>

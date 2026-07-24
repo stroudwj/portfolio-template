@@ -12,6 +12,10 @@ type ThemeVarKey = Exclude<
 	| 'headingFontFamily'
 	| 'logoScale'
 	| 'subheadingScale'
+	| 'pageHeadingScale'
+	| 'pageHeadingPosition'
+	| 'pageHeadingX'
+	| 'pageHeadingY'
 	| 'logoPosition'
 	| 'logoX'
 	| 'logoY'
@@ -43,6 +47,17 @@ const logoScaleCss = (theme: Theme): string =>
 const subheadingScaleCss = (theme: Theme): string =>
 	String(Math.min(Math.max(theme.subheadingScale ?? 100, 50), 200) / 100);
 
+/** Page-heading size as a unitless multiplier (theme stores a 50–200 percentage). */
+const pageHeadingScaleCss = (theme: Theme): string =>
+	String(Math.min(Math.max(theme.pageHeadingScale ?? 100, 50), 200) / 100);
+
+/** Freeform page-heading coordinates, kept away from clipping at the band edges. */
+const pageHeadingXCss = (theme: Theme): string =>
+	`${Math.min(Math.max(theme.pageHeadingX ?? 50, 5), 95)}%`;
+
+const pageHeadingYCss = (theme: Theme): string =>
+	`${Math.min(Math.max(theme.pageHeadingY ?? 56, 0), 240)}px`;
+
 /** Theme → a React inline-style object of CSS variables. */
 export function themeToVars(theme: Theme): CSSProperties {
 	const style: Record<string, string> = {};
@@ -51,13 +66,16 @@ export function themeToVars(theme: Theme): CSSProperties {
 	style['--font-heading'] = headingFontCss(theme);
 	style['--logo-scale'] = logoScaleCss(theme);
 	style['--subheading-scale'] = subheadingScaleCss(theme);
+	style['--page-heading-scale'] = pageHeadingScaleCss(theme);
+	style['--page-heading-x'] = pageHeadingXCss(theme);
+	style['--page-heading-y'] = pageHeadingYCss(theme);
 	return style as CSSProperties;
 }
 
 /** Theme → a `:root { … }` CSS string for the Astro Layout's global injection. */
 export function themeToRootCss(theme: Theme): string {
 	const body = VARS.map(([cssVar, key]) => `${cssVar}:${theme[key]};`).join('');
-	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};}`;
+	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};--page-heading-scale:${pageHeadingScaleCss(theme)};--page-heading-x:${pageHeadingXCss(theme)};--page-heading-y:${pageHeadingYCss(theme)};}`;
 }
 
 /** Parse a #rgb / #rrggbb hex string to [r,g,b] in 0–255, or null if not hex. */

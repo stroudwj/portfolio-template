@@ -413,7 +413,16 @@ export default function PortfolioPage({
 	};
 	const pageParts = [
 		...(config.heading?.trim()
-			? [{ key: 'page:heading', className: 'portfolio-page-heading', rendered: <Hero heading={config.heading} /> }]
+			? [{
+					key: 'page:heading',
+					className: 'portfolio-page-heading',
+					rendered: (
+						<Hero
+							heading={config.heading}
+							position={content.theme.pageHeadingPosition}
+						/>
+					),
+				}]
 			: []),
 		...blocks.flatMap((block) => {
 			const rendered = renderBlock(block);

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
+import type { PageHeadingPosition } from '../../lib/content';
 
 const FONTS: Array<{ label: string; value: string }> = [
 	{ label: 'Helvetica — clean sans', value: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
@@ -45,10 +46,19 @@ export default function ThemeEditor() {
 	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
 	const automaticContrast = theme.automaticTextContrast !== false;
 	const subheadingScale = theme.subheadingScale ?? 100;
+	const pageHeadingScale = theme.pageHeadingScale ?? 100;
+	const pageHeadingPosition = theme.pageHeadingPosition ?? 'right';
+	const pageHeadingX = theme.pageHeadingX ?? 50;
+	const pageHeadingY = theme.pageHeadingY ?? 56;
 
 	const applySubheadingScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
 		setTheme({ subheadingScale: clamped === 100 ? undefined : clamped });
+	};
+
+	const applyPageHeadingScale = (value: number) => {
+		const clamped = Math.max(50, Math.min(Math.round(value), 200));
+		setTheme({ pageHeadingScale: clamped === 100 ? undefined : clamped });
 	};
 
 	const handleFontFile = (file: File | undefined) => {
@@ -121,7 +131,87 @@ export default function ThemeEditor() {
 					{!headingKnown && <option value="__custom">Custom ({headingFont})</option>}
 				</select>
 			</Field>
-			<Field label="Small heading size" hint="Changes every Small heading text block across the whole site.">
+			<Field
+				label="Page heading size"
+				hint="Changes page titles such as “Selected Works” across the whole site."
+			>
+				<div className="gap-row">
+					<input
+						type="range"
+						min={50}
+						max={200}
+						step={5}
+						value={pageHeadingScale}
+						onChange={(e) => applyPageHeadingScale(Number(e.target.value))}
+						aria-label="Page heading size"
+					/>
+					<span className="gap-unit">{pageHeadingScale}%</span>
+					{pageHeadingScale !== 100 && (
+						<button
+							type="button"
+							className="btn-icon btn-chip"
+							onClick={() => applyPageHeadingScale(100)}
+							title="Back to the default size"
+						>
+							Reset
+						</button>
+					)}
+				</div>
+			</Field>
+			<Field
+				label="Page heading position"
+				hint="Places page titles such as “Selected Works”. Freeform adds precise controls."
+			>
+				<div className="chip-row" role="group" aria-label="Page heading position">
+					{(['left', 'center', 'right', 'freeform'] as PageHeadingPosition[]).map((position) => (
+						<button
+							key={position}
+							type="button"
+							className={`btn-icon btn-chip ${pageHeadingPosition === position ? 'active' : ''}`}
+							aria-pressed={pageHeadingPosition === position}
+							onClick={() =>
+								setTheme({ pageHeadingPosition: position === 'right' ? undefined : position })
+							}
+						>
+							{position[0].toUpperCase() + position.slice(1)}
+						</button>
+					))}
+				</div>
+				{pageHeadingPosition === 'freeform' && (
+					<div className="freeform-position-controls">
+						<label className="gap-row">
+							<span>Across</span>
+							<input
+								type="range"
+								min={5}
+								max={95}
+								step={1}
+								value={pageHeadingX}
+								onChange={(e) => setTheme({ pageHeadingX: Number(e.target.value) })}
+								aria-label="Page heading horizontal position"
+							/>
+							<span className="gap-unit">{pageHeadingX}%</span>
+						</label>
+						<label className="gap-row">
+							<span>Down</span>
+							<input
+								type="range"
+								min={0}
+								max={240}
+								step={1}
+								value={pageHeadingY}
+								onChange={(e) => setTheme({ pageHeadingY: Number(e.target.value) })}
+								aria-label="Page heading vertical position"
+							/>
+							<span className="gap-unit">{pageHeadingY}px</span>
+						</label>
+					</div>
+				)}
+			</Field>
+			<Field
+				label="Small heading size"
+				hint="“Small heading” is a style you can choose on any text block. This changes all of those blocks."
+			>
 				<div className="gap-row">
 					<input
 						type="range"

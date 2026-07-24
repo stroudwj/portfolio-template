@@ -40,6 +40,7 @@ export default function Embed({ url }: { url: string }) {
 				title="Embedded video"
 				loading="lazy"
 				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+				referrerPolicy="strict-origin-when-cross-origin"
 				allowFullScreen
 			/>
 		</div>

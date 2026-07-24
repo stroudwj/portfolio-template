@@ -96,11 +96,13 @@ function DeviceFrame({
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const rootRef = useRef<Root | null>(null);
+	const [frameLoaded, setFrameLoaded] = useState(false);
 	const [ready, setReady] = useState(false);
 	const onEscapeRef = useRef(onEscape);
 	onEscapeRef.current = onEscape;
 
 	useEffect(() => {
+		if (!frameLoaded) return;
 		const doc = iframeRef.current?.contentDocument;
 		if (!doc) return;
 		const meta = doc.createElement('meta');
@@ -128,13 +130,21 @@ function DeviceFrame({
 			// Unmount async — React disallows synchronous root unmounts from cleanup.
 			setTimeout(() => root.unmount(), 0);
 		};
-	}, []);
+	}, [frameLoaded]);
 
 	useEffect(() => {
 		if (ready) rootRef.current?.render(children);
 	});
 
-	return <iframe ref={iframeRef} className={`device-frame ${className}`} title={title} />;
+	return (
+		<iframe
+			ref={iframeRef}
+			className={`device-frame ${className}`}
+			title={title}
+			src={`${import.meta.env.BASE_URL}editor-preview-frame.html`}
+			onLoad={() => setFrameLoaded(true)}
+		/>
+	);
 }
 
 /** A real desktop viewport even when the editor itself is open on a narrow

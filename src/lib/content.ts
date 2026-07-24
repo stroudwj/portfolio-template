@@ -101,6 +101,14 @@ export interface Theme {
 	logoScale?: number;
 	/** Site-wide small-heading size as a percentage of the default. Absent = 100. */
 	subheadingScale?: number;
+	/** Site-wide page-heading size as a percentage of the default. Absent = 100. */
+	pageHeadingScale?: number;
+	/** Placement of page headings such as “Selected Works”. Absent = right. */
+	pageHeadingPosition?: PageHeadingPosition;
+	/** Freeform page-heading horizontal anchor as a viewport percentage. */
+	pageHeadingX?: number;
+	/** Freeform page-heading distance from the top of its color band in pixels. */
+	pageHeadingY?: number;
 	/** Header logo/name placement. Absent = centered. */
 	logoPosition?: LogoPosition;
 	/** Freeform header horizontal position as a viewport percentage. */
@@ -122,6 +130,7 @@ export interface Theme {
 /** The navigation layouts an artist can pick from in the Theme tab. */
 export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
 export type LogoPosition = 'left' | 'center' | 'freeform';
+export type PageHeadingPosition = 'left' | 'center' | 'right' | 'freeform';
 
 export interface NavItem {
 	/** Page file name in src/pages/ without extension ('' for the Home page). */

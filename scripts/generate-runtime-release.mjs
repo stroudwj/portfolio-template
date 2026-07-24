@@ -14,6 +14,7 @@ const fixedFiles = [
 	'package.json',
 	'package-lock.json',
 	'tsconfig.json',
+	'public/editor-preview-frame.html',
 ];
 
 async function walk(directory) {

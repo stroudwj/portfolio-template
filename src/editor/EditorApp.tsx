@@ -270,10 +270,10 @@ function Shell({ base }: { base: string }) {
 				<a
 					className="btn-ghost feedback-button"
 					href="mailto:william.stroud100@gmail.com"
-					title="Found a bug or are we missing a feature? Message us"
+					title="Bug or missing feature?"
 				>
 					<BugIcon />
-					<span className="feedback-button-text">Found a bug or are we missing a feature? Message us</span>
+					<span className="feedback-button-text">Bug or missing feature?</span>
 				</a>
 				<HotkeyGuide />
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
