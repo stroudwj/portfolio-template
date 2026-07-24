@@ -19,6 +19,7 @@ import MobileDoor from './components/MobileDoor';
 import { onShowEditorTab } from './components/ui/controls';
 import { useLicense } from './components/useLicense';
 import { shouldResumePublish } from './lib/license/flow';
+import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
 import { collectIssues } from './lib/validation';
 import { withBase } from '../portfolio/types';
@@ -47,6 +48,24 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: '⇧ S', label: 'Toggle edge snap' },
 	{ keys: 'Esc', label: 'Leave fullscreen preview' },
 ];
+
+function KeyboardIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+			<path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M8 16h8" />
+		</svg>
+	);
+}
+
+function BugIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M9 5.5V4a3 3 0 0 1 6 0v1.5M5 13h14M7 9H4M20 9h-3M7 17H4M20 17h-3" />
+			<rect x="7" y="6" width="10" height="14" rx="5" />
+		</svg>
+	);
+}
 
 /** A small "?" button in the top bar that opens a popover listing every editor
  *  shortcut — the shortcuts themselves live next to the code that implements them;
@@ -81,7 +100,7 @@ function HotkeyGuide() {
 				title="Keyboard shortcuts"
 				onClick={() => setOpen((o) => !o)}
 			>
-				⌨
+				<KeyboardIcon />
 			</button>
 			{open && (
 				<div className="hotkey-guide-popover" role="dialog" aria-label="Keyboard shortcuts">
@@ -175,6 +194,14 @@ function Shell({ base }: { base: string }) {
 		if (shouldResumePublish()) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
 
+	// Google leaves the page to authenticate. If that trip began from the live
+	// editor, reopen the autosaved draft automatically instead of dropping the
+	// artist onto the template picker.
+	useEffect(() => {
+		if (doc || !hasDraft) return;
+		if (consumeReturnToEditorAfterAuth()) void resumeDraft();
+	}, [doc, hasDraft, resumeDraft]);
+
 	// Phones get the door + a read-only preview, never the canvas. Browsing, checkout,
 	// and the auto-unlock-after-purchase flow above all still run on a phone — only
 	// BUILDING is desktop work. Tablets pass straight through.
@@ -240,6 +267,14 @@ function Shell({ base }: { base: string }) {
 						Redo
 					</button>
 				</div>
+				<a
+					className="btn-ghost feedback-button"
+					href="mailto:william.stroud100@gmail.com"
+					title="Found a bug or are we missing a feature? Message us"
+				>
+					<BugIcon />
+					<span className="feedback-button-text">Found a bug or are we missing a feature? Message us</span>
+				</a>
 				<HotkeyGuide />
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset

@@ -14,7 +14,7 @@ import PublishModal from './PublishModal';
 
 export default function AccountControls({ license }: { license: LicenseSession }) {
 	const { doc } = useEditor();
-	const account = useAccount();
+	const account = useAccount({ returnToEditorAfterGoogle: Boolean(doc) });
 	const [showSignIn, setShowSignIn] = useState(false);
 	const [showLicense, setShowLicense] = useState(false);
 	const [showPublish, setShowPublish] = useState(false);

@@ -99,6 +99,14 @@ export interface Theme {
 	contentGap?: number;
 	/** Header logo size as a percentage (50–200) of the default. Absent = 100. */
 	logoScale?: number;
+	/** Site-wide small-heading size as a percentage of the default. Absent = 100. */
+	subheadingScale?: number;
+	/** Header logo/name placement. Absent = centered. */
+	logoPosition?: LogoPosition;
+	/** Freeform header horizontal position as a viewport percentage. */
+	logoX?: number;
+	/** Freeform header distance from the top edge in pixels. */
+	logoY?: number;
 	/** Site-wide navigation layout. Absent = 'dock' (the classic left magnify sidebar). */
 	navStyle?: NavStyle;
 	/** Phones open the menu as a full-screen fade-in overlay instead of the compact corner box. */
@@ -113,6 +121,7 @@ export interface Theme {
 
 /** The navigation layouts an artist can pick from in the Theme tab. */
 export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
+export type LogoPosition = 'left' | 'center' | 'freeform';
 
 export interface NavItem {
 	/** Page file name in src/pages/ without extension ('' for the Home page). */

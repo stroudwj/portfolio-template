@@ -46,7 +46,7 @@ export interface AccountSession {
 	error: string | null;
 }
 
-export function useAccount(): AccountSession {
+export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEditorAfterGoogle?: boolean } = {}): AccountSession {
 	const [status, setStatus] = useState<AccountStatus>(isAccountsConfigured() ? 'checking' : 'signed-out');
 	const [user, setUser] = useState<AccountUser | null>(null);
 	const [licensed, setLicensed] = useState(false);
@@ -124,8 +124,8 @@ export function useAccount(): AccountSession {
 	}, []);
 
 	const signInWithGoogle = useCallback(() => {
-		startGoogleOAuth(); // navigates away
-	}, []);
+		startGoogleOAuth(returnToEditorAfterGoogle); // navigates away
+	}, [returnToEditorAfterGoogle]);
 
 	const bindLicense = useCallback(
 		async (key: string) => {

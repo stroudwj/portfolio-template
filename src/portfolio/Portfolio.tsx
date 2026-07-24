@@ -64,6 +64,9 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				automaticContrast={automaticContrast}
 				fallbackBackground={pageBackground || content.theme.backgroundColor}
 				stabilized={content.theme.stabilizeNavigation !== false}
+				logoPosition={content.theme.logoPosition}
+				logoX={content.theme.logoX}
+				logoY={content.theme.logoY}
 				onNavigate={onNavigate}
 			>
 				<PortfolioPage

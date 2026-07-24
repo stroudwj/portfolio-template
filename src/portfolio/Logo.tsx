@@ -1,5 +1,6 @@
 import './Logo.css';
 import { useChromeContrast } from './useChromeContrast';
+import type { LogoPosition } from '../lib/content';
 
 export interface LogoProps {
 	/** Text shown as the logo (site.logo || site.name). */
@@ -13,6 +14,9 @@ export interface LogoProps {
 	automaticContrast?: boolean;
 	fallbackBackground?: string;
 	stabilized?: boolean;
+	position?: LogoPosition;
+	freeformX?: number;
+	freeformY?: number;
 }
 
 export default function Logo({
@@ -23,6 +27,9 @@ export default function Logo({
 	automaticContrast = true,
 	fallbackBackground = '#ffffff',
 	stabilized = true,
+	position = 'center',
+	freeformX = 50,
+	freeformY = 40,
 }: LogoProps) {
 	const { ref, ink } = useChromeContrast<HTMLDivElement>(
 		automaticContrast,
@@ -31,8 +38,14 @@ export default function Logo({
 	return (
 		<div
 			ref={ref}
-			className={`header-logo-container ${stabilized ? 'is-stabilized' : ''}`}
-			style={ink ? ({ '--chrome-ink': ink } as React.CSSProperties) : undefined}
+			className={`header-logo-container logo-position-${position} ${stabilized ? 'is-stabilized' : ''}`}
+			style={
+				{
+					...(ink ? { '--chrome-ink': ink } : {}),
+					'--logo-x': `${Math.min(100, Math.max(0, freeformX))}%`,
+					'--logo-y': `${Math.min(400, Math.max(0, freeformY))}px`,
+				} as React.CSSProperties
+			}
 		>
 			<a
 				href={href}

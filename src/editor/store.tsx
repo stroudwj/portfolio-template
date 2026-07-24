@@ -258,6 +258,8 @@ export interface EditorContextValue {
 	reset(): Promise<void>;
 	// profile / contact
 	setName(value: string): void;
+	/** Optional header text; empty falls back to the site name. */
+	setLogoText(value: string): void;
 	setBio(value: string): void;
 	setEmail(value: string): void;
 	setProfileImage(file: File): void;
@@ -653,6 +655,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			},
 
 		setName: (value) => patchContent((c) => ({ ...c, site: { ...c.site, name: value } }), true, 'site:name'),
+		setLogoText: (value) =>
+			patchContent(
+				(c) => ({ ...c, site: { ...c.site, logo: value || undefined } }),
+				true,
+				'site:logo',
+			),
 		setBio: (value) => patchContent((c) => ({ ...c, profile: { ...c.profile, bio: value } }), true, 'profile:bio'),
 		setEmail: (value) => patchContent((c) => ({ ...c, contact: { ...c.contact, email: value } }), true, 'contact:email'),
 

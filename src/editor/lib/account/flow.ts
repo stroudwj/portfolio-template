@@ -11,6 +11,7 @@ import { AccountClient, AccountError } from './client';
 import type { AccountSummary } from './session';
 
 const STATE_KEY = 'portfolio-editor:google-state';
+const RETURN_TO_EDITOR_KEY = 'portfolio-editor:return-to-editor-after-auth';
 
 export interface AuthResult {
 	/** Session token + summary, if a sign-in just completed this page load. */
@@ -25,10 +26,12 @@ export async function startMagicLink(email: string): Promise<void> {
 }
 
 /** Redirect to Google's consent screen. Returns to `redirectUri()` with `?code=&state=`. */
-export function startGoogleOAuth(): void {
+export function startGoogleOAuth(returnToEditor = false): void {
 	const state = 'g-' + crypto.randomUUID();
 	try {
 		sessionStorage.setItem(STATE_KEY, state);
+		if (returnToEditor) sessionStorage.setItem(RETURN_TO_EDITOR_KEY, '1');
+		else sessionStorage.removeItem(RETURN_TO_EDITOR_KEY);
 	} catch {
 		/* private mode — the exchange will fail the state check and report it */
 	}
@@ -40,6 +43,17 @@ export function startGoogleOAuth(): void {
 		state,
 	});
 	window.location.assign(`${GOOGLE_AUTHORIZE_URL}?${params.toString()}`);
+}
+
+/** Restore the live editor after an OAuth round-trip that began from an open draft. */
+export function consumeReturnToEditorAfterAuth(): boolean {
+	try {
+		const shouldReturn = sessionStorage.getItem(RETURN_TO_EDITOR_KEY) === '1';
+		sessionStorage.removeItem(RETURN_TO_EDITOR_KEY);
+		return shouldReturn;
+	} catch {
+		return false;
+	}
 }
 
 function readAndClearState(): string | null {

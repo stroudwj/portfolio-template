@@ -110,6 +110,12 @@
 	padding: 0;
 }
 
+/* A left-aligned header shares the dock's column, so begin the links beneath it
+   instead of letting the first navigation item sit under the name/logo. */
+.portfolio-container.nav-style-dock.logo-position-left > .sidebar {
+	padding-top: 112px;
+}
+
 /* Per-page body wrappers (ported from the Phase 1 page files). */
 .collage-container {
 	padding: 16px 40px 60px;

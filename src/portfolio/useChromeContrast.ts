@@ -44,13 +44,26 @@ export function useChromeContrast<T extends HTMLElement>(
 		update();
 		win.addEventListener('scroll', schedule, { passive: true });
 		win.addEventListener('resize', schedule);
-		const observer = new ResizeObserver(schedule);
-		observer.observe(element);
+		const resizeObserver = new ResizeObserver(schedule);
+		resizeObserver.observe(element);
+		// Editor color changes update section data/styles without scrolling or
+		// resizing. Watch those live DOM changes so the floating chrome follows
+		// immediately, just as the section's own text already does.
+		const mutationObserver = new MutationObserver(schedule);
+		if (doc.body) {
+			mutationObserver.observe(doc.body, {
+				subtree: true,
+				childList: true,
+				attributes: true,
+				attributeFilter: ['class', 'style', 'data-section-color'],
+			});
+		}
 		return () => {
 			if (frame) win.cancelAnimationFrame(frame);
 			win.removeEventListener('scroll', schedule);
 			win.removeEventListener('resize', schedule);
-			observer.disconnect();
+			resizeObserver.disconnect();
+			mutationObserver.disconnect();
 		};
 	}, [enabled, fallbackBackground]);
 

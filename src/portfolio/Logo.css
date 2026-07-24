@@ -9,6 +9,14 @@
 .header-logo-container.is-stabilized {
 	position: fixed;
 }
+.header-logo-container.logo-position-left {
+	left: 40px;
+	transform: none;
+}
+.header-logo-container.logo-position-freeform {
+	top: var(--logo-y, 40px);
+	left: var(--logo-x, 50%);
+}
 
 /* --logo-scale (theme.logoScale / 100) sizes the text and image logo alike. */
 .header-logo {
@@ -33,6 +41,12 @@
 @media (max-width: 768px) {
 	.header-logo-container {
 		top: 20px;
+	}
+	.header-logo-container.logo-position-left {
+		left: 20px;
+	}
+	.header-logo-container.logo-position-freeform {
+		top: var(--logo-y, 20px);
 	}
 	.header-logo {
 		font-size: calc(1.1rem * var(--logo-scale, 1));

@@ -72,6 +72,10 @@ describe('content compatibility', () => {
 		withExtras.theme.fullscreenMobileMenu = true;
 		withExtras.theme.automaticTextContrast = false;
 		withExtras.theme.stabilizeNavigation = false;
+		withExtras.theme.subheadingScale = 135;
+		withExtras.theme.logoPosition = 'freeform';
+		withExtras.theme.logoX = 24;
+		withExtras.theme.logoY = 86;
 		withExtras.site.footerHeights = { desktop: 180, phone: 120 };
 		withExtras.pages.home.background = '#101014';
 		withExtras.pages.home.sectionColors = { 'block:gallery': '#e0685b', 'page:heading': '#f7ecc9' };
@@ -86,6 +90,10 @@ describe('content compatibility', () => {
 		expect(parsed.theme.fullscreenMobileMenu).toBe(true);
 		expect(parsed.theme.automaticTextContrast).toBe(false);
 		expect(parsed.theme.stabilizeNavigation).toBe(false);
+		expect(parsed.theme.subheadingScale).toBe(135);
+		expect(parsed.theme.logoPosition).toBe('freeform');
+		expect(parsed.theme.logoX).toBe(24);
+		expect(parsed.theme.logoY).toBe(86);
 		expect(parsed.site.footerHeights).toEqual({ desktop: 180, phone: 120 });
 		expect(parsed.pages.home.background).toBe('#101014');
 		expect(parsed.pages.home.sectionColors).toEqual({

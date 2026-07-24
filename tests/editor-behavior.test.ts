@@ -10,6 +10,7 @@ import {
 	loadSiteNameDraft,
 	saveSiteNameDraft,
 } from '../src/editor/lib/account/site-store';
+import { consumeReturnToEditorAfterAuth } from '../src/editor/lib/account/flow';
 
 describe('site-name editing', () => {
 	afterEach(() => vi.unstubAllGlobals());
@@ -55,6 +56,21 @@ describe('portfolio links', () => {
 		expect(safeHref('/work')).toBe('/work');
 		expect(safeHref('javascript:alert(1)')).toBeUndefined();
 		expect(isUrl('javascript:alert(1)')).toBe(false);
+	});
+});
+
+describe('account return routing', () => {
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('consumes the one-time instruction to reopen an OAuth draft', () => {
+		const values = new Map([['portfolio-editor:return-to-editor-after-auth', '1']]);
+		vi.stubGlobal('sessionStorage', {
+			getItem: (key: string) => values.get(key) ?? null,
+			setItem: (key: string, value: string) => values.set(key, value),
+			removeItem: (key: string) => values.delete(key),
+		});
+		expect(consumeReturnToEditorAfterAuth()).toBe(true);
+		expect(consumeReturnToEditorAfterAuth()).toBe(false);
 	});
 });
 

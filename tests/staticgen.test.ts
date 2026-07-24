@@ -124,6 +124,8 @@ describe('staticgen', () => {
 				navStyle: 'topbar',
 				fullscreenMobileMenu: true,
 				stabilizeNavigation: false,
+				subheadingScale: 130,
+				logoPosition: 'left',
 			},
 			pages: {
 				...base.contentJson.pages,
@@ -150,6 +152,8 @@ describe('staticgen', () => {
 		expect(home).toContain('row-link');
 		expect(home).toContain('nav-menu-trigger');
 		expect(home).toContain('nav-menu-overlay');
+		expect(home).toContain('logo-position-left');
+		expect(home).toContain('--subheading-scale:1.3');
 
 		// Per-page background: the root carries the override + the flipped (light) text.
 		expect(home).toContain('--color-bg:#101014');

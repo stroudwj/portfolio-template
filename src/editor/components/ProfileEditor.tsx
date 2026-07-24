@@ -9,6 +9,7 @@ export default function ProfileEditor() {
 	const {
 		doc,
 		setName,
+		setLogoText,
 		setBio,
 		setEmail,
 		setProfileImage,
@@ -29,6 +30,9 @@ export default function ProfileEditor() {
 	const resumeName = doc.resumeFile?.filename ?? '';
 	const resumeUrl = getAssetUrl(doc.resumeFile?.assetId);
 	const logoScale = c.theme.logoScale ?? 100;
+	const logoPosition = c.theme.logoPosition ?? 'center';
+	const logoX = c.theme.logoX ?? 50;
+	const logoY = c.theme.logoY ?? 40;
 
 	const applyLogoScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -53,6 +57,13 @@ export default function ProfileEditor() {
 		<Section title="Profile" sectionKey="_profile">
 			<Field label="Name">
 				<TextInput value={c.site.name} placeholder="Your name" onChange={(e) => setName(e.target.value)} />
+			</Field>
+			<Field label="Header text" hint="Optional. Leave blank to use your name; this can be any text you like.">
+				<TextInput
+					value={c.site.logo ?? ''}
+					placeholder={c.site.name || 'Your name'}
+					onChange={(e) => setLogoText(e.target.value)}
+				/>
 			</Field>
 			<Field label="Header logo (optional)" hint="Shown at the top of every page instead of your name.">
 				<div className="image-picker">
@@ -86,6 +97,56 @@ export default function ProfileEditor() {
 					)}
 				</div>
 			</Field>
+			<Field label="Header position" hint="Place your name or logo at the left, centered, or at your own coordinates on every page.">
+				<div className="chip-row" role="group" aria-label="Header position">
+					{([
+						['left', 'Left'],
+						['center', 'Center'],
+						['freeform', 'Freeform'],
+					] as const).map(([value, label]) => (
+						<button
+							key={value}
+							type="button"
+							className={`btn-icon btn-chip ${logoPosition === value ? 'active' : ''}`}
+							onClick={() => setTheme({ logoPosition: value === 'center' ? undefined : value })}
+						>
+							{label}
+						</button>
+					))}
+				</div>
+			</Field>
+			{logoPosition === 'freeform' && (
+				<>
+					<Field label="Header horizontal position">
+						<div className="gap-row">
+							<input
+								type="range"
+								min={0}
+								max={100}
+								step={1}
+								value={logoX}
+								onChange={(e) => setTheme({ logoX: Number(e.target.value) })}
+								aria-label="Header horizontal position"
+							/>
+							<span className="gap-unit">{logoX}%</span>
+						</div>
+					</Field>
+					<Field label="Header distance from top">
+						<div className="gap-row">
+							<input
+								type="range"
+								min={0}
+								max={400}
+								step={1}
+								value={logoY}
+								onChange={(e) => setTheme({ logoY: Number(e.target.value) })}
+								aria-label="Header distance from top"
+							/>
+							<span className="gap-unit">{logoY}px</span>
+						</div>
+					</Field>
+				</>
+			)}
 			<Field label="Bio" hint="One blank line makes a paragraph break.">
 				<TextArea rows={6} value={c.profile.bio} placeholder="Write a short bio…" onChange={(e) => setBio(e.target.value)} />
 			</Field>

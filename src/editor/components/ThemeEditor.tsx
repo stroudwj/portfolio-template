@@ -44,6 +44,12 @@ export default function ThemeEditor() {
 	const headingFont = theme.headingFontFamily ?? '';
 	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
 	const automaticContrast = theme.automaticTextContrast !== false;
+	const subheadingScale = theme.subheadingScale ?? 100;
+
+	const applySubheadingScale = (value: number) => {
+		const clamped = Math.max(50, Math.min(Math.round(value), 200));
+		setTheme({ subheadingScale: clamped === 100 ? undefined : clamped });
+	};
 
 	const handleFontFile = (file: File | undefined) => {
 		if (!file) return;
@@ -114,6 +120,30 @@ export default function ThemeEditor() {
 					))}
 					{!headingKnown && <option value="__custom">Custom ({headingFont})</option>}
 				</select>
+			</Field>
+			<Field label="Small heading size" hint="Changes every Small heading text block across the whole site.">
+				<div className="gap-row">
+					<input
+						type="range"
+						min={50}
+						max={200}
+						step={5}
+						value={subheadingScale}
+						onChange={(e) => applySubheadingScale(Number(e.target.value))}
+						aria-label="Small heading size"
+					/>
+					<span className="gap-unit">{subheadingScale}%</span>
+					{subheadingScale !== 100 && (
+						<button
+							type="button"
+							className="btn-icon btn-chip"
+							onClick={() => applySubheadingScale(100)}
+							title="Back to the default size"
+						>
+							Reset
+						</button>
+					)}
+				</div>
 			</Field>
 			<Field
 				label="Your own font"

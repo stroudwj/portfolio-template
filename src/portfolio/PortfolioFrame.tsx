@@ -1,6 +1,6 @@
 import Nav from './Nav';
 import Logo from './Logo';
-import { withBase, type NavItem, type NavStyle } from './types';
+import { withBase, type LogoPosition, type NavItem, type NavStyle } from './types';
 import './frame.css';
 
 export interface PortfolioFrameProps {
@@ -18,6 +18,9 @@ export interface PortfolioFrameProps {
 	automaticContrast?: boolean;
 	fallbackBackground?: string;
 	stabilized?: boolean;
+	logoPosition?: LogoPosition;
+	logoX?: number;
+	logoY?: number;
 	onNavigate?: (path: string) => void;
 	children: React.ReactNode;
 }
@@ -34,6 +37,9 @@ export default function PortfolioFrame({
 	automaticContrast = true,
 	fallbackBackground = '#ffffff',
 	stabilized = true,
+	logoPosition = 'center',
+	logoX,
+	logoY,
 	onNavigate,
 	children,
 }: PortfolioFrameProps) {
@@ -47,8 +53,11 @@ export default function PortfolioFrame({
 				automaticContrast={automaticContrast}
 				fallbackBackground={fallbackBackground}
 				stabilized={stabilized}
+				position={logoPosition}
+				freeformX={logoX}
+				freeformY={logoY}
 			/>
-			<div className={`portfolio-container nav-style-${navStyle}`}>
+			<div className={`portfolio-container nav-style-${navStyle} logo-position-${logoPosition}`}>
 				<nav className={`sidebar ${stabilized ? 'is-stabilized' : ''}`}>
 					<Nav
 						items={nav}

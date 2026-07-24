@@ -11,6 +11,10 @@ type ThemeVarKey = Exclude<
 	| 'contentGap'
 	| 'headingFontFamily'
 	| 'logoScale'
+	| 'subheadingScale'
+	| 'logoPosition'
+	| 'logoX'
+	| 'logoY'
 	| 'navStyle'
 	| 'fullscreenMobileMenu'
 	| 'automaticTextContrast'
@@ -35,6 +39,10 @@ const headingFontCss = (theme: Theme): string => theme.headingFontFamily || them
 const logoScaleCss = (theme: Theme): string =>
 	String(Math.min(Math.max(theme.logoScale ?? 100, 25), 300) / 100);
 
+/** Small-heading size as a unitless multiplier (theme stores a 50–200 percentage). */
+const subheadingScaleCss = (theme: Theme): string =>
+	String(Math.min(Math.max(theme.subheadingScale ?? 100, 50), 200) / 100);
+
 /** Theme → a React inline-style object of CSS variables. */
 export function themeToVars(theme: Theme): CSSProperties {
 	const style: Record<string, string> = {};
@@ -42,13 +50,14 @@ export function themeToVars(theme: Theme): CSSProperties {
 	style['--content-gap'] = contentGapCss(theme);
 	style['--font-heading'] = headingFontCss(theme);
 	style['--logo-scale'] = logoScaleCss(theme);
+	style['--subheading-scale'] = subheadingScaleCss(theme);
 	return style as CSSProperties;
 }
 
 /** Theme → a `:root { … }` CSS string for the Astro Layout's global injection. */
 export function themeToRootCss(theme: Theme): string {
 	const body = VARS.map(([cssVar, key]) => `${cssVar}:${theme[key]};`).join('');
-	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};}`;
+	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};}`;
 }
 
 /** Parse a #rgb / #rrggbb hex string to [r,g,b] in 0–255, or null if not hex. */
