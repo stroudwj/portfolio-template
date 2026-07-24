@@ -14,7 +14,12 @@ const bytes = (text: string) => new TextEncoder().encode(text);
 function testBundle(): PortfolioBundle {
 	const content = parseAndMigrateContent({
 		...blankContent,
-		site: { ...blankContent.site, name: 'Jane Doe', description: 'Paintings and prints' },
+			site: {
+				...blankContent.site,
+				name: 'Jane Doe',
+				description: 'Paintings and prints',
+				footerHeights: { desktop: 180, phone: 120 },
+			},
 		galleries: {
 			...blankContent.galleries,
 			'selected-works': { items: { '01-blue.jpg': { title: 'Blue', alt: 'A blue painting' } } },
@@ -114,13 +119,22 @@ describe('staticgen', () => {
 		const base = testBundle();
 		const content = parseAndMigrateContent({
 			...base.contentJson,
-			theme: { ...base.contentJson.theme, navStyle: 'topbar', fullscreenMobileMenu: true },
+			theme: {
+				...base.contentJson.theme,
+				navStyle: 'topbar',
+				fullscreenMobileMenu: true,
+				stabilizeNavigation: false,
+			},
 			pages: {
 				...base.contentJson.pages,
 				home: {
 					...base.contentJson.pages.home,
 					background: '#101014', // dark page → auto-contrast should flip text to light
 					sectionColors: { 'page:heading': '#e0685b' },
+					sectionHeights: {
+						'page:heading': { desktop: 260, phone: 180 },
+						'block:gallery': { desktop: 720 },
+					},
 				},
 			},
 		});
@@ -144,5 +158,31 @@ describe('staticgen', () => {
 		// Per-section color: the heading band is a color-blocked part.
 		expect(home).toContain('has-section-color');
 		expect(home).toContain('--color-bg:#e0685b');
+		expect(home).toContain('--section-min-desktop:260px');
+		expect(home).toContain('--section-min-phone:180px');
+		expect(home).toContain('--section-min-desktop:180px');
+		expect(home).toContain('--section-min-phone:120px');
+		expect(home).not.toContain('sidebar is-stabilized');
+	});
+
+	it('leaves configured text colors untouched when automatic contrast is off', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			theme: { ...base.contentJson.theme, automaticTextContrast: false },
+			pages: {
+				...base.contentJson.pages,
+				home: { ...base.contentJson.pages.home, background: '#101014' },
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+		expect(home).toContain('--color-bg:#101014');
+		expect(home).not.toContain('--color-text:#f5f5f2');
 	});
 });

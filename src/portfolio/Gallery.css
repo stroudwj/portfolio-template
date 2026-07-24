@@ -208,6 +208,27 @@
 	border-inline: 1px solid rgba(0, 47, 167, 0.25);
 }
 
+.canvas-center-guide {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	z-index: 5500;
+	width: 1px;
+	pointer-events: none;
+	background: #002fa7;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.canvas-marquee {
+	position: absolute;
+	z-index: 5600;
+	box-sizing: border-box;
+	pointer-events: none;
+	border: 1px solid #002fa7;
+	background: rgba(0, 47, 167, 0.1);
+}
+
 /* Video embeds pinned to the canvas: the iframe fills the 16:9 item box. */
 .canvas-item.canvas-embed-item iframe {
 	width: 100%;
@@ -288,6 +309,10 @@
 
 .canvas-gallery.editable .canvas-item:hover {
 	outline: 1.5px solid #002fa7;
+	outline-offset: 2px;
+}
+.canvas-gallery.editable .canvas-item.selected {
+	outline: 2px solid #002fa7;
 	outline-offset: 2px;
 }
 

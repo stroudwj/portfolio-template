@@ -11,7 +11,14 @@
 // (flowMissing) and, in the editor, committed once their real aspect ratio is
 // measured.
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { CanvasEmbed, CanvasText, ImageLayout, ResolvedImage, TextLayout } from './types';
+import type {
+	CanvasEmbed,
+	CanvasLayoutUpdates,
+	CanvasText,
+	ImageLayout,
+	ResolvedImage,
+	TextLayout,
+} from './types';
 import type { MobileComposition } from '../lib/content';
 import {
 	bottomOf,
@@ -30,6 +37,7 @@ import {
 	roundLayout,
 	roundTextLayout,
 	snapSpanToEdges,
+	snapSpanToCenter,
 	snapTo,
 	snapToEdges,
 	textBottom,
@@ -62,6 +70,8 @@ export interface CanvasGalleryProps {
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned video embed. */
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
+	/** Reports one finished mixed-item move so the editor can commit one undo step. */
+	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
 	/** Published site: open the lightbox for image i and restore focus to its trigger afterwards. */
 	onOpen?: (index: number, trigger?: HTMLElement) => void;
 }
@@ -77,6 +87,7 @@ export default function CanvasGallery({
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
+	onBulkLayoutChange,
 	onOpen,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
@@ -88,9 +99,17 @@ export default function CanvasGallery({
 	const [textDrafts, setTextDrafts] = useState<Record<string, TextLayout>>({});
 	const textDraftsRef = useRef(textDrafts);
 	textDraftsRef.current = textDrafts;
+	/** Keeps height re-measurement from overwriting a just-committed move before
+	 * the updated editor document has rendered back through the iframe. */
+	const committedTextLayouts = useRef<Record<string, TextLayout>>({});
 	/** Aspect ratios measured from the loaded pixels (editor only). */
 	const [measured, setMeasured] = useState<Record<string, number>>({});
 	const [dragId, setDragId] = useState<string | null>(null);
+	const [selected, setSelected] = useState<Set<string>>(() => new Set());
+	const [marquee, setMarquee] = useState<
+		{ x: number; y: number; w: number; h: number } | null
+	>(null);
+	const [centerGuide, setCenterGuide] = useState(false);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
 	const gridPrefs = useGridPrefs();
 
@@ -114,24 +133,24 @@ export default function CanvasGallery({
 	 * magnetically align with its neighbors — e.g. two images sharing the exact
 	 * same top or bottom line.
 	 */
-	const neighborEdges = (excludeId: string): { xs: number[]; ys: number[] } => {
+	const neighborEdges = (excluded: ReadonlySet<string>): { xs: number[]; ys: number[] } => {
 		if (!edgeSnapOn) return { xs: [], ys: [] };
 		const xs: number[] = [];
 		const ys: number[] = [];
 		images.forEach((img, i) => {
-			if ((img.id ?? keyOf(img, i)) === excludeId) return;
+			if (excluded.has(`image:${img.id ?? keyOf(img, i)}`)) return;
 			const l = layouts[i];
 			xs.push(l.x, l.x + l.w);
 			ys.push(l.y, bottomOf(l));
 		});
 		embeds.forEach((v, i) => {
-			if (v.id === excludeId) return;
+			if (excluded.has(`video:${v.id}`)) return;
 			const l = embedLayouts[i];
 			xs.push(l.x, l.x + l.w);
 			ys.push(l.y, bottomOf(l));
 		});
 		shownTexts.forEach((t, i) => {
-			if (t.id === excludeId) return;
+			if (excluded.has(`text:${t.id}`)) return;
 			const l = textLayouts[i];
 			xs.push(l.x, l.x + l.w);
 			ys.push(l.y, textBottom(l));
@@ -140,6 +159,8 @@ export default function CanvasGallery({
 	};
 
 	const keyOf = (img: ResolvedImage, i: number): string => img.id ?? `${img.src}-${i}`;
+	const imageSelectionKey = (img: ResolvedImage, i: number): string =>
+		`image:${keyOf(img, i)}`;
 
 	// Empty pinned texts stay draggable in the editor; on the site they render nothing.
 	const shownTexts = editable ? texts : texts.filter((t) => t.text.trim());
@@ -159,6 +180,69 @@ export default function CanvasGallery({
 		...embedLayouts.map(bottomOf),
 		1,
 	);
+	const multiSelected = selected.size > 1;
+
+	const selectionItems = () => [
+		...images.map((img, index) => {
+			const layout = layouts[index];
+			return {
+				key: imageSelectionKey(img, index),
+				id: keyOf(img, index),
+				kind: 'image' as const,
+				layout,
+				height: layout.w / layout.ar,
+			};
+		}),
+		...embeds.map((embed, index) => {
+			const layout = embedLayouts[index];
+			return {
+				key: `video:${embed.id}`,
+				id: embed.id,
+				kind: 'embed' as const,
+				layout,
+				height: layout.w / layout.ar,
+			};
+		}),
+		...shownTexts.map((text, index) => {
+			const layout = textLayouts[index];
+			return {
+				key: `text:${text.id}`,
+				id: text.id,
+				kind: 'text' as const,
+				layout,
+				height: textBottom(layout) - layout.y,
+			};
+		}),
+	];
+
+	useEffect(() => {
+		if (!editable) {
+			setSelected(new Set());
+			return;
+		}
+		const doc = canvasRef.current?.ownerDocument;
+		if (!doc) return;
+		const hostDoc = doc.defaultView?.frameElement?.ownerDocument;
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') setSelected(new Set());
+		};
+		doc.addEventListener('keydown', onKey);
+		if (hostDoc && hostDoc !== doc) hostDoc.addEventListener('keydown', onKey);
+		return () => {
+			doc.removeEventListener('keydown', onKey);
+			if (hostDoc && hostDoc !== doc) hostDoc.removeEventListener('keydown', onKey);
+		};
+	}, [editable]);
+
+	const centeredX = (x: number, w: number): number => {
+		if (!editable || !gridPrefs.centerSnap) {
+			setCenterGuide(false);
+			return x;
+		}
+		const result = snapSpanToCenter(x, w);
+		setCenterGuide(result.snapped);
+		return result.value;
+	};
 
 	// Phones stack the canvas as one column — interleave images, texts and videos
 	// by their vertical position so the stacking follows the composition, not the
@@ -242,8 +326,19 @@ export default function CanvasGallery({
 		for (const t of texts) {
 			const el = textEls.current[t.id];
 			if (!el) continue;
+			const committed = committedTextLayouts.current[t.id];
+			if (
+				committed &&
+				t.layout.x === committed.x &&
+				t.layout.y === committed.y &&
+				t.layout.w === committed.w
+			) {
+				delete committedTextLayouts.current[t.id];
+			}
+			const base = committed ?? t.layout;
 			const h = (el.offsetHeight * 100) / width;
-			if (Math.abs((t.layout.h ?? 0) - h) > 0.5) onTextLayout(t.id, roundTextLayout({ ...t.layout, h }));
+			if (Math.abs((base.h ?? 0) - h) > 0.5)
+				onTextLayout(t.id, roundTextLayout({ ...base, h }));
 		}
 	});
 
@@ -251,6 +346,7 @@ export default function CanvasGallery({
 	const startItemDrag = (
 		e: React.PointerEvent,
 		id: string,
+		selectionKey: string,
 		from: ImageLayout,
 		mode: 'move' | 'resize',
 		minW: number,
@@ -265,7 +361,8 @@ export default function CanvasGallery({
 		const scale = 100 / canvas.getBoundingClientRect().width; // px -> canvas-width %
 		const startX = e.clientX;
 		const startY = e.clientY;
-		const { xs, ys } = neighborEdges(id);
+		const { xs, ys } = neighborEdges(new Set([selectionKey]));
+		let finalDraft: ImageLayout | undefined;
 		setDragId(id);
 		const move = (ev: PointerEvent) => {
 			const dx = (ev.clientX - startX) * scale;
@@ -275,10 +372,12 @@ export default function CanvasGallery({
 			if (mode === 'move') {
 				// Guide snap first, then let a nearby neighbor edge take over so the
 				// item's top/bottom (or sides) lines up exactly with its neighbors'.
-				const x = snapSpanToEdges(snapX(from.x + dx), from.w, xs);
+				const edgeX = snapSpanToEdges(snapX(from.x + dx), from.w, xs);
+				const x = centeredX(edgeX, from.w);
 				const y = snapSpanToEdges(snapY(from.y + dy), h, ys);
 				next = { ...from, x, y };
 			} else {
+				setCenterGuide(false);
 				// Snap the RIGHT edge to the guides so resized items line up with
 				// columns — unless a neighbor's edge is closer: right edge to a
 				// neighbor's side, or bottom edge to a neighbor's top/bottom.
@@ -297,13 +396,15 @@ export default function CanvasGallery({
 							: snapX(from.x + w) - from.x;
 				next = { ...from, w: Math.max(snapped, minW) };
 			}
-			setDrafts((d) => ({ ...d, [id]: clampLayout(next) }));
+			finalDraft = clampLayout(next);
+			setDrafts((d) => ({ ...d, [id]: finalDraft! }));
 		};
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
 			setDragId(null);
-			const done = draftsRef.current[id];
+			setCenterGuide(false);
+			const done = finalDraft ?? draftsRef.current[id];
 			if (done) commit(id, roundLayout(done));
 			setDrafts((d) => {
 				const rest = { ...d };
@@ -315,14 +416,205 @@ export default function CanvasGallery({
 		win.addEventListener('pointerup', up);
 	};
 
+	const startGroupDrag = (e: React.PointerEvent) => {
+		if (!editable || e.button !== 0 || selected.size < 2) return;
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const chosen = selectionItems().filter((item) => selected.has(item.key));
+		if (chosen.length < 2) return;
+		e.preventDefault();
+		e.stopPropagation();
+		const win = canvas.ownerDocument.defaultView ?? window;
+		const scale = 100 / canvas.getBoundingClientRect().width;
+		const startX = e.clientX;
+		const startY = e.clientY;
+		const left = Math.min(...chosen.map((item) => item.layout.x));
+		const top = Math.min(...chosen.map((item) => item.layout.y));
+		const right = Math.max(...chosen.map((item) => item.layout.x + item.layout.w));
+		const bottom = Math.max(
+			...chosen.map((item) => item.layout.y + item.height),
+		);
+		const groupW = right - left;
+		const groupH = bottom - top;
+		const { xs, ys } = neighborEdges(new Set(chosen.map((item) => item.key)));
+		let finalDrafts: Record<string, ImageLayout> = {};
+		let finalTextDrafts: Record<string, TextLayout> = {};
+		setDragId('__group__');
+
+		const move = (event: PointerEvent) => {
+			const rawDx = (event.clientX - startX) * scale;
+			const rawDy = (event.clientY - startY) * scale;
+			const proposedLeft = Math.min(Math.max(left + rawDx, 0), 100 - groupW);
+			const edgeLeft = snapSpanToEdges(snapX(proposedLeft), groupW, xs);
+			const snappedLeft = Math.min(
+				Math.max(centeredX(edgeLeft, groupW), 0),
+				100 - groupW,
+			);
+			const proposedTop = Math.max(top + rawDy, 0);
+			const snappedTop = Math.max(
+				snapSpanToEdges(snapY(proposedTop), groupH, ys),
+				0,
+			);
+			const dx = snappedLeft - left;
+			const dy = snappedTop - top;
+			const nextDrafts: Record<string, ImageLayout> = {};
+			const nextTexts: Record<string, TextLayout> = {};
+			for (const item of chosen) {
+				if (item.kind === 'text') {
+					nextTexts[item.id] = clampTextLayout({
+						...(item.layout as TextLayout),
+						x: item.layout.x + dx,
+						y: item.layout.y + dy,
+					});
+				} else {
+					nextDrafts[item.id] = clampLayout({
+						...(item.layout as ImageLayout),
+						x: item.layout.x + dx,
+						y: item.layout.y + dy,
+					});
+				}
+			}
+			finalDrafts = nextDrafts;
+			finalTextDrafts = nextTexts;
+			setDrafts((current) => ({ ...current, ...nextDrafts }));
+			setTextDrafts((current) => ({ ...current, ...nextTexts }));
+		};
+
+		const up = () => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			setDragId(null);
+			setCenterGuide(false);
+			const updates: CanvasLayoutUpdates = {};
+			for (const item of chosen) {
+				if (item.kind === 'text') {
+					const layout = finalTextDrafts[item.id] ?? textDraftsRef.current[item.id];
+					if (layout) {
+						committedTextLayouts.current[item.id] = layout;
+						(updates.texts ??= {})[item.id] = roundTextLayout(layout);
+					}
+				} else {
+					const layout = finalDrafts[item.id] ?? draftsRef.current[item.id];
+					if (!layout) continue;
+					if (item.kind === 'image')
+						(updates.images ??= {})[item.id] = roundLayout(layout);
+					else (updates.embeds ??= {})[item.id] = roundLayout(layout);
+				}
+			}
+			if (updates.images || updates.texts || updates.embeds) {
+				if (onBulkLayoutChange) onBulkLayoutChange(updates);
+				else {
+					for (const [id, layout] of Object.entries(updates.images ?? {}))
+						onLayoutChange?.(id, layout);
+					for (const [id, layout] of Object.entries(updates.texts ?? {}))
+						onTextLayout?.(id, layout);
+					for (const [id, layout] of Object.entries(updates.embeds ?? {}))
+						onEmbedLayout?.(id, layout);
+				}
+			}
+			setDrafts((current) => {
+				const next = { ...current };
+				for (const item of chosen) if (item.kind !== 'text') delete next[item.id];
+				return next;
+			});
+			setTextDrafts((current) => {
+				const next = { ...current };
+				for (const item of chosen) if (item.kind === 'text') delete next[item.id];
+				return next;
+			});
+		};
+
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+	};
+
+	const startMarquee = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (!editable || event.button !== 0 || event.target !== event.currentTarget) return;
+		event.preventDefault();
+		const canvas = event.currentTarget;
+		const win = canvas.ownerDocument.defaultView ?? window;
+		const rect = canvas.getBoundingClientRect();
+		const scale = 100 / rect.width;
+		const originX = Math.min(Math.max((event.clientX - rect.left) * scale, 0), 100);
+		const originY = Math.max((event.clientY - rect.top) * scale, 0);
+		const candidates = selectionItems();
+		const base = event.shiftKey ? new Set(selected) : new Set<string>();
+		let moved = false;
+
+		const move = (next: PointerEvent) => {
+			const x2 = Math.min(Math.max((next.clientX - rect.left) * scale, 0), 100);
+			const y2 = Math.max((next.clientY - rect.top) * scale, 0);
+			const box = {
+				x: Math.min(originX, x2),
+				y: Math.min(originY, y2),
+				w: Math.abs(x2 - originX),
+				h: Math.abs(y2 - originY),
+			};
+			moved = moved || box.w > 0.25 || box.h > 0.25;
+			setMarquee(box);
+			const nextSelection = new Set(base);
+			for (const item of candidates) {
+				const intersects =
+					item.layout.x < box.x + box.w &&
+					item.layout.x + item.layout.w > box.x &&
+					item.layout.y < box.y + box.h &&
+					item.layout.y + item.height > box.y;
+				if (intersects) nextSelection.add(item.key);
+			}
+			setSelected(nextSelection);
+		};
+		const up = () => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			setMarquee(null);
+			if (!moved && !event.shiftKey) setSelected(new Set());
+		};
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+	};
+
 	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize') => {
 		if (!editable || !img.id || e.button !== 0 || !onLayoutChange) return;
-		startItemDrag(e, img.id, layouts[index], mode, MIN_W, onLayoutChange);
+		const key = imageSelectionKey(img, index);
+		if (e.shiftKey) {
+			e.preventDefault();
+			e.stopPropagation();
+			setSelected((current) => {
+				const next = new Set(current);
+				if (next.has(key)) next.delete(key);
+				else next.add(key);
+				return next;
+			});
+			return;
+		}
+		if (mode === 'move' && selected.has(key) && selected.size > 1) {
+			startGroupDrag(e);
+			return;
+		}
+		setSelected(new Set([key]));
+		startItemDrag(e, img.id, key, layouts[index], mode, MIN_W, onLayoutChange);
 	};
 
 	const startEmbedDrag = (e: React.PointerEvent, embed: CanvasEmbed, index: number, mode: 'move' | 'resize') => {
 		if (!editable || e.button !== 0 || !onEmbedLayout) return;
-		startItemDrag(e, embed.id, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout);
+		const key = `video:${embed.id}`;
+		if (e.shiftKey) {
+			e.preventDefault();
+			e.stopPropagation();
+			setSelected((current) => {
+				const next = new Set(current);
+				if (next.has(key)) next.delete(key);
+				else next.add(key);
+				return next;
+			});
+			return;
+		}
+		if (mode === 'move' && selected.has(key) && selected.size > 1) {
+			startGroupDrag(e);
+			return;
+		}
+		setSelected(new Set([key]));
+		startItemDrag(e, embed.id, key, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout);
 	};
 
 	const startTextDrag = (e: React.PointerEvent, text: CanvasText, index: number, mode: 'move' | 'resize') => {
@@ -332,13 +624,31 @@ export default function CanvasGallery({
 		e.preventDefault();
 		e.stopPropagation();
 		const id = text.id;
+		const selectionKey = `text:${id}`;
+		if (e.shiftKey) {
+			e.preventDefault();
+			e.stopPropagation();
+			setSelected((current) => {
+				const next = new Set(current);
+				if (next.has(selectionKey)) next.delete(selectionKey);
+				else next.add(selectionKey);
+				return next;
+			});
+			return;
+		}
+		if (mode === 'move' && selected.has(selectionKey) && selected.size > 1) {
+			startGroupDrag(e);
+			return;
+		}
+		setSelected(new Set([selectionKey]));
 		const win = canvas.ownerDocument.defaultView ?? window;
 		const scale = 100 / canvas.getBoundingClientRect().width;
 		const from = textLayouts[index];
 		const startX = e.clientX;
 		const startY = e.clientY;
-		const { xs, ys } = neighborEdges(id);
+		const { xs, ys } = neighborEdges(new Set([selectionKey]));
 		const fromH = textBottom(from) - from.y;
+		let finalDraft: TextLayout | undefined;
 		setDragId(id);
 		const move = (ev: PointerEvent) => {
 			const dx = (ev.clientX - startX) * scale;
@@ -347,18 +657,30 @@ export default function CanvasGallery({
 				mode === 'move'
 					? {
 							...from,
-							x: snapSpanToEdges(snapX(from.x + dx), from.w, xs),
+							x: centeredX(
+								snapSpanToEdges(snapX(from.x + dx), from.w, xs),
+								from.w,
+							),
 							y: snapSpanToEdges(snapY(from.y + dy), fromH, ys),
 						}
-					: { ...from, w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W) };
-			setTextDrafts((d) => ({ ...d, [id]: clampTextLayout(next) }));
+					: {
+							...from,
+							w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W),
+						};
+			if (mode === 'resize') setCenterGuide(false);
+			finalDraft = clampTextLayout(next);
+			setTextDrafts((d) => ({ ...d, [id]: finalDraft! }));
 		};
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
 			setDragId(null);
-			const done = textDraftsRef.current[id];
-			if (done && onTextLayout) onTextLayout(id, roundTextLayout(done));
+			setCenterGuide(false);
+			const done = finalDraft ?? textDraftsRef.current[id];
+			if (done && onTextLayout) {
+				committedTextLayouts.current[id] = done;
+				onTextLayout(id, roundTextLayout(done));
+			}
 			setTextDrafts((d) => {
 				const rest = { ...d };
 				delete rest[id];
@@ -374,7 +696,23 @@ export default function CanvasGallery({
 			ref={canvasRef}
 			className={`canvas-gallery ${editable ? 'editable' : ''}`}
 			style={{ '--ch': String(height) } as CSSProperties}
+			onPointerDown={startMarquee}
 		>
+			{editable && centerGuide && (
+				<div className="canvas-center-guide" aria-hidden="true" />
+			)}
+			{editable && marquee && (
+				<div
+					className="canvas-marquee"
+					style={{
+						left: `${marquee.x}%`,
+						top: `${(marquee.y / height) * 100}%`,
+						width: `${marquee.w}%`,
+						height: `${(marquee.h / height) * 100}%`,
+					}}
+					aria-hidden="true"
+				/>
+			)}
 			{editable && guide.kind === 'squares' && (
 				<div
 					className="canvas-grid-overlay"
@@ -404,10 +742,16 @@ export default function CanvasGallery({
 					const l = layouts[i];
 					const vars = {
 						...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100),
-						'--w': String(l.w), '--ar': String(l.ar), zIndex: dragId === img.id ? DRAG_Z : imageZ(i),
+						'--w': String(l.w), '--ar': String(l.ar),
+						zIndex:
+							dragId === img.id || (dragId === '__group__' && selected.has(item.key))
+								? DRAG_Z
+								: imageZ(i),
 					} as CSSProperties;
+					const dragging =
+						dragId === img.id || (dragId === '__group__' && selected.has(item.key));
 					return (
-						<div key={item.key} className={`canvas-item ${dragId === img.id ? 'dragging' : ''}`} style={vars}
+						<div key={item.key} className={`canvas-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
 							role={!editable && onOpen ? 'button' : undefined} tabIndex={!editable && onOpen ? 0 : undefined}
 							aria-haspopup={!editable && onOpen ? 'dialog' : undefined}
@@ -417,7 +761,7 @@ export default function CanvasGallery({
 							<img src={img.src} srcSet={img.srcSet} alt={img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
 								onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
 								ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
-							{editable && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}
+							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}
 						</div>
 					);
 				}
@@ -427,7 +771,11 @@ export default function CanvasGallery({
 					const l = embedLayouts[i];
 					const vars = {
 						...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100),
-						'--w': String(l.w), '--ar': String(l.ar), zIndex: dragId === embed.id ? DRAG_Z : embedZ(i),
+						'--w': String(l.w), '--ar': String(l.ar),
+						zIndex:
+							dragId === embed.id || (dragId === '__group__' && selected.has(item.key))
+								? DRAG_Z
+								: embedZ(i),
 					} as CSSProperties;
 					const src = videoEmbedSrc(embed.url);
 					const buyHref = src ? null : stripePaymentLink(embed.url);
@@ -435,7 +783,11 @@ export default function CanvasGallery({
 					return (
 						<div
 							key={item.key}
-							className={`canvas-item canvas-embed-item ${dragId === embed.id ? 'dragging' : ''}`}
+							className={`canvas-item canvas-embed-item ${
+								dragId === embed.id || (dragId === '__group__' && selected.has(item.key))
+									? 'dragging'
+									: ''
+							} ${selected.has(item.key) ? 'selected' : ''}`}
 							style={vars}
 							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
 						>
@@ -475,7 +827,7 @@ export default function CanvasGallery({
 								</div>
 							)}
 							{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
-							{editable && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}
+							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}
 						</div>
 					);
 				}
@@ -484,15 +836,22 @@ export default function CanvasGallery({
 				const l = textLayouts[i];
 				const vars = {
 					...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100), '--w': String(l.w),
-					zIndex: dragId === text.id ? DRAG_Z : textZ(i),
+					zIndex:
+						dragId === text.id || (dragId === '__group__' && selected.has(item.key))
+							? DRAG_Z
+							: textZ(i),
 				} as CSSProperties;
 				return (
-					<div key={item.key} className={`canvas-item canvas-text-item ${dragId === text.id ? 'dragging' : ''}`} style={vars}
+					<div key={item.key} className={`canvas-item canvas-text-item ${
+						dragId === text.id || (dragId === '__group__' && selected.has(item.key))
+							? 'dragging'
+							: ''
+					} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
 						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={editable ? (e) => startTextDrag(e, text, i, 'move') : undefined}>
 						<div className={`canvas-text align-${text.align ?? 'left'}`}>
 							{text.text.trim() ? <TextContent text={text.text} style={text.style} link={editable ? undefined : text.link} /> : <em className="canvas-text-empty">Empty text — write in the panel</em>}
 						</div>
-						{editable && <span className="canvas-resize" onPointerDown={(e) => startTextDrag(e, text, i, 'resize')} aria-hidden="true" />}
+						{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startTextDrag(e, text, i, 'resize')} aria-hidden="true" />}
 					</div>
 				);
 			})}

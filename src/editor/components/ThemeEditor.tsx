@@ -43,6 +43,7 @@ export default function ThemeEditor() {
 	const fontKnown = options.some((f) => f.value === theme.fontFamily);
 	const headingFont = theme.headingFontFamily ?? '';
 	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
+	const automaticContrast = theme.automaticTextContrast !== false;
 
 	const handleFontFile = (file: File | undefined) => {
 		if (!file) return;
@@ -60,6 +61,27 @@ export default function ThemeEditor() {
 
 	return (
 		<Section title="Fonts & colors" sectionKey="_theme">
+			<Field
+				label="Automatic readable text"
+				hint="Adjust text, your logo/name, and navigation over colored page sections. Turn this off to keep your exact theme colors everywhere."
+			>
+				<div className="chip-row" role="group" aria-label="Automatic readable text">
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${automaticContrast ? 'active' : ''}`}
+						onClick={() => setTheme({ automaticTextContrast: undefined })}
+					>
+						On
+					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${!automaticContrast ? 'active' : ''}`}
+						onClick={() => setTheme({ automaticTextContrast: false })}
+					>
+						Off
+					</button>
+				</div>
+			</Field>
 			<Field label="Body font">
 				<select
 					className="text-input"

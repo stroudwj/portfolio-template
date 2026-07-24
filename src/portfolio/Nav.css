@@ -30,7 +30,7 @@
 	font-family: var(--font-family);
 	font-size: 0.7rem;
 	font-weight: 700;
-	color: var(--color-text);
+	color: var(--chrome-ink, var(--color-text));
 	letter-spacing: 0.3px;
 	white-space: nowrap;
 	display: inline-block;
@@ -46,7 +46,7 @@
 	bottom: -2px;
 	width: 100%;
 	height: 2px;
-	background-color: var(--color-accent);
+	background-color: var(--chrome-ink, var(--color-accent));
 	transform: scaleX(0);
 	transition: transform 0.2s ease;
 	transform-origin: left center;
@@ -55,10 +55,10 @@
 /* Active page gets underlined globally */
 .dock-link.active .dock-item::after {
 	transform: scaleX(1);
-	background-color: var(--color-accent);
+	background-color: var(--chrome-ink, var(--color-accent));
 }
 .dock-link.active .dock-item {
-	color: var(--color-accent);
+	color: var(--chrome-ink, var(--color-accent));
 }
 
 /* Desktop Styles (Devices with hover capability) */
@@ -109,7 +109,7 @@
 	font-size: 0.8rem;
 	font-weight: 700;
 	letter-spacing: 0.3px;
-	color: var(--color-text);
+	color: var(--chrome-ink, var(--color-text));
 	text-decoration: none;
 	white-space: nowrap;
 	-webkit-tap-highlight-color: transparent;
@@ -122,7 +122,7 @@
 	bottom: -3px;
 	height: 2px;
 	width: 100%;
-	background-color: var(--color-accent);
+	background-color: var(--chrome-ink, var(--color-accent));
 	transform: scaleX(0);
 	transform-origin: left center;
 	transition: transform 0.2s ease;
@@ -133,7 +133,7 @@
 	transform: scaleX(1);
 }
 .row-link.active {
-	color: var(--color-accent);
+	color: var(--chrome-ink, var(--color-accent));
 }
 
 /* Centered — quiet, letter-spaced, uppercase */
@@ -179,7 +179,7 @@
 	display: block;
 	width: 24px;
 	height: 2px;
-	background: var(--color-accent);
+	background: var(--chrome-ink, var(--color-accent));
 	border-radius: 999px;
 	transition: transform 0.3s ease, opacity 0.2s ease;
 }
@@ -200,6 +200,9 @@
 	top: 24px;
 	right: 28px;
 	left: auto;
+}
+.navigation-shell:not(.is-stabilized) .nav-menu-trigger {
+	position: absolute;
 }
 
 /* ------------------------------------------------------------------ *
@@ -277,11 +280,15 @@
 }
 .nav-menu-overlay .nav-menu-link {
 	font-size: clamp(1.6rem, 6vw, 2.6rem);
+	color: var(--color-text);
 	letter-spacing: 0.5px;
 	opacity: 0;
 	transform: translateY(10px);
 	transition: opacity 0.4s ease, transform 0.4s ease;
 	transition-delay: calc(var(--nav-menu-index, 0) * 60ms);
+}
+.nav-menu-overlay .nav-menu-link.active {
+	color: var(--color-accent);
 }
 .nav-menu-overlay.is-open .nav-menu-link {
 	opacity: 1;

@@ -15,6 +15,11 @@ import { registerAsset } from '../src/editor/lib/assets';
 import { buildEditorBackup, readEditorBackup } from '../src/editor/lib/backup';
 import { collectIssues } from '../src/editor/lib/validation';
 import { automaticPhoneOrder } from '../src/portfolio/mobileOrder';
+import {
+	snapSpanToCenter,
+	snapSpanToEdges,
+} from '../src/portfolio/canvasLayout';
+import { backgroundBlockVars } from '../src/portfolio/theme';
 
 function fixture(name: string): unknown {
 	return JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'));
@@ -29,6 +34,12 @@ describe('content compatibility', () => {
 				{ key: 'image:i', y: 10, kind: 'image', index: 0 },
 			]),
 		).toEqual(['image:i', 'text:t', 'video:v']);
+	});
+
+	it('snaps single and group spans without changing their width', () => {
+		expect(snapSpanToCenter(37.9, 24)).toEqual({ value: 38, snapped: true });
+		expect(snapSpanToCenter(30, 24)).toEqual({ value: 30, snapped: false });
+		expect(snapSpanToEdges(20.8, 30, [20, 70])).toBe(20);
 	});
 
 	it('migrates unversioned content without mutating it or dropping extensions', () => {
@@ -54,24 +65,57 @@ describe('content compatibility', () => {
 		);
 	});
 
-	it('preserves nav-style and color-blocking fields with no schema-version bump', () => {
+	it('preserves layout, contrast and responsive-section fields with no schema-version bump', () => {
 		const content = parseAndMigrateContent(fixture('content-v0.json'));
 		const withExtras = structuredClone(content) as typeof content;
 		withExtras.theme.navStyle = 'pill';
 		withExtras.theme.fullscreenMobileMenu = true;
+		withExtras.theme.automaticTextContrast = false;
+		withExtras.theme.stabilizeNavigation = false;
+		withExtras.site.footerHeights = { desktop: 180, phone: 120 };
 		withExtras.pages.home.background = '#101014';
 		withExtras.pages.home.sectionColors = { 'block:gallery': '#e0685b', 'page:heading': '#f7ecc9' };
+		withExtras.pages.home.sectionHeights = {
+			'page:heading': { desktop: 260, phone: 180 },
+			'block:gallery': { desktop: 720 },
+		};
 
 		const parsed = parseAndMigrateContent(withExtras);
 		expect(parsed.schemaVersion).toBe(CONTENT_SCHEMA_VERSION); // optional fields → no migration
 		expect(parsed.theme.navStyle).toBe('pill');
 		expect(parsed.theme.fullscreenMobileMenu).toBe(true);
+		expect(parsed.theme.automaticTextContrast).toBe(false);
+		expect(parsed.theme.stabilizeNavigation).toBe(false);
+		expect(parsed.site.footerHeights).toEqual({ desktop: 180, phone: 120 });
 		expect(parsed.pages.home.background).toBe('#101014');
 		expect(parsed.pages.home.sectionColors).toEqual({
 			'block:gallery': '#e0685b',
 			'page:heading': '#f7ecc9',
 		});
+		expect(parsed.pages.home.sectionHeights).toEqual({
+			'page:heading': { desktop: 260, phone: 180 },
+			'block:gallery': { desktop: 720 },
+		});
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed); // idempotent
+	});
+
+	it('can disable derived text colors while retaining a chosen background', () => {
+		expect(backgroundBlockVars('#101014')).toMatchObject({
+			'--color-bg': '#101014',
+			'--color-text': '#f5f5f2',
+		});
+		expect(backgroundBlockVars('#101014', false)).toEqual({
+			'--color-bg': '#101014',
+		});
+	});
+
+	it('rejects invalid responsive section heights', () => {
+		const content = parseAndMigrateContent(fixture('content-v0.json'));
+		const invalid = structuredClone(content) as unknown as {
+			pages: { home: { sectionHeights: Record<string, { desktop: number }> } };
+		};
+		invalid.pages.home.sectionHeights = { 'page:heading': { desktop: -1 } };
+		expect(() => parseAndMigrateContent(invalid)).toThrow(ContentValidationError);
 	});
 
 	it('rejects an unknown nav style value', () => {

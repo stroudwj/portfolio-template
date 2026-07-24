@@ -2,7 +2,7 @@
 // then see the live URL. All hosting specifics live behind CloudflareTarget — this
 // component only builds the bundle, calls target.publish(bundle, onProgress), and
 // renders the result. Publishes are live the moment they finish (no remote build).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from './ui/Modal';
 import { useEditor } from '../store';
 import { buildBundle, type PublishProgress, type PublishResult } from '../lib/exporter';
@@ -10,7 +10,13 @@ import { collectIssues } from '../lib/validation';
 import { AccountClient, AccountError } from '../lib/account/client';
 import { getSession } from '../lib/account/session';
 import { CloudflareTarget } from '../lib/account/target';
-import { localSiteStore, loadSiteInfo } from '../lib/account/site-store';
+import {
+	clearSiteNameDraft,
+	localSiteStore,
+	loadSiteInfo,
+	loadSiteNameDraft,
+	saveSiteNameDraft,
+} from '../lib/account/site-store';
 import type { AccountSession } from './useAccount';
 import {
 	isValidSiteName,
@@ -31,8 +37,14 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 	// device): the saved pointer wins, the account summary fills in behind it.
 	const knownSubdomain = saved?.subdomain ?? account.site?.subdomain ?? null;
 	const firstPublish = !knownSubdomain;
+	const accountId = account.user?.id ?? '';
 
-	const [siteName, setSiteName] = useState(() => knownSubdomain ?? slugifySiteName(doc?.content.site.name || 'my-portfolio'));
+	const [siteName, setSiteName] = useState(
+		() =>
+			knownSubdomain ??
+			loadSiteNameDraft(accountId) ??
+			slugifySiteName(doc?.content.site.name || 'my-portfolio'),
+	);
 	const [nameState, setNameState] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 	const [phase, setPhase] = useState<Phase>('configure');
 	const [log, setLog] = useState<PublishProgress[]>([]);
@@ -40,6 +52,10 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 	const [error, setError] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [showDomain, setShowDomain] = useState(false);
+
+	useEffect(() => {
+		if (knownSubdomain) clearSiteNameDraft(accountId);
+	}, [accountId, knownSubdomain]);
 
 	// The domain modal edits the saved site info (customDomain) — re-read on close.
 	const closeDomainModal = () => {
@@ -93,6 +109,7 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 			const res = await target.publish(bundle, (p) => setLog((prev) => appendStep(prev, p)));
 			setResult(res);
 			setSaved(loadSiteInfo());
+			clearSiteNameDraft(accountId);
 			setPhase('success');
 			void account.refresh(); // the summary now knows the site/subdomain
 		} catch (err) {
@@ -205,7 +222,9 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 							className="text-input"
 							value={siteName}
 							onChange={(e) => {
-								setSiteName(sanitizeSiteNameInput(e.target.value));
+								const next = sanitizeSiteNameInput(e.target.value);
+								setSiteName(next);
+								saveSiteNameDraft(accountId, next);
 								setNameState('idle');
 							}}
 							onBlur={checkName}

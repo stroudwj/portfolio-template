@@ -3,6 +3,9 @@
    signature is present, the signature carries the auto margin and the footer
    simply follows underneath it. */
 .site-footer {
+	position: relative;
+	box-sizing: border-box;
+	min-height: var(--section-min-desktop, 0px);
 	margin-top: auto;
 	padding: 2.5rem 40px 1.75rem;
 	color: var(--color-text-muted);
@@ -34,5 +37,11 @@
 @media (max-width: 768px) {
 	.site-footer {
 		padding: 2rem 20px 1.25rem;
+	}
+}
+
+@media (max-width: 639px) {
+	.site-footer {
+		min-height: var(--section-min-phone, 0px);
 	}
 }

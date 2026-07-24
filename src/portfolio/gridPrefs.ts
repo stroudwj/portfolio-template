@@ -39,10 +39,13 @@ export interface GridPrefs {
 	/** Magnetic snap to a neighboring item's edges while dragging — independent of the
 	 *  guide overlay above, on by default. Toggleable from the toolbar or Shift+S. */
 	edgeSnap: boolean;
+	/** Magnetic alignment of an item's/group's horizontal midpoint to the canvas center. */
+	centerSnap: boolean;
 }
 
 function load(): GridPrefs {
-	if (typeof window === 'undefined') return { guide: 'off', snap: true, edgeSnap: true };
+	if (typeof window === 'undefined')
+		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
 	try {
 		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs> & {
 			cols?: number;
@@ -54,9 +57,10 @@ function load(): GridPrefs {
 			guide: GUIDE_OPTIONS.some((o) => o.id === guide) ? guide : 'off',
 			snap: parsed.snap !== false,
 			edgeSnap: parsed.edgeSnap !== false,
+			centerSnap: parsed.centerSnap !== false,
 		};
 	} catch {
-		return { guide: 'off', snap: true, edgeSnap: true };
+		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
 	}
 }
 
@@ -79,7 +83,7 @@ const subscribe = (fn: () => void): (() => void) => {
 };
 
 const getSnapshot = (): GridPrefs => prefs;
-const serverPrefs: GridPrefs = { guide: 'off', snap: true, edgeSnap: true };
+const serverPrefs: GridPrefs = { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
 const getServerSnapshot = (): GridPrefs => serverPrefs;
 
 /** Live guide prefs — re-renders the caller whenever any component changes them. */

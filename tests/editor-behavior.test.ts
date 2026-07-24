@@ -5,8 +5,15 @@ import type { GitHubClient } from '../src/editor/lib/github/client';
 import { findRecoverableTemplateRepo, getRepoNameStatus, waitForRepoTree } from '../src/editor/lib/github/repo';
 import { isValidSiteName, sanitizeSiteNameInput, slugifySiteName } from '../src/editor/lib/github/subdomain';
 import { safeHref, safeWebHref } from '../src/portfolio/safeHref';
+import {
+	clearSiteNameDraft,
+	loadSiteNameDraft,
+	saveSiteNameDraft,
+} from '../src/editor/lib/account/site-store';
 
 describe('site-name editing', () => {
+	afterEach(() => vi.unstubAllGlobals());
+
 	it('keeps unfinished input editable without inventing fallback text', () => {
 		expect(sanitizeSiteNameInput('')).toBe('');
 		expect(sanitizeSiteNameInput('My Portfolio-')).toBe('my-portfolio-');
@@ -18,6 +25,22 @@ describe('site-name editing', () => {
 		expect(isValidSiteName('')).toBe(false);
 		expect(isValidSiteName('my-portfolio-')).toBe(false);
 		expect(slugifySiteName('')).toBe('my-portfolio');
+	});
+
+	it('keeps first-publish address drafts separate per account', () => {
+		const values = new Map<string, string>();
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => values.get(key) ?? null,
+			setItem: (key: string, value: string) => values.set(key, value),
+			removeItem: (key: string) => values.delete(key),
+		});
+		saveSiteNameDraft('artist-a', 'new-name');
+		saveSiteNameDraft('artist-b', 'other-name');
+		expect(loadSiteNameDraft('artist-a')).toBe('new-name');
+		expect(loadSiteNameDraft('artist-b')).toBe('other-name');
+		clearSiteNameDraft('artist-a');
+		expect(loadSiteNameDraft('artist-a')).toBeNull();
+		expect(loadSiteNameDraft('artist-b')).toBe('other-name');
 	});
 });
 

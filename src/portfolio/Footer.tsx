@@ -2,6 +2,11 @@
 // bottom of every page, typically a copyright notice or credits. Lives in
 // content.site.footer; absent or empty means no footer at all.
 import { Fragment } from 'react';
+import type { ResponsiveSectionHeight } from './types';
+import SectionResizeHandle, {
+	responsiveHeightVars,
+	type SectionBreakpoint,
+} from './SectionResizeHandle';
 import './Footer.css';
 
 /** Keep the default credit useful as a link while leaving every other footer fully freeform. */
@@ -20,10 +25,20 @@ function FooterLine({ text }: { text: string }) {
 	);
 }
 
-export default function Footer({ text }: { text: string }) {
+export default function Footer({
+	text,
+	heights,
+	resizeBreakpoint,
+	onHeightChange,
+}: {
+	text: string;
+	heights?: ResponsiveSectionHeight;
+	resizeBreakpoint?: SectionBreakpoint;
+	onHeightChange?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+}) {
 	if (!text.trim()) return null;
 	return (
-		<footer className="site-footer">
+		<footer className="site-footer" style={responsiveHeightVars(heights)}>
 			<p>
 				{text.split('\n').map((line, index) => (
 					<Fragment key={index}>
@@ -32,6 +47,14 @@ export default function Footer({ text }: { text: string }) {
 					</Fragment>
 				))}
 			</p>
+			{resizeBreakpoint && onHeightChange && (
+				<SectionResizeHandle
+					breakpoint={resizeBreakpoint}
+					value={heights?.[resizeBreakpoint]}
+					label="footer"
+					onChange={(height) => onHeightChange(resizeBreakpoint, height)}
+				/>
+			)}
 		</footer>
 	);
 }

@@ -4,6 +4,8 @@ import CreativeEffects from './CreativeEffects';
 import type { CSSProperties } from 'react';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
 import type { ImageLayout, PortfolioData, TextLayout } from './types';
+import type { CanvasLayoutUpdates } from './types';
+import type { SectionBreakpoint } from './SectionResizeHandle';
 
 export interface PortfolioProps extends PortfolioData {
 	page: string;
@@ -15,6 +17,15 @@ export interface PortfolioProps extends PortfolioData {
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
 	/** Editor preview: reports a video embed placed/moved on the page canvas. */
 	onEmbedLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onCanvasLayouts?: (page: string, folder: string, updates: CanvasLayoutUpdates) => void;
+	resizeBreakpoint?: SectionBreakpoint;
+	onSectionHeight?: (
+		page: string,
+		partKey: string,
+		breakpoint: SectionBreakpoint,
+		height: number | undefined,
+	) => void;
+	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 }
 
 /**
@@ -22,10 +33,14 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, resizeBreakpoint, onSectionHeight, onFooterHeight }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const pageBackground = content.pages[page]?.background;
-	const rootStyle: CSSProperties = { ...themeToVars(content.theme), ...backgroundBlockVars(pageBackground) };
+	const automaticContrast = content.theme.automaticTextContrast !== false;
+	const rootStyle: CSSProperties = {
+		...themeToVars(content.theme),
+		...backgroundBlockVars(pageBackground, automaticContrast),
+	};
 	const creativeClasses = [
 		content.site.creative?.looseHang && 'creative-loose-hang',
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
@@ -46,6 +61,9 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				current={current}
 				navStyle={content.theme.navStyle}
 				fullscreenMobile={content.theme.fullscreenMobileMenu}
+				automaticContrast={automaticContrast}
+				fallbackBackground={pageBackground || content.theme.backgroundColor}
+				stabilized={content.theme.stabilizeNavigation !== false}
 				onNavigate={onNavigate}
 			>
 				<PortfolioPage
@@ -61,6 +79,10 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onImageLayout={onImageLayout}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
+					onCanvasLayouts={onCanvasLayouts}
+					resizeBreakpoint={resizeBreakpoint}
+					onSectionHeight={onSectionHeight}
+					onFooterHeight={onFooterHeight}
 				/>
 			</PortfolioFrame>
 		</div>

@@ -14,6 +14,7 @@ import type {
 	Theme,
 	PageBlock,
 	PageConfig,
+	ResponsiveSectionHeight,
 	TextAlign,
 	TextLayout,
 	TextStyle,
@@ -383,6 +384,16 @@ export interface EditorContextValue {
 	/** Overwrite many images' freeform positions at once (id -> layout), e.g. when
 	 *  adopting the Grid arrangement as the freeform starting point. */
 	setGalleryLayouts(folder: string, layouts: Record<string, ImageLayout>): void;
+	/** Commit a mixed image/text/video canvas move as one undoable document change. */
+	applyCanvasLayouts(
+		pageKey: string,
+		folder: string,
+		updates: {
+			images?: Record<string, ImageLayout>;
+			texts?: Record<string, TextLayout>;
+			embeds?: Record<string, ImageLayout>;
+		},
+	): void;
 	// creative extras
 	/** Optional site-wide flourishes configured in the Fun tab. */
 	setCreative(patch: Partial<CreativeConfig>): void;
@@ -391,6 +402,15 @@ export interface EditorContextValue {
 	setPageBackground(key: string, color: string | undefined): void;
 	/** Background color of one page section, keyed 'block:<id>' / 'page:heading'. */
 	setSectionColor(key: string, partKey: string, color: string | undefined): void;
+	/** Responsive minimum height of one page section. */
+	setSectionHeight(
+		key: string,
+		partKey: string,
+		breakpoint: keyof ResponsiveSectionHeight,
+		height: number | undefined,
+	): void;
+	/** Responsive minimum height of the site-wide footer. */
+	setFooterHeight(breakpoint: keyof ResponsiveSectionHeight, height: number | undefined): void;
 	// sharing / SEO
 	/** Meta description used for search results and social link previews. */
 	setSiteDescription(value: string): void;
@@ -1586,15 +1606,22 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const target = (page.blocks ?? []).find((b) => b.id === blockId);
 				const blocks = (page.blocks ?? []).filter((b) => b.id !== blockId);
 				const phoneKey = target?.type === 'text' ? `text:${target.id}` : target?.type === 'embed' ? `video:${target.id}` : null;
-					const nextPage = {
+				const sectionKey = `block:${blockId}`;
+				const sectionColors = { ...(page.sectionColors ?? {}) };
+				const sectionHeights = { ...(page.sectionHeights ?? {}) };
+				delete sectionColors[sectionKey];
+				delete sectionHeights[sectionKey];
+				const nextPage = {
 						...page,
 						blocks,
+						sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
+						sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
 						mobile: page.mobile
 							? {
 								...page.mobile,
-								order: page.mobile.order.filter((item) => item !== `block:${blockId}`),
+								order: page.mobile.order.filter((item) => item !== sectionKey),
 								items: Object.fromEntries(
-									Object.entries(page.mobile.items ?? {}).filter(([item]) => item !== `block:${blockId}`),
+									Object.entries(page.mobile.items ?? {}).filter(([item]) => item !== sectionKey),
 								),
 							}
 							: undefined,
@@ -1678,6 +1705,37 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			patchGallery(folder, (entries) =>
 				entries.map((e) => (layouts[e.id] ? { ...e, meta: { ...e.meta, layout: layouts[e.id] } } : e)),
 			),
+		applyCanvasLayouts: (pageKey, folder, updates) =>
+			commitDoc((prev) => {
+				const page = prev.content.pages[pageKey];
+				if (!page) return prev;
+				const imageUpdates = updates.images ?? {};
+				const textUpdates = updates.texts ?? {};
+				const embedUpdates = updates.embeds ?? {};
+				const currentEntries = prev.galleries[folder] ?? [];
+				const entries = currentEntries.map((entry) =>
+					imageUpdates[entry.id]
+						? { ...entry, meta: { ...entry.meta, layout: imageUpdates[entry.id] } }
+						: entry,
+				);
+				const currentBlocks = page.blocks ?? [];
+				const blocks = currentBlocks.map((block) => {
+					if (block.type === 'text' && textUpdates[block.id])
+						return { ...block, layout: textUpdates[block.id] };
+					if (block.type === 'embed' && embedUpdates[block.id])
+						return { ...block, layout: embedUpdates[block.id] };
+					return block;
+				});
+				if (entries === currentEntries && blocks === currentBlocks) return prev;
+				return {
+					...prev,
+					galleries: { ...prev.galleries, [folder]: entries },
+					content: {
+						...prev.content,
+						pages: { ...prev.content.pages, [pageKey]: { ...page, blocks } },
+					},
+				};
+			}),
 
 		setCreative: (patch) =>
 			patchContent((c) => {
@@ -1716,6 +1774,46 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				},
 				true,
 				`page:${key}:sectioncolor:${partKey}`,
+			),
+		setSectionHeight: (key, partKey, breakpoint, height) =>
+			patchPage(
+				key,
+				(page) => {
+					const all = { ...(page.sectionHeights ?? {}) };
+					const current = { ...(all[partKey] ?? {}) };
+					const normalized =
+						height === undefined || !Number.isFinite(height)
+							? undefined
+							: Math.max(0, Math.min(10000, Math.round(height)));
+					if (normalized === undefined) delete current[breakpoint];
+					else current[breakpoint] = normalized;
+					if (Object.keys(current).length) all[partKey] = current;
+					else delete all[partKey];
+					return { ...page, sectionHeights: Object.keys(all).length ? all : undefined };
+				},
+				true,
+				`page:${key}:sectionheight:${partKey}:${breakpoint}`,
+			),
+		setFooterHeight: (breakpoint, height) =>
+			patchContent(
+				(content) => {
+					const footerHeights = { ...(content.site.footerHeights ?? {}) };
+					const normalized =
+						height === undefined || !Number.isFinite(height)
+							? undefined
+							: Math.max(0, Math.min(10000, Math.round(height)));
+					if (normalized === undefined) delete footerHeights[breakpoint];
+					else footerHeights[breakpoint] = normalized;
+					return {
+						...content,
+						site: {
+							...content.site,
+							footerHeights: Object.keys(footerHeights).length ? footerHeights : undefined,
+						},
+					};
+				},
+				true,
+				`site:footerheight:${breakpoint}`,
 			),
 		setOgImage: (sel) => commitDoc((prev) => ({ ...prev, ogImage: sel })),
 

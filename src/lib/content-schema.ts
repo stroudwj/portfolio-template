@@ -32,6 +32,12 @@ const mobileCompositionSchema = passthrough({
 	columns: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
+const sectionHeightValueSchema = z.number().min(0).max(10000);
+const responsiveSectionHeightSchema = passthrough({
+	desktop: sectionHeightValueSchema.optional(),
+	phone: sectionHeightValueSchema.optional(),
+});
+
 const galleryFolderSchema = z
 	.string()
 	.min(1)
@@ -183,6 +189,7 @@ export const contentSchema = passthrough({
 		language: z.string().min(2).optional(),
 		signature: passthrough({ strokes: z.array(z.array(z.array(z.number()))) }).optional(),
 		footer: z.string().optional(),
+		footerHeights: responsiveSectionHeightSchema.optional(),
 		ogImage: z.string().optional(),
 		creative: passthrough({
 			cursor: z.string().optional(),
@@ -206,6 +213,8 @@ export const contentSchema = passthrough({
 		logoScale: z.number().optional(),
 		navStyle: z.enum(['dock', 'topbar', 'centered', 'pill', 'minimal']).optional(),
 		fullscreenMobileMenu: z.boolean().optional(),
+		automaticTextContrast: z.boolean().optional(),
+		stabilizeNavigation: z.boolean().optional(),
 		customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 	}),
 	nav: z.array(passthrough({ path: z.string(), label: z.string(), hidden: z.boolean().optional() })),
@@ -230,6 +239,7 @@ export const contentSchema = passthrough({
 			thumbnail: z.string().optional(),
 			background: z.string().optional(),
 			sectionColors: z.record(z.string(), z.string()).optional(),
+			sectionHeights: z.record(z.string(), responsiveSectionHeightSchema).optional(),
 		}),
 	),
 	galleries: z.record(galleryFolderSchema, passthrough({ items: z.record(galleryFilenameSchema, imageMetaSchema) })),

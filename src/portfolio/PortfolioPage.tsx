@@ -10,7 +10,19 @@ import Products from './Products';
 import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
-import { stripSlashes, withBase, type CanvasEmbed, type CanvasText, type PortfolioData, type TextLayout } from './types';
+import SectionResizeHandle, {
+	responsiveHeightVars,
+	type SectionBreakpoint,
+} from './SectionResizeHandle';
+import {
+	stripSlashes,
+	withBase,
+	type CanvasEmbed,
+	type CanvasLayoutUpdates,
+	type CanvasText,
+	type PortfolioData,
+	type TextLayout,
+} from './types';
 import { backgroundBlockVars } from './theme';
 import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
@@ -27,6 +39,21 @@ export interface PortfolioPageProps extends PortfolioData {
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
 	/** Editor preview: reports a video embed placed/moved on the page canvas. */
 	onEmbedLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+	/** Editor preview: commits a mixed image/text/video canvas move atomically. */
+	onCanvasLayouts?: (
+		page: string,
+		folder: string,
+		updates: CanvasLayoutUpdates,
+	) => void;
+	/** Editor preview: responsive minimum-height editing for page sections. */
+	resizeBreakpoint?: SectionBreakpoint;
+	onSectionHeight?: (
+		page: string,
+		partKey: string,
+		breakpoint: SectionBreakpoint,
+		height: number | undefined,
+	) => void;
+	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 }
 
 /** Where a flow block was released, in canvas-width % of the page's canvas. */
@@ -134,7 +161,24 @@ function DraggableFlowBlock({
  * so the page composition lives in exactly one place. Content is always migrated
  * (migrateContent) before it gets here, so `blocks` is present.
  */
-export default function PortfolioPage({ page, content, galleries, profileImageSrc, pageThumbs, productImageSrcs, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout }: PortfolioPageProps) {
+export default function PortfolioPage({
+	page,
+	content,
+	galleries,
+	profileImageSrc,
+	pageThumbs,
+	productImageSrcs,
+	resumeHref,
+	base,
+	onNavigate,
+	onImageLayout,
+	onTextLayout,
+	onEmbedLayout,
+	onCanvasLayouts,
+	resizeBreakpoint,
+	onSectionHeight,
+	onFooterHeight,
+}: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 	const [isPhone, setIsPhone] = useState(false);
 	const setPageRoot = useCallback((element: HTMLDivElement | null) => {
@@ -166,10 +210,12 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 		...blocks.map((block) => `block:${block.id}`),
 	];
 	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
+	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const pagePartVars = (key: string): CSSProperties => {
 		return {
 			'--phone-page-order': String(pageOrder.get(key) ?? pageOrder.size + (automaticPageOrder.get(key) ?? 0)),
-			'--phone-page-display': config.mobile?.items?.[key]?.hidden ? 'none' : 'block',
+			'--phone-page-display': config.mobile?.items?.[key]?.hidden ? 'none' : 'flow-root',
+			...responsiveHeightVars(config.sectionHeights?.[key]),
 		} as CSSProperties;
 	};
 	const hasCanvas = !!gallery && gallery.layout !== 'grid' && blocks.some((b) => b.type === 'gallery');
@@ -278,6 +324,11 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 						onLayoutChange={onLayoutChange}
 						onTextLayout={textLayoutChange}
 						onEmbedLayout={embedLayoutChange}
+						onBulkLayoutChange={
+							onCanvasLayouts && gallery
+								? (updates) => onCanvasLayouts(page, gallery.folder, updates)
+								: undefined
+						}
 					/>
 				);
 				// Home keeps its collage layout; other pages the standard wrapper (the
@@ -310,6 +361,11 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 							editable={!!onImageLayout}
 							onLayoutChange={
 								onImageLayout ? (id, layout) => onImageLayout(block.gallery.folder, id, layout) : undefined
+							}
+							onBulkLayoutChange={
+								onCanvasLayouts
+									? (updates) => onCanvasLayouts(page, block.gallery.folder, updates)
+									: undefined
 							}
 						/>
 					</div>
@@ -380,20 +436,43 @@ export default function PortfolioPage({ page, content, galleries, profileImageSr
 			>
 				{pageParts.map((part) => {
 					const sectionColor = config.sectionColors?.[part.key];
-					const partStyle = { ...pagePartVars(part.key), ...backgroundBlockVars(sectionColor) } as CSSProperties;
+					const partStyle = {
+						...pagePartVars(part.key),
+						...backgroundBlockVars(sectionColor, automaticContrast),
+					} as CSSProperties;
 					return (
 						<div
 							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}`}
 							style={partStyle}
 							key={part.key}
+							data-section-color={
+								sectionColor || config.background || content.theme.backgroundColor
+							}
 						>
 							{part.rendered}
+							{resizeBreakpoint && onSectionHeight && (
+								<SectionResizeHandle
+									breakpoint={resizeBreakpoint}
+									value={config.sectionHeights?.[part.key]?.[resizeBreakpoint]}
+									label={part.key === 'page:heading' ? 'page heading' : 'page section'}
+									onChange={(height) =>
+										onSectionHeight(page, part.key, resizeBreakpoint, height)
+									}
+								/>
+							)}
 						</div>
 					);
 				})}
 			</div>
 			{content.site.signature && <Signature data={content.site.signature} />}
-			{content.site.footer && <Footer text={content.site.footer} />}
+			{content.site.footer && (
+				<Footer
+					text={content.site.footer}
+					heights={content.site.footerHeights}
+					resizeBreakpoint={resizeBreakpoint}
+					onHeightChange={onFooterHeight}
+				/>
+			)}
 		</>
 	);
 }

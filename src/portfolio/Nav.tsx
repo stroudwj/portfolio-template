@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { withBase, stripSlashes, type NavItem, type NavStyle } from './types';
 import './Nav.css';
+import { useChromeContrast } from './useChromeContrast';
 
 export interface NavProps {
 	items: NavItem[];
@@ -14,6 +15,9 @@ export interface NavProps {
 	fullscreenMobile?: boolean;
 	/** In the editor preview, switch pages instead of navigating. */
 	onNavigate?: (path: string) => void;
+	automaticContrast?: boolean;
+	fallbackBackground?: string;
+	stabilized?: boolean;
 }
 
 // The Mac-dock hover magnify, ported from the Phase 1 vanilla script: the hovered
@@ -22,16 +26,30 @@ export interface NavProps {
 function magnify(index: number, hovered: number | null): { link: CSSProperties; item: CSSProperties } {
 	if (hovered === null) return { link: {}, item: {} };
 	if (index === hovered)
-		return { link: { paddingTop: '12px', paddingBottom: '12px' }, item: { transform: 'scale(1.8)', color: '#000000' } };
+		return { link: { paddingTop: '12px', paddingBottom: '12px' }, item: { transform: 'scale(1.8)' } };
 	if (Math.abs(index - hovered) === 1)
-		return { link: { paddingTop: '6px', paddingBottom: '6px' }, item: { transform: 'scale(1.25)', color: '#666666' } };
-	return { link: { paddingTop: '3px', paddingBottom: '3px' }, item: { transform: 'scale(1)', color: '#999999' } };
+		return { link: { paddingTop: '6px', paddingBottom: '6px' }, item: { transform: 'scale(1.25)' } };
+	return { link: { paddingTop: '3px', paddingBottom: '3px' }, item: { transform: 'scale(1)' } };
 }
 
-export default function Nav({ items, base, current, navStyle = 'dock', fullscreenMobile, onNavigate }: NavProps) {
+export default function Nav({
+	items,
+	base,
+	current,
+	navStyle = 'dock',
+	fullscreenMobile,
+	onNavigate,
+	automaticContrast = true,
+	fallbackBackground = '#ffffff',
+	stabilized = true,
+}: NavProps) {
 	const [hovered, setHovered] = useState<number | null>(null);
 	const [hoverCapable, setHoverCapable] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
+	const { ref, ink } = useChromeContrast<HTMLDivElement>(
+		automaticContrast,
+		fallbackBackground,
+	);
 
 	useEffect(() => {
 		setHoverCapable(window.matchMedia('(hover: hover)').matches);
@@ -75,7 +93,13 @@ export default function Nav({ items, base, current, navStyle = 'dock', fullscree
 	const showDesktopList = navStyle !== 'minimal';
 
 	return (
-		<div className={`navigation-shell nav-${navStyle} ${overlayMode ? 'nav-overlay-mode' : 'nav-compact-mode'}`}>
+		<div
+			ref={ref}
+			className={`navigation-shell nav-${navStyle} ${
+				overlayMode ? 'nav-overlay-mode' : 'nav-compact-mode'
+			} ${stabilized ? 'is-stabilized' : ''}`}
+			style={ink ? ({ '--chrome-ink': ink } as CSSProperties) : undefined}
+		>
 			{showDesktopList &&
 				(isDock ? (
 					<div className="mac-dock-vertical desktop-nav" onMouseLeave={() => setHovered(null)}>

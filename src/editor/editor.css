@@ -2424,11 +2424,9 @@ a.live-url:hover {
 	z-index: 40;
 }
 .color-swatch-popover {
-	position: absolute;
-	top: calc(100% + 6px);
-	right: 0;
+	position: fixed;
 	z-index: 41;
-	width: 176px;
+	box-sizing: border-box;
 	padding: 10px;
 	background: var(--paper, #fff);
 	border: 1px solid var(--wall-2);
@@ -2464,20 +2462,39 @@ a.live-url:hover {
 .color-swatch-custom {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: 8px;
 	margin-top: 10px;
 	font-size: 12px;
 	color: var(--ink-2, #666);
 }
+.color-swatch-custom > label {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	align-items: center;
+	gap: 6px;
+}
+.color-hex-input {
+	min-width: 0;
+	height: 28px;
+	padding: 4px 7px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 12px;
+}
 .color-swatch-custom input[type='color'] {
-	width: 40px;
+	width: 32px;
 	height: 28px;
 	padding: 0;
 	border: 1px solid var(--wall-2);
 	border-radius: 4px;
 	background: none;
 	cursor: pointer;
+}
+.color-copy {
+	flex: none;
+	width: 30px;
+	height: 28px;
+	padding: 0;
 }
 
 /* ---- ✨ Fun tab ---- */

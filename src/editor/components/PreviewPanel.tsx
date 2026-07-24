@@ -48,6 +48,14 @@ function GuideTools() {
 				/>
 				Edge snap
 			</label>
+			<label className="grid-snap" title="Magnetically align a dragged item or selection with the horizontal page center">
+				<input
+					type="checkbox"
+					checked={gridPrefs.centerSnap}
+					onChange={(e) => setGridPrefs({ centerSnap: e.target.checked })}
+				/>
+				Center snap
+			</label>
 		</div>
 	);
 }
@@ -196,6 +204,7 @@ export default function PreviewPanel({ base }: { base: string }) {
 	// Editing (drag/resize) happens in the plain desktop view; the phone and
 	// fullscreen views show the published site's exact behavior instead.
 	const editable = device === 'desktop' && !fullscreen;
+	const resizeBreakpoint = fullscreen ? undefined : device;
 
 	const navigate = (path: string) => {
 		const key = path === '' ? 'home' : path;
@@ -234,6 +243,24 @@ export default function PreviewPanel({ base }: { base: string }) {
 			onEmbedLayout={
 				editable ? (pageKey, blockId, layout) => editor.setEmbedLayout(pageKey, blockId, layout) : undefined
 			}
+			onCanvasLayouts={
+				editable
+					? (pageKey, folder, updates) =>
+							editor.applyCanvasLayouts(pageKey, folder, updates)
+					: undefined
+			}
+			resizeBreakpoint={resizeBreakpoint}
+			onSectionHeight={
+				resizeBreakpoint
+					? (pageKey, partKey, breakpoint, height) =>
+							editor.setSectionHeight(pageKey, partKey, breakpoint, height)
+					: undefined
+			}
+			onFooterHeight={
+				resizeBreakpoint
+					? (breakpoint, height) => editor.setFooterHeight(breakpoint, height)
+					: undefined
+			}
 		/>
 	);
 
@@ -255,7 +282,11 @@ export default function PreviewPanel({ base }: { base: string }) {
 				</div>
 				{editable && <GuideTools />}
 				<span className="preview-hint">
-					{editable ? 'Drag images, videos and text to arrange them.' : 'Exactly how your published site will look.'}
+					{editable
+						? 'Drag items; drag blank canvas space to select several. Section edges resize.'
+						: resizeBreakpoint
+							? 'Drag section edges to adjust the phone layout.'
+							: 'Exactly how your published site will look.'}
 				</span>
 				<button
 					type="button"

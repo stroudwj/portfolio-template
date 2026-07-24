@@ -17,6 +17,7 @@ import type {
 	TextAlign,
 	TextLayout,
 	TextStyle,
+	ResponsiveSectionHeight,
 } from '../lib/content';
 
 export type {
@@ -31,7 +32,15 @@ export type {
 	TextAlign,
 	TextLayout,
 	TextStyle,
+	ResponsiveSectionHeight,
 };
+
+/** One atomic mixed-item move produced by a freeform canvas. */
+export interface CanvasLayoutUpdates {
+	images?: Record<string, ImageLayout>;
+	texts?: Record<string, TextLayout>;
+	embeds?: Record<string, ImageLayout>;
+}
 
 /** A text block placed on the freeform canvas (its `layout` is present). */
 export interface CanvasText {

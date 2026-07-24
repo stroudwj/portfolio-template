@@ -50,6 +50,8 @@ export const snapTo = (value: number, step: number): number =>
 
 /** How close (in canvas-width %) an edge must be before it magnetically snaps. */
 export const EDGE_SNAP = 1.2;
+/** Distance from the page midpoint at which a moving span centers itself. */
+export const CENTER_SNAP = 1.2;
 
 /** The nearest of `edges` within `threshold` of `value`, or null when none is. */
 export function nearestEdge(value: number, edges: readonly number[], threshold: number): number | null {
@@ -74,6 +76,19 @@ export function snapSpanToEdges(pos: number, size: number, edges: readonly numbe
 	const dTrail = trail === null ? Infinity : Math.abs(trail - pos - size);
 	if (dLead === Infinity && dTrail === Infinity) return pos;
 	return dLead <= dTrail ? (lead as number) : (trail as number) - size;
+}
+
+/** Magnetically align the midpoint of a moving span to the page center. */
+export function snapSpanToCenter(
+	pos: number,
+	size: number,
+	center = 50,
+	threshold = CENTER_SNAP,
+): { value: number; snapped: boolean } {
+	const delta = center - (pos + size / 2);
+	return Math.abs(delta) <= threshold
+		? { value: pos + delta, snapped: true }
+		: { value: pos, snapped: false };
 }
 
 /** Snap a value to the nearest entry of `edges` (no-op when empty). */

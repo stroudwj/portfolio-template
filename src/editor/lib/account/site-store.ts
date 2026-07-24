@@ -22,6 +22,7 @@ export interface SiteInfo {
 }
 
 const SITE_KEY = 'portfolio-editor:cf-site';
+const SITE_NAME_DRAFT_PREFIX = 'portfolio-editor:site-name-draft:';
 
 export function loadSiteInfo(): SiteInfo | null {
 	return readJson<SiteInfo>(SITE_KEY);
@@ -34,6 +35,19 @@ export function saveSiteInfo(info: SiteInfo): void {
 /** Forget the saved site — e.g. the account signed out or the site was removed. */
 export function clearSiteInfo(): void {
 	removeKey(SITE_KEY);
+}
+
+/** Keep an unfinished first-publish address private to the signed-in account. */
+export function loadSiteNameDraft(userId: string): string | null {
+	return userId ? readJson<string>(`${SITE_NAME_DRAFT_PREFIX}${userId}`) : null;
+}
+
+export function saveSiteNameDraft(userId: string, value: string): void {
+	if (userId) writeJson(`${SITE_NAME_DRAFT_PREFIX}${userId}`, value);
+}
+
+export function clearSiteNameDraft(userId: string): void {
+	if (userId) removeKey(`${SITE_NAME_DRAFT_PREFIX}${userId}`);
 }
 
 // Injectable store so CloudflareTarget can run outside the browser (mirrors RepoStore —

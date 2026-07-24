@@ -7,7 +7,14 @@ import type { Theme } from '../lib/content';
 /** The string-valued theme fields that map 1:1 onto CSS variables. */
 type ThemeVarKey = Exclude<
 	keyof Theme,
-	'customFonts' | 'contentGap' | 'headingFontFamily' | 'logoScale' | 'navStyle' | 'fullscreenMobileMenu'
+	| 'customFonts'
+	| 'contentGap'
+	| 'headingFontFamily'
+	| 'logoScale'
+	| 'navStyle'
+	| 'fullscreenMobileMenu'
+	| 'automaticTextContrast'
+	| 'stabilizeNavigation'
 >;
 
 const VARS: Array<[string, ThemeVarKey]> = [
@@ -81,9 +88,15 @@ export function readableTextVars(bgColor: string): Record<string, string> {
  * whole page): sets `--color-bg` plus the auto-contrast text colors. Empty when no
  * color is set, so callers can spread it unconditionally.
  */
-export function backgroundBlockVars(bgColor: string | undefined): Record<string, string> {
+export function backgroundBlockVars(
+	bgColor: string | undefined,
+	automaticTextContrast = true,
+): Record<string, string> {
 	if (!bgColor) return {};
-	return { '--color-bg': bgColor, ...readableTextVars(bgColor) };
+	return {
+		'--color-bg': bgColor,
+		...(automaticTextContrast ? readableTextVars(bgColor) : {}),
+	};
 }
 
 /** A custom font ready to load: display name + a resolved URL (hashed asset or blob:). */

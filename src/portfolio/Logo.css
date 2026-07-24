@@ -6,6 +6,9 @@
 	z-index: 1000;
 	pointer-events: auto; /* So the link is clickable */
 }
+.header-logo-container.is-stabilized {
+	position: fixed;
+}
 
 /* --logo-scale (theme.logoScale / 100) sizes the text and image logo alike. */
 .header-logo {
@@ -14,7 +17,7 @@
 	font-size: calc(2rem * var(--logo-scale, 1));
 	font-weight: 800;
 	letter-spacing: -0.02em;
-	color: var(--color-text);
+	color: var(--chrome-ink, var(--color-text));
 	text-decoration: none;
 	white-space: nowrap;
 }

@@ -12,6 +12,12 @@ export { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema
 /** Credit seeded into every new portfolio. Artists can edit or remove it in Extras. */
 export const DEFAULT_FOOTER = 'Made with hangwork.art';
 
+/** Optional editor-sized minimum height for one published section breakpoint. */
+export interface ResponsiveSectionHeight {
+	desktop?: number;
+	phone?: number;
+}
+
 export interface Site {
 	/** Owner name — the single source of truth, reused in the logo and every page title. */
 	name: string;
@@ -29,6 +35,8 @@ export interface Site {
 	signature?: SignatureData;
 	/** Footer line(s) shown at the bottom of every page. "\n" is a line break; absent/empty = no footer. */
 	footer?: string;
+	/** Optional minimum footer height, independently adjustable for desktop and phone. */
+	footerHeights?: ResponsiveSectionHeight;
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
 	ogImage?: string;
 	/** Optional site-wide flourishes configured in the editor's Fun tab. Absent = none. */
@@ -95,6 +103,10 @@ export interface Theme {
 	navStyle?: NavStyle;
 	/** Phones open the menu as a full-screen fade-in overlay instead of the compact corner box. */
 	fullscreenMobileMenu?: boolean;
+	/** Automatically choose readable text over page/section colors. Absent = enabled. */
+	automaticTextContrast?: boolean;
+	/** Pin the logo and chosen navigation layout while scrolling. Absent = enabled. */
+	stabilizeNavigation?: boolean;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
 }
@@ -293,6 +305,8 @@ export interface PageConfig {
 	background?: string;
 	/** Per-section background colors keyed by page-part key ('block:<id>' / 'page:heading'). */
 	sectionColors?: Record<string, string>;
+	/** Per-section minimum heights keyed like sectionColors, with independent breakpoints. */
+	sectionHeights?: Record<string, ResponsiveSectionHeight>;
 }
 
 /**

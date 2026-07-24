@@ -23,6 +23,7 @@ export default function LayoutEditor() {
 	const gap = doc.content.theme.contentGap ?? 0;
 	const navStyle: NavStyle = doc.content.theme.navStyle ?? 'dock';
 	const fullscreenMobile = doc.content.theme.fullscreenMobileMenu ?? false;
+	const stabilized = doc.content.theme.stabilizeNavigation !== false;
 
 	const applyGap = (value: number) => {
 		const clamped = Math.max(MIN_GAP, Math.min(Math.round(value), MAX_GAP));
@@ -43,6 +44,28 @@ export default function LayoutEditor() {
 							{style.label}
 						</button>
 					))}
+				</div>
+			</Field>
+
+			<Field
+				label="Keep navigation in place"
+				hint="On pins your logo and chosen menu where they are. Off lets them scroll away with the page."
+			>
+				<div className="chip-row" role="group" aria-label="Keep navigation in place">
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${stabilized ? 'active' : ''}`}
+						onClick={() => setTheme({ stabilizeNavigation: undefined })}
+					>
+						On
+					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${!stabilized ? 'active' : ''}`}
+						onClick={() => setTheme({ stabilizeNavigation: false })}
+					>
+						Off
+					</button>
 				</div>
 			</Field>
 

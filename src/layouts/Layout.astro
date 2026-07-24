@@ -32,7 +32,10 @@ const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''))
 // Site-wide nav layout + the current page's color-blocking background (if any).
 const navStyle = theme.navStyle ?? 'dock';
 const pageConfig = content.pages[current || 'home'];
-const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background))
+const automaticContrast = theme.automaticTextContrast !== false;
+const stabilized = theme.stabilizeNavigation !== false;
+const pageBackground = pageConfig?.background || theme.backgroundColor;
+const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background, automaticContrast))
 	.map(([prop, value]) => `${prop}:${value}`)
 	.join(';');
 // Uploaded fonts become @font-face rules ahead of the theme variables that use them.
@@ -91,17 +94,32 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 				<CreativeEffects client:load creative={site.creative} />
 			)
 		}
-		{showLogo && <Logo logo={logo} imageSrc={logoImageSrc} href={withBase(base)} />}
+		{
+			showLogo && (
+				<Logo
+					client:load
+					logo={logo}
+					imageSrc={logoImageSrc}
+					href={withBase(base)}
+					automaticContrast={automaticContrast}
+					fallbackBackground={pageBackground}
+					stabilized={stabilized}
+				/>
+			)
+		}
 		<div class={`portfolio-container nav-style-${navStyle}`}>
 			<!-- The menu lives here permanently; hydrated for the hover-magnify. -->
-			<nav class="sidebar">
+			<nav class:list={{ sidebar: true, 'is-stabilized': stabilized }}>
 				<Nav
-					client:idle
+					client:load
 					items={nav}
 					base={base}
 					current={current}
 					navStyle={navStyle}
 					fullscreenMobile={theme.fullscreenMobileMenu}
+					automaticContrast={automaticContrast}
+					fallbackBackground={pageBackground}
+					stabilized={stabilized}
 				/>
 			</nav>
 

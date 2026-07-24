@@ -17,7 +17,7 @@
 }
 
 .sidebar {
-	position: fixed;
+	position: absolute;
 	top: 0;
 	left: 0;
 	z-index: 1000;
@@ -25,6 +25,9 @@
 	align-items: flex-start; /* Aligns the menu to the top */
 	padding-left: 40px;
 	padding-top: 40px; /* Provides space from the top edge */
+}
+.sidebar.is-stabilized {
+	position: fixed;
 }
 
 .content-view {
@@ -43,13 +46,18 @@
 	width: 100%;
 	min-width: 0;
 }
+.portfolio-page-part {
+	position: relative;
+	box-sizing: border-box;
+	min-height: var(--section-min-desktop, 0px);
+}
 
 /* Color blocking: a section that carries its own background reads as a full-width
    band. pagePartVars sets --color-bg + auto-contrast text vars on the wrapper. */
 .portfolio-page-part.has-section-color {
 	background: var(--color-bg);
 	color: var(--color-text);
-	padding: 48px 40px;
+	display: flow-root;
 }
 
 /* ------------------------------------------------------------------ *
@@ -88,6 +96,10 @@
 	bottom: 28px;
 	padding: 0;
 }
+.portfolio-container.nav-style-pill > .sidebar:not(.is-stabilized) {
+	top: calc(100vh - 72px);
+	bottom: auto;
+}
 .portfolio-container.nav-style-pill > .sidebar .navigation-shell {
 	width: 100%;
 	align-items: center;
@@ -100,7 +112,7 @@
 
 /* Per-page body wrappers (ported from the Phase 1 page files). */
 .collage-container {
-	padding: 20px 40px 60px;
+	padding: 16px 40px 60px;
 }
 
 /* The home collage used to rely on its optional page heading for all of its
@@ -108,26 +120,26 @@
    roughly 200px down to 20px. Keep a calm header-safe baseline even when the
    optional heading is empty; the Layout control can still tighten it further. */
 .portfolio-page-body.page-home.without-page-heading .collage-container {
-	padding-top: 140px;
+	padding-top: 112px;
 }
 
 .page-content-wrapper {
-	padding: 150px 40px 40px;
+	padding: 120px 40px 40px;
 }
 
 .page-content-wrapper.page-photo {
-	padding: 170px 40px 40px;
+	padding: 136px 40px 40px;
 }
 
 @media (max-width: 768px) {
 	.collage-container {
-		padding: 80px 20px 40px;
+		padding: 64px 20px 40px;
 	}
 	.page-content-wrapper {
-		padding: 80px 20px 40px;
+		padding: 64px 20px 40px;
 	}
-	.portfolio-page-part.has-section-color {
-		padding: 40px 20px;
+	.page-content-wrapper.page-photo {
+		padding-top: 64px;
 	}
 }
 
@@ -139,5 +151,37 @@
 	.portfolio-page-body[data-phone-ready='true'] > .portfolio-page-part {
 		display: var(--phone-page-display, block);
 		order: var(--phone-page-order, initial);
+		min-height: var(--section-min-phone, 0px);
 	}
+}
+
+/* Editor-only section sizing affordance. The shared renderer emits it only
+   when PreviewPanel supplies a resize callback, so published sites stay clean. */
+.section-resize-handle {
+	position: absolute;
+	right: 0;
+	bottom: -6px;
+	left: 0;
+	z-index: 7000;
+	height: 12px;
+	cursor: ns-resize;
+	touch-action: none;
+}
+.section-resize-handle span {
+	position: absolute;
+	right: 16px;
+	bottom: 5px;
+	left: 16px;
+	height: 1px;
+	background: rgba(0, 47, 167, 0.36);
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+.section-resize-handle:hover span,
+.section-resize-handle:focus-visible span {
+	opacity: 1;
+}
+.section-resize-handle:focus-visible {
+	outline: 2px solid #002fa7;
+	outline-offset: -2px;
 }

@@ -9,7 +9,15 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import type { CanvasEmbed, CanvasText, GalleryConfig, ImageLayout, ResolvedImage, TextLayout } from './types';
+import type {
+	CanvasEmbed,
+	CanvasLayoutUpdates,
+	CanvasText,
+	GalleryConfig,
+	ImageLayout,
+	ResolvedImage,
+	TextLayout,
+} from './types';
 import { safeHref } from './safeHref';
 import CanvasGallery from './CanvasGallery';
 import './Gallery.css';
@@ -76,6 +84,8 @@ export interface GalleryProps {
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned video embed (editor only). */
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
+	/** Reports one atomic mixed-item canvas move (editor only). */
+	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
 }
 
 /**
@@ -96,6 +106,7 @@ export default function Gallery({
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
+	onBulkLayoutChange,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const open = openIndex !== null ? images[openIndex] : null;
@@ -363,6 +374,7 @@ export default function Gallery({
 					onLayoutChange={onLayoutChange}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
+					onBulkLayoutChange={onBulkLayoutChange}
 					onOpen={editable ? undefined : openLightbox}
 				/>
 			) : (
