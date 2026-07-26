@@ -64,6 +64,14 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'This site is locked by Hangwork support and can’t be changed here. Contact support.';
 		case 'confirm_mismatch':
 			return 'The confirmation didn’t match. Type your site’s name exactly to continue.';
+		case 'admin_forbidden':
+			return 'This account does not have access to the Hangwork console.';
+		case 'admin_unconfigured':
+			return 'The Hangwork console does not have an operator allowlist yet.';
+		case 'invalid_query':
+			return 'Enter at least two characters to search.';
+		case 'user_not_found':
+			return 'That account no longer exists.';
 		default:
 			if (status === 0)
 				return 'Couldn’t reach Hangwork. Check your connection (or an ad/privacy blocker) and try again.';

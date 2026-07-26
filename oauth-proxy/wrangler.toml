@@ -31,6 +31,12 @@ LS_PRODUCT_ID = "1221404"
 # GOOGLE_CLIENT_SECRET secret are set — magic-link sign-in works either way.
 GOOGLE_CLIENT_ID = "132981170943-auqcp7i1vrh5eulgvd05mhv1e7dg7426.apps.googleusercontent.com"
 
+# Read-only operator console (/admin on the product site). Set at least one allowlist
+# as a Worker secret; comma-separate multiple values. ADMIN_GOOGLE_SUBS is the stronger
+# identifier, while ADMIN_EMAILS is convenient for bootstrapping the first operator.
+#   wrangler secret put ADMIN_GOOGLE_SUBS
+#   wrangler secret put ADMIN_EMAILS
+
 # ---- Hangwork hosting (Direction D) ------------------------------------------------
 # The bindings below power accounts (/auth/*), publishing (/publish, /upload) and site
 # management (/site/*). Create the resources once:
@@ -62,3 +68,5 @@ bucket_name = "hangwork-sites"
 #   wrangler secret put GOOGLE_CLIENT_SECRET (Google OAuth client secret, if Google sign-in is on)
 #   wrangler secret put LS_WEBHOOK_SECRET   (Lemon Squeezy webhook signing secret for /webhooks/lemonsqueezy)
 #   wrangler secret put CF_SAAS_TOKEN       (Cloudflare API token, SSL and Certificates:Edit — custom hostnames)
+#   wrangler secret put ADMIN_GOOGLE_SUBS    (comma-separated Google subject ids allowed into /admin)
+#   wrangler secret put ADMIN_EMAILS         (comma-separated account emails allowed into /admin)

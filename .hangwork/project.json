@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "runtimeVersion": "1.2.2",
+  "runtimeVersion": "1.2.3",
   "sourceCommit": "development",
   "siteUrl": "https://stroudwj.github.io",
   "basePath": "/portfolio-template",
@@ -41,6 +41,14 @@
     "public/editor-preview-frame.html": {
       "sha256": "e95d180a2e4e2cf8738c3a63c8dfa3d6cc34a9e6919160a97c2e890ef9798325",
       "gitBlobSha": "bee505e9b347cc25aef62683f2b2376199d28602"
+    },
+    "src/admin/AdminApp.tsx": {
+      "sha256": "1c040b34553fec996d2bdbad81d28b878688cafc951b8754038972811e0ee768",
+      "gitBlobSha": "98e770c63a5e203613d265487b1e24a146aa23b6"
+    },
+    "src/admin/admin.css": {
+      "sha256": "86a2cf711d732634bcd2d30592efae1f556b8e04d6c9169f7090f89305cd0555",
+      "gitBlobSha": "3fadc9ddac1b2cec57f6e40836e0c69b16792715"
     },
     "src/components/Favicons.astro": {
       "sha256": "9351938893afe2846465feecfa9e6bf51f0b40bba49ba72ca1d525ba0fe4fd95",
@@ -215,8 +223,8 @@
       "gitBlobSha": "ad293a5d7a5dff1017e4a942ba3875a958c239de"
     },
     "src/editor/lib/account/client.ts": {
-      "sha256": "6c59ea17a9c1b4e3fdcf3635a2e7619d63fe18e79d94d00249e9f5b3d24b6f46",
-      "gitBlobSha": "375d06f1be33b3853d4d88ea0982a1d2d81300a4"
+      "sha256": "dba7be6b7fca9d5f09f4983d80790cdc2a1cde33cc3c3992ca8ae8ef8cab74ba",
+      "gitBlobSha": "c19a0abddf46d4f8515f5ca4915766d2e4ea90a9"
     },
     "src/editor/lib/account/config.ts": {
       "sha256": "b1c26a06c283b98fc40c27c35551a711f9fa85d71574224f06c8958f27bff1e6",
@@ -417,6 +425,10 @@
     "src/pages/[...page].astro": {
       "sha256": "c82b7b7b0a1d3f49b7d230189c3b49428bfd4760579c480d6b6161d898dcd86f",
       "gitBlobSha": "8ec4e6f9a27adcbb19c21085e8881d85f1e4ae29"
+    },
+    "src/pages/admin/[...path].astro": {
+      "sha256": "6b8c0ce16965274987f1b80902637a6242bb51ca7699b126424e3ca71d66b723",
+      "gitBlobSha": "15dcea79c284dfef1601b77d568bd276196dccc2"
     },
     "src/pages/demo/[...page].astro": {
       "sha256": "31b6c345ac9a8001cdb10909b2ac4ebd91aef5d14626d7700b6d4054c82709d4",
@@ -655,8 +667,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "b548b06fc60f58685ca032f3e7e71f697d7ea422aa91ef5ffeebcc678442c28e",
-      "gitBlobSha": "3daec045e608cbccf9c6e8eb697e6576bdc3f85c"
+      "sha256": "785b1ab90dad0cacd8bce231212302df8c27c2a17cc2213c82a4bc804d249d9a",
+      "gitBlobSha": "22c7f4ae7fbfb400487c20e156fc7b053fb731b0"
     }
   }
 }

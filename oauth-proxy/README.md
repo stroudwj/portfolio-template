@@ -15,6 +15,9 @@ The product's server side, as one Cloudflare Worker (plus its sibling serving Wo
    `/site/export` zip (the ownership guarantee).
 4. **Lemon Squeezy webhook** (`/webhooks/lemonsqueezy`) — the robust license ledger:
    orders create entitlements matched by buyer email; refunds revoke them.
+5. **Read-only operator console** (`/admin/*`) — allowlisted account, license, and site
+   inspection. It uses the normal signed account session plus a second server-side
+   operator allowlist and never returns full license keys.
 
 ## Direction D setup (accounts + hosting)
 
@@ -30,6 +33,8 @@ wrangler secret put SESSION_SECRET        # long random string (JWTs + upload ti
 wrangler secret put LS_WEBHOOK_SECRET     # Lemon Squeezy → Settings → Webhooks
 wrangler secret put GOOGLE_CLIENT_SECRET  # optional: Google OAuth client
 wrangler secret put CF_SAAS_TOKEN         # optional: custom hostnames (SSL and Certificates:Edit)
+wrangler secret put ADMIN_EMAILS          # comma-separated operator account emails
+# or: wrangler secret put ADMIN_GOOGLE_SUBS  # comma-separated Google subject ids
 
 wrangler deploy                 # this worker
 cd ../site-server && wrangler deploy   # the serving worker (*.hangwork.art)
@@ -75,6 +80,23 @@ wrangler deploy
 Until set, `/handoff` answers 503 and the editor falls back to a copy-the-link flow. The
 endpoint is origin-locked and lightly rate-limited per isolate; add a Cloudflare rate-limit
 rule on `/handoff` (e.g. 5 requests / 10 min per IP) if it ever sees real abuse.
+
+## Read-only operator console
+
+The product build includes `/admin/`. The page contains no account data until the browser
+presents a valid Hangwork session and the Worker confirms that account against
+`ADMIN_EMAILS` or `ADMIN_GOOGLE_SUBS`. Configure at least one as a Worker secret:
+
+```sh
+wrangler secret put ADMIN_EMAILS
+# Enter one or more comma-separated Hangwork account emails.
+wrangler deploy
+```
+
+Sign in through `/editor/` in another tab, then open `/admin/`. The first version can
+search users and inspect their license/site metadata. Its Worker module contains SELECTs
+only, full license keys are masked, and the route is excluded from the sitemap with
+`noindex`, `nofollow`, and `noarchive`.
 
 ## Legacy (retired): GitHub OAuth + github.io subdomains
 

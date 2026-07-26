@@ -1,0 +1,38 @@
+---
+// Private operator console shell. The page itself contains no account data; the client
+// must present a signed Hangwork session and pass the Worker's server-side admin
+// allowlist before any records are returned.
+import AdminApp from '../../admin/AdminApp';
+import Favicons from '../../components/Favicons.astro';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { withBase } from '../../portfolio/types';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const editorUrl = withBase(base, 'editor/');
+const brandUrl = withBase(base, 'assets/brand/hangwork-lockup.svg');
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow, noarchive" />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<title>Hangwork operator console</title>
+	</head>
+	<body>
+		<AdminApp client:only="react" editorUrl={editorUrl} brandUrl={brandUrl} />
+	</body>
+</html>
