@@ -20,8 +20,10 @@
 //   POST /site/status                 — owner takes the site offline / under construction / live
 //   POST /site/delete                 — permanently erase the site (R2 + hostnames + rows)
 //   GET  /site/export                 — zip of the published site (ownership guarantee)
-//   POST /admin/session               — allowlisted operator session check (read-only)
-//   POST /admin/accounts/search|get   — allowlisted account inspection (read-only)
+//   POST /admin/session               — allowlisted operator session check
+//   POST /admin/accounts/search|get   — allowlisted account inspection
+//   POST /admin/licenses/grant|revoke — audited manual entitlement changes
+//   POST /admin/sites/status          — audited site suspension/restoration
 //
 // Legacy GitHub routes (all POST, kept only for the optional mirror flow):
 //   /                 — exchange { code } for an access token
@@ -61,7 +63,14 @@
 import { cors, json, isEmailAddress } from './lib/http.js';
 import { emailHtml, sendEmail } from './lib/email.js';
 import { magicStart, magicVerify, google, session, licenseBind, lsWebhook } from './auth.js';
-import { adminSession, adminAccountSearch, adminAccountGet } from './admin.js';
+import {
+	adminSession,
+	adminAccountSearch,
+	adminAccountGet,
+	adminLicenseGrant,
+	adminLicenseRevoke,
+	adminSiteStatus,
+} from './admin.js';
 import { publish, upload, publishComplete } from './publish.js';
 import {
 	subdomainCheck,
@@ -132,6 +141,9 @@ export default {
 		if (path === '/admin/session') return adminSession(request, env, corsOrigin);
 		if (path === '/admin/accounts/search') return adminAccountSearch(request, env, corsOrigin);
 		if (path === '/admin/accounts/get') return adminAccountGet(request, env, corsOrigin);
+		if (path === '/admin/licenses/grant') return adminLicenseGrant(request, env, corsOrigin);
+		if (path === '/admin/licenses/revoke') return adminLicenseRevoke(request, env, corsOrigin);
+		if (path === '/admin/sites/status') return adminSiteStatus(request, env, corsOrigin);
 		if (path === '/publish') return publish(request, env, corsOrigin);
 		if (path === '/publish/complete') return publishComplete(request, env, corsOrigin);
 		if (path === '/site/subdomain/check') return subdomainCheck(request, env, corsOrigin);

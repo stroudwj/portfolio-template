@@ -1,18 +1,20 @@
-// Read-only operator console API. Admins authenticate with the same signed Hangwork
-// account session as the editor, then pass a second server-side allowlist check.
+// Operator console API. Admins authenticate with the same signed Hangwork account
+// session as the editor, then pass a second server-side allowlist check.
 //
 // Routes (wired in worker.js, all POST):
 //   /admin/session          — prove this session belongs to an allowlisted operator
 //   /admin/accounts/search  — find accounts by email, id, subdomain, order id, or key
 //   /admin/accounts/get     — account + license + site detail for one stable user id
-//
-// This module deliberately contains SELECTs only. Account/site/license mutations belong
-// in a later, separately audited operator surface.
+//   /admin/licenses/grant    — add a manual entitlement (never edits LS purchase rows)
+//   /admin/licenses/revoke   — revoke a manual entitlement
+//   /admin/sites/status      — suspend or restore a published site
 
 import { json, readJson } from './lib/http.js';
 import { sessionUser } from './auth.js';
+import { mirrorSite, newId } from './lib/db.js';
 
 const MAX_RESULTS = 20;
+const OWNER_SITE_STATUSES = new Set(['active', 'offline', 'under_construction']);
 
 function configuredValues(value, { lowercase = false } = {}) {
 	return String(value || '')
@@ -59,6 +61,30 @@ function siteUrl(env, subdomain) {
 	return subdomain && env.SITES_ROOT_DOMAIN ? `https://${subdomain}.${env.SITES_ROOT_DOMAIN}` : null;
 }
 
+function reasonFrom(body) {
+	const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+	return reason.length >= 6 && reason.length <= 500 ? reason : null;
+}
+
+function auditStatement(env, actor, { action, targetUserId = null, targetSiteId = null, reason, before, after }) {
+	return env.DB.prepare(
+		`INSERT INTO admin_audit_log
+			(id, actor_user_id, actor_email, action, target_user_id, target_site_id, reason, before_json, after_json, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	).bind(
+		newId(),
+		actor.id,
+		actor.email,
+		action,
+		targetUserId,
+		targetSiteId,
+		reason,
+		before == null ? null : JSON.stringify(before),
+		after == null ? null : JSON.stringify(after),
+		new Date().toISOString(),
+	);
+}
+
 export async function adminSession(request, env, corsOrigin) {
 	const auth = await requireAdmin(request, env);
 	if (auth.error) return json({ error: auth.error }, auth.status, corsOrigin);
@@ -88,8 +114,15 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 			EXISTS(
 				SELECT 1 FROM licenses active_license
 				WHERE active_license.user_id = u.id AND active_license.status = 'active'
+			) OR EXISTS(
+				SELECT 1 FROM manual_entitlements active_manual
+				WHERE active_manual.user_id = u.id AND active_manual.status = 'active'
 			) AS licensed,
-			(SELECT COUNT(*) FROM licenses user_license WHERE user_license.user_id = u.id) AS license_count
+			(
+				(SELECT COUNT(*) FROM licenses user_license WHERE user_license.user_id = u.id)
+				+
+				(SELECT COUNT(*) FROM manual_entitlements user_manual WHERE user_manual.user_id = u.id)
+			) AS license_count
 		FROM users u
 		LEFT JOIN sites s ON s.user_id = u.id
 		WHERE LOWER(u.email) LIKE ? ESCAPE '\\'
@@ -178,7 +211,19 @@ export async function adminAccountGet(request, env, corsOrigin) {
 		.bind(userId)
 		.all();
 
+	const { results: manualRows } = await env.DB.prepare(
+		`SELECT /* admin-account-manual-entitlements */
+			id, status, reason, created_at, revoked_reason, revoked_at
+		FROM manual_entitlements
+		WHERE user_id = ?
+		ORDER BY created_at DESC
+		LIMIT 50`,
+	)
+		.bind(userId)
+		.all();
+
 	let hostnameRows = [];
+	let activeSuspension = null;
 	if (account.site_id) {
 		const page = await env.DB.prepare(
 			`SELECT /* admin-account-hostnames */ hostname, kind, created_at
@@ -189,7 +234,28 @@ export async function adminAccountGet(request, env, corsOrigin) {
 			.bind(account.site_id)
 			.all();
 		hostnameRows = page.results ?? [];
+		activeSuspension = await env.DB.prepare(
+			`SELECT /* admin-account-active-suspension */
+				id, previous_status, reason, suspended_at
+			FROM site_suspensions
+			WHERE site_id = ? AND restored_at IS NULL
+			ORDER BY suspended_at DESC
+			LIMIT 1`,
+		)
+			.bind(account.site_id)
+			.first();
 	}
+
+	const { results: auditRows } = await env.DB.prepare(
+		`SELECT /* admin-account-audit */
+			id, actor_email, action, reason, before_json, after_json, created_at
+		FROM admin_audit_log
+		WHERE target_user_id = ?
+		ORDER BY created_at DESC
+		LIMIT 25`,
+	)
+		.bind(userId)
+		.all();
 
 	const licenses = (licenseRows ?? []).map((row) => ({
 		id: row.id,
@@ -200,6 +266,14 @@ export async function adminAccountGet(request, env, corsOrigin) {
 		activatedAt: row.activated_at,
 		createdAt: row.created_at,
 	}));
+	const manualEntitlements = (manualRows ?? []).map((row) => ({
+		id: row.id,
+		status: row.status,
+		reason: row.reason,
+		createdAt: row.created_at,
+		revokedReason: row.revoked_reason,
+		revokedAt: row.revoked_at,
+	}));
 
 	return json(
 		{
@@ -209,8 +283,11 @@ export async function adminAccountGet(request, env, corsOrigin) {
 				googleConnected: boolean(account.google_connected),
 				createdAt: account.created_at,
 			},
-			licensed: licenses.some((license) => license.status === 'active'),
+			licensed:
+				licenses.some((license) => license.status === 'active') ||
+				manualEntitlements.some((entitlement) => entitlement.status === 'active'),
 			licenses,
+			manualEntitlements,
 			site: account.site_id
 				? {
 						id: account.site_id,
@@ -226,10 +303,190 @@ export async function adminAccountGet(request, env, corsOrigin) {
 							kind: row.kind,
 							createdAt: row.created_at,
 						})),
+						suspension: activeSuspension
+							? {
+									id: activeSuspension.id,
+									previousStatus: activeSuspension.previous_status,
+									reason: activeSuspension.reason,
+									suspendedAt: activeSuspension.suspended_at,
+								}
+							: null,
 					}
 				: null,
+			audit: (auditRows ?? []).map((row) => ({
+				id: row.id,
+				actorEmail: row.actor_email,
+				action: row.action,
+				reason: row.reason,
+				before: row.before_json ? JSON.parse(row.before_json) : null,
+				after: row.after_json ? JSON.parse(row.after_json) : null,
+				createdAt: row.created_at,
+			})),
 		},
 		200,
 		corsOrigin,
 	);
+}
+
+export async function adminLicenseGrant(request, env, corsOrigin) {
+	const auth = await requireAdmin(request, env);
+	if (auth.error) return json({ error: auth.error }, auth.status, corsOrigin);
+
+	const body = await readJson(request);
+	const userId = typeof body?.userId === 'string' ? body.userId.trim() : '';
+	const reason = reasonFrom(body);
+	if (!userId || userId.length > 64 || !reason) return json({ error: 'invalid_admin_action' }, 400, corsOrigin);
+
+	const user = await env.DB.prepare('SELECT /* admin-grant-user */ id, email FROM users WHERE id = ?').bind(userId).first();
+	if (!user) return json({ error: 'user_not_found' }, 404, corsOrigin);
+
+	const existing = await env.DB.prepare(
+		`SELECT /* admin-grant-existing-access */ 1 AS licensed
+		WHERE EXISTS(
+			SELECT 1 FROM licenses WHERE user_id = ? AND status = 'active'
+		)
+		OR EXISTS(
+			SELECT 1 FROM manual_entitlements WHERE user_id = ? AND status = 'active'
+		)
+		LIMIT 1`,
+	)
+		.bind(userId, userId)
+		.first();
+	if (existing) return json({ error: 'account_already_licensed' }, 409, corsOrigin);
+
+	const id = newId();
+	const createdAt = new Date().toISOString();
+	await env.DB.batch([
+		env.DB.prepare(
+			`INSERT INTO manual_entitlements
+				(id, user_id, status, reason, created_by_user_id, created_at)
+			VALUES (?, ?, 'active', ?, ?, ?)`,
+		).bind(id, userId, reason, auth.user.id, createdAt),
+		auditStatement(env, auth.user, {
+			action: 'manual_entitlement.granted',
+			targetUserId: userId,
+			reason,
+			before: { licensed: false },
+			after: { licensed: true, manualEntitlementId: id },
+		}),
+	]);
+	return json({ granted: true, entitlementId: id }, 200, corsOrigin);
+}
+
+export async function adminLicenseRevoke(request, env, corsOrigin) {
+	const auth = await requireAdmin(request, env);
+	if (auth.error) return json({ error: auth.error }, auth.status, corsOrigin);
+
+	const body = await readJson(request);
+	const entitlementId = typeof body?.entitlementId === 'string' ? body.entitlementId.trim() : '';
+	const reason = reasonFrom(body);
+	if (!entitlementId || entitlementId.length > 64 || !reason) {
+		return json({ error: 'invalid_admin_action' }, 400, corsOrigin);
+	}
+
+	const entitlement = await env.DB.prepare(
+		`SELECT /* admin-revoke-entitlement */ id, user_id, status, reason, created_at
+		FROM manual_entitlements
+		WHERE id = ?`,
+	)
+		.bind(entitlementId)
+		.first();
+	if (!entitlement) return json({ error: 'manual_entitlement_not_found' }, 404, corsOrigin);
+	if (entitlement.status !== 'active') return json({ error: 'manual_entitlement_inactive' }, 409, corsOrigin);
+
+	const revokedAt = new Date().toISOString();
+	await env.DB.batch([
+		env.DB.prepare(
+			`UPDATE manual_entitlements
+			SET status = 'revoked', revoked_by_user_id = ?, revoked_reason = ?, revoked_at = ?
+			WHERE id = ? AND status = 'active'`,
+		).bind(auth.user.id, reason, revokedAt, entitlementId),
+		auditStatement(env, auth.user, {
+			action: 'manual_entitlement.revoked',
+			targetUserId: entitlement.user_id,
+			reason,
+			before: { status: entitlement.status, manualEntitlementId: entitlement.id },
+			after: { status: 'revoked', manualEntitlementId: entitlement.id },
+		}),
+	]);
+	return json({ revoked: true, entitlementId }, 200, corsOrigin);
+}
+
+export async function adminSiteStatus(request, env, corsOrigin) {
+	const auth = await requireAdmin(request, env);
+	if (auth.error) return json({ error: auth.error }, auth.status, corsOrigin);
+
+	const body = await readJson(request);
+	const siteId = typeof body?.siteId === 'string' ? body.siteId.trim() : '';
+	const action = body?.action;
+	const reason = reasonFrom(body);
+	if (!siteId || siteId.length > 64 || (action !== 'suspend' && action !== 'restore') || !reason) {
+		return json({ error: 'invalid_admin_action' }, 400, corsOrigin);
+	}
+
+	const site = await env.DB.prepare(
+		'SELECT /* admin-site-status-target */ id, user_id, subdomain, status FROM sites WHERE id = ?',
+	)
+		.bind(siteId)
+		.first();
+	if (!site) return json({ error: 'site_not_found' }, 404, corsOrigin);
+
+	if (action === 'suspend') {
+		if (site.status === 'suspended') return json({ error: 'site_already_suspended' }, 409, corsOrigin);
+		if (!OWNER_SITE_STATUSES.has(site.status)) return json({ error: 'site_locked' }, 409, corsOrigin);
+
+		const suspensionId = newId();
+		const suspendedAt = new Date().toISOString();
+		await env.DB.batch([
+			env.DB.prepare(
+				`INSERT INTO site_suspensions
+					(id, site_id, previous_status, reason, suspended_by_user_id, suspended_at)
+				VALUES (?, ?, ?, ?, ?, ?)`,
+			).bind(suspensionId, site.id, site.status, reason, auth.user.id, suspendedAt),
+			env.DB.prepare("UPDATE sites SET status = 'suspended' WHERE id = ?").bind(site.id),
+			auditStatement(env, auth.user, {
+				action: 'site.suspended',
+				targetUserId: site.user_id,
+				targetSiteId: site.id,
+				reason,
+				before: { status: site.status },
+				after: { status: 'suspended', suspensionId },
+			}),
+		]);
+		await mirrorSite(env.DB, env.KV, site.id);
+		return json({ status: 'suspended', suspensionId }, 200, corsOrigin);
+	}
+
+	if (site.status !== 'suspended') return json({ error: 'site_not_suspended' }, 409, corsOrigin);
+	const suspension = await env.DB.prepare(
+		`SELECT /* admin-site-active-suspension */ id, previous_status, reason, suspended_at
+		FROM site_suspensions
+		WHERE site_id = ? AND restored_at IS NULL
+		ORDER BY suspended_at DESC
+		LIMIT 1`,
+	)
+		.bind(site.id)
+		.first();
+	if (!suspension) return json({ error: 'suspension_record_missing' }, 409, corsOrigin);
+
+	const restoredStatus = OWNER_SITE_STATUSES.has(suspension.previous_status) ? suspension.previous_status : 'active';
+	const restoredAt = new Date().toISOString();
+	await env.DB.batch([
+		env.DB.prepare('UPDATE sites SET status = ? WHERE id = ?').bind(restoredStatus, site.id),
+		env.DB.prepare(
+			`UPDATE site_suspensions
+			SET restored_by_user_id = ?, restore_reason = ?, restored_at = ?
+			WHERE id = ? AND restored_at IS NULL`,
+		).bind(auth.user.id, reason, restoredAt, suspension.id),
+		auditStatement(env, auth.user, {
+			action: 'site.restored',
+			targetUserId: site.user_id,
+			targetSiteId: site.id,
+			reason,
+			before: { status: site.status, suspensionId: suspension.id },
+			after: { status: restoredStatus },
+		}),
+	]);
+	await mirrorSite(env.DB, env.KV, site.id);
+	return json({ status: restoredStatus, restored: true }, 200, corsOrigin);
 }

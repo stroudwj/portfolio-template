@@ -15,9 +15,10 @@ The product's server side, as one Cloudflare Worker (plus its sibling serving Wo
    `/site/export` zip (the ownership guarantee).
 4. **Lemon Squeezy webhook** (`/webhooks/lemonsqueezy`) — the robust license ledger:
    orders create entitlements matched by buyer email; refunds revoke them.
-5. **Read-only operator console** (`/admin/*`) — allowlisted account, license, and site
-   inspection. It uses the normal signed account session plus a second server-side
-   operator allowlist and never returns full license keys.
+5. **Operator console** (`/admin/*`) — allowlisted account, license, and site inspection
+   plus audited manual grants and reversible site suspensions. It uses the normal signed
+   account session plus a second server-side operator allowlist and never returns full
+   license keys or mutates Lemon Squeezy purchase records.
 
 ## Direction D setup (accounts + hosting)
 
@@ -81,7 +82,7 @@ Until set, `/handoff` answers 503 and the editor falls back to a copy-the-link f
 endpoint is origin-locked and lightly rate-limited per isolate; add a Cloudflare rate-limit
 rule on `/handoff` (e.g. 5 requests / 10 min per IP) if it ever sees real abuse.
 
-## Read-only operator console
+## Operator console
 
 The product build includes `/admin/`. The page contains no account data until the browser
 presents a valid Hangwork session and the Worker confirms that account against
@@ -93,10 +94,20 @@ wrangler secret put ADMIN_EMAILS
 wrangler deploy
 ```
 
-Sign in through `/editor/` in another tab, then open `/admin/`. The first version can
-search users and inspect their license/site metadata. Its Worker module contains SELECTs
-only, full license keys are masked, and the route is excluded from the sitemap with
-`noindex`, `nofollow`, and `noarchive`.
+Sign in through `/editor/` in another tab, then open `/admin/`. The console can search
+users, inspect license/site metadata, add or revoke manual access, and suspend or restore
+published sites. Every mutation requires a reason and writes its actor, target, before/
+after state, and timestamp to `admin_audit_log`. Site suspension remembers the owner's
+previous visibility. Paid Lemon Squeezy rows are never edited by manual controls, full
+license keys are masked, and the route is excluded from the sitemap with `noindex`,
+`nofollow`, and `noarchive`.
+
+Before deploying a Worker version that imports these controls, apply the D1 migration:
+
+```sh
+wrangler d1 migrations apply hangwork --remote
+wrangler deploy
+```
 
 ## Legacy (retired): GitHub OAuth + github.io subdomains
 

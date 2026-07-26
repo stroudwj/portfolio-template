@@ -29,7 +29,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
 	font: inherit;
 }
 
@@ -38,7 +39,7 @@ a {
 	-webkit-tap-highlight-color: transparent;
 }
 
-:is(button, a, input):focus-visible {
+:is(button, a, input, textarea):focus-visible {
 	outline: 2px solid var(--admin-blue);
 	outline-offset: 2px;
 }
@@ -132,6 +133,22 @@ a {
 
 .admin-button-primary:hover {
 	background: var(--admin-blue-dark);
+}
+
+.admin-button-danger {
+	border-color: var(--admin-red);
+	background: var(--admin-red);
+	color: #fff;
+}
+
+.admin-button-danger:hover {
+	background: #7f211c;
+}
+
+.admin-button-small {
+	min-height: 32px;
+	padding: 6px 9px;
+	font-size: 11px;
 }
 
 .admin-button:disabled {
@@ -261,6 +278,13 @@ a {
 	grid-column: 1 / -1;
 	margin: -10px 0 0;
 	color: var(--admin-red);
+	font-size: 13px;
+}
+
+.admin-notice {
+	grid-column: 1 / -1;
+	margin: -10px 0 0;
+	color: var(--admin-green);
 	font-size: 13px;
 }
 
@@ -444,6 +468,20 @@ td small {
 	overflow-wrap: anywhere;
 }
 
+.admin-card-actions,
+.admin-inline-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.admin-card-actions .admin-badge,
+.admin-inline-actions .admin-badge {
+	margin-top: 0;
+}
+
 .admin-card dl,
 .admin-license dl {
 	margin: 0;
@@ -500,6 +538,10 @@ dd {
 	margin-bottom: 7px;
 }
 
+.admin-danger-text {
+	color: var(--admin-red);
+}
+
 .admin-license strong {
 	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 	font-size: 12px;
@@ -534,6 +576,129 @@ dd {
 
 .admin-hostnames small {
 	color: var(--admin-muted);
+}
+
+.admin-suspension-note {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	margin-top: 16px;
+	padding: 13px;
+	border-left: 3px solid var(--admin-red);
+	background: #fcf1ef;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.admin-suspension-note small {
+	color: var(--admin-muted);
+}
+
+.admin-audit-list article {
+	padding: 13px 0;
+	border-bottom: 1px solid #ece8e1;
+}
+
+.admin-audit-list article:last-child {
+	padding-bottom: 0;
+	border-bottom: 0;
+}
+
+.admin-audit-list article > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12px;
+}
+
+.admin-audit-list strong {
+	font-weight: 500;
+	text-transform: capitalize;
+}
+
+.admin-audit-list time,
+.admin-audit-list small {
+	color: var(--admin-muted);
+	font-size: 10px;
+}
+
+.admin-audit-list p {
+	margin: 6px 0 4px;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.admin-dialog-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: grid;
+	place-items: center;
+	padding: 20px;
+	background: rgba(26, 26, 26, 0.48);
+}
+
+.admin-dialog {
+	width: min(520px, 100%);
+	max-height: calc(100vh - 40px);
+	overflow-y: auto;
+	padding: 26px;
+	border: 1px solid var(--admin-line);
+	background: var(--admin-paper);
+	box-shadow: 10px 10px 0 rgba(26, 26, 26, 0.16);
+}
+
+.admin-dialog h2 {
+	margin: 8px 0 10px;
+	font-size: 26px;
+	font-weight: 500;
+	letter-spacing: -0.025em;
+}
+
+.admin-dialog > p {
+	margin: 0 0 22px;
+	color: var(--admin-muted);
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.admin-dialog label {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	margin-bottom: 7px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.admin-dialog label span {
+	color: var(--admin-muted);
+	font-size: 10px;
+	font-weight: 400;
+}
+
+.admin-dialog textarea {
+	display: block;
+	width: 100%;
+	min-height: 112px;
+	resize: vertical;
+	padding: 10px 11px;
+	border: 1px solid var(--admin-line);
+	border-radius: 3px;
+	background: #fff;
+	color: var(--admin-ink);
+	line-height: 1.5;
+}
+
+.admin-dialog .admin-error {
+	margin: 9px 0 0;
+}
+
+.admin-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 20px;
 }
 
 @media (max-width: 980px) {
@@ -577,6 +742,23 @@ dd {
 	}
 
 	.admin-search-form .admin-button {
+		width: 100%;
+	}
+
+	.admin-card-heading {
+		flex-direction: column;
+	}
+
+	.admin-card-actions {
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	.admin-dialog-actions {
+		flex-direction: column-reverse;
+	}
+
+	.admin-dialog-actions .admin-button {
 		width: 100%;
 	}
 }

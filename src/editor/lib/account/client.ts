@@ -72,6 +72,22 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'Enter at least two characters to search.';
 		case 'user_not_found':
 			return 'That account no longer exists.';
+		case 'invalid_admin_action':
+			return 'Add a reason of at least six characters before confirming.';
+		case 'account_already_licensed':
+			return 'This account already has active access.';
+		case 'manual_entitlement_not_found':
+			return 'That manual grant no longer exists.';
+		case 'manual_entitlement_inactive':
+			return 'That manual grant has already been revoked.';
+		case 'site_not_found':
+			return 'That site no longer exists.';
+		case 'site_already_suspended':
+			return 'That site is already suspended.';
+		case 'site_not_suspended':
+			return 'That site is not currently suspended.';
+		case 'suspension_record_missing':
+			return 'The suspension record is missing. Restore this site through Cloudflare support tooling.';
 		default:
 			if (status === 0)
 				return 'Couldn’t reach Hangwork. Check your connection (or an ad/privacy blocker) and try again.';

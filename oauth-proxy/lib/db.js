@@ -45,8 +45,19 @@ export async function adoptLicensesForUser(db, user) {
 
 export async function userHasActiveLicense(db, userId) {
 	const row = await db
-		.prepare("SELECT id FROM licenses WHERE user_id = ? AND status = 'active' LIMIT 1")
-		.bind(userId)
+		.prepare(
+			`SELECT 1 AS licensed
+			WHERE EXISTS(
+				SELECT 1 FROM licenses
+				WHERE user_id = ? AND status = 'active'
+			)
+			OR EXISTS(
+				SELECT 1 FROM manual_entitlements
+				WHERE user_id = ? AND status = 'active'
+			)
+			LIMIT 1`,
+		)
+		.bind(userId, userId)
 		.first();
 	return row != null;
 }
