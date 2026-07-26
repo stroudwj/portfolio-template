@@ -6,6 +6,7 @@
 //   POST /auth/google        { code, redirect_uri } → Google code → session JWT + summary
 //   POST /auth/session       (Bearer)         → validate JWT, return account summary
 //   POST /auth/license/bind  { license_key } (Bearer) → validate with LS, attach to user
+//   POST /auth/test-access/redeem { code } (Bearer) → reusable tester code → manual grant
 //   POST /webhooks/lemonsqueezy               → signed webhook; the robust license ledger
 //
 // The session is a stateless 30-day HS256 JWT signed with SESSION_SECRET. Sign-out is
@@ -196,6 +197,84 @@ export async function licenseBind(request, env, corsOrigin) {
 			.bind(newId(), user.id, key, meta.order_id ? String(meta.order_id) : null, meta.customer_email || null, 'active', new Date().toISOString())
 			.run();
 	}
+	await touchUser(env.DB, user.id);
+	return json(await accountSummary(env.DB, user), 200, corsOrigin);
+}
+
+// ---- reusable tester access -----------------------------------------------
+
+const TEST_ACCESS_REASON = 'Tester access code';
+
+/**
+ * Redeem the shared, rotatable tester code for account-level publishing access.
+ *
+ * This deliberately creates a manual entitlement rather than a fake Lemon Squeezy
+ * purchase. The admin console can therefore inspect and revoke it without touching the
+ * paid-license ledger. Once an account's tester grant is revoked, the same shared code
+ * cannot silently grant that account access again; an operator must restore it manually.
+ */
+export async function testAccessRedeem(request, env, corsOrigin) {
+	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
+	const configured = typeof env.TEST_ACCESS_CODE === 'string' ? env.TEST_ACCESS_CODE.trim() : '';
+	if (configured.length < 12 || configured.length > 128) {
+		return json({ error: 'test_access_unconfigured' }, 503, corsOrigin);
+	}
+
+	const user = await sessionUser(request, env);
+	if (!user) return json({ error: 'invalid_session' }, 401, corsOrigin);
+
+	const body = await readJson(request);
+	const supplied = typeof body?.code === 'string' ? body.code.trim() : '';
+	if (!supplied || supplied.length > 128) return json({ error: 'invalid_test_access_code' }, 400, corsOrigin);
+
+	// Compare fixed-length HMAC digests so the response timing does not reveal a useful
+	// prefix signal if this endpoint is ever probed.
+	const [suppliedDigest, configuredDigest] = await Promise.all([
+		hmacHex('hangwork-test-access', supplied),
+		hmacHex('hangwork-test-access', configured),
+	]);
+	if (!timingSafeEqual(suppliedDigest, configuredDigest)) {
+		return json({ error: 'invalid_test_access_code' }, 400, corsOrigin);
+	}
+
+	const prior = await env.DB.prepare(
+		`SELECT id, status
+		FROM manual_entitlements
+		WHERE user_id = ? AND reason = ?
+		ORDER BY created_at DESC
+		LIMIT 1`,
+	)
+		.bind(user.id, TEST_ACCESS_REASON)
+		.first();
+	if (prior?.status === 'revoked') return json({ error: 'test_access_revoked' }, 403, corsOrigin);
+
+	const before = await accountSummary(env.DB, user);
+	if (before.licensed) return json(before, 200, corsOrigin);
+
+	const id = newId();
+	const createdAt = new Date().toISOString();
+	await env.DB.batch([
+		env.DB.prepare(
+			`INSERT OR IGNORE INTO manual_entitlements
+				(id, user_id, status, reason, created_by_user_id, created_at)
+			VALUES (?, ?, 'active', ?, ?, ?)`,
+		).bind(id, user.id, TEST_ACCESS_REASON, user.id, createdAt),
+		env.DB.prepare(
+			`INSERT INTO admin_audit_log
+				(id, actor_user_id, actor_email, action, target_user_id, reason, before_json, after_json, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		).bind(
+			newId(),
+			user.id,
+			user.email,
+			'test_access.redeemed',
+			user.id,
+			TEST_ACCESS_REASON,
+			JSON.stringify({ licensed: false }),
+			JSON.stringify({ licensed: true, manualEntitlementId: id }),
+			createdAt,
+		),
+	]);
 	await touchUser(env.DB, user.id);
 	return json(await accountSummary(env.DB, user), 200, corsOrigin);
 }

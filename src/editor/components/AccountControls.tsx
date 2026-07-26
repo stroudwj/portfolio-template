@@ -90,6 +90,7 @@ export default function AccountControls({ license }: { license: LicenseSession }
 				<LicenseGateModal
 					activate={license.activate}
 					revalidate={license.revalidate}
+					redeemTestAccess={account.redeemTestAccess}
 					onClose={() => setShowLicense(false)}
 					onUnlocked={() => {
 						setShowLicense(false);

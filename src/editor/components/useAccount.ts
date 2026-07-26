@@ -32,6 +32,8 @@ export interface AccountSession {
 	signInWithGoogle(): void;
 	/** Attach a purchased license key to the signed-in account. Throws AccountError. */
 	bindLicense(key: string): Promise<void>;
+	/** Redeem the shared tester code for a revocable manual publishing grant. */
+	redeemTestAccess(code: string): Promise<void>;
 	/** Change the published site's visibility: 'active' | 'offline' | 'under_construction'. */
 	setSiteStatus(status: string): Promise<void>;
 	/** Permanently delete the published site. `confirm` must echo the site's name. */
@@ -139,6 +141,18 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		[applySummary],
 	);
 
+	const redeemTestAccess = useCallback(
+		async (code: string) => {
+			const stored = getSession();
+			if (!stored) throw new AccountError(401, 'invalid_session', 'Sign in before adding tester access.');
+			const { data } = await new AccountClient(stored.token).request<AccountSummary>('/auth/test-access/redeem', {
+				body: { code: code.trim() },
+			});
+			applySummary(data);
+		},
+		[applySummary],
+	);
+
 	const setSiteStatus = useCallback(async (nextStatus: string) => {
 		const stored = getSession();
 		if (!stored) throw new AccountError(401, 'invalid_session', 'Sign in before changing your site.');
@@ -188,6 +202,7 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		sendMagicLink,
 		signInWithGoogle,
 		bindLicense,
+		redeemTestAccess,
 		setSiteStatus,
 		deleteSite,
 		refresh,

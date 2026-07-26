@@ -33,6 +33,12 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'Publishing needs your Hangwork license. Buy once, or sign in with the email you bought with.';
 		case 'license_in_use':
 			return 'That license key is already attached to a different account.';
+		case 'invalid_test_access_code':
+			return 'That tester access code wasn’t accepted. Check it and try again.';
+		case 'test_access_revoked':
+			return 'Tester access has been revoked for this account. Contact Hangwork if you need it restored.';
+		case 'test_access_unconfigured':
+			return 'Tester access isn’t switched on right now.';
 		case 'name_taken':
 			return 'That name is taken — pick another.';
 		case 'invalid_name':

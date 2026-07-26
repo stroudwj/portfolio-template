@@ -6,24 +6,27 @@
 import { useState } from 'react';
 import { Modal } from './ui/Modal';
 import { LicenseError } from '../lib/license/client';
+import { AccountError } from '../lib/account/client';
 import { CHECKOUT_URL } from '../lib/license/config';
 import { markResumePublish } from '../lib/license/flow';
 import { getLicense } from '../lib/license/session';
 import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 
-type Mode = 'verify' | 'buy' | 'key';
+type Mode = 'verify' | 'buy' | 'key' | 'test';
 
 export default function LicenseGateModal({
 	onClose,
 	onUnlocked,
 	activate,
 	revalidate,
+	redeemTestAccess,
 	context = 'publish',
 }: {
 	onClose: () => void;
 	onUnlocked: () => void;
 	activate: (key: string) => Promise<void>;
 	revalidate: () => Promise<boolean>;
+	redeemTestAccess: (code: string) => Promise<void>;
 	/** 'publish' = mid-publish gate (default); 'unlock' = paying upfront, before building. */
 	context?: 'publish' | 'unlock';
 }) {
@@ -52,10 +55,15 @@ export default function LicenseGateModal({
 		setBusy(true);
 		setError(null);
 		try {
-			await activate(key.trim());
+			if (mode === 'test') await redeemTestAccess(key.trim());
+			else await activate(key.trim());
 			onUnlocked();
 		} catch (err) {
-			setError(err instanceof LicenseError ? err.friendly : 'That key didn’t work. Please double-check and try again.');
+			setError(
+				err instanceof LicenseError || err instanceof AccountError
+					? err.friendly
+					: 'That code didn’t work. Please double-check and try again.',
+			);
 		} finally {
 			setBusy(false);
 		}
@@ -85,7 +93,7 @@ export default function LicenseGateModal({
 
 	return (
 		<Modal
-			title="Pay once, publish forever"
+			title={mode === 'test' ? 'Unlock tester publishing' : 'Pay once, publish forever'}
 			onClose={onClose}
 			dismissable={!busy}
 			footer={
@@ -97,9 +105,9 @@ export default function LicenseGateModal({
 						<button type="button" className="btn-primary" onClick={retryVerify} disabled={busy}>
 							{busy ? 'Checking…' : 'Retry verification'}
 						</button>
-					) : mode === 'key' ? (
+					) : mode === 'key' || mode === 'test' ? (
 						<button type="button" className="btn-primary" onClick={submit} disabled={busy || !key.trim()}>
-							{busy ? 'Activating…' : 'Activate'}
+							{busy ? 'Activating…' : mode === 'test' ? 'Unlock tester access' : 'Activate'}
 						</button>
 					) : (
 						<button type="button" className="btn-primary" onClick={buyLicense} disabled={busy}>
@@ -119,7 +127,7 @@ export default function LicenseGateModal({
 				</>
 			) : (
 				<>
-					{CHECKOUT_URL && (
+					{CHECKOUT_URL && mode !== 'test' && (
 						<div className="checkout-summary" aria-label="Hangwork checkout summary">
 							<p className="checkout-title">
 								<span>Hangwork — one-time payment</span>
@@ -133,20 +141,22 @@ export default function LicenseGateModal({
 						</div>
 					)}
 					<p className="modal-lead">
-						{context === 'unlock'
+						{mode === 'test'
+							? 'Enter the tester access code Hangwork gave you. It unlocks publishing for this signed-in account without a purchase.'
+							: context === 'unlock'
 							? 'Building and previewing are free — pay once now and publishing is unlocked whenever you’re ready, on any device. A secure checkout opens right here. Your work is saved.'
 							: 'Building and previewing are free. Publishing needs a one-time license. A secure checkout opens right here, and publishing continues on its own after you pay. Your work is saved.'}
 					</p>
 
-					{mode === 'key' ? (
+					{mode === 'key' || mode === 'test' ? (
 						<>
 							<label className="field">
-								<span className="field-label">License key</span>
+								<span className="field-label">{mode === 'test' ? 'Tester access code' : 'License key'}</span>
 								<input
 									className={`text-input${error ? ' invalid' : ''}`}
 									type="text"
 									autoComplete="off"
-									placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+									placeholder={mode === 'test' ? 'Enter the code Hangwork gave you' : 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'}
 									value={key}
 									onChange={(e) => setKey(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -161,6 +171,21 @@ export default function LicenseGateModal({
 									</button>
 								</p>
 							)}
+							<p className="modal-note">
+								{mode === 'test' ? 'Have a paid license instead?' : 'Testing Hangwork?'}{' '}
+								<button
+									type="button"
+									className="btn-link"
+									onClick={() => {
+										setKey('');
+										setError(null);
+										setMode(mode === 'test' ? 'key' : 'test');
+									}}
+									disabled={busy}
+								>
+									{mode === 'test' ? 'Enter your license key' : 'Enter a tester access code'}
+								</button>
+							</p>
 						</>
 					) : (
 						<>
@@ -169,6 +194,12 @@ export default function LicenseGateModal({
 								Already have a license key?{' '}
 								<button type="button" className="btn-link" onClick={() => setMode('key')}>
 									Enter it here
+								</button>
+							</p>
+							<p className="modal-note">
+								Testing Hangwork?{' '}
+								<button type="button" className="btn-link" onClick={() => setMode('test')}>
+									Enter a tester access code
 								</button>
 							</p>
 						</>

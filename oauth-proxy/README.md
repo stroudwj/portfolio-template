@@ -112,6 +112,22 @@ wrangler d1 migrations apply hangwork --remote
 wrangler deploy
 ```
 
+## Tester access code
+
+For product testing, configure one reusable code as a Worker secret:
+
+```sh
+wrangler secret put TEST_ACCESS_CODE
+wrangler deploy
+```
+
+A tester signs in, opens the publishing license prompt, chooses **Enter a tester access
+code**, and redeems it. The code may be shared with multiple testers; each account receives
+its own manual entitlement. Those grants appear in the operator console and can be revoked
+individually without changing Lemon Squeezy purchases. A revoked tester account cannot
+redeem the shared code again unless an operator restores access with a new manual grant.
+Rotate the Worker secret to stop future redemptions without affecting existing testers.
+
 ## Legacy (retired): GitHub OAuth + github.io subdomains
 
 Before Direction D this Worker also did GitHub OAuth token exchange and created

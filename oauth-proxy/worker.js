@@ -11,6 +11,7 @@
 //   POST /auth/google                 — Google OAuth code → session JWT
 //   POST /auth/session                — validate session, return account summary
 //   POST /auth/license/bind           — attach a Lemon Squeezy key to the account
+//   POST /auth/test-access/redeem      — redeem the shared tester code for manual access
 //   POST /webhooks/lemonsqueezy       — signed LS webhook (no CORS gate; signature auth)
 //   POST /publish                     — authz + quota + manifest diff → upload tickets
 //   PUT  /upload?ticket=…             — one file's bytes into R2 (hash-verified)
@@ -62,7 +63,7 @@
 
 import { cors, json, isEmailAddress } from './lib/http.js';
 import { emailHtml, sendEmail } from './lib/email.js';
-import { magicStart, magicVerify, google, session, licenseBind, lsWebhook } from './auth.js';
+import { magicStart, magicVerify, google, session, licenseBind, testAccessRedeem, lsWebhook } from './auth.js';
 import {
 	adminSession,
 	adminAccountSearch,
@@ -138,6 +139,7 @@ export default {
 		if (path === '/auth/google') return google(request, env, corsOrigin);
 		if (path === '/auth/session') return session(request, env, corsOrigin);
 		if (path === '/auth/license/bind') return licenseBind(request, env, corsOrigin);
+		if (path === '/auth/test-access/redeem') return testAccessRedeem(request, env, corsOrigin);
 		if (path === '/admin/session') return adminSession(request, env, corsOrigin);
 		if (path === '/admin/accounts/search') return adminAccountSearch(request, env, corsOrigin);
 		if (path === '/admin/accounts/get') return adminAccountGet(request, env, corsOrigin);

@@ -378,6 +378,7 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				<LicenseGateModal
 					activate={license.activate}
 					revalidate={license.revalidate}
+					redeemTestAccess={account.redeemTestAccess}
 					context={showLicense}
 					onClose={() => setShowLicense(null)}
 					onUnlocked={() => {
