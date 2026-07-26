@@ -11,10 +11,17 @@
 
 import { json, readJson } from './lib/http.js';
 import { sessionUser } from './auth.js';
-import { mirrorSite, newId } from './lib/db.js';
+import { mirrorSite, newId, touchUser } from './lib/db.js';
 
-const MAX_RESULTS = 20;
+const PAGE_SIZE = 25;
 const OWNER_SITE_STATUSES = new Set(['active', 'offline', 'under_construction']);
+const ACCOUNT_SORTS = {
+	activity:
+		"MAX(COALESCE(u.last_sign_in_at, ''), COALESCE(s.last_published_at, ''), COALESCE(u.updated_at, u.created_at)) DESC, u.created_at DESC",
+	sign_in: "u.last_sign_in_at IS NULL, u.last_sign_in_at DESC, u.created_at DESC",
+	publish: "s.last_published_at IS NULL, s.last_published_at DESC, u.created_at DESC",
+	updated: 'COALESCE(u.updated_at, u.created_at) DESC, u.created_at DESC',
+};
 
 function configuredValues(value, { lowercase = false } = {}) {
 	return String(value || '')
@@ -97,16 +104,39 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 
 	const body = await readJson(request);
 	const query = typeof body?.query === 'string' ? body.query.trim() : '';
-	if (query.length < 2 || query.length > 254) return json({ error: 'invalid_query' }, 400, corsOrigin);
+	if ((query.length === 1 || query.length > 254)) return json({ error: 'invalid_query' }, 400, corsOrigin);
+	const sort = typeof body?.sort === 'string' && Object.hasOwn(ACCOUNT_SORTS, body.sort) ? body.sort : 'activity';
+	const page = Number.isInteger(body?.page) && body.page > 0 && body.page <= 10000 ? body.page : 1;
 
 	const normalized = query.toLowerCase();
 	const pattern = `%${escapeLike(normalized)}%`;
-	const { results } = await env.DB.prepare(
+	const where = query
+		? `WHERE LOWER(u.email) LIKE ? ESCAPE '\\'
+			OR LOWER(u.id) LIKE ? ESCAPE '\\'
+			OR EXISTS(
+				SELECT 1 FROM sites matched_site
+				WHERE matched_site.user_id = u.id
+					AND LOWER(COALESCE(matched_site.subdomain, '')) LIKE ? ESCAPE '\\'
+			)
+			OR EXISTS(
+				SELECT 1 FROM licenses matched_license
+				WHERE matched_license.user_id = u.id
+					AND (
+						LOWER(COALESCE(matched_license.ls_license_key, '')) = ?
+						OR LOWER(COALESCE(matched_license.ls_order_id, '')) = ?
+					)
+			)`
+		: '';
+	const searchBindings = query ? [pattern, pattern, pattern, normalized, normalized] : [];
+	const offset = (page - 1) * PAGE_SIZE;
+	const statement = env.DB.prepare(
 		`SELECT /* admin-account-search */
 			u.id,
 			u.email,
 			u.google_sub IS NOT NULL AS google_connected,
 			u.created_at,
+			u.last_sign_in_at,
+			COALESCE(u.updated_at, u.created_at) AS updated_at,
 			s.id AS site_id,
 			s.subdomain,
 			s.status AS site_status,
@@ -124,23 +154,24 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 				(SELECT COUNT(*) FROM manual_entitlements user_manual WHERE user_manual.user_id = u.id)
 			) AS license_count
 		FROM users u
-		LEFT JOIN sites s ON s.user_id = u.id
-		WHERE LOWER(u.email) LIKE ? ESCAPE '\\'
-			OR LOWER(u.id) LIKE ? ESCAPE '\\'
-			OR LOWER(COALESCE(s.subdomain, '')) LIKE ? ESCAPE '\\'
-			OR EXISTS(
-				SELECT 1 FROM licenses matched_license
-				WHERE matched_license.user_id = u.id
-					AND (
-						LOWER(COALESCE(matched_license.ls_license_key, '')) = ?
-						OR LOWER(COALESCE(matched_license.ls_order_id, '')) = ?
-					)
-			)
-		ORDER BY u.created_at DESC
-		LIMIT ${MAX_RESULTS}`,
-	)
-		.bind(pattern, pattern, pattern, normalized, normalized)
-		.all();
+		LEFT JOIN sites s ON s.id = (
+			SELECT chosen_site.id
+			FROM sites chosen_site
+			WHERE chosen_site.user_id = u.id
+			ORDER BY chosen_site.last_published_at DESC, chosen_site.created_at DESC
+			LIMIT 1
+		)
+		${where}
+		ORDER BY ${ACCOUNT_SORTS[sort]}
+		LIMIT ? OFFSET ?`,
+	).bind(...searchBindings, PAGE_SIZE, offset);
+	const countStatement = env.DB.prepare(
+		`SELECT /* admin-account-search-count */ COUNT(*) AS total
+		FROM users u
+		${where}`,
+	).bind(...searchBindings);
+	const [{ results }, count] = await Promise.all([statement.all(), countStatement.first()]);
+	const total = Number(count?.total || 0);
 
 	return json(
 		{
@@ -150,6 +181,8 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 					email: row.email,
 					googleConnected: boolean(row.google_connected),
 					createdAt: row.created_at,
+					lastSignInAt: row.last_sign_in_at,
+					updatedAt: row.updated_at,
 				},
 				licensed: boolean(row.licensed),
 				licenseCount: Number(row.license_count || 0),
@@ -163,6 +196,13 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 						}
 					: null,
 			})),
+			pagination: {
+				page,
+				pageSize: PAGE_SIZE,
+				total,
+				totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+			},
+			sort,
 		},
 		200,
 		corsOrigin,
@@ -183,6 +223,8 @@ export async function adminAccountGet(request, env, corsOrigin) {
 			u.email,
 			u.google_sub IS NOT NULL AS google_connected,
 			u.created_at,
+			u.last_sign_in_at,
+			COALESCE(u.updated_at, u.created_at) AS updated_at,
 			s.id AS site_id,
 			s.subdomain,
 			s.status AS site_status,
@@ -282,6 +324,8 @@ export async function adminAccountGet(request, env, corsOrigin) {
 				email: account.email,
 				googleConnected: boolean(account.google_connected),
 				createdAt: account.created_at,
+				lastSignInAt: account.last_sign_in_at,
+				updatedAt: account.updated_at,
 			},
 			licensed:
 				licenses.some((license) => license.status === 'active') ||
@@ -370,6 +414,7 @@ export async function adminLicenseGrant(request, env, corsOrigin) {
 			after: { licensed: true, manualEntitlementId: id },
 		}),
 	]);
+	await touchUser(env.DB, userId);
 	return json({ granted: true, entitlementId: id }, 200, corsOrigin);
 }
 
@@ -409,6 +454,7 @@ export async function adminLicenseRevoke(request, env, corsOrigin) {
 			after: { status: 'revoked', manualEntitlementId: entitlement.id },
 		}),
 	]);
+	await touchUser(env.DB, entitlement.user_id);
 	return json({ revoked: true, entitlementId }, 200, corsOrigin);
 }
 
@@ -453,6 +499,7 @@ export async function adminSiteStatus(request, env, corsOrigin) {
 				after: { status: 'suspended', suspensionId },
 			}),
 		]);
+		await touchUser(env.DB, site.user_id);
 		await mirrorSite(env.DB, env.KV, site.id);
 		return json({ status: 'suspended', suspensionId }, 200, corsOrigin);
 	}
@@ -487,6 +534,7 @@ export async function adminSiteStatus(request, env, corsOrigin) {
 			after: { status: restoredStatus },
 		}),
 	]);
+	await touchUser(env.DB, site.user_id);
 	await mirrorSite(env.DB, env.KV, site.id);
 	return json({ status: restoredStatus, restored: true }, 200, corsOrigin);
 }

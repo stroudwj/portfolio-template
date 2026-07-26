@@ -30,6 +30,7 @@ body {
 
 button,
 input,
+select,
 textarea {
 	font: inherit;
 }
@@ -39,7 +40,7 @@ a {
 	-webkit-tap-highlight-color: transparent;
 }
 
-:is(button, a, input, textarea):focus-visible {
+:is(button, a, input, select, textarea):focus-visible {
 	outline: 2px solid var(--admin-blue);
 	outline-offset: 2px;
 }
@@ -302,15 +303,42 @@ a {
 
 .admin-section-heading {
 	display: flex;
-	align-items: baseline;
+	align-items: flex-end;
 	justify-content: space-between;
 	gap: 16px;
 	margin-bottom: 14px;
 }
 
-.admin-section-heading span {
+.admin-section-heading > span,
+.admin-section-heading > div > span {
 	color: var(--admin-muted);
 	font-size: 12px;
+}
+
+.admin-section-heading > div > span {
+	display: block;
+	margin-top: 5px;
+}
+
+.admin-sort {
+	display: grid;
+	gap: 5px;
+	min-width: 180px;
+	color: var(--admin-muted);
+	font-size: 11px;
+}
+
+.admin-sort select {
+	min-height: 36px;
+	padding: 7px 30px 7px 9px;
+	border: 1px solid var(--admin-line);
+	border-radius: 3px;
+	background: #fff;
+	color: var(--admin-ink);
+}
+
+.admin-sort select:disabled {
+	opacity: 0.55;
 }
 
 .admin-empty {
@@ -332,6 +360,10 @@ a {
 	overflow-x: auto;
 	border: 1px solid var(--admin-line);
 	background: #fff;
+}
+
+.admin-table-wrap table {
+	min-width: 900px;
 }
 
 table {
@@ -385,6 +417,19 @@ td small {
 	color: inherit;
 	cursor: pointer;
 	text-align: left;
+}
+
+.admin-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.admin-pagination span {
+	color: var(--admin-muted);
+	font-size: 12px;
 }
 
 .admin-account-link strong {
@@ -752,6 +797,19 @@ dd {
 	.admin-card-actions {
 		width: 100%;
 		justify-content: flex-start;
+	}
+
+	.admin-section-heading {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.admin-sort {
+		width: 100%;
+	}
+
+	.admin-pagination {
+		justify-content: space-between;
 	}
 
 	.admin-dialog-actions {

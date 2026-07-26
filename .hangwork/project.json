@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "runtimeVersion": "1.2.4",
+  "runtimeVersion": "1.2.5",
   "sourceCommit": "development",
   "siteUrl": "https://stroudwj.github.io",
   "basePath": "/portfolio-template",
@@ -43,12 +43,12 @@
       "gitBlobSha": "bee505e9b347cc25aef62683f2b2376199d28602"
     },
     "src/admin/AdminApp.tsx": {
-      "sha256": "22e23dd8512343faef3e8902bcc01e314014866f591d2a24d813f5777100a6b2",
-      "gitBlobSha": "eaf82f45ffecc460300a317938743f9327b5cbd1"
+      "sha256": "1b2b3a127e0f24d596aa55c131e1d3bf74bcd90dd54d257c43ee4046b2ceab83",
+      "gitBlobSha": "bd71379e4a0eb0c88aa755e062d893d83726cfa6"
     },
     "src/admin/admin.css": {
-      "sha256": "4fb54d2dc3d5351b53cb588c30cf04a1fa2ef39a4eb4e7cf653d9d354462eae8",
-      "gitBlobSha": "1f0c64a564e2e1cd91d6a47c4dc57001da387bf0"
+      "sha256": "1e61b32d92a525866b88aed6c7893ee8b3b8a5c22737faf7c086515d2e2c8d26",
+      "gitBlobSha": "d440efce2ac7e5becc4fb20e71fe098d49d0c566"
     },
     "src/components/Favicons.astro": {
       "sha256": "9351938893afe2846465feecfa9e6bf51f0b40bba49ba72ca1d525ba0fe4fd95",
@@ -667,8 +667,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "f2092193008b6d8ba4572e0736cca3e8cc82241a2042a351a32562dab7d7b0e2",
-      "gitBlobSha": "64563627b1fac76d20f843f288d5a2294cf70d33"
+      "sha256": "9c7f4ac38968d3b9d403459bb5b4cf8df2d02b895e4738cfd7d828d1f79ac70b",
+      "gitBlobSha": "bc5783830d9f56a3dadec90752a0c0e3a90c5711"
     }
   }
 }

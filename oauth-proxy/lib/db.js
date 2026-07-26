@@ -16,21 +16,35 @@ export async function upsertUserByEmail(db, email, googleSub = null) {
 	const existing = await db.prepare('SELECT * FROM users WHERE email = ?').bind(normalized).first();
 	if (existing) {
 		if (googleSub && existing.google_sub !== googleSub) {
-			await db.prepare('UPDATE users SET google_sub = ? WHERE id = ?').bind(googleSub, existing.id).run();
-			return { ...existing, google_sub: googleSub };
+			const updatedAt = new Date().toISOString();
+			await db.prepare('UPDATE users SET google_sub = ?, updated_at = ? WHERE id = ?').bind(googleSub, updatedAt, existing.id).run();
+			return { ...existing, google_sub: googleSub, updated_at: updatedAt };
 		}
 		return existing;
 	}
 	const id = newId();
+	const createdAt = new Date().toISOString();
 	await db
-		.prepare('INSERT INTO users (id, email, google_sub) VALUES (?, ?, ?)')
-		.bind(id, normalized, googleSub)
+		.prepare('INSERT INTO users (id, email, google_sub, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+		.bind(id, normalized, googleSub, createdAt, createdAt)
 		.run();
 	return await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
 }
 
 export async function getUser(db, userId) {
 	return await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+}
+
+export async function recordUserSignIn(db, userId) {
+	const signedInAt = new Date().toISOString();
+	await db.prepare('UPDATE users SET last_sign_in_at = ? WHERE id = ?').bind(signedInAt, userId).run();
+	return signedInAt;
+}
+
+export async function touchUser(db, userId) {
+	const updatedAt = new Date().toISOString();
+	await db.prepare('UPDATE users SET updated_at = ? WHERE id = ?').bind(updatedAt, userId).run();
+	return updatedAt;
 }
 
 // ---- licenses --------------------------------------------------------------

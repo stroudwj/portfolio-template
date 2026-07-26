@@ -10,12 +10,16 @@ const adminUser = {
 	email: 'admin@example.com',
 	google_sub: 'google-admin',
 	created_at: '2026-07-01T12:00:00.000Z',
+	last_sign_in_at: '2026-07-24T12:00:00.000Z',
+	updated_at: '2026-07-01T12:00:00.000Z',
 };
 const artistUser = {
 	id: 'user-artist',
 	email: 'artist@example.com',
 	google_sub: 'google-artist',
 	created_at: '2026-07-02T12:00:00.000Z',
+	last_sign_in_at: '2026-07-21T12:00:00.000Z',
+	updated_at: '2026-07-22T12:00:00.000Z',
 };
 
 class FakeStatement {
@@ -64,6 +68,8 @@ class FakeDb {
 		restored_at?: string;
 	} = null;
 	auditWrites = 0;
+	searchTotal = 1;
+	lastSearchArgs: unknown[] = [];
 
 	prepare(sql: string) {
 		this.statements.push(sql);
@@ -81,6 +87,8 @@ class FakeDb {
 				email: artistUser.email,
 				google_connected: 1,
 				created_at: artistUser.created_at,
+				last_sign_in_at: artistUser.last_sign_in_at,
+				updated_at: artistUser.updated_at,
 				site_id: 'site-1',
 				subdomain: 'artist',
 				site_status: 'active',
@@ -90,6 +98,7 @@ class FakeDb {
 				site_created_at: '2026-07-03T12:00:00.000Z',
 			};
 		}
+		if (sql.includes('admin-account-search-count')) return { total: this.searchTotal };
 		if (sql.includes('admin-account-active-suspension')) {
 			return this.suspension && !this.suspension.restored_at ? this.suspension : null;
 		}
@@ -118,13 +127,15 @@ class FakeDb {
 
 	all(sql: string, args: unknown[]) {
 		if (sql.includes('admin-account-search')) {
-			expect(args[0]).toBe('%artist@example.com%');
+			this.lastSearchArgs = args;
 			return [
 				{
 					id: artistUser.id,
 					email: artistUser.email,
 					google_connected: 1,
 					created_at: artistUser.created_at,
+					last_sign_in_at: artistUser.last_sign_in_at,
+					updated_at: artistUser.updated_at,
 					site_id: 'site-1',
 					subdomain: 'artist',
 					site_status: 'active',
@@ -205,6 +216,9 @@ class FakeDb {
 			this.auditWrites += 1;
 			return { success: true };
 		}
+		if (sql.includes('UPDATE users SET updated_at = ?')) {
+			return { success: true };
+		}
 		throw new Error(`Unexpected run(): ${sql}`);
 	}
 
@@ -278,6 +292,8 @@ describe('admin console API', () => {
 						email: 'artist@example.com',
 						googleConnected: true,
 						createdAt: '2026-07-02T12:00:00.000Z',
+						lastSignInAt: '2026-07-21T12:00:00.000Z',
+						updatedAt: '2026-07-22T12:00:00.000Z',
 					},
 					licensed: true,
 					licenseCount: 1,
@@ -290,7 +306,52 @@ describe('admin console API', () => {
 					},
 				},
 			],
+			pagination: {
+				page: 1,
+				pageSize: 25,
+				total: 1,
+				totalPages: 1,
+			},
+			sort: 'activity',
 		});
+		expect(db.lastSearchArgs).toEqual([
+			'%artist@example.com%',
+			'%artist@example.com%',
+			'%artist@example.com%',
+			'artist@example.com',
+			'artist@example.com',
+			25,
+			0,
+		]);
+	});
+
+	it('lists all accounts 25 at a time and supports independent activity sorts', async () => {
+		db.searchTotal = 26;
+		const token = await tokenFor(adminUser.id);
+		for (const [sort, orderFragment] of [
+			['activity', "MAX(COALESCE(u.last_sign_in_at, '')"],
+			['sign_in', 'u.last_sign_in_at IS NULL'],
+			['publish', 's.last_published_at IS NULL'],
+			['updated', 'COALESCE(u.updated_at, u.created_at) DESC'],
+		] as const) {
+			db.statements = [];
+			const response = await worker.fetch(
+				request('/admin/accounts/search', token, { query: '', sort, page: 2 }),
+				env,
+			);
+			expect(response.status).toBe(200);
+			const data = await response.json();
+			expect(data.pagination).toEqual({ page: 2, pageSize: 25, total: 26, totalPages: 2 });
+			expect(data.sort).toBe(sort);
+			expect(db.lastSearchArgs).toEqual([25, 25]);
+			expect(db.statements.find((sql) => sql.includes('admin-account-search'))).toContain(orderFragment);
+		}
+
+		const inheritedName = await worker.fetch(
+			request('/admin/accounts/search', token, { query: '', sort: 'toString', page: 1 }),
+			env,
+		);
+		expect((await inheritedName.json()).sort).toBe('activity');
 	});
 
 	it('returns account detail without exposing a full license key or Google subject', async () => {
@@ -305,6 +366,8 @@ describe('admin console API', () => {
 			email: 'artist@example.com',
 			googleConnected: true,
 			createdAt: '2026-07-02T12:00:00.000Z',
+			lastSignInAt: '2026-07-21T12:00:00.000Z',
+			updatedAt: '2026-07-22T12:00:00.000Z',
 		});
 		expect(data.licenses[0].key).toBe('••••1234');
 		expect(data.manualEntitlements).toEqual([]);

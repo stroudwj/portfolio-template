@@ -94,13 +94,16 @@ wrangler secret put ADMIN_EMAILS
 wrangler deploy
 ```
 
-Sign in through `/editor/` in another tab, then open `/admin/`. The console can search
-users, inspect license/site metadata, add or revoke manual access, and suspend or restore
-published sites. Every mutation requires a reason and writes its actor, target, before/
-after state, and timestamp to `admin_audit_log`. Site suspension remembers the owner's
-previous visibility. Paid Lemon Squeezy rows are never edited by manual controls, full
-license keys are masked, and the route is excluded from the sitemap with `noindex`,
-`nofollow`, and `noarchive`.
+Sign in through `/editor/` in another tab, then open `/admin/`. The console lists every
+account 25 at a time, supports filtering, and can sort by combined recent activity,
+last sign-in, last publish, or account update. Historical sign-in dates begin being
+recorded after migration `0003`; older accounts show no sign-in date until their next
+successful login. Operators can inspect license/site metadata, add or revoke manual
+access, and suspend or restore published sites. Every mutation requires a reason and
+writes its actor, target, before/after state, and timestamp to `admin_audit_log`. Site
+suspension remembers the owner's previous visibility. Paid Lemon Squeezy rows are never
+edited by manual controls, full license keys are masked, and the route is excluded from
+the sitemap with `noindex`, `nofollow`, and `noarchive`.
 
 Before deploying a Worker version that imports these controls, apply the D1 migration:
 

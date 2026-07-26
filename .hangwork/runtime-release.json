@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "version": "1.2.4",
+  "version": "1.2.5",
   "files": {
     ".github/workflows/deploy.yml": {
       "sha256": "a91217fe70cfddd29d426dd41fedbc902e29e596759912b1e26856698b82b06c",
@@ -39,12 +39,12 @@
       "gitBlobSha": "bee505e9b347cc25aef62683f2b2376199d28602"
     },
     "src/admin/AdminApp.tsx": {
-      "sha256": "22e23dd8512343faef3e8902bcc01e314014866f591d2a24d813f5777100a6b2",
-      "gitBlobSha": "eaf82f45ffecc460300a317938743f9327b5cbd1"
+      "sha256": "1b2b3a127e0f24d596aa55c131e1d3bf74bcd90dd54d257c43ee4046b2ceab83",
+      "gitBlobSha": "bd71379e4a0eb0c88aa755e062d893d83726cfa6"
     },
     "src/admin/admin.css": {
-      "sha256": "4fb54d2dc3d5351b53cb588c30cf04a1fa2ef39a4eb4e7cf653d9d354462eae8",
-      "gitBlobSha": "1f0c64a564e2e1cd91d6a47c4dc57001da387bf0"
+      "sha256": "1e61b32d92a525866b88aed6c7893ee8b3b8a5c22737faf7c086515d2e2c8d26",
+      "gitBlobSha": "d440efce2ac7e5becc4fb20e71fe098d49d0c566"
     },
     "src/components/Favicons.astro": {
       "sha256": "9351938893afe2846465feecfa9e6bf51f0b40bba49ba72ca1d525ba0fe4fd95",

@@ -13,6 +13,8 @@ interface AccountIdentity {
 	email: string;
 	googleConnected: boolean;
 	createdAt: string;
+	lastSignInAt: string | null;
+	updatedAt: string;
 }
 
 interface AccountSiteSummary {
@@ -28,6 +30,15 @@ interface SearchResult {
 	licensed: boolean;
 	licenseCount: number;
 	site: AccountSiteSummary | null;
+}
+
+type AccountSort = 'activity' | 'sign_in' | 'publish' | 'updated';
+
+interface AccountPagination {
+	page: number;
+	pageSize: number;
+	total: number;
+	totalPages: number;
 }
 
 interface LicenseDetail {
@@ -139,7 +150,15 @@ export default function AdminApp({
 	const [actor, setActor] = useState<AdminActor | null>(null);
 	const [accessMessage, setAccessMessage] = useState('');
 	const [query, setQuery] = useState('');
+	const [activeQuery, setActiveQuery] = useState('');
+	const [sort, setSort] = useState<AccountSort>('activity');
 	const [results, setResults] = useState<SearchResult[]>([]);
+	const [pagination, setPagination] = useState<AccountPagination>({
+		page: 1,
+		pageSize: 25,
+		total: 0,
+		totalPages: 1,
+	});
 	const [searching, setSearching] = useState(false);
 	const [searched, setSearched] = useState(false);
 	const [searchError, setSearchError] = useState('');
@@ -188,10 +207,51 @@ export default function AdminApp({
 		void verifyAccess();
 	}, [verifyAccess]);
 
+	const loadAccounts = useCallback(
+		async ({ query: nextQuery, sort: nextSort, page }: { query: string; sort: AccountSort; page: number }) => {
+			const stored = getSession();
+			if (!stored) {
+				setAccess('signed-out');
+				return;
+			}
+			setSearching(true);
+			setSearchError('');
+			setDetail(null);
+			try {
+				const { data } = await new AccountClient(stored.token).request<{
+					results: SearchResult[];
+					pagination: AccountPagination;
+					sort: AccountSort;
+				}>('/admin/accounts/search', {
+					body: { query: nextQuery, sort: nextSort, page },
+				});
+				setResults(data.results);
+				setPagination(data.pagination);
+				setSort(data.sort);
+				setActiveQuery(nextQuery);
+				setSearched(true);
+			} catch (error) {
+				setSearchError(messageFor(error));
+			} finally {
+				setSearching(false);
+			}
+		},
+		[],
+	);
+
+	useEffect(() => {
+		if (access === 'ready' && !searched) {
+			void loadAccounts({ query: '', sort: 'activity', page: 1 });
+		}
+	}, [access, loadAccounts, searched]);
+
 	const signOut = () => {
 		clearSession();
 		setActor(null);
 		setResults([]);
+		setSearched(false);
+		setActiveQuery('');
+		setPagination({ page: 1, pageSize: 25, total: 0, totalPages: 1 });
 		setDetail(null);
 		setAccess('signed-out');
 	};
@@ -199,27 +259,8 @@ export default function AdminApp({
 	const search = async (event: SyntheticEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const value = query.trim();
-		if (value.length < 2 || searching) return;
-		const stored = getSession();
-		if (!stored) {
-			setAccess('signed-out');
-			return;
-		}
-		setSearching(true);
-		setSearchError('');
-		setDetail(null);
-		try {
-			const { data } = await new AccountClient(stored.token).request<{ results: SearchResult[] }>(
-				'/admin/accounts/search',
-				{ body: { query: value } },
-			);
-			setResults(data.results);
-			setSearched(true);
-		} catch (error) {
-			setSearchError(messageFor(error));
-		} finally {
-			setSearching(false);
-		}
+		if (value.length === 1 || searching) return;
+		await loadAccounts({ query: value, sort, page: 1 });
 	};
 
 	const openAccount = async (userId: string) => {
@@ -308,6 +349,7 @@ export default function AdminApp({
 											lastPublishedAt: data.site.lastPublishedAt,
 										}
 									: null,
+								user: data.user,
 							}
 						: result,
 				),
@@ -388,21 +430,21 @@ export default function AdminApp({
 				<section className="admin-search-panel" aria-labelledby="account-search-heading">
 					<div>
 						<h2 id="account-search-heading">Find an account</h2>
-						<p>Search by email, account ID, subdomain, Lemon Squeezy order ID, or exact license key.</p>
+						<p>Browse every account or filter by email, account ID, subdomain, Lemon Squeezy order ID, or exact license key.</p>
 					</div>
 					<form className="admin-search-form" onSubmit={search}>
-						<label htmlFor="admin-account-query">Account search</label>
+						<label htmlFor="admin-account-query">Filter accounts</label>
 						<div>
 							<input
 								id="admin-account-query"
 								type="search"
 								autoComplete="off"
-								placeholder="artist@example.com or studio-name"
+								placeholder="All accounts"
 								value={query}
 								onChange={(event) => setQuery(event.target.value)}
 							/>
-							<button className="admin-button admin-button-primary" type="submit" disabled={query.trim().length < 2 || searching}>
-								{searching ? 'Searching…' : 'Search'}
+							<button className="admin-button admin-button-primary" type="submit" disabled={query.trim().length === 1 || searching}>
+								{searching ? 'Loading…' : query.trim() ? 'Filter' : 'Show all'}
 							</button>
 						</div>
 					</form>
@@ -413,11 +455,40 @@ export default function AdminApp({
 				<div className="admin-workspace">
 					<section className="admin-results" aria-labelledby="search-results-heading">
 						<div className="admin-section-heading">
-							<h2 id="search-results-heading">Results</h2>
-							{searched && <span>{results.length} found</span>}
+							<div>
+								<h2 id="search-results-heading">Accounts</h2>
+								{searched && (
+									<span>
+										{pagination.total === 0
+											? '0 accounts'
+											: `${(pagination.page - 1) * pagination.pageSize + 1}–${Math.min(
+													pagination.page * pagination.pageSize,
+													pagination.total,
+												)} of ${pagination.total}`}
+										{activeQuery ? ` matching “${activeQuery}”` : ''}
+									</span>
+								)}
+							</div>
+							<label className="admin-sort">
+								<span>Sort by</span>
+								<select
+									value={sort}
+									disabled={searching}
+									onChange={(event) => {
+										const nextSort = event.target.value as AccountSort;
+										setSort(nextSort);
+										void loadAccounts({ query: activeQuery, sort: nextSort, page: 1 });
+									}}
+								>
+									<option value="activity">Most recent activity</option>
+									<option value="sign_in">Last sign-in</option>
+									<option value="publish">Last publish</option>
+									<option value="updated">Account updated</option>
+								</select>
+							</label>
 						</div>
 						{!searched ? (
-							<p className="admin-empty">Search for an account to begin.</p>
+							<p className="admin-empty">Loading accounts…</p>
 						) : results.length === 0 ? (
 							<p className="admin-empty">No matching accounts.</p>
 						) : (
@@ -428,7 +499,9 @@ export default function AdminApp({
 											<th>Account</th>
 											<th>License</th>
 											<th>Site</th>
+											<th>Last sign-in</th>
 											<th>Last published</th>
+											<th>Account updated</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -459,12 +532,41 @@ export default function AdminApp({
 														<span className="admin-muted">No site</span>
 													)}
 												</td>
+												<td>{dateTime(result.user.lastSignInAt)}</td>
 												<td>{dateTime(result.site?.lastPublishedAt)}</td>
+												<td>{dateTime(result.user.updatedAt)}</td>
 											</tr>
 										))}
 									</tbody>
 								</table>
 							</div>
+						)}
+						{searched && pagination.totalPages > 1 && (
+							<nav className="admin-pagination" aria-label="Account pages">
+								<button
+									className="admin-button admin-button-small"
+									type="button"
+									disabled={pagination.page <= 1 || searching}
+									onClick={() =>
+										void loadAccounts({ query: activeQuery, sort, page: pagination.page - 1 })
+									}
+								>
+									Previous
+								</button>
+								<span>
+									Page {pagination.page} of {pagination.totalPages}
+								</span>
+								<button
+									className="admin-button admin-button-small"
+									type="button"
+									disabled={pagination.page >= pagination.totalPages || searching}
+									onClick={() =>
+										void loadAccounts({ query: activeQuery, sort, page: pagination.page + 1 })
+									}
+								>
+									Next
+								</button>
+							</nav>
 						)}
 					</section>
 
@@ -511,6 +613,14 @@ export default function AdminApp({
 										<div>
 											<dt>Google connected</dt>
 											<dd>{detail.user.googleConnected ? 'Yes' : 'No'}</dd>
+										</div>
+										<div>
+											<dt>Last sign-in</dt>
+											<dd>{dateTime(detail.user.lastSignInAt)}</dd>
+										</div>
+										<div>
+											<dt>Account updated</dt>
+											<dd>{dateTime(detail.user.updatedAt)}</dd>
 										</div>
 										<div>
 											<dt>Created</dt>

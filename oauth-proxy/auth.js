@@ -15,7 +15,7 @@
 import { signJwt, verifyJwt, decodeJwtPayload, bearerToken } from './lib/jwt.js';
 import { json, readJson, isEmailAddress } from './lib/http.js';
 import { emailHtml, sendEmail } from './lib/email.js';
-import { upsertUserByEmail, getUser, accountSummary, newId } from './lib/db.js';
+import { upsertUserByEmail, getUser, accountSummary, newId, recordUserSignIn, touchUser } from './lib/db.js';
 
 const SESSION_TTL_S = 30 * 24 * 60 * 60; // 30 days
 const MAGIC_TTL_S = 15 * 60; // sign-in link validity
@@ -89,6 +89,7 @@ export async function magicVerify(request, env, corsOrigin) {
 	await env.KV.delete(key); // single-use
 
 	const user = await upsertUserByEmail(env.DB, stored.email);
+	await recordUserSignIn(env.DB, user.id);
 	const summary = await accountSummary(env.DB, user);
 	return json({ token: await issueSession(env, user), ...summary }, 200, corsOrigin);
 }
@@ -132,6 +133,7 @@ export async function google(request, env, corsOrigin) {
 	}
 
 	const user = await upsertUserByEmail(env.DB, claims.email, claims.sub || null);
+	await recordUserSignIn(env.DB, user.id);
 	const summary = await accountSummary(env.DB, user);
 	return json({ token: await issueSession(env, user), ...summary }, 200, corsOrigin);
 }
@@ -194,6 +196,7 @@ export async function licenseBind(request, env, corsOrigin) {
 			.bind(newId(), user.id, key, meta.order_id ? String(meta.order_id) : null, meta.customer_email || null, 'active', new Date().toISOString())
 			.run();
 	}
+	await touchUser(env.DB, user.id);
 	return json(await accountSummary(env.DB, user), 200, corsOrigin);
 }
 
