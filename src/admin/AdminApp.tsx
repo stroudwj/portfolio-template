@@ -41,9 +41,19 @@ interface AccountPagination {
 	totalPages: number;
 }
 
-interface LicenseDetail {
+interface PolarOrderDetail {
 	id: string;
-	key: string | null;
+	customerId: string | null;
+	checkoutId: string | null;
+	productId: string;
+	buyerEmail: string;
+	status: string;
+	paidAt: string | null;
+	createdAt: string;
+}
+
+interface LegacyPurchaseDetail {
+	id: string;
 	orderId: string | null;
 	buyerEmail: string | null;
 	status: string;
@@ -86,7 +96,8 @@ interface AuditDetail {
 interface AccountDetail {
 	user: AccountIdentity;
 	licensed: boolean;
-	licenses: LicenseDetail[];
+	polarOrders: PolarOrderDetail[];
+	legacyPurchases: LegacyPurchaseDetail[];
 	manualEntitlements: ManualEntitlementDetail[];
 	site:
 		| (AccountSiteSummary & {
@@ -339,7 +350,10 @@ export default function AdminApp({
 						? {
 								...result,
 								licensed: data.licensed,
-								licenseCount: data.licenses.length + data.manualEntitlements.length,
+								licenseCount:
+									data.polarOrders.length +
+									data.legacyPurchases.length +
+									data.manualEntitlements.length,
 								site: data.site
 									? {
 											id: data.site.id,
@@ -430,7 +444,7 @@ export default function AdminApp({
 				<section className="admin-search-panel" aria-labelledby="account-search-heading">
 					<div>
 						<h2 id="account-search-heading">Find an account</h2>
-						<p>Browse every account or filter by email, account ID, subdomain, Lemon Squeezy order ID, or exact license key.</p>
+						<p>Browse every account or filter by email, account ID, subdomain, or an exact Polar order, checkout, or customer ID.</p>
 					</div>
 					<form className="admin-search-form" onSubmit={search}>
 						<label htmlFor="admin-account-query">Filter accounts</label>
@@ -595,7 +609,7 @@ export default function AdminApp({
 														beginAction({
 															kind: 'grant',
 															title: 'Grant manual access',
-															description: `Give ${detail.user.email} publishing access without creating or changing a Lemon Squeezy purchase.`,
+															description: `Give ${detail.user.email} publishing access without creating or changing a paid purchase.`,
 															confirmLabel: 'Grant access',
 														})
 													}
@@ -632,32 +646,36 @@ export default function AdminApp({
 								<section className="admin-card">
 									<div className="admin-card-heading">
 										<div>
-											<span className="admin-card-label">Lemon Squeezy licenses</span>
-											<h3>{detail.licenses.length} record{detail.licenses.length === 1 ? '' : 's'}</h3>
+											<span className="admin-card-label">Polar purchases</span>
+											<h3>{detail.polarOrders.length} order{detail.polarOrders.length === 1 ? '' : 's'}</h3>
 										</div>
 									</div>
-									{detail.licenses.length === 0 ? (
-										<p className="admin-empty compact">No license records.</p>
+									{detail.polarOrders.length === 0 ? (
+										<p className="admin-empty compact">No Polar purchases.</p>
 									) : (
 										<div className="admin-license-list">
-											{detail.licenses.map((license) => (
-												<article key={license.id} className="admin-license">
+											{detail.polarOrders.map((order) => (
+												<article key={order.id} className="admin-license">
 													<div>
-														<strong>{license.key || 'Key pending'}</strong>
-														<StatusBadge value={license.status} />
+														<strong>{order.id}</strong>
+														<StatusBadge value={order.status} />
 													</div>
 													<dl>
 														<div>
-															<dt>Order</dt>
-															<dd>{license.orderId || '—'}</dd>
+															<dt>Checkout</dt>
+															<dd>{order.checkoutId || '—'}</dd>
 														</div>
 														<div>
 															<dt>Buyer</dt>
-															<dd>{license.buyerEmail || '—'}</dd>
+															<dd>{order.buyerEmail}</dd>
 														</div>
 														<div>
-															<dt>Activated</dt>
-															<dd>{dateTime(license.activatedAt)}</dd>
+															<dt>Customer</dt>
+															<dd>{order.customerId || '—'}</dd>
+														</div>
+														<div>
+															<dt>Paid</dt>
+															<dd>{dateTime(order.paidAt)}</dd>
 														</div>
 													</dl>
 												</article>
@@ -665,6 +683,39 @@ export default function AdminApp({
 										</div>
 									)}
 								</section>
+
+								{detail.legacyPurchases.length > 0 && (
+									<section className="admin-card">
+										<div className="admin-card-heading">
+											<div>
+												<span className="admin-card-label">Grandfathered purchases</span>
+												<h3>
+													{detail.legacyPurchases.length} record{detail.legacyPurchases.length === 1 ? '' : 's'}
+												</h3>
+											</div>
+										</div>
+										<div className="admin-license-list">
+											{detail.legacyPurchases.map((purchase) => (
+												<article key={purchase.id} className="admin-license">
+													<div>
+														<strong>{purchase.orderId || 'Legacy purchase'}</strong>
+														<StatusBadge value={purchase.status} />
+													</div>
+													<dl>
+														<div>
+															<dt>Buyer</dt>
+															<dd>{purchase.buyerEmail || '—'}</dd>
+														</div>
+														<div>
+															<dt>Activated</dt>
+															<dd>{dateTime(purchase.activatedAt)}</dd>
+														</div>
+													</dl>
+												</article>
+											))}
+										</div>
+									</section>
+								)}
 
 								<section className="admin-card">
 									<div className="admin-card-heading">
@@ -693,7 +744,7 @@ export default function AdminApp({
 																		beginAction({
 																			kind: 'revoke',
 																			title: 'Revoke manual access',
-																			description: `Remove this manual grant from ${detail.user.email}. Paid Lemon Squeezy licenses, if any, remain untouched.`,
+																			description: `Remove this manual grant from ${detail.user.email}. Paid purchases, if any, remain untouched.`,
 																			confirmLabel: 'Revoke access',
 																			entitlementId: entitlement.id,
 																		})

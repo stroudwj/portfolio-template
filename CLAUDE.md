@@ -1,6 +1,6 @@
 # CLAUDE.md — Hangwork
 
-Hangwork is a **hosted portfolio builder for visual artists**. One payment (Lemon Squeezy),
+Hangwork is a **hosted portfolio builder for visual artists**. One payment (Polar),
 no subscription; a published site lives in a free **Hangwork account** the artist owns, at
 `[name].hangwork.art` or their own domain. The product is **hangwork.art**. This repo is the
 whole thing: the marketing site, the visual editor, the portfolio renderer, and the two
@@ -37,7 +37,7 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
 - `src/editor/lib/account/` — the **accounts + publishing client** (the current path):
   sign-in session, publish, site store, license binding.
 - `oauth-proxy/worker.js` — the **API Worker**: accounts, publish, export, site status,
-  custom domains, Lemon Squeezy webhook. Setup in [oauth-proxy/README.md](oauth-proxy/README.md).
+  custom domains, Polar checkout/webhook. Setup in [oauth-proxy/README.md](oauth-proxy/README.md).
 - `site-server/worker.js` — the **serving Worker**: serves every published site from R2 via a
   KV `host → {siteId,status}` lookup; enforces visibility + a per-site request ceiling.
 - `scripts/` — `generate-runtime-release.mjs` (integrity manifest), `build-hydration-runtime.mjs`,
@@ -53,7 +53,7 @@ In the editor's 🚀 Publish tab ([PublishPanel.tsx](src/editor/components/Publi
 
 1. **Sign in** to a Hangwork account — magic-link email or Google, no passwords
    ([account/config.ts](src/editor/lib/account/config.ts), `SignInModal`).
-2. **License** — pay-once gate (Lemon Squeezy). Built and unlocked can happen in either
+2. **License** — pay-once gate (Polar). Built and unlocked can happen in either
    order; built-but-unpaid hits the gate, paid-but-empty just waits for content.
 3. **Publish** — `staticgen/` builds the static site in the browser and uploads it to the API
    Worker (`/publish`, `/upload`) straight into **R2** under the site's stable id; KV is
@@ -90,8 +90,7 @@ and commit `.hangwork/runtime-release.json` + `.hangwork/project.json` with your
 - **Store** — Stripe **Payment Links** (strict `buy.stripe.com`), the artist's own Stripe
   account, no Hangwork cut. `StoreEditor`, [src/portfolio/Products.tsx](src/portfolio/Products.tsx),
   `src/lib/stripe-payment-link.ts`. No cart / inventory sync / order dashboard, by design.
-- **License** — Lemon Squeezy, pay-once; server ledger via the API Worker's
-  `/webhooks/lemonsqueezy`.
+- **License** — Polar, pay-once; server ledger via the API Worker's `/webhooks/polar`.
 
 ## Legacy / dead code — ignore unless explicitly asked
 

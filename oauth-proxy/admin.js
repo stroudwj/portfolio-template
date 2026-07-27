@@ -3,9 +3,9 @@
 //
 // Routes (wired in worker.js, all POST):
 //   /admin/session          — prove this session belongs to an allowlisted operator
-//   /admin/accounts/search  — find accounts by email, id, subdomain, order id, or key
+//   /admin/accounts/search  — find accounts by email, id, subdomain, or Polar identifiers
 //   /admin/accounts/get     — account + license + site detail for one stable user id
-//   /admin/licenses/grant    — add a manual entitlement (never edits LS purchase rows)
+//   /admin/licenses/grant    — add a manual entitlement (never edits paid purchase rows)
 //   /admin/licenses/revoke   — revoke a manual entitlement
 //   /admin/sites/status      — suspend or restore a published site
 
@@ -57,11 +57,6 @@ function boolean(value) {
 
 function escapeLike(value) {
 	return value.replace(/[\\%_]/g, '\\$&');
-}
-
-function maskLicenseKey(key) {
-	if (typeof key !== 'string' || !key) return null;
-	return `••••${key.slice(-4)}`;
 }
 
 function siteUrl(env, subdomain) {
@@ -119,15 +114,21 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 					AND LOWER(COALESCE(matched_site.subdomain, '')) LIKE ? ESCAPE '\\'
 			)
 			OR EXISTS(
-				SELECT 1 FROM licenses matched_license
-				WHERE matched_license.user_id = u.id
+				SELECT 1 FROM polar_orders matched_order
+				WHERE matched_order.user_id = u.id
 					AND (
-						LOWER(COALESCE(matched_license.ls_license_key, '')) = ?
-						OR LOWER(COALESCE(matched_license.ls_order_id, '')) = ?
+						LOWER(COALESCE(matched_order.id, '')) = ?
+						OR LOWER(COALESCE(matched_order.checkout_id, '')) = ?
+						OR LOWER(COALESCE(matched_order.polar_customer_id, '')) = ?
 					)
+			)
+			OR EXISTS(
+				SELECT 1 FROM licenses legacy_purchase
+				WHERE legacy_purchase.user_id = u.id
+					AND LOWER(COALESCE(legacy_purchase.ls_order_id, '')) = ?
 			)`
 		: '';
-	const searchBindings = query ? [pattern, pattern, pattern, normalized, normalized] : [];
+	const searchBindings = query ? [pattern, pattern, pattern, normalized, normalized, normalized, normalized] : [];
 	const offset = (page - 1) * PAGE_SIZE;
 	const statement = env.DB.prepare(
 		`SELECT /* admin-account-search */
@@ -142,16 +143,21 @@ export async function adminAccountSearch(request, env, corsOrigin) {
 			s.status AS site_status,
 			s.last_published_at,
 			EXISTS(
-				SELECT 1 FROM licenses active_license
-				WHERE active_license.user_id = u.id AND active_license.status = 'active'
+				SELECT 1 FROM polar_orders active_order
+				WHERE active_order.user_id = u.id AND active_order.status = 'active'
 			) OR EXISTS(
 				SELECT 1 FROM manual_entitlements active_manual
 				WHERE active_manual.user_id = u.id AND active_manual.status = 'active'
+			) OR EXISTS(
+				SELECT 1 FROM licenses legacy_purchase
+				WHERE legacy_purchase.user_id = u.id AND legacy_purchase.status = 'active'
 			) AS licensed,
 			(
-				(SELECT COUNT(*) FROM licenses user_license WHERE user_license.user_id = u.id)
+				(SELECT COUNT(*) FROM polar_orders user_order WHERE user_order.user_id = u.id)
 				+
 				(SELECT COUNT(*) FROM manual_entitlements user_manual WHERE user_manual.user_id = u.id)
+				+
+				(SELECT COUNT(*) FROM licenses legacy_purchase WHERE legacy_purchase.user_id = u.id)
 			) AS license_count
 		FROM users u
 		LEFT JOIN sites s ON s.id = (
@@ -242,9 +248,20 @@ export async function adminAccountGet(request, env, corsOrigin) {
 		.first();
 	if (!account) return json({ error: 'user_not_found' }, 404, corsOrigin);
 
-	const { results: licenseRows } = await env.DB.prepare(
-		`SELECT /* admin-account-licenses */
-			id, ls_license_key, ls_order_id, buyer_email, status, activated_at, created_at
+	const { results: polarRows } = await env.DB.prepare(
+		`SELECT /* admin-account-polar-orders */
+			id, polar_customer_id, checkout_id, product_id, buyer_email, status, paid_at, created_at
+		FROM polar_orders
+		WHERE user_id = ?
+		ORDER BY created_at DESC
+		LIMIT 50`,
+	)
+		.bind(userId)
+		.all();
+
+	const { results: legacyRows } = await env.DB.prepare(
+		`SELECT /* admin-account-legacy-purchases */
+			id, ls_order_id, buyer_email, status, activated_at, created_at
 		FROM licenses
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -299,9 +316,18 @@ export async function adminAccountGet(request, env, corsOrigin) {
 		.bind(userId)
 		.all();
 
-	const licenses = (licenseRows ?? []).map((row) => ({
+	const polarOrders = (polarRows ?? []).map((row) => ({
 		id: row.id,
-		key: maskLicenseKey(row.ls_license_key),
+		customerId: row.polar_customer_id,
+		checkoutId: row.checkout_id,
+		productId: row.product_id,
+		buyerEmail: row.buyer_email,
+		status: row.status,
+		paidAt: row.paid_at,
+		createdAt: row.created_at,
+	}));
+	const legacyPurchases = (legacyRows ?? []).map((row) => ({
+		id: row.id,
 		orderId: row.ls_order_id,
 		buyerEmail: row.buyer_email,
 		status: row.status,
@@ -328,9 +354,11 @@ export async function adminAccountGet(request, env, corsOrigin) {
 				updatedAt: account.updated_at,
 			},
 			licensed:
-				licenses.some((license) => license.status === 'active') ||
+				polarOrders.some((order) => order.status === 'active') ||
+				legacyPurchases.some((purchase) => purchase.status === 'active') ||
 				manualEntitlements.some((entitlement) => entitlement.status === 'active'),
-			licenses,
+			polarOrders,
+			legacyPurchases,
 			manualEntitlements,
 			site: account.site_id
 				? {
@@ -387,14 +415,17 @@ export async function adminLicenseGrant(request, env, corsOrigin) {
 	const existing = await env.DB.prepare(
 		`SELECT /* admin-grant-existing-access */ 1 AS licensed
 		WHERE EXISTS(
-			SELECT 1 FROM licenses WHERE user_id = ? AND status = 'active'
+			SELECT 1 FROM polar_orders WHERE user_id = ? AND status = 'active'
 		)
 		OR EXISTS(
 			SELECT 1 FROM manual_entitlements WHERE user_id = ? AND status = 'active'
 		)
+		OR EXISTS(
+			SELECT 1 FROM licenses WHERE user_id = ? AND status = 'active'
+		)
 		LIMIT 1`,
 	)
-		.bind(userId, userId)
+		.bind(userId, userId, userId)
 		.first();
 	if (existing) return json({ error: 'account_already_licensed' }, 409, corsOrigin);
 

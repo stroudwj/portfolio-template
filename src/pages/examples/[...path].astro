@@ -4,7 +4,6 @@
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
 import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
-import { CHECKOUT_URL } from '../../editor/lib/license/config';
 import Favicons from '../../components/Favicons.astro';
 
 export function getStaticPaths() {
@@ -15,6 +14,7 @@ export function getStaticPaths() {
 const base = import.meta.env.BASE_URL;
 const homeUrl = withBase(base);
 const editorUrl = withBase(base, 'editor/');
+const checkoutEntryUrl = `${editorUrl}?unlock=1`;
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
@@ -116,31 +116,23 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 			<section class="closing">
 				<div class="closing-copy">
 					<p>More walls are coming as artists publish them.</p>
-					{
-						CHECKOUT_URL && (
-							<div class="paynow-framing">
-								{pricing.launchPricingActive && (
-									<p class="paynow-anchor">
-										Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
-										forever.
-									</p>
-								)}
-								<p class="paynow-refund">
-									Changed your mind before you build? {pricing.refundDays} days, no questions.
-								</p>
-							</div>
-						)
-					}
+					<div class="paynow-framing">
+						{pricing.launchPricingActive && (
+							<p class="paynow-anchor">
+								Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
+								forever.
+							</p>
+						)}
+						<p class="paynow-refund">
+							Changed your mind before you build? {pricing.refundDays} days, no questions.
+						</p>
+					</div>
 				</div>
 				<div class="closing-actions">
 					<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
-					{
-						CHECKOUT_URL && (
-							<a class="btn btn-primary paynow-cta" href={CHECKOUT_URL}>
-								{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
-							</a>
-						)
-					}
+					<a class="btn btn-primary paynow-cta" href={checkoutEntryUrl}>
+						{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
+					</a>
 				</div>
 			</section>
 		</main>

@@ -15,8 +15,8 @@ import { AccountClient, AccountError } from '../lib/account/client';
 import { completeAuthRedirect, startGoogleOAuth, startMagicLink } from '../lib/account/flow';
 import { isAccountsConfigured, isGoogleConfigured } from '../lib/account/config';
 import { clearSiteInfo } from '../lib/account/site-store';
-import { completeLicenseRedirect } from '../lib/license/flow';
-import { maybeSendPostPurchaseEmail } from '../lib/license/handoff';
+import { completePolarCheckoutReturn, getPolarCheckoutStatus } from '../lib/polar-checkout';
+import { maybeSendPostPurchaseEmail } from '../lib/handoff';
 
 export type AccountStatus = 'checking' | 'signed-out' | 'signed-in';
 
@@ -30,8 +30,6 @@ export interface AccountSession {
 	sendMagicLink(email: string): Promise<void>;
 	/** Start Google sign-in (redirects away). */
 	signInWithGoogle(): void;
-	/** Attach a purchased license key to the signed-in account. Throws AccountError. */
-	bindLicense(key: string): Promise<void>;
 	/** Redeem the shared tester code for a revocable manual publishing grant. */
 	redeemTestAccess(code: string): Promise<void>;
 	/** Change the published site's visibility: 'active' | 'offline' | 'under_construction'. */
@@ -62,9 +60,9 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		setStatus('signed-in');
 	}, []);
 
-	// On load: finish a sign-in return if this page load is one, then validate whatever
-	// session we now hold (also covers "stored session expired"). If checkout dropped a
-	// `?license_key=` in the URL and we're signed in, bind it to the account.
+	// On load: finish a sign-in return, validate the stored session, and reconcile a
+	// successful Polar checkout. The webhook is authoritative; a short bounded poll
+	// covers the normal race between the browser redirect and webhook delivery.
 	useEffect(() => {
 		if (!isAccountsConfigured()) return;
 		let alive = true;
@@ -83,21 +81,31 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 			}
 			try {
 				const client = new AccountClient(stored.token);
-				const licenseKey = completeLicenseRedirect(); // scrubs the URL either way
+				const checkoutReturn = completePolarCheckoutReturn();
 				const { data } = await client.request<AccountSummary>('/auth/session');
 				if (!alive) return;
 				let summary = data;
-				if (licenseKey && !summary.licensed) {
+				if (checkoutReturn) {
 					try {
-						const bound = await client.request<AccountSummary>('/auth/license/bind', {
-							body: { license_key: licenseKey },
-						});
-						summary = bound.data;
-						// A fresh purchase just landed: send the "you own it" email with the
-						// desktop link (fire-and-forget, once per key).
-						maybeSendPostPurchaseEmail(licenseKey);
+						const checkoutStatus = await getPolarCheckoutStatus(checkoutReturn.checkoutId);
+						if (checkoutStatus === 'succeeded') {
+							for (const waitMs of [0, 200, 400, 800, 1200, 1800]) {
+								if (summary.licensed) break;
+								if (waitMs) await new Promise((resolve) => window.setTimeout(resolve, waitMs));
+								const refreshed = await client.request<AccountSummary>('/auth/session');
+								summary = refreshed.data;
+								if (!alive) return;
+							}
+							if (summary.licensed) {
+								maybeSendPostPurchaseEmail(checkoutReturn.checkoutId);
+							} else {
+								setError('Your payment completed. Polar is still confirming access — refresh this page in a moment.');
+							}
+						} else {
+							setError('Polar returned from checkout, but the completed payment could not be confirmed.');
+						}
 					} catch {
-						/* invalid/duplicate key from the URL — the summary stands */
+						setError('Polar returned from checkout, but Hangwork could not confirm it yet. Refresh this page in a moment.');
 					}
 				}
 				if (!alive) return;
@@ -128,18 +136,6 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 	const signInWithGoogle = useCallback(() => {
 		startGoogleOAuth(returnToEditorAfterGoogle); // navigates away
 	}, [returnToEditorAfterGoogle]);
-
-	const bindLicense = useCallback(
-		async (key: string) => {
-			const stored = getSession();
-			if (!stored) throw new AccountError(401, 'invalid_session', 'Sign in before adding your license.');
-			const { data } = await new AccountClient(stored.token).request<AccountSummary>('/auth/license/bind', {
-				body: { license_key: key.trim() },
-			});
-			applySummary(data);
-		},
-		[applySummary],
-	);
 
 	const redeemTestAccess = useCallback(
 		async (code: string) => {
@@ -201,7 +197,6 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		site,
 		sendMagicLink,
 		signInWithGoogle,
-		bindLicense,
 		redeemTestAccess,
 		setSiteStatus,
 		deleteSite,

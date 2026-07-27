@@ -5,7 +5,7 @@ The product's server side, as one Cloudflare Worker (plus its sibling serving Wo
 
 1. **Accounts** (`/auth/*`) — passwordless sign-in: magic-link email (Resend) and
    optional Google OAuth. Sessions are 30-day HS256 JWTs signed with `SESSION_SECRET`;
-   users/licenses/sites live in **D1** (schema in `migrations/`).
+   users/entitlements/sites live in **D1** (schema in `migrations/`).
 2. **Publishing** (`/publish`, `/upload`, `/publish/complete`) — authz + license gate +
    quotas + manifest diff; browser-built static sites upload straight into **R2** under
    the site's stable id prefix. **KV** mirrors `hostname → { siteId, status }` for the
@@ -13,12 +13,13 @@ The product's server side, as one Cloudflare Worker (plus its sibling serving Wo
 3. **Site management** (`/site/*`) — subdomain claims (a D1 row + KV write; the wildcard
    DNS record does the routing), Cloudflare-for-SaaS custom hostnames, and the
    `/site/export` zip (the ownership guarantee).
-4. **Lemon Squeezy webhook** (`/webhooks/lemonsqueezy`) — the robust license ledger:
-   orders create entitlements matched by buyer email; refunds revoke them.
+4. **Polar checkout + webhook** (`/checkout/polar`, `/webhooks/polar`) — authenticated
+   checkout sessions and the robust purchase ledger; paid orders grant access and refunds
+   or benefit revocations remove it.
 5. **Operator console** (`/admin/*`) — allowlisted account, license, and site inspection
    plus audited manual grants and reversible site suspensions. It uses the normal signed
-   account session plus a second server-side operator allowlist and never returns full
-   license keys or mutates Lemon Squeezy purchase records.
+   account session plus a second server-side operator allowlist and never mutates paid
+   purchase records.
 
 ## Direction D setup (accounts + hosting)
 
@@ -31,7 +32,8 @@ wrangler d1 migrations apply hangwork --remote
 
 # secrets
 wrangler secret put SESSION_SECRET        # long random string (JWTs + upload tickets)
-wrangler secret put LS_WEBHOOK_SECRET     # Lemon Squeezy → Settings → Webhooks
+wrangler secret put POLAR_ACCESS_TOKEN    # Polar token: checkouts:read + checkouts:write
+wrangler secret put POLAR_WEBHOOK_SECRET  # Polar webhook signing secret
 wrangler secret put GOOGLE_CLIENT_SECRET  # optional: Google OAuth client
 wrangler secret put CF_SAAS_TOKEN         # optional: custom hostnames (SSL and Certificates:Edit)
 wrangler secret put ADMIN_EMAILS          # comma-separated operator account emails
@@ -46,8 +48,6 @@ Dashboard steps (one-time, see also `../site-server/wrangler.toml`):
   route serves everything).
 - **Cache Rules**: cache-eligible on `*.hangwork.art`, respect origin Cache-Control —
   repeat hits then never touch Worker/R2.
-- **Lemon Squeezy → Webhooks**: point at `https://<this-worker>/webhooks/lemonsqueezy`,
-  events `order_created`, `order_refunded`, `license_key_created`.
 - **Polar → Settings → Webhooks**: point at `https://<this-worker>/webhooks/polar`,
   events `order.paid`, `order.refunded`, and `benefit_grant.revoked`. Create the
   Organization Access Token with only `checkouts:read` and `checkouts:write`, then store
@@ -80,9 +80,9 @@ processes.
 ## Handoff email (`/handoff`) — current
 
 Phones can browse and buy but not build, so the editor offers to email the person their
-editor link to open on a computer; buyers (matched by Lemon Squeezy license key) get a
-post-purchase "You own Hangwork now" email with an auto-unlock link. Content is fixed
-server-side. Powered by [Resend](https://resend.com):
+editor link to open on a computer. A signed-in buyer is addressed from their Hangwork
+session and gets the post-purchase "You own Hangwork now" copy; signed-out visitors provide
+their own address. Content is fixed server-side. Powered by [Resend](https://resend.com):
 
 ```sh
 # In Resend, verify the hangwork.art domain (add the DNS records it shows in Cloudflare).
@@ -114,8 +114,8 @@ recorded after migration `0003`; older accounts show no sign-in date until their
 successful login. Operators can inspect license/site metadata, add or revoke manual
 access, and suspend or restore published sites. Every mutation requires a reason and
 writes its actor, target, before/after state, and timestamp to `admin_audit_log`. Site
-suspension remembers the owner's previous visibility. Paid Lemon Squeezy rows are never
-edited by manual controls, full license keys are masked, and the route is excluded from
+suspension remembers the owner's previous visibility. Paid Polar and grandfathered purchase
+rows are never edited by manual controls, and the route is excluded from
 the sitemap with `noindex`, `nofollow`, and `noarchive`.
 
 Before deploying a Worker version that imports these controls, apply the D1 migration:
@@ -137,7 +137,7 @@ wrangler deploy
 A tester signs in, opens the publishing license prompt, chooses **Enter a tester access
 code**, and redeems it. The code may be shared with multiple testers; each account receives
 its own manual entitlement. Those grants appear in the operator console and can be revoked
-individually without changing Lemon Squeezy purchases. A revoked tester account cannot
+individually without changing paid purchases. A revoked tester account cannot
 redeem the shared code again unless an operator restores access with a new manual grant.
 Rotate the Worker secret to stop future redemptions without affecting existing testers.
 

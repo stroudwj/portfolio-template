@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankDoc } from '../src/editor/lib/content-init';
 import { hasPublishableContent } from '../src/editor/lib/validation';
 import worker from '../oauth-proxy/worker.js';
+import { signJwt } from '../oauth-proxy/lib/jwt.js';
 
 describe('hasPublishableContent (the "built" half of publishing)', () => {
 	it('treats a fresh blank document as not built', () => {
@@ -47,28 +48,48 @@ const ENV = {
 	ALLOWED_ORIGIN: 'https://hangwork.art,https://portfolio-template-9p2.pages.dev',
 	RESEND_API_KEY: 'test-key',
 	EMAIL_FROM: 'Hangwork <hello@hangwork.art>',
-	LS_STORE_ID: '431697',
-	LS_PRODUCT_ID: '1221404',
 };
 
-function handoffRequest(body: unknown, origin = ORIGIN, ip = '203.0.113.7') {
+function handoffRequest(body: unknown, origin = ORIGIN, ip = '203.0.113.7', token?: string) {
 	return new Request('https://worker.example/handoff', {
 		method: 'POST',
-		headers: { Origin: origin, 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
+		headers: {
+			Origin: origin,
+			'Content-Type': 'application/json',
+			'CF-Connecting-IP': ip,
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+		},
 		body: JSON.stringify(body),
 	});
 }
 
-function lsValidateResponse(overrides: Partial<{ status: string; store_id: number; product_id: number; customer_email: string }> = {}) {
-	return {
-		valid: true,
-		license_key: { status: overrides.status ?? 'active' },
-		meta: {
-			store_id: overrides.store_id ?? 431697,
-			product_id: overrides.product_id ?? 1221404,
-			customer_email: overrides.customer_email ?? 'buyer@example.com',
-		},
-	};
+class HandoffDb {
+	constructor(private licensed: boolean) {}
+
+	prepare(sql: string) {
+		const db = this;
+		let args: unknown[] = [];
+		return {
+			bind(...next: unknown[]) {
+				args = next;
+				return this;
+			},
+			async first() {
+				if (sql.includes('SELECT * FROM users WHERE id = ?')) {
+					return args[0] === 'buyer-user' ? { id: 'buyer-user', email: 'buyer@example.com' } : null;
+				}
+				if (sql.includes('SELECT 1 AS licensed')) return db.licensed ? { licensed: 1 } : null;
+				if (sql.includes('SELECT * FROM sites')) return null;
+				throw new Error(`Unexpected first(): ${sql}`);
+			},
+			async run() {
+				if (sql.includes('UPDATE licenses SET user_id') || sql.includes('UPDATE polar_orders SET user_id')) {
+					return { success: true };
+				}
+				throw new Error(`Unexpected run(): ${sql}`);
+			},
+		};
+	}
 }
 
 describe('worker /handoff', () => {
@@ -114,43 +135,40 @@ describe('worker /handoff', () => {
 		expect(sent.text).not.toContain('license_key');
 	});
 
-	it('mails a buyer at the address on the purchase, with an auto-unlock link', async () => {
-		fetchMock
-			.mockResolvedValueOnce(new Response(JSON.stringify(lsValidateResponse()), { status: 200 }))
-			.mockResolvedValueOnce(new Response('{}', { status: 200 }));
-		const res = await worker.fetch(handoffRequest({ license_key: 'KEY-123' }, ORIGIN, nextIp()), ENV);
+	it('mails a signed-in buyer at the account address with paid copy', async () => {
+		fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+		const now = Math.floor(Date.now() / 1000);
+		const secret = 'handoff-session-secret';
+		const token = await signJwt({ sub: 'buyer-user', iat: now, exp: now + 60 }, secret);
+		const res = await worker.fetch(handoffRequest({}, ORIGIN, nextIp(), token), {
+			...ENV,
+			SESSION_SECRET: secret,
+			DB: new HandoffDb(true),
+		});
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({ sent: true, email: 'buyer@example.com' });
 
-		const sent = JSON.parse(fetchMock.mock.calls[1][1].body);
+		const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
 		expect(sent.to).toEqual(['buyer@example.com']);
 		expect(sent.subject).toBe('You own Hangwork now');
-		expect(sent.text).toContain('https://hangwork.art/editor/?license_key=KEY-123');
+		expect(sent.text).toContain('https://hangwork.art/editor/');
+		expect(sent.text).not.toContain('license_key');
 	});
 
-	it('sends nothing for disabled keys or keys from another product', async () => {
-		fetchMock.mockResolvedValueOnce(
-			new Response(JSON.stringify(lsValidateResponse({ status: 'disabled' })), { status: 200 }),
-		);
-		const refunded = await worker.fetch(handoffRequest({ license_key: 'K' }, ORIGIN, nextIp()), ENV);
-		expect(refunded.status).toBe(400);
-
-		fetchMock.mockReset();
-		fetchMock.mockResolvedValueOnce(
-			new Response(JSON.stringify(lsValidateResponse({ product_id: 999 })), { status: 200 }),
-		);
-		const foreign = await worker.fetch(handoffRequest({ license_key: 'K' }, ORIGIN, nextIp()), ENV);
-		expect(foreign.status).toBe(400);
-		// Only the Lemon Squeezy lookups ran — Resend was never called.
-		expect(fetchMock.mock.calls.every(([url]) => String(url).includes('lemonsqueezy'))).toBe(true);
-	});
-
-	it('still mails a not-yet-activated ("inactive") key — that is a real purchase', async () => {
-		fetchMock
-			.mockResolvedValueOnce(new Response(JSON.stringify(lsValidateResponse({ status: 'inactive' })), { status: 200 }))
-			.mockResolvedValueOnce(new Response('{}', { status: 200 }));
-		const res = await worker.fetch(handoffRequest({ license_key: 'K2' }, ORIGIN, nextIp()), ENV);
+	it('uses plain handoff copy for a signed-in account without access', async () => {
+		fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+		const now = Math.floor(Date.now() / 1000);
+		const secret = 'handoff-unlicensed-session-secret';
+		const token = await signJwt({ sub: 'buyer-user', iat: now, exp: now + 60 }, secret);
+		const res = await worker.fetch(handoffRequest({}, ORIGIN, nextIp(), token), {
+			...ENV,
+			SESSION_SECRET: secret,
+			DB: new HandoffDb(false),
+		});
 		expect(res.status).toBe(200);
+		const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+		expect(sent.to).toEqual(['buyer@example.com']);
+		expect(sent.subject).toBe('Your Hangwork link');
 	});
 
 	it('rate-limits repeated sends from one address', async () => {

@@ -3,7 +3,6 @@ import { useEditor } from '../store';
 import { useAccount } from './useAccount';
 import SignInModal from './SignInModal';
 import LoadPublishedModal from './LoadPublishedModal';
-import { isLicenseGateEnabled } from '../lib/license/config';
 import { SITE_TEMPLATES, type SiteTemplate } from '../lib/templates';
 
 /** A clickable template card with a contained theme swatch. Keeping the editor
@@ -39,7 +38,6 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 
 	const signedIn = account.status === 'signed-in';
 	const hasPublished = Boolean(account.site?.subdomain);
-	const licenseGated = isLicenseGateEnabled();
 
 	// Starting fresh throws away the autosaved draft — confirm first so a stray click
 	// can't wipe someone's work (only matters when a draft actually exists).
@@ -150,8 +148,7 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 							<li>Add your pieces, details, and links — the preview updates as you go.</li>
 							<li>Claim your space — a free account where your site is stored.</li>
 							<li>
-								Publish{licenseGated ? ' — pay once and' : ' —'} your site goes live at its own web
-								address.
+								Publish — pay once and your site goes live at its own web address.
 							</li>
 							<li>Come back anytime, from any device, to rehang and publish again.</li>
 						</ol>

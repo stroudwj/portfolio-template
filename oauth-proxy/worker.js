@@ -1,7 +1,8 @@
 // Hangwork API Worker — accounts, publishing, site management, plus the original
 // GitHub OAuth token-exchange proxy (kept for the optional GitHub mirror).
 //
-// Modules: auth.js (accounts/licenses), publish.js (R2 publishing), site.js
+// Modules: auth.js (accounts), polar.js (checkout/entitlements), publish.js
+// (R2 publishing), site.js
 // (subdomains/custom hostnames/export). This file owns routing + the fail-closed
 // CORS gate. The serving Worker for *.hangwork.art lives in ../site-server/.
 //
@@ -10,9 +11,7 @@
 //   POST /auth/magic/verify           — sign-in link token → session JWT
 //   POST /auth/google                 — Google OAuth code → session JWT
 //   POST /auth/session                — validate session, return account summary
-//   POST /auth/license/bind           — attach a Lemon Squeezy key to the account
 //   POST /auth/test-access/redeem      — redeem the shared tester code for manual access
-//   POST /webhooks/lemonsqueezy       — signed LS webhook (no CORS gate; signature auth)
 //   POST /webhooks/polar              — signed Polar webhook (no CORS gate; signature auth)
 //   POST /checkout/polar              — create a Polar hosted Checkout Session
 //   POST /checkout/polar/status       — confirm a returned Polar Checkout Session
@@ -36,13 +35,8 @@
 //   /subdomain/check  — { token, name }: is name.hangwork.art free to claim? (DNS-ledger flavor)
 //   /subdomain/claim  — { token, name }: create the DNS record name.hangwork.art →
 //                       {login}.github.io for the GitHub account the token belongs to.
-//   /handoff          — email the sender's editor link ("open this on your computer").
-//                       { license_key }: validate the key with Lemon Squeezy, then send
-//                       the post-purchase email to the BUYER's address (from the key —
-//                       never a caller-supplied address), with an auto-unlock link.
-//                       { email }: send the plain continue-on-desktop link to that
-//                       address. Content is fixed server-side; the caller controls only
-//                       the recipient (unpaid) or nothing at all (paid).
+//   /handoff          — email the editor link to the signed-in account, or to an
+//                       explicitly supplied address when signed out.
 //
 // Deploy: see README.md in this folder. Required config:
 //   - var    GITHUB_CLIENT_ID      (public; the OAuth App's client id)
@@ -57,8 +51,6 @@
 //   - secret RESEND_API_KEY        Resend API key for /handoff (`wrangler secret put RESEND_API_KEY`)
 //   - var    EMAIL_FROM            the /handoff sender, e.g. "Hangwork <hello@hangwork.art>"
 //                                  (the domain must be verified in Resend)
-//   - var    LS_STORE_ID           Lemon Squeezy store + product ids — /handoff only mails
-//   - var    LS_PRODUCT_ID         buyers of THIS product (mirror src/editor/lib/license/config.ts)
 // The /subdomain routes answer 503 until their config is set — the editor treats
 // that as "no hangwork.art addresses" and publishes to github.io instead. /handoff
 // answers 503 the same way until RESEND_API_KEY + EMAIL_FROM are set; the editor
@@ -66,7 +58,8 @@
 
 import { cors, json, isEmailAddress } from './lib/http.js';
 import { emailHtml, sendEmail } from './lib/email.js';
-import { magicStart, magicVerify, google, session, licenseBind, testAccessRedeem, lsWebhook } from './auth.js';
+import { magicStart, magicVerify, google, session, sessionUser, testAccessRedeem } from './auth.js';
+import { accountSummary } from './lib/db.js';
 import {
 	adminSession,
 	adminAccountSearch,
@@ -113,9 +106,6 @@ export default {
 
 		// Server-to-server webhooks carry no Origin — they authenticate with the signing
 		// secret instead of the CORS gate. Everything else stays origin-locked.
-		if (path === '/webhooks/lemonsqueezy' && request.method === 'POST') {
-			return lsWebhook(request, env);
-		}
 		if (path === '/webhooks/polar' && request.method === 'POST') {
 			return polarWebhook(request, env);
 		}
@@ -145,7 +135,6 @@ export default {
 		if (path === '/auth/magic/verify') return magicVerify(request, env, corsOrigin);
 		if (path === '/auth/google') return google(request, env, corsOrigin);
 		if (path === '/auth/session') return session(request, env, corsOrigin);
-		if (path === '/auth/license/bind') return licenseBind(request, env, corsOrigin);
 		if (path === '/auth/test-access/redeem') return testAccessRedeem(request, env, corsOrigin);
 		if (path === '/checkout/polar') return polarCheckoutCreate(request, env, corsOrigin, origin);
 		if (path === '/checkout/polar/status') return polarCheckoutStatus(request, env, corsOrigin);
@@ -266,18 +255,9 @@ async function subdomain(request, env, corsOrigin, claim) {
 // --- /handoff — "send me the link" emails -----------------------------------
 //
 // Phones can browse and buy but not build, so the editor offers to email the
-// person their own editor link to open on a computer. Two modes:
-//   { license_key } — a buyer. The key is validated with Lemon Squeezy and the
-//                     mail goes to the ADDRESS ON THE PURCHASE, carrying an
-//                     auto-unlock link (?license_key=…). The caller cannot pick
-//                     the recipient, so a key can only ever mail its own buyer.
-//   { email }       — not (yet) a buyer. A plain editor link goes to the given
-//                     address. Subject and body are fixed here, so the worst
-//                     abuse of this endpoint is repeating the same short mail —
-//                     dampened by the per-isolate rate limit below (add a
-//                     Cloudflare rate-limiting rule on /handoff for real volume).
-
-const LS_VALIDATE_URL = 'https://api.lemonsqueezy.com/v1/licenses/validate';
+// person their own editor link to open on a computer. A Hangwork session fixes the
+// recipient to the account email and selects paid/unpaid copy from D1. Signed-out
+// visitors may supply an address for the plain handoff email.
 const HANDOFF_WINDOW_MS = 10 * 60 * 1000;
 const HANDOFF_MAX_PER_WINDOW = 4;
 
@@ -353,35 +333,11 @@ async function handoff(request, env, corsOrigin, origin) {
 
 	let to;
 	let mail;
-	if (typeof body.license_key === 'string' && body.license_key.trim()) {
-		// Paid mode: the key decides the recipient. Validate it with Lemon Squeezy
-		// and confirm it belongs to THIS product before mailing anyone.
-		const key = body.license_key.trim();
-		if (key.length > 64) return json({ error: 'invalid_license' }, 400, corsOrigin);
-		let data;
-		try {
-			const res = await fetch(LS_VALIDATE_URL, {
-				method: 'POST',
-				headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-				body: new URLSearchParams({ license_key: key }).toString(),
-			});
-			data = await res.json();
-		} catch {
-			return json({ error: 'license_service_unreachable' }, 502, corsOrigin);
-		}
-		// "inactive" just means not yet activated on a device — still a real purchase.
-		// Disabled/expired keys (refunds) get no mail.
-		const status = data?.license_key?.status;
-		const meta = data?.meta;
-		const belongsHere =
-			meta &&
-			(!env.LS_STORE_ID || meta.store_id === Number(env.LS_STORE_ID)) &&
-			(!env.LS_PRODUCT_ID || meta.product_id === Number(env.LS_PRODUCT_ID));
-		if (!(status === 'active' || status === 'inactive') || !belongsHere || !isEmailAddress(meta.customer_email)) {
-			return json({ error: 'invalid_license' }, 400, corsOrigin);
-		}
-		to = meta.customer_email.trim();
-		mail = postPurchaseEmail(`${editorLink}?license_key=${encodeURIComponent(key)}`);
+	const signedInUser = env.SESSION_SECRET && env.DB ? await sessionUser(request, env) : null;
+	if (signedInUser) {
+		const summary = await accountSummary(env.DB, signedInUser);
+		to = signedInUser.email;
+		mail = summary.licensed ? postPurchaseEmail(editorLink) : handoffEmail(editorLink);
 	} else if (isEmailAddress(body.email)) {
 		to = body.email.trim();
 		mail = handoffEmail(editorLink);
@@ -392,8 +348,7 @@ async function handoff(request, env, corsOrigin, origin) {
 	if (!(await sendEmail(env, to, mail))) {
 		return json({ error: 'email_send_failed' }, 502, corsOrigin);
 	}
-	// Echo the recipient so the editor can show "Sent to …" (it's the caller's own
-	// address, or the buyer's own — the license key already proves purchase).
+	// Echo the recipient so the editor can show "Sent to …".
 	return json({ sent: true, email: to }, 200, corsOrigin);
 }
 

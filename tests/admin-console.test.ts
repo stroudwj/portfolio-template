@@ -145,11 +145,24 @@ class FakeDb {
 				},
 			];
 		}
-		if (sql.includes('admin-account-licenses')) {
+		if (sql.includes('admin-account-polar-orders')) {
+			return [
+				{
+					id: 'polar-order-1',
+					polar_customer_id: 'polar-customer-1',
+					checkout_id: 'polar-checkout-1',
+					product_id: 'polar-product-1',
+					buyer_email: 'artist@example.com',
+					status: 'active',
+					paid_at: '2026-07-05T12:00:00.000Z',
+					created_at: '2026-07-05T12:00:00.000Z',
+				},
+			];
+		}
+		if (sql.includes('admin-account-legacy-purchases')) {
 			return [
 				{
 					id: 'license-1',
-					ls_license_key: 'SECRET-LICENSE-1234',
 					ls_order_id: 'order-1',
 					buyer_email: 'artist@example.com',
 					status: 'active',
@@ -320,6 +333,8 @@ describe('admin console API', () => {
 			'%artist@example.com%',
 			'artist@example.com',
 			'artist@example.com',
+			'artist@example.com',
+			'artist@example.com',
 			25,
 			0,
 		]);
@@ -354,7 +369,7 @@ describe('admin console API', () => {
 		expect((await inheritedName.json()).sort).toBe('activity');
 	});
 
-	it('returns account detail without exposing a full license key or Google subject', async () => {
+	it('returns Polar and grandfathered purchase detail without exposing secrets or Google subject', async () => {
 		const response = await worker.fetch(
 			request('/admin/accounts/get', await tokenFor(adminUser.id), { userId: artistUser.id }),
 			env,
@@ -369,11 +384,19 @@ describe('admin console API', () => {
 			lastSignInAt: '2026-07-21T12:00:00.000Z',
 			updatedAt: '2026-07-22T12:00:00.000Z',
 		});
-		expect(data.licenses[0].key).toBe('••••1234');
+		expect(data.polarOrders[0]).toMatchObject({
+			id: 'polar-order-1',
+			customerId: 'polar-customer-1',
+			checkoutId: 'polar-checkout-1',
+			status: 'active',
+		});
+		expect(data.legacyPurchases[0]).toMatchObject({
+			orderId: 'order-1',
+			status: 'active',
+		});
 		expect(data.manualEntitlements).toEqual([]);
 		expect(data.audit).toEqual([]);
 		expect(data.site.suspension).toBeNull();
-		expect(JSON.stringify(data)).not.toContain('SECRET-LICENSE');
 		expect(JSON.stringify(data)).not.toContain('google-artist');
 		expect(data.site.url).toBe('https://artist.hangwork.art');
 	});
@@ -387,7 +410,7 @@ describe('admin console API', () => {
 		expect(db.statements.every((sql) => /^\s*SELECT\b/i.test(sql))).toBe(true);
 	});
 
-	it('grants and revokes manual access without modifying Lemon Squeezy rows', async () => {
+	it('grants and revokes manual access without modifying paid purchase rows', async () => {
 		const token = await tokenFor(adminUser.id);
 		const grant = await worker.fetch(
 			request('/admin/licenses/grant', token, { userId: artistUser.id, reason: 'Complimentary support access' }),
@@ -415,6 +438,9 @@ describe('admin console API', () => {
 		expect(db.auditWrites).toBe(2);
 		expect(
 			db.statements.some((sql) => /(?:INSERT|UPDATE|DELETE)\s+(?:INTO\s+)?licenses\b/i.test(sql)),
+		).toBe(false);
+		expect(
+			db.statements.some((sql) => /(?:INSERT|UPDATE|DELETE)\s+(?:INTO\s+)?polar_orders\b/i.test(sql)),
 		).toBe(false);
 	});
 

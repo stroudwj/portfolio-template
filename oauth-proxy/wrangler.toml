@@ -20,10 +20,6 @@ CF_ZONE_ID = "45dd2f188d13d5dace6eeeb7d74282e0"
 # must be verified in Resend (DNS records on hangwork.art). /handoff answers 503 until
 # EMAIL_FROM and the RESEND_API_KEY secret are both set.
 EMAIL_FROM = "Hangwork <hello@hangwork.art>"
-# Lemon Squeezy store/product ids — /handoff only mails buyers of THIS product.
-# Keep in sync with src/editor/lib/license/config.ts.
-LS_STORE_ID = "431697"
-LS_PRODUCT_ID = "1221404"
 
 # Polar production resources. Sandbox uses a separate organization, product,
 # benefit, access token, and webhook endpoint.
@@ -76,8 +72,7 @@ bucket_name = "hangwork-sites"
 #   wrangler secret put RESEND_API_KEY      (Resend API key for /handoff + magic-link emails)
 #   wrangler secret put SESSION_SECRET      (long random string; signs session JWTs + upload tickets)
 #   wrangler secret put GOOGLE_CLIENT_SECRET (Google OAuth client secret, if Google sign-in is on)
-#   wrangler secret put LS_WEBHOOK_SECRET   (Lemon Squeezy webhook signing secret for /webhooks/lemonsqueezy)
-#   wrangler secret put POLAR_ACCESS_TOKEN  (server-only sandbox/live Organization Access Token)
+#   wrangler secret put POLAR_ACCESS_TOKEN  (server-only production Organization Access Token)
 #   wrangler secret put POLAR_WEBHOOK_SECRET (signing secret for /webhooks/polar)
 #   wrangler secret put CF_SAAS_TOKEN       (Cloudflare API token, SSL and Certificates:Edit — custom hostnames)
 #   wrangler secret put ADMIN_GOOGLE_SUBS    (comma-separated Google subject ids allowed into /admin)

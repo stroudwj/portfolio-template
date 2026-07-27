@@ -1,24 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../oauth-proxy/worker.js';
 import { Webhook } from 'standardwebhooks';
+import { signJwt } from '../oauth-proxy/lib/jwt.js';
 
 const ORIGIN = 'https://hangwork.art';
 const PRODUCT_ID = 'c56f15d7-6325-4060-85a5-af7536f35e4c';
 const CHECKOUT_ID = 'b419206b-45e0-4e46-9213-01fc19f629e7';
+const USER_ID = 'buyer-user';
+const USER_EMAIL = 'buyer@example.com';
+const SESSION_SECRET = 'polar-checkout-session-secret';
+const checkoutDb = {
+	prepare(sql: string) {
+		return {
+			bind(id: string) {
+				return {
+					async first() {
+						if (sql.includes('SELECT * FROM users WHERE id = ?') && id === USER_ID) {
+							return { id: USER_ID, email: USER_EMAIL };
+						}
+						return null;
+					},
+				};
+			},
+		};
+	},
+};
 const ENV = {
 	ALLOWED_ORIGIN: ORIGIN,
 	POLAR_SERVER: 'sandbox',
 	POLAR_ACCESS_TOKEN: 'polar_oat_test',
 	POLAR_PRODUCT_ID: PRODUCT_ID,
+	SESSION_SECRET,
+	DB: checkoutDb,
 };
 
-function checkoutRequest(path = '/checkout/polar', body: unknown = {}) {
+function checkoutRequest(token: string, path = '/checkout/polar', body: unknown = {}) {
 	return new Request(`https://worker.example${path}`, {
 		method: 'POST',
 		headers: {
 			Origin: ORIGIN,
 			'Content-Type': 'application/json',
 			'CF-Connecting-IP': '203.0.113.8',
+			Authorization: `Bearer ${token}`,
 		},
 		body: JSON.stringify(body),
 	});
@@ -26,10 +49,13 @@ function checkoutRequest(path = '/checkout/polar', body: unknown = {}) {
 
 describe('Polar checkout sessions', () => {
 	const fetchMock = vi.fn();
+	let token: string;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		fetchMock.mockReset();
 		vi.stubGlobal('fetch', fetchMock);
+		const now = Math.floor(Date.now() / 1000);
+		token = await signJwt({ sub: USER_ID, iat: now, exp: now + 60 }, SESSION_SECRET);
 	});
 
 	afterEach(() => {
@@ -47,7 +73,7 @@ describe('Polar checkout sessions', () => {
 			),
 		);
 
-		const response = await worker.fetch(checkoutRequest(), ENV);
+		const response = await worker.fetch(checkoutRequest(token), ENV);
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({
 			url: `https://sandbox.polar.sh/checkout/${CHECKOUT_ID}`,
@@ -59,8 +85,10 @@ describe('Polar checkout sessions', () => {
 		const payload = JSON.parse(init.body);
 		expect(payload.products).toEqual([PRODUCT_ID]);
 		expect(payload.customer_ip_address).toBe('203.0.113.8');
+		expect(payload.customer_email).toBe(USER_EMAIL);
+		expect(payload.external_customer_id).toBe(USER_ID);
 		expect(payload.success_url).toBe(
-			'https://hangwork.art/editor/?polar_review=1&polar_checkout=success&checkout_id={CHECKOUT_ID}',
+			'https://hangwork.art/editor/?polar_checkout=success&checkout_id={CHECKOUT_ID}',
 		);
 		expect(payload.return_url).toBe('https://hangwork.art/editor/');
 	});
@@ -76,7 +104,7 @@ describe('Polar checkout sessions', () => {
 			),
 		);
 
-		const response = await worker.fetch(checkoutRequest(), {
+		const response = await worker.fetch(checkoutRequest(token), {
 			...ENV,
 			POLAR_SERVER: 'production',
 		});
@@ -89,7 +117,7 @@ describe('Polar checkout sessions', () => {
 	});
 
 	it('fails closed when Polar is unconfigured or returns a foreign URL', async () => {
-		const unconfigured = await worker.fetch(checkoutRequest(), {
+		const unconfigured = await worker.fetch(checkoutRequest(token), {
 			ALLOWED_ORIGIN: ORIGIN,
 		});
 		expect(unconfigured.status).toBe(503);
@@ -100,24 +128,41 @@ describe('Polar checkout sessions', () => {
 				headers: { 'Content-Type': 'application/json' },
 			}),
 		);
-		const unsafe = await worker.fetch(checkoutRequest(), ENV);
+		const unsafe = await worker.fetch(checkoutRequest(token), ENV);
 		expect(unsafe.status).toBe(502);
 		expect(await unsafe.json()).toEqual({ error: 'polar_checkout_failed' });
 	});
 
 	it('confirms a returned checkout belongs to the configured product', async () => {
 		fetchMock.mockResolvedValueOnce(
-			new Response(JSON.stringify({ id: CHECKOUT_ID, product_id: PRODUCT_ID, status: 'succeeded' }), {
+			new Response(JSON.stringify({
+				id: CHECKOUT_ID,
+				product_id: PRODUCT_ID,
+				external_customer_id: USER_ID,
+				status: 'succeeded',
+			}), {
 				status: 200,
 				headers: { 'Content-Type': 'application/json' },
 			}),
 		);
 		const response = await worker.fetch(
-			checkoutRequest('/checkout/polar/status', { checkout_id: CHECKOUT_ID }),
+			checkoutRequest(token, '/checkout/polar/status', { checkout_id: CHECKOUT_ID }),
 			ENV,
 		);
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({ status: 'succeeded' });
+	});
+
+	it('requires a signed-in Hangwork account', async () => {
+		const request = new Request('https://worker.example/checkout/polar', {
+			method: 'POST',
+			headers: { Origin: ORIGIN, 'Content-Type': 'application/json' },
+			body: '{}',
+		});
+		const response = await worker.fetch(request, ENV);
+		expect(response.status).toBe(401);
+		expect(await response.json()).toEqual({ error: 'invalid_session' });
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
 
@@ -133,7 +178,9 @@ class PolarDb {
 				return this;
 			},
 			async first() {
-				if (sql.includes('SELECT id FROM users WHERE email = ?')) return { id: 'buyer-user' };
+				if (sql.includes('SELECT id FROM users WHERE id = ?') || sql.includes('SELECT id FROM users WHERE email = ?')) {
+					return { id: USER_ID };
+				}
 				throw new Error(`Unexpected first(): ${sql}`);
 			},
 			async run() {
@@ -196,7 +243,7 @@ describe('Polar webhook entitlement', () => {
 					product_id: PRODUCT_ID,
 					customer_id: 'customer-1',
 					checkout_id: CHECKOUT_ID,
-					customer: { email: 'BUYER@example.com' },
+					customer: { email: 'BUYER@example.com', external_id: USER_ID },
 				},
 			},
 			'polar-webhook-test-secret',

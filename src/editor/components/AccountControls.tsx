@@ -4,15 +4,13 @@
 import { useEffect, useState } from 'react';
 import { useEditor } from '../store';
 import { useAccount } from './useAccount';
-import type { LicenseSession } from './useLicense';
-import { shouldResumePublish, clearResumePublish } from '../lib/license/flow';
-import { getLicense } from '../lib/license/session';
+import { shouldResumePublish, clearResumePublish } from '../lib/polar-checkout';
 import { hasPublishableContent } from '../lib/validation';
 import SignInModal from './SignInModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
 
-export default function AccountControls({ license }: { license: LicenseSession }) {
+export default function AccountControls() {
 	const { doc } = useEditor();
 	const account = useAccount({ returnToEditorAfterGoogle: Boolean(doc) });
 	const [showSignIn, setShowSignIn] = useState(false);
@@ -20,10 +18,9 @@ export default function AccountControls({ license }: { license: LicenseSession }
 	const [showPublish, setShowPublish] = useState(false);
 
 	// Publishing needs two independent things, in either order: a built site and an
-	// unlocked account. The account's server-side license is authoritative; a locally
-	// activated key still counts during the transition (the Worker re-checks anyway).
+	// account entitlement. The Worker's D1 ledger is authoritative.
 	const built = doc ? hasPublishableContent(doc) : false;
-	const unlocked = account.licensed || !license.required || license.status === 'licensed';
+	const unlocked = account.licensed;
 	const signedIn = account.status === 'signed-in';
 
 	// After a checkout round-trip (buyer clicked Buy, paid, and got auto-unlocked on
@@ -33,10 +30,8 @@ export default function AccountControls({ license }: { license: LicenseSession }
 		if (signedIn && unlocked) {
 			clearResumePublish();
 			if (built) setShowPublish(true);
-		} else if (license.status === 'unlicensed' && !account.licensed && account.status !== 'checking') {
-			clearResumePublish();
 		}
-	}, [signedIn, unlocked, built, license.status, account.licensed, account.status]);
+	}, [signedIn, unlocked, built]);
 
 	if (account.status === 'checking') {
 		return <span className="gh-chip muted-chip">Checking sign-in…</span>;
@@ -88,16 +83,10 @@ export default function AccountControls({ license }: { license: LicenseSession }
 			)}
 			{showLicense && (
 				<LicenseGateModal
-					activate={license.activate}
-					revalidate={license.revalidate}
 					redeemTestAccess={account.redeemTestAccess}
 					onClose={() => setShowLicense(false)}
 					onUnlocked={() => {
 						setShowLicense(false);
-						// Record the unlock on the ACCOUNT too (the server-side gate) —
-						// best-effort; the stored key re-binds on the next sign-in either way.
-						const stored = getLicense();
-						if (stored) void account.bindLicense(stored.key).catch(() => {});
 						if (built) setShowPublish(true);
 					}}
 				/>

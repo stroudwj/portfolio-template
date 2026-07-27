@@ -31,8 +31,13 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'Your sign-in has expired. Please sign in again.';
 		case 'license_required':
 			return 'Publishing needs your Hangwork license. Buy once, or sign in with the email you bought with.';
-		case 'license_in_use':
-			return 'That license key is already attached to a different account.';
+		case 'polar_unconfigured':
+			return 'Secure checkout isn’t switched on right now.';
+		case 'polar_unreachable':
+		case 'polar_checkout_failed':
+			return 'Polar checkout couldn’t be opened. Check your connection and try again.';
+		case 'checkout_not_found':
+			return 'That checkout could not be confirmed for this account.';
 		case 'invalid_test_access_code':
 			return 'That tester access code wasn’t accepted. Check it and try again.';
 		case 'test_access_revoked':

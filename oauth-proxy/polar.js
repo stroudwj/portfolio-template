@@ -24,7 +24,6 @@ function editorUrl(origin, env) {
 function checkoutReturnUrls(origin, env) {
 	const returnUrl = editorUrl(origin, env);
 	const successUrl = new URL(returnUrl);
-	successUrl.searchParams.set('polar_review', '1');
 	successUrl.searchParams.set('polar_checkout', 'success');
 
 	// Keep Polar's placeholder literal. URLSearchParams would percent-encode the
@@ -60,10 +59,12 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !env.POLAR_PRODUCT_ID) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
+	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
+	const user = await sessionUser(request, env);
+	if (!user) return json({ error: 'invalid_session' }, 401, corsOrigin);
 
 	const { successUrl, returnUrl } = checkoutReturnUrls(origin, env);
 	const customerIp = request.headers.get('CF-Connecting-IP') || '';
-	const user = env.SESSION_SECRET && env.DB ? await sessionUser(request, env) : null;
 	const payload = {
 		products: [env.POLAR_PRODUCT_ID],
 		success_url: successUrl,
@@ -73,7 +74,8 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 			source: 'hangwork-editor',
 			environment: env.POLAR_SERVER,
 		},
-		...(user ? { customer_email: user.email, external_customer_id: user.id } : {}),
+		customer_email: user.email,
+		external_customer_id: user.id,
 		...(customerIp ? { customer_ip_address: customerIp } : {}),
 	};
 
@@ -101,6 +103,9 @@ export async function polarCheckoutStatus(request, env, corsOrigin) {
 	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !env.POLAR_PRODUCT_ID) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
+	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
+	const user = await sessionUser(request, env);
+	if (!user) return json({ error: 'invalid_session' }, 401, corsOrigin);
 
 	let body;
 	try {
@@ -120,8 +125,13 @@ export async function polarCheckoutStatus(request, env, corsOrigin) {
 		return json({ error: 'polar_unreachable' }, 502, corsOrigin);
 	}
 	const data = await response.json().catch(() => ({}));
-	if (!response.ok || data?.product_id !== env.POLAR_PRODUCT_ID) {
-		return json({ error: 'checkout_not_found' }, response.status === 404 ? 404 : 502, corsOrigin);
+	if (
+		!response.ok ||
+		data?.product_id !== env.POLAR_PRODUCT_ID ||
+		data?.external_customer_id !== user.id
+	) {
+		const upstreamFailure = !response.ok && response.status !== 404;
+		return json({ error: 'checkout_not_found' }, upstreamFailure ? 502 : 404, corsOrigin);
 	}
 	return json({ status: data.status }, 200, corsOrigin);
 }
@@ -142,6 +152,7 @@ function paidOrder(payload) {
 	return {
 		id: order.id,
 		customerId: order.customer_id || order.customer?.id || null,
+		externalCustomerId: order.customer?.external_id || null,
 		checkoutId: order.checkout_id || null,
 		productId: order.product_id,
 		email,
@@ -151,7 +162,9 @@ function paidOrder(payload) {
 
 async function recordPaidOrder(env, order) {
 	if (order.productId !== env.POLAR_PRODUCT_ID) return;
-	const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(order.email).first();
+	const user = order.externalCustomerId
+		? await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(order.externalCustomerId).first()
+		: await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(order.email).first();
 	const createdAt = new Date().toISOString();
 	await env.DB.prepare(
 		`INSERT INTO polar_orders
@@ -161,6 +174,7 @@ async function recordPaidOrder(env, order) {
 			user_id = COALESCE(polar_orders.user_id, excluded.user_id),
 			polar_customer_id = excluded.polar_customer_id,
 			checkout_id = excluded.checkout_id,
+			product_id = excluded.product_id,
 			buyer_email = excluded.buyer_email,
 			status = 'active',
 			paid_at = excluded.paid_at`,

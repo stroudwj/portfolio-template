@@ -1,13 +1,11 @@
-// Hangwork accounts — passwordless auth + license binding (Direction D, Subsystem 1).
+// Hangwork accounts — passwordless auth + audited tester access.
 //
 // Routes (wired in worker.js):
 //   POST /auth/magic/start   { email }        → email a single-use sign-in link (Resend)
 //   POST /auth/magic/verify  { token }        → nonce → session JWT + account summary
 //   POST /auth/google        { code, redirect_uri } → Google code → session JWT + summary
 //   POST /auth/session       (Bearer)         → validate JWT, return account summary
-//   POST /auth/license/bind  { license_key } (Bearer) → validate with LS, attach to user
 //   POST /auth/test-access/redeem { code } (Bearer) → reusable tester code → manual grant
-//   POST /webhooks/lemonsqueezy               → signed webhook; the robust license ledger
 //
 // The session is a stateless 30-day HS256 JWT signed with SESSION_SECRET. Sign-out is
 // client-side (drop the token) — nothing server-side to revoke, and the license/site
@@ -20,7 +18,6 @@ import { upsertUserByEmail, getUser, accountSummary, newId, recordUserSignIn, to
 
 const SESSION_TTL_S = 30 * 24 * 60 * 60; // 30 days
 const MAGIC_TTL_S = 15 * 60; // sign-in link validity
-const LS_VALIDATE_URL = 'https://api.lemonsqueezy.com/v1/licenses/validate';
 
 async function issueSession(env, user) {
 	const now = Math.floor(Date.now() / 1000);
@@ -148,59 +145,6 @@ export async function session(request, env, corsOrigin) {
 	return json(await accountSummary(env.DB, user), 200, corsOrigin);
 }
 
-// ---- license binding (editor redirect path) --------------------------------
-
-export async function licenseBind(request, env, corsOrigin) {
-	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
-	const user = await sessionUser(request, env);
-	if (!user) return json({ error: 'invalid_session' }, 401, corsOrigin);
-
-	const body = await readJson(request);
-	const key = typeof body?.license_key === 'string' ? body.license_key.trim() : '';
-	if (!key || key.length > 64) return json({ error: 'invalid_license' }, 400, corsOrigin);
-
-	// Validate with Lemon Squeezy and confirm the key is for THIS product — the same
-	// server-side check /handoff performs (the browser's product check moved here).
-	let data;
-	try {
-		const res = await fetch(LS_VALIDATE_URL, {
-			method: 'POST',
-			headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({ license_key: key }).toString(),
-		});
-		data = await res.json();
-	} catch {
-		return json({ error: 'license_service_unreachable' }, 502, corsOrigin);
-	}
-	// "inactive" = not activated on a device yet — still a real purchase.
-	const status = data?.license_key?.status;
-	const meta = data?.meta;
-	const belongsHere =
-		meta &&
-		(!env.LS_STORE_ID || meta.store_id === Number(env.LS_STORE_ID)) &&
-		(!env.LS_PRODUCT_ID || meta.product_id === Number(env.LS_PRODUCT_ID));
-	if (!(status === 'active' || status === 'inactive') || !belongsHere) {
-		return json({ error: 'invalid_license' }, 400, corsOrigin);
-	}
-
-	// Upsert by key: the webhook may already have recorded it (possibly unattached).
-	const existing = await env.DB.prepare('SELECT * FROM licenses WHERE ls_license_key = ?').bind(key).first();
-	if (existing) {
-		if (existing.user_id && existing.user_id !== user.id) return json({ error: 'license_in_use' }, 409, corsOrigin);
-		await env.DB.prepare("UPDATE licenses SET user_id = ?, status = 'active', activated_at = COALESCE(activated_at, ?) WHERE id = ?")
-			.bind(user.id, new Date().toISOString(), existing.id)
-			.run();
-	} else {
-		await env.DB.prepare(
-			'INSERT INTO licenses (id, user_id, ls_license_key, ls_order_id, buyer_email, status, activated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-		)
-			.bind(newId(), user.id, key, meta.order_id ? String(meta.order_id) : null, meta.customer_email || null, 'active', new Date().toISOString())
-			.run();
-	}
-	await touchUser(env.DB, user.id);
-	return json(await accountSummary(env.DB, user), 200, corsOrigin);
-}
-
 // ---- reusable tester access -----------------------------------------------
 
 const TEST_ACCESS_REASON = 'Tester access code';
@@ -208,10 +152,10 @@ const TEST_ACCESS_REASON = 'Tester access code';
 /**
  * Redeem the shared, rotatable tester code for account-level publishing access.
  *
- * This deliberately creates a manual entitlement rather than a fake Lemon Squeezy
- * purchase. The admin console can therefore inspect and revoke it without touching the
- * paid-license ledger. Once an account's tester grant is revoked, the same shared code
- * cannot silently grant that account access again; an operator must restore it manually.
+ * This deliberately creates a manual entitlement rather than a paid purchase. The admin
+ * console can inspect and revoke it without touching Polar or grandfathered purchase rows.
+ * Once an account's tester grant is revoked, the same shared code cannot silently grant
+ * that account access again; an operator must restore it manually.
  */
 export async function testAccessRedeem(request, env, corsOrigin) {
 	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
@@ -279,7 +223,7 @@ export async function testAccessRedeem(request, env, corsOrigin) {
 	return json(await accountSummary(env.DB, user), 200, corsOrigin);
 }
 
-// ---- Lemon Squeezy webhook (the robust source of truth) --------------------
+// ---- constant-time tester-code helpers ------------------------------------
 
 async function hmacHex(secret, bodyText) {
 	const key = await crypto.subtle.importKey(
@@ -298,76 +242,4 @@ function timingSafeEqual(a, b) {
 	let diff = 0;
 	for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
 	return diff === 0;
-}
-
-/** No CORS/origin gate — Lemon Squeezy's servers call this. Auth = the signing secret. */
-export async function lsWebhook(request, env) {
-	if (!env.LS_WEBHOOK_SECRET || !env.DB) return new Response('unconfigured', { status: 503 });
-	const bodyText = await request.text();
-	const signature = request.headers.get('X-Signature') || '';
-	const expected = await hmacHex(env.LS_WEBHOOK_SECRET, bodyText);
-	if (!signature || !timingSafeEqual(signature.toLowerCase(), expected)) {
-		return new Response('invalid signature', { status: 401 });
-	}
-
-	let payload;
-	try {
-		payload = JSON.parse(bodyText);
-	} catch {
-		return new Response('invalid json', { status: 400 });
-	}
-	const event = payload?.meta?.event_name;
-	const attrs = payload?.data?.attributes ?? {};
-
-	if (event === 'order_created') {
-		// Only orders for THIS product create entitlements.
-		const productId = attrs.first_order_item?.product_id;
-		if (env.LS_PRODUCT_ID && productId !== Number(env.LS_PRODUCT_ID)) return new Response('ignored', { status: 200 });
-		if (attrs.status && attrs.status !== 'paid') return new Response('ignored', { status: 200 });
-		const orderId = String(payload.data.id);
-		const email = typeof attrs.user_email === 'string' ? attrs.user_email.trim().toLowerCase() : null;
-		if (!email) return new Response('ignored', { status: 200 });
-		// Attach immediately when the buyer already has an account; else leave user_id
-		// NULL — accountSummary() adopts it by email on their next sign-in.
-		const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-		await env.DB.prepare(
-			'INSERT INTO licenses (id, user_id, ls_order_id, buyer_email, status) VALUES (?, ?, ?, ?, ?) ' +
-				"ON CONFLICT(ls_order_id) DO UPDATE SET status = 'active', buyer_email = excluded.buyer_email",
-		)
-			.bind(newId(), user?.id ?? null, orderId, email, 'active')
-			.run();
-		return new Response('ok', { status: 200 });
-	}
-
-	if (event === 'license_key_created') {
-		// Record the actual key against the order's license row (creates it if the
-		// order_created event was missed).
-		const orderId = attrs.order_id != null ? String(attrs.order_id) : null;
-		const key = typeof attrs.key === 'string' ? attrs.key : null;
-		if (!key) return new Response('ignored', { status: 200 });
-		const email = typeof attrs.user_email === 'string' ? attrs.user_email.trim().toLowerCase() : null;
-		const row = orderId
-			? await env.DB.prepare('SELECT id FROM licenses WHERE ls_order_id = ?').bind(orderId).first()
-			: null;
-		if (row) {
-			await env.DB.prepare('UPDATE licenses SET ls_license_key = ? WHERE id = ?').bind(key, row.id).run();
-		} else {
-			const user = email ? await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first() : null;
-			await env.DB.prepare(
-				'INSERT INTO licenses (id, user_id, ls_license_key, ls_order_id, buyer_email, status) VALUES (?, ?, ?, ?, ?, ?) ' +
-					'ON CONFLICT(ls_license_key) DO NOTHING',
-			)
-				.bind(newId(), user?.id ?? null, key, orderId, email, 'active')
-				.run();
-		}
-		return new Response('ok', { status: 200 });
-	}
-
-	if (event === 'order_refunded') {
-		const orderId = String(payload.data.id);
-		await env.DB.prepare("UPDATE licenses SET status = 'refunded' WHERE ls_order_id = ?").bind(orderId).run();
-		return new Response('ok', { status: 200 });
-	}
-
-	return new Response('ignored', { status: 200 });
 }

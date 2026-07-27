@@ -15,11 +15,10 @@ import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
 import AccountControls from './components/AccountControls';
-import PolarCheckoutDemo from './components/PolarCheckoutDemo';
+import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
 import { onShowEditorTab } from './components/ui/controls';
-import { useLicense } from './components/useLicense';
-import { shouldResumePublish } from './lib/license/flow';
+import { shouldResumePublish } from './lib/polar-checkout';
 import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
 import { collectIssues } from './lib/validation';
@@ -180,9 +179,6 @@ function Shell({ base }: { base: string }) {
 	useEffect(() => onShowEditorTab((next) => {
 		if (EDITOR_TABS.some((t) => t.id === next)) pickTab(next as EditorTab);
 	}), []);
-	// Held at the top level so the auto-unlock-after-purchase handler runs even on the Start
-	// screen (a buyer usually lands there returning from checkout, before the editor mounts).
-	const license = useLicense();
 	const phone = usePhoneContext();
 
 	useUndoShortcuts(undo, redo);
@@ -206,7 +202,7 @@ function Shell({ base }: { base: string }) {
 	// Phones get the door + a read-only preview, never the canvas. Browsing, checkout,
 	// and the auto-unlock-after-purchase flow above all still run on a phone — only
 	// BUILDING is desktop work. Tablets pass straight through.
-	if (phone) return <MobileDoor license={license} base={base} brandLockup={brandLockup} />;
+	if (phone) return <MobileDoor base={base} brandLockup={brandLockup} />;
 
 	if (!doc) return <StartScreen brandLockup={brandLockup} />;
 
@@ -280,7 +276,7 @@ function Shell({ base }: { base: string }) {
 				<button type="button" className="btn-ghost danger" onClick={resetAll}>
 					Reset
 				</button>
-				<AccountControls license={license} />
+				<AccountControls />
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>
@@ -340,7 +336,7 @@ function Shell({ base }: { base: string }) {
 						<SharingEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'publish' ? 'active' : ''}`}>
-						<PublishPanel license={license} />
+						<PublishPanel />
 					</div>
 				</div>
 				<div className="editor-preview">
@@ -354,7 +350,7 @@ function Shell({ base }: { base: string }) {
 export default function EditorApp({ base = '' }: { base?: string }) {
 	return (
 		<EditorProvider>
-			<PolarCheckoutDemo />
+			<CheckoutIntent />
 			<Shell base={base} />
 		</EditorProvider>
 	);

@@ -47,10 +47,10 @@ export async function touchUser(db, userId) {
 	return updatedAt;
 }
 
-// ---- licenses --------------------------------------------------------------
+// ---- purchase entitlements -------------------------------------------------
 
-/** Attach any webhook-created (user_id IS NULL) licenses whose buyer email matches. */
-export async function adoptLicensesForUser(db, user) {
+/** Preserve access for purchases recorded before the Polar cutover. */
+export async function adoptGrandfatheredPurchasesForUser(db, user) {
 	await db
 		.prepare("UPDATE licenses SET user_id = ? WHERE user_id IS NULL AND buyer_email = ? AND status = 'active'")
 		.bind(user.id, user.email)
@@ -123,7 +123,7 @@ export async function deleteSiteRows(db, siteId) {
 
 /** Summarize a user's account for the editor (used by /auth/session). */
 export async function accountSummary(db, user) {
-	await adoptLicensesForUser(db, user);
+	await adoptGrandfatheredPurchasesForUser(db, user);
 	await adoptPolarOrdersForUser(db, user);
 	const licensed = await userHasActiveLicense(db, user.id);
 	const site = await getSiteForUser(db, user.id);

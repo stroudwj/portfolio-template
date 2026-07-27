@@ -14,10 +14,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { PLACEHOLDER_IMAGE, docToPortfolioData, existingDoc } from '../lib/content-init';
-import { getLicense } from '../lib/license/session';
-import { HANDOFF_SENT_EVENT, HandoffError, desktopLinkUrl, justSentTo, sendDesktopLink } from '../lib/license/handoff';
+import { HANDOFF_SENT_EVENT, HandoffError, desktopLinkUrl, justSentTo, sendDesktopLink } from '../lib/handoff';
 import { isEmail } from '../lib/validation';
-import type { LicenseSession } from './useLicense';
+import { useAccount } from './useAccount';
 
 const NUDGE_TEXT =
 	'Hanging works best on a bigger screen. Take a look around for now — I’ll email you a link to arrange everything on your computer.';
@@ -33,13 +32,14 @@ const READONLY_PLACEHOLDER =
 
 type Phase = 'door' | 'sent' | 'browse';
 
-export default function MobileDoor({ license, base, brandLockup }: { license: LicenseSession; base: string; brandLockup: string }) {
+export default function MobileDoor({ base, brandLockup }: { base: string; brandLockup: string }) {
 	const { doc, hasDraft, resumeDraft } = useEditor();
-	// Paid is an account property: an activated (or stored, pending re-check) license.
-	const paid = license.status === 'licensed' || Boolean(getLicense());
+	const account = useAccount();
+	const paid = account.licensed;
+	const canAutoAddress = account.status === 'signed-in' && Boolean(account.user?.email);
 
-	// A fresh purchase auto-sends the post-purchase email (useLicense) — open on the
-	// confirmation then, not on a door asking them to do it again.
+	// A fresh Polar return auto-sends the post-purchase email through useAccount — open
+	// on the confirmation then, not on a door asking them to do it again.
 	const [phase, setPhase] = useState<Phase>(() => (justSentTo() ? 'sent' : 'door'));
 	const [sentTo, setSentTo] = useState<string | null>(() => justSentTo());
 	const [email, setEmail] = useState('');
@@ -70,15 +70,15 @@ export default function MobileDoor({ license, base, brandLockup }: { license: Li
 	const [page, setPage] = useState('home');
 
 	const send = async () => {
-		if (!paid && !isEmail(email)) {
+		if (!canAutoAddress && !isEmail(email)) {
 			setNote('That email doesn’t look complete yet.');
 			return;
 		}
 		setBusy(true);
 		setNote(null);
 		try {
-			const result = await sendDesktopLink(paid ? undefined : email);
-			setSentTo(result.email || (paid ? null : email.trim()));
+			const result = await sendDesktopLink(canAutoAddress ? undefined : email);
+			setSentTo(result.email || (canAutoAddress ? account.user?.email || null : email.trim()));
 			setPhase('sent');
 			setCopyFallback(false);
 		} catch (err) {

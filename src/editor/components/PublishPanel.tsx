@@ -5,14 +5,12 @@ import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { useAccount } from './useAccount';
-import type { LicenseSession } from './useLicense';
 import { hasPublishableContent } from '../lib/validation';
 import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
 import { loadSiteInfo } from '../lib/account/site-store';
 import { AccountError } from '../lib/account/client';
 import { ACCOUNT_API_URL } from '../lib/account/config';
 import { getSession } from '../lib/account/session';
-import { getLicense } from '../lib/license/session';
 import { SITES_ROOT_DOMAIN, slugifySiteName, subdomainFor } from '../lib/github/subdomain';
 import { downloadEditorBackup, importEditorBackup, readEditorBackup } from '../lib/backup';
 import { saveNamedVersion } from '../lib/persistence';
@@ -32,7 +30,7 @@ const VISIBILITY_OPTIONS: { key: string; label: string; hint: string }[] = [
 	{ key: 'offline', label: 'Offline', hint: 'Your site is hidden — the address shows a short “offline” note.' },
 ];
 
-export default function PublishPanel({ license }: { license: LicenseSession }) {
+export default function PublishPanel() {
 	const { doc, openDoc } = useEditor();
 	const account = useAccount();
 	const [showSignIn, setShowSignIn] = useState(false);
@@ -66,7 +64,7 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 	// built, and the account is unlocked. Built-but-unpaid gets the license gate;
 	// paid-but-empty just waits for content (no payment prompt).
 	const built = hasPublishableContent(doc);
-	const unlocked = account.licensed || !license.required || license.status === 'licensed';
+	const unlocked = account.licensed;
 	const onPublishClick = () => {
 		if (!built) return;
 		if (!signedIn) setShowSignIn(true);
@@ -243,21 +241,23 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 				</div>
 				<div className="status-row">
 					<span className="status-label">License</span>
-					{!license.required ? (
-						<span className="status-value">Not required</span>
-					) : unlocked ? (
+					{unlocked ? (
 						<span className="status-value">✓ Unlocked — yours forever</span>
-					) : license.status === 'checking' || account.status === 'checking' ? (
+					) : account.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
-						<button type="button" className="btn-secondary" onClick={() => setShowLicense('unlock')}>
+						<button
+							type="button"
+							className="btn-secondary"
+							onClick={() => (signedIn ? setShowLicense('unlock') : setShowSignIn(true))}
+						>
 							Unlock now…
 						</button>
 					)}
 				</div>
 				{/* Quiet, optional pay-upfront path. The default flow stays pay-at-publish —
 				    this is only for people who prefer to settle it before they build. */}
-				{license.required && !unlocked && license.status === 'unlicensed' && pricing.launchPricingActive && (
+				{!unlocked && account.status !== 'checking' && pricing.launchPricingActive && (
 					<p className="muted license-lock-note">
 						Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price, forever. You
 						can also just pay when you publish.
@@ -376,16 +376,11 @@ export default function PublishPanel({ license }: { license: LicenseSession }) {
 			)}
 			{showLicense && (
 				<LicenseGateModal
-					activate={license.activate}
-					revalidate={license.revalidate}
 					redeemTestAccess={account.redeemTestAccess}
 					context={showLicense}
 					onClose={() => setShowLicense(null)}
 					onUnlocked={() => {
 						setShowLicense(null);
-						// Record the unlock on the ACCOUNT too (the server-side gate).
-						const stored = getLicense();
-						if (stored) void account.bindLicense(stored.key).catch(() => {});
 						// Unlocking is an account property, not a publish step: only continue
 						// into Publish when there's actually something to publish.
 						if (built && signedIn) setShowPublish(true);

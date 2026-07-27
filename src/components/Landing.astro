@@ -2,15 +2,14 @@
 // The product site's sales page, rendered at the root ONLY when IS_PRODUCT_SITE is
 // true (see src/pages/index.astro). It's a full standalone document on purpose:
 // Layout.astro carries the portfolio's theme, og:image and description from
-// content.json, none of which belong on a marketing page. No lemon.js here either —
-// the checkout overlay is editor-only.
+// content.json, none of which belong on a marketing page.
 import { withBase } from '../portfolio/types';
 import { currentPrice, currentPriceText, pricing, regularPriceText } from '../lib/pricing';
-import { CHECKOUT_URL } from '../editor/lib/license/config';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
+const checkoutEntryUrl = `${editorUrl}?unlock=1`;
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
@@ -179,40 +178,28 @@ const applicationLd = {
 					     honest way in. The anchor is the real launch price, not a countdown. -->
 					<div class="pricing-actions">
 						<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
-						{
-							CHECKOUT_URL && (
-								<a class="btn btn-primary paynow-cta" href={CHECKOUT_URL}>
-									{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
-								</a>
-							)
-						}
+						<a class="btn btn-primary paynow-cta" href={checkoutEntryUrl}>
+							{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
+						</a>
 					</div>
-					{
-						CHECKOUT_URL && (
-							<div class="paynow-framing">
-								{pricing.launchPricingActive && (
-									<p class="paynow-anchor">
-										Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
-										forever.
-									</p>
-								)}
-								<p class="paynow-refund">
-									Changed your mind before you build? {pricing.refundDays} days, no questions.
-								</p>
-							</div>
-						)
-					}
-					{
-						CHECKOUT_URL && (
-							<p class="paynow-quiet">
-								Prefer to pay upfront?{' '}
-								<a href={CHECKOUT_URL}>
-									{pricing.launchPricingActive ? `Lock in ${currentPriceText} now` : 'Unlock Hangwork now'}
-								</a>{' '}
-								— you build whenever you like.
+					<div class="paynow-framing">
+						{pricing.launchPricingActive && (
+							<p class="paynow-anchor">
+								Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
+								forever.
 							</p>
-						)
-					}
+						)}
+						<p class="paynow-refund">
+							Changed your mind before you build? {pricing.refundDays} days, no questions.
+						</p>
+					</div>
+					<p class="paynow-quiet">
+						Prefer to pay upfront?{' '}
+						<a href={checkoutEntryUrl}>
+							{pricing.launchPricingActive ? `Lock in ${currentPriceText} now` : 'Unlock Hangwork now'}
+						</a>{' '}
+						— you build whenever you like.
+					</p>
 				</div>
 			</section>
 		</main>

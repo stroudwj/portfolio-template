@@ -26,12 +26,6 @@ const base = import.meta.env.BASE_URL;
 			rel="stylesheet"
 		/>
 		<title>Hangwork editor</title>
-		<!-- Lemon Squeezy checkout overlay: opens the license purchase in a modal over the
-		     editor instead of navigating away. LicenseGateModal calls window.LemonSqueezy.Url.Open. -->
-		<script src="https://assets.lemonsqueezy.com/lemon.js" defer is:inline></script>
-		<script is:inline>
-			window.addEventListener('load', () => window.createLemonSqueezy?.());
-		</script>
 	</head>
 	<body>
 		<EditorApp client:only="react" base={base} />
