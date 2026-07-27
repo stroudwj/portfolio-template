@@ -224,7 +224,7 @@
 }
 
 /* ---- Category tabs (top of the editing column) ----
-   Icon-labeled chips splitting the controls into Content / Theme / Extras.
+   Icon-labeled chips splitting the controls into five stable work areas.
    Sticky so the categories stay reachable while the pane scrolls; panes stay
    mounted and are only CSS-hidden (section state + scroll targets survive). */
 .editor-tabs {
@@ -232,8 +232,8 @@
 	top: 0;
 	z-index: 20;
 	display: flex;
-	flex-wrap: wrap;
-	gap: 5px;
+	flex-wrap: nowrap;
+	gap: 4px;
 	margin: -12px -16px 8px;
 	/* Small top padding lines the first tab row up with the preview toolbar; the
 	   roomier bottom padding keeps the editing controls from crowding the tabs. */
@@ -261,9 +261,11 @@
 .editor-tab {
 	display: inline-flex;
 	align-items: center;
-	flex: 0 0 auto;
-	gap: 7px;
-	padding: 6px 12px;
+	justify-content: center;
+	flex: 1 1 0;
+	min-width: 0;
+	gap: 6px;
+	padding: 6px 8px;
 	border: 1px solid var(--wall-2);
 	border-radius: 999px;
 	background: transparent;
@@ -284,6 +286,7 @@
 .editor-tab-icon {
 	font-size: 14px;
 	line-height: 1;
+	flex-shrink: 0;
 }
 .editor-tab-pane {
 	display: none;
@@ -900,26 +903,58 @@ select.select-input {
 	height: 100%;
 }
 
-/* ---- Canvas grid toolbar (preview toolbar) + header gap ---- */
+/* ---- Contextual canvas guides + header gap ---- */
+.canvas-tools {
+	position: relative;
+	flex-shrink: 0;
+}
+.canvas-tools > summary {
+	list-style: none;
+}
+.canvas-tools > summary::-webkit-details-marker {
+	display: none;
+}
+.canvas-tools-toggle {
+	white-space: nowrap;
+}
+.canvas-tools[open] .canvas-tools-toggle {
+	background: var(--wall-1);
+}
+.canvas-tools-popover {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 40;
+	width: min(360px, calc(100vw - 32px));
+	box-sizing: border-box;
+	padding: 12px;
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
+	background: var(--paper);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.canvas-tools-heading {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+.canvas-tools-heading strong {
+	font-size: 13px;
+	font-weight: 500;
+}
+.canvas-tools-heading span {
+	font-size: 11px;
+	color: var(--ink-soft);
+}
 .grid-toolbar {
 	display: flex;
 	align-items: center;
 	gap: 4px;
 }
 .preview-grid-tools {
-	flex-shrink: 0;
-	border: 1px solid var(--wall-2);
-	border-radius: 4px;
-	padding: 3px 8px;
-}
-.grid-tools-label {
-	font-size: 13px;
-	color: var(--ink-soft);
-	margin-right: 2px;
-	cursor: default;
-}
-.preview-grid-tools .grid-snap {
-	margin-left: 6px;
+	flex-wrap: wrap;
 }
 .grid-snap {
 	display: inline-flex;
@@ -938,6 +973,17 @@ select.select-input {
 .grid-snap input {
 	accent-color: var(--klein);
 	margin: 0;
+}
+.canvas-snap-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 16px;
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid var(--wall-2);
+}
+.canvas-snap-options .grid-snap {
+	margin-left: 0;
 }
 .gap-row {
 	display: flex;
@@ -1462,6 +1508,37 @@ a.resume-name:hover {
 }
 .page-manager-add {
 	margin-top: 12px;
+}
+
+.page-workspace {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.page-workspace-nav {
+	position: sticky;
+	top: 50px;
+	z-index: 15;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 9px 10px;
+	border: 1px solid var(--wall-2);
+	border-radius: 5px;
+	background: var(--paper);
+	box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+}
+.page-workspace-back {
+	flex-shrink: 0;
+	text-decoration: none;
+}
+.page-workspace-switcher {
+	flex: 1;
+	min-width: 0;
+}
+.page-workspace-switcher .select-input {
+	width: 100%;
 }
 
 .phone-layout-disclosure {
@@ -2537,7 +2614,7 @@ a.live-url:hover {
 	padding: 0;
 }
 
-/* ---- ✨ Fun tab ---- */
+/* ---- Design: effects & flourishes ---- */
 .chip-row {
 	display: flex;
 	flex-wrap: wrap;

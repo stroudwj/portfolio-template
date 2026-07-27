@@ -17,7 +17,7 @@ import PreviewPanel from './components/PreviewPanel';
 import AccountControls from './components/AccountControls';
 import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
-import { onShowEditorTab } from './components/ui/controls';
+import { expandSection, onShowEditorTab, showPreviewPage } from './components/ui/controls';
 import { shouldResumePublish } from './lib/polar-checkout';
 import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
@@ -25,21 +25,30 @@ import { collectIssues } from './lib/validation';
 import { withBase } from '../portfolio/types';
 import './editor.css';
 
-/** The editing column's categories. Panes stay mounted (CSS-hidden) so section
- *  collapse state and the preview's scroll-to-section keep working. */
+/** The editing column's five stable work areas. Panes stay mounted (CSS-hidden)
+ * so each area's collapse state survives category changes. */
 const EDITOR_TABS = [
-	{ id: 'content', icon: '🖼️', label: 'Content', title: 'Your pages — images, text, videos & profile' },
+	{ id: 'pages', icon: '🖼️', label: 'Pages', title: 'Your pages — images, text, videos & page settings' },
+	{ id: 'design', icon: '🎨', label: 'Design', title: 'Layout, colors, fonts & visual effects' },
 	{ id: 'store', icon: '🛍️', label: 'Store', title: 'Products, prices & Stripe checkout links' },
-	{ id: 'theme', icon: '🎨', label: 'Theme', title: 'Colors, fonts & site layout' },
-	{ id: 'extras', icon: '🖋️', label: 'Extras', title: 'Finishing touches — signature, footer & links' },
-	{ id: 'creative', icon: '✨', label: 'Fun', title: 'Optional playful touches for the whole site' },
-	{ id: 'sharing', icon: '🔍', label: 'Sharing', title: 'How your site appears in search results and link previews' },
+	{ id: 'site', icon: '⚙️', label: 'Site', title: 'Profile, links, footer, search & social sharing' },
 	{ id: 'publish', icon: '🚀', label: 'Publish', title: 'Your web address, domain & license' },
 ] as const;
 
 type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 
 const TAB_STORE = 'portfolio-editor.tab';
+
+/** Preserve the last-open category across the five-tab information-architecture
+ * update. Old tab ids map to the closest new home instead of dropping the user
+ * somewhere unexpected. */
+function normalizeEditorTab(value: string | null): EditorTab {
+	if (EDITOR_TABS.some((tab) => tab.id === value)) return value as EditorTab;
+	if (value === 'content') return 'pages';
+	if (value === 'theme' || value === 'creative') return 'design';
+	if (value === 'extras' || value === 'sharing') return 'site';
+	return 'pages';
+}
 
 const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: '⌘/Ctrl Z', label: 'Undo the last change' },
@@ -157,9 +166,10 @@ function Shell({ base }: { base: string }) {
 	} = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const controlsRef = useRef<HTMLDivElement>(null);
+	const [selectedPage, setSelectedPage] = useState<string | null>(null);
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
-		return EDITOR_TABS.some((t) => t.id === saved) ? (saved as EditorTab) : 'content';
+		return normalizeEditorTab(saved);
 	});
 	const issues = useMemo(() => (doc ? collectIssues(doc) : []), [doc]);
 	const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
@@ -175,13 +185,20 @@ function Shell({ base }: { base: string }) {
 		}
 	};
 
-	// The preview switches to Content before scrolling to a page's section.
+	// Cross-panel actions can switch to the closest new top-level category.
 	useEffect(() => onShowEditorTab((next) => {
-		if (EDITOR_TABS.some((t) => t.id === next)) pickTab(next as EditorTab);
+		pickTab(normalizeEditorTab(next));
 	}), []);
 	const phone = usePhoneContext();
 
 	useUndoShortcuts(undo, redo);
+
+	// Removing/resetting the page currently open in the workspace returns to the
+	// overview instead of leaving an empty editor panel behind.
+	useEffect(() => {
+		if (!selectedPage) return;
+		if (!doc?.content.pages[selectedPage]) setSelectedPage(null);
+	}, [doc, selectedPage]);
 
 	// Returning from checkout reloads the page onto the Start screen. If the buyer set out to
 	// publish, resume their saved draft automatically so they land back in the editor (AccountControls
@@ -210,6 +227,34 @@ function Shell({ base }: { base: string }) {
 		if (confirm('Reset the editor? This permanently deletes your draft, uploaded files, and all saved versions in this browser. Download a backup first if you may need them.'))
 			void reset();
 	};
+
+	const openPageWorkspace = (pageKey: string) => {
+		if (!doc.content.pages[pageKey]) return;
+		setSelectedPage(pageKey);
+		pickTab('pages');
+		expandSection(pageKey);
+		showPreviewPage(pageKey);
+		if (controlsRef.current) controlsRef.current.scrollTop = 0;
+	};
+
+	const closePageWorkspace = () => {
+		setSelectedPage(null);
+		if (controlsRef.current) controlsRef.current.scrollTop = 0;
+	};
+
+	const pageChoices = doc.content.nav.flatMap((item) => {
+		const pageKey = item.path || 'home';
+		const page = doc.content.pages[pageKey];
+		if (!page) return [];
+		return [
+			{ key: pageKey, label: page.label || item.label || (pageKey === 'home' ? 'Home' : pageKey), nested: false },
+			...(page.children ?? []).flatMap((childKey) => {
+				const child = doc.content.pages[childKey];
+				return child ? [{ key: childKey, label: child.label || childKey, nested: true }] : [];
+			}),
+		];
+	});
+	const selectedChoice = pageChoices.find((choice) => choice.key === selectedPage);
 
 	return (
 		<div className="editor">
@@ -310,29 +355,53 @@ function Shell({ base }: { base: string }) {
 							</ul>
 						</details>
 					)}
-					<div className={`editor-tab-pane ${tab === 'content' ? 'active' : ''}`}>
-						<PageManager />
-						<ProfileEditor />
-						{doc.content.nav.map((item) => (
-							<PageEditor key={item.path || 'home'} pageKey={item.path || 'home'} />
-						))}
+					<div className={`editor-tab-pane ${tab === 'pages' ? 'active' : ''}`}>
+						{selectedPage && selectedChoice ? (
+							<div className="page-workspace">
+								<div className="page-workspace-nav" aria-label="Current page workspace">
+									<button type="button" className="btn-link page-workspace-back" onClick={closePageWorkspace}>
+										← All pages
+									</button>
+									<label className="page-workspace-switcher">
+										<span className="sr-only">Switch page</span>
+										<select
+											className="select-input"
+											aria-label="Switch page"
+											value={selectedPage}
+											onChange={(event) => openPageWorkspace(event.target.value)}
+										>
+											{pageChoices.map((choice) => (
+												<option key={choice.key} value={choice.key}>
+													{choice.nested ? `↳ ${choice.label}` : choice.label}
+												</option>
+											))}
+										</select>
+									</label>
+								</div>
+								<PageEditor
+									key={selectedPage}
+									pageKey={selectedPage}
+									nested={selectedChoice.nested}
+									includeChildren={false}
+								/>
+							</div>
+						) : (
+							<PageManager onEditPage={openPageWorkspace} />
+						)}
 					</div>
 					<div className={`editor-tab-pane ${tab === 'store' ? 'active' : ''}`}>
 						<StoreEditor />
 					</div>
-					<div className={`editor-tab-pane ${tab === 'theme' ? 'active' : ''}`}>
+					<div className={`editor-tab-pane ${tab === 'design' ? 'active' : ''}`}>
 						<LayoutEditor />
 						<ThemeEditor />
+						<CreativeEditor />
 					</div>
-					<div className={`editor-tab-pane ${tab === 'extras' ? 'active' : ''}`}>
+					<div className={`editor-tab-pane ${tab === 'site' ? 'active' : ''}`}>
+						<ProfileEditor />
 						<SocialLinksEditor />
 						<SignatureEditor />
 						<FooterEditor />
-					</div>
-					<div className={`editor-tab-pane ${tab === 'creative' ? 'active' : ''}`}>
-						<CreativeEditor />
-					</div>
-					<div className={`editor-tab-pane ${tab === 'sharing' ? 'active' : ''}`}>
 						<SharingEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'publish' ? 'active' : ''}`}>
@@ -340,7 +409,11 @@ function Shell({ base }: { base: string }) {
 					</div>
 				</div>
 				<div className="editor-preview">
-					<PreviewPanel base={base} />
+					<PreviewPanel
+						base={base}
+						canvasEditingEnabled={tab === 'pages' && selectedPage !== null}
+						onEditPage={openPageWorkspace}
+					/>
 				</div>
 			</div>
 		</div>

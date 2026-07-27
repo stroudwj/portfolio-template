@@ -1,4 +1,4 @@
-// Playful site-wide flourishes (all opt-in from the editor's ✨ Fun tab):
+// Playful site-wide flourishes (all opt-in from the editor's Design area):
 //   - an emoji cursor,
 //   - a little trail of shapes following the pointer,
 //   - a paper-grain texture laid over the whole page,

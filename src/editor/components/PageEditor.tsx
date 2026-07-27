@@ -164,7 +164,17 @@ function GridOptions({
 	);
 }
 
-export default function PageEditor({ pageKey, nested = false }: { pageKey: string; nested?: boolean }) {
+export default function PageEditor({
+	pageKey,
+	nested = false,
+	includeChildren = true,
+}: {
+	pageKey: string;
+	nested?: boolean;
+	/** The selected-page workspace opens sub-pages independently instead of
+	 * rendering every child editor beneath its parent. */
+	includeChildren?: boolean;
+}) {
 	const editor = useEditor();
 	const { doc } = editor;
 	if (!doc) return null;
@@ -889,7 +899,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 	return (
 		<Section
 			sectionKey={pageKey}
-			defaultCollapsed={nested}
+			defaultCollapsed={nested && includeChildren}
 			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? `Page: ${page.label || 'Home'}` : `Page: ${page.label ?? pageKey}`}
 			action={
 				!isHome ? (
@@ -983,7 +993,7 @@ export default function PageEditor({ pageKey, nested = false }: { pageKey: strin
 				</details>
 			</div>
 
-			{!nested && (page.children?.length ?? 0) > 0 && (
+			{includeChildren && !nested && (page.children?.length ?? 0) > 0 && (
 				<div className="nested-pages">
 					{page.children!.map((childKey) => (
 						<PageEditor key={childKey} pageKey={childKey} nested />

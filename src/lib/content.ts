@@ -9,7 +9,7 @@ import { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema
 
 export { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema';
 
-/** Credit seeded into every new portfolio. Artists can edit or remove it in Extras. */
+/** Credit seeded into every new portfolio. Artists can edit or remove it in Site. */
 export const DEFAULT_FOOTER = 'Made with hangwork.art';
 
 /** Optional editor-sized minimum height for one published section breakpoint. */
@@ -39,7 +39,7 @@ export interface Site {
 	footerHeights?: ResponsiveSectionHeight;
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
 	ogImage?: string;
-	/** Optional site-wide flourishes configured in the editor's Fun tab. Absent = none. */
+	/** Optional site-wide flourishes configured in the editor's Design area. Absent = none. */
 	creative?: CreativeConfig;
 }
 
@@ -127,7 +127,7 @@ export interface Theme {
 	customFonts?: CustomFont[];
 }
 
-/** The navigation layouts an artist can pick from in the Theme tab. */
+/** The navigation layouts an artist can pick from the Design area. */
 export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
 export type LogoPosition = 'left' | 'center' | 'freeform';
 export type PageHeadingPosition = 'left' | 'center' | 'right' | 'freeform';

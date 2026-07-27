@@ -1,7 +1,5 @@
 // Site-wide layout tools published with the site (currently the header/content
-// gap). The canvas grid overlay + snap moved to the preview toolbar
-// (PreviewPanel's GridTools) so they stay reachable while scrolled deep into a
-// page's controls.
+// gap). Freeform canvas guides live in the preview's contextual menu.
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 import type { NavStyle } from '../../lib/content';

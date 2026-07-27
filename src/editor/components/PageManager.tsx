@@ -1,25 +1,14 @@
 import { useEditor } from '../store';
-import { expandSection, Section, showEditorTab, showPreviewPage } from './ui/controls';
+import { Section } from './ui/controls';
 import AddPageButton from './AddPageButton';
 
 /** A simple overview of the pages shown in the site's main menu. */
-export default function PageManager() {
+export default function PageManager({ onEditPage }: { onEditPage: (pageKey: string) => void }) {
 	const editor = useEditor();
 	const { doc, movePage } = editor;
 	if (!doc) return null;
 
 	const pages = doc.content.nav;
-
-	const openPage = (pageKey: string) => {
-		showEditorTab('content');
-		showPreviewPage(pageKey);
-		expandSection(pageKey);
-		requestAnimationFrame(() => {
-			document
-				.querySelector(`.editor-controls [data-section="${CSS.escape(pageKey)}"]`)
-				?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		});
-	};
 
 	const deletePage = (pageKey: string, label: string, hasChildren = false) => {
 		const extra = hasChildren ? ' and all of its sub-pages' : '';
@@ -27,8 +16,8 @@ export default function PageManager() {
 	};
 
 	return (
-		<Section title="Pages" sectionKey="_pages">
-			<p className="muted">See your whole site at a glance. Copies start as drafts, so they cannot go live by accident.</p>
+		<Section title="Pages">
+			<p className="muted">Choose a page to edit. Copies start as drafts, so they cannot go live by accident.</p>
 			<div className="page-manager-list" role="list" aria-label="Pages in your site menu">
 				{pages.map((item, index) => {
 					const pageKey = item.path || 'home';
@@ -48,7 +37,7 @@ export default function PageManager() {
 										<span>{page.noindex ? 'Hidden from search' : 'Can appear in search'}</span>
 									</div>
 								</div>
-								<button type="button" className="btn-secondary" aria-label={`Edit ${addressLabel}`} onClick={() => openPage(pageKey)}>
+								<button type="button" className="btn-secondary" aria-label={`Edit ${addressLabel}`} onClick={() => onEditPage(pageKey)}>
 									Edit page
 								</button>
 								{pageKey !== 'home' && (
@@ -118,7 +107,7 @@ export default function PageManager() {
 											<div className="page-child-summary" key={childKey}>
 												<span>↳ {child.label || childKey}{child.draft ? ' · Draft' : ''}</span>
 												<div className="page-child-actions">
-													<button type="button" className="btn-link" aria-label={`Edit sub-page ${child.label || childKey} under ${label}`} onClick={() => openPage(childKey)}>Edit sub-page</button>
+													<button type="button" className="btn-link" aria-label={`Edit sub-page ${child.label || childKey} under ${label}`} onClick={() => onEditPage(childKey)}>Edit sub-page</button>
 													<button
 														type="button"
 														className="btn-icon danger"

@@ -1,4 +1,4 @@
-// The Fun tab: playful, entirely optional site-wide effects. Everything here
+// Optional site-wide visual effects in Design. Everything here
 // writes content.site.creative, rendered by portfolio/CreativeEffects in the
 // preview and on the published site.
 import { useEditor } from '../store';
@@ -59,7 +59,7 @@ export default function CreativeEditor() {
 	const grain = creative.grain ?? 0;
 
 	return (
-		<Section title="Fun & flourishes" sectionKey="_creative">
+		<Section title="Effects & flourishes" sectionKey="_creative">
 			<p className="muted" style={{ marginTop: 0 }}>
 				Playful touches for your whole site — try them in the preview, keep what feels like you.
 			</p>

@@ -3,8 +3,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
+import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
-import { expandSection, onShowPreviewPage, showEditorTab } from './ui/controls';
+import { onShowPreviewPage } from './ui/controls';
 
 /** Canvas guide overlay + snap controls ("Guides", to not clash with the
  *  Freeform/Grid layout toggle). Lives in the preview toolbar so they're
@@ -12,51 +13,64 @@ import { expandSection, onShowPreviewPage, showEditorTab } from './ui/controls';
 function GuideTools() {
 	const gridPrefs = useGridPrefs();
 	const off = gridPrefs.guide === 'off';
+	const activeGuide = GUIDE_OPTIONS.find((option) => option.id === gridPrefs.guide)?.label ?? 'Off';
 	return (
-		<div className="grid-toolbar preview-grid-tools" role="group" aria-label="Canvas guide overlay">
-			<span
-				className="grid-tools-label"
-				title="Guide overlay for lining things up — never shown on your site. Numbers are squares; “col” options match the Grid layout's columns."
+		<details className="canvas-tools">
+			<summary
+				className="btn-ghost canvas-tools-toggle"
+				aria-label={`Canvas guides, currently ${activeGuide}`}
+				title="Guides and snapping for the selected page's freeform canvas"
 			>
-				Guides
-			</span>
-			{GUIDE_OPTIONS.map((o) => (
-				<button
-					key={o.id}
-					type="button"
-					className={`btn-icon btn-chip ${gridPrefs.guide === o.id ? 'active' : ''}`}
-					onClick={() => setGridPrefs({ guide: o.id })}
-					title={o.title}
-				>
-					{o.label}
-				</button>
-			))}
-			<label className={`grid-snap ${off ? 'disabled' : ''}`}>
-				<input
-					type="checkbox"
-					checked={gridPrefs.snap && !off}
-					disabled={off}
-					onChange={(e) => setGridPrefs({ snap: e.target.checked })}
-				/>
-				Snap
-			</label>
-			<label className="grid-snap" title="Magnetically align a dragged item with its neighbors' edges (Shift+S)">
-				<input
-					type="checkbox"
-					checked={gridPrefs.edgeSnap}
-					onChange={(e) => setGridPrefs({ edgeSnap: e.target.checked })}
-				/>
-				Edge snap
-			</label>
-			<label className="grid-snap" title="Magnetically align a dragged item or selection with the horizontal page center">
-				<input
-					type="checkbox"
-					checked={gridPrefs.centerSnap}
-					onChange={(e) => setGridPrefs({ centerSnap: e.target.checked })}
-				/>
-				Center snap
-			</label>
-		</div>
+				Guides: {activeGuide}
+			</summary>
+			<div className="canvas-tools-popover">
+				<div className="canvas-tools-heading">
+					<strong>Canvas guides</strong>
+					<span>Editor-only alignment helpers</span>
+				</div>
+				<div className="grid-toolbar preview-grid-tools" role="group" aria-label="Canvas guide overlay">
+					{GUIDE_OPTIONS.map((option) => (
+						<button
+							key={option.id}
+							type="button"
+							className={`btn-icon btn-chip ${gridPrefs.guide === option.id ? 'active' : ''}`}
+							onClick={() => setGridPrefs({ guide: option.id })}
+							title={option.title}
+							aria-pressed={gridPrefs.guide === option.id}
+						>
+							{option.label}
+						</button>
+					))}
+				</div>
+				<div className="canvas-snap-options">
+					<label className={`grid-snap ${off ? 'disabled' : ''}`}>
+						<input
+							type="checkbox"
+							checked={gridPrefs.snap && !off}
+							disabled={off}
+							onChange={(event) => setGridPrefs({ snap: event.target.checked })}
+						/>
+						Grid snap
+					</label>
+					<label className="grid-snap" title="Magnetically align a dragged item with its neighbors' edges (Shift+S)">
+						<input
+							type="checkbox"
+							checked={gridPrefs.edgeSnap}
+							onChange={(event) => setGridPrefs({ edgeSnap: event.target.checked })}
+						/>
+						Edge snap
+					</label>
+					<label className="grid-snap" title="Magnetically align a dragged item or selection with the horizontal page center">
+						<input
+							type="checkbox"
+							checked={gridPrefs.centerSnap}
+							onChange={(event) => setGridPrefs({ centerSnap: event.target.checked })}
+						/>
+						Center snap
+					</label>
+				</div>
+			</div>
+		</details>
 	);
 }
 
@@ -181,10 +195,18 @@ function DesktopDeviceFrame({ children, onEscape }: { children: React.ReactEleme
 
 /** Live preview — renders the SAME shared portfolio components as the real site.
  *  Navigation happens through the site's own nav (sidebar, logo, sub-page cards);
- *  clicking it also scrolls the editing column to that page's controls. In the
+ *  clicking it also opens that page in the selected-page workspace. In the
  *  default desktop view galleries are live (drag to move/resize); the phone view
  *  and the fullscreen view render exactly what the published site will show. */
-export default function PreviewPanel({ base }: { base: string }) {
+export default function PreviewPanel({
+	base,
+	canvasEditingEnabled,
+	onEditPage,
+}: {
+	base: string;
+	canvasEditingEnabled: boolean;
+	onEditPage: (pageKey: string) => void;
+}) {
 	const editor = useEditor();
 	const { doc } = editor;
 	const [page, setPage] = useState('home');
@@ -213,26 +235,18 @@ export default function PreviewPanel({ base }: { base: string }) {
 	const currentKey = doc.content.pages[page] ? page : 'home';
 	// Editing (drag/resize) happens in the plain desktop view; the phone and
 	// fullscreen views show the published site's exact behavior instead.
-	const editable = device === 'desktop' && !fullscreen;
+	const editable = device === 'desktop' && !fullscreen && canvasEditingEnabled;
 	const resizeBreakpoint = fullscreen ? undefined : device;
+	const currentPage = doc.content.pages[currentKey];
+	const hasFreeformCanvas = pageGalleryConfigs(currentPage).some(
+		(config) => config.layout !== 'grid' && (doc.galleries[config.folder]?.length ?? 0) > 0,
+	);
 
 	const navigate = (path: string) => {
 		const key = path === '' ? 'home' : path;
 		setPage(key);
 		if (fullscreen) return;
-		// Bring that page's editing section into view alongside the preview. The
-		// Content tab must be active (pages live there), and a collapsed section
-		// (or a sub-page inside a collapsed parent) must expand first, or the
-		// scroll target doesn't exist / has no height yet.
-		showEditorTab('content');
-		const parent = Object.entries(doc.content.pages).find(([, p]) => p.children?.includes(key))?.[0];
-		if (parent) expandSection(parent);
-		expandSection(key);
-		requestAnimationFrame(() => {
-			document
-				.querySelector(`.editor-controls [data-section="${CSS.escape(key)}"]`)
-				?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		});
+		onEditPage(key);
 	};
 
 	const portfolio = (
@@ -290,13 +304,17 @@ export default function PreviewPanel({ base }: { base: string }) {
 						Phone
 					</button>
 				</div>
-				{editable && <GuideTools />}
+				{editable && hasFreeformCanvas && <GuideTools />}
 				<span className="preview-hint">
-					{editable
+					{editable && hasFreeformCanvas
 						? 'Drag items; drag blank canvas space to select several. Section edges resize.'
-						: resizeBreakpoint
+						: editable
+							? 'This page uses an automatic layout. Edit its blocks in the Pages panel.'
+						: device === 'phone' && resizeBreakpoint
 							? 'Drag section edges to adjust the phone layout.'
-							: 'Exactly how your published site will look.'}
+							: fullscreen
+								? 'Exactly how your published site will look.'
+								: 'Live site preview. Canvas tools appear while you edit a page in Pages.'}
 				</span>
 				<button
 					type="button"

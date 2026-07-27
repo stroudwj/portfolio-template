@@ -397,7 +397,7 @@ export interface EditorContextValue {
 		},
 	): void;
 	// creative extras
-	/** Optional site-wide flourishes configured in the Fun tab. */
+	/** Optional site-wide flourishes configured in the Design area. */
 	setCreative(patch: Partial<CreativeConfig>): void;
 	// color blocking
 	/** Whole-page background color (undefined = the site background). */
