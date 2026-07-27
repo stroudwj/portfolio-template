@@ -26,8 +26,10 @@ interface Props {
 const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = false } = Astro.props;
 const description = Astro.props.description || content.site.description;
 const { site, theme, nav } = content;
-const logo = site.logo || site.name;
-const logoImageSrc = await resolveLogoImage();
+const resolvedLogoImageSrc = await resolveLogoImage();
+const headerMode = site.headerMode ?? (resolvedLogoImageSrc ? 'image' : site.logo ? 'text' : 'name');
+const logo = headerMode === 'text' ? (site.logo || site.name) : site.name;
+const logoImageSrc = headerMode === 'image' ? resolvedLogoImageSrc : undefined;
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
 // Site-wide nav layout + the current page's color-blocking background (if any).
 const navStyle = theme.navStyle ?? 'dock';

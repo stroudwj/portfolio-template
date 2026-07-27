@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorProvider, useEditor } from './store';
 import StartScreen from './components/StartScreen';
-import ProfileEditor from './components/ProfileEditor';
+import SiteIdentityEditor from './components/SiteIdentityEditor';
+import HeaderLayoutEditor from './components/HeaderLayoutEditor';
 import ThemeEditor from './components/ThemeEditor';
 import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
 import PageManager from './components/PageManager';
 import StoreEditor from './components/StoreEditor';
-import SocialLinksEditor from './components/SocialLinksEditor';
 import SignatureEditor from './components/SignatureEditor';
 import FooterEditor from './components/FooterEditor';
 import CreativeEditor from './components/CreativeEditor';
@@ -31,7 +31,7 @@ const EDITOR_TABS = [
 	{ id: 'pages', icon: '🖼️', label: 'Pages', title: 'Your pages — images, text, videos & page settings' },
 	{ id: 'design', icon: '🎨', label: 'Design', title: 'Layout, colors, fonts & visual effects' },
 	{ id: 'store', icon: '🛍️', label: 'Store', title: 'Products, prices & Stripe checkout links' },
-	{ id: 'site', icon: '⚙️', label: 'Site', title: 'Profile, links, footer, search & social sharing' },
+	{ id: 'site', icon: '⚙️', label: 'Site', title: 'Site identity, footer, search & sharing' },
 	{ id: 'publish', icon: '🚀', label: 'Publish', title: 'Your web address, domain & license' },
 ] as const;
 
@@ -384,12 +384,12 @@ function Shell({ base }: { base: string }) {
 					</div>
 					<div className={`editor-tab-pane ${tab === 'design' ? 'active' : ''}`}>
 						<LayoutEditor />
+						<HeaderLayoutEditor />
 						<ThemeEditor />
 						<CreativeEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'site' ? 'active' : ''}`}>
-						<ProfileEditor />
-						<SocialLinksEditor />
+						<SiteIdentityEditor />
 						<SignatureEditor />
 						<FooterEditor />
 						<SharingEditor />

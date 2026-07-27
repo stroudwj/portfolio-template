@@ -74,8 +74,8 @@ describe('staticgen', () => {
 		const paths = site.files.map((f) => f.path);
 		const text = (p: string) => new TextDecoder().decode(site.files.find((f) => f.path === p)!.bytes);
 
-		// One HTML file per page (blank content ships home/art/photography/bio).
-		for (const page of ['index.html', 'art/index.html', 'photography/index.html', 'bio/index.html']) {
+		// One HTML file per page (blank content ships home/art/photography/about).
+		for (const page of ['index.html', 'art/index.html', 'photography/index.html', 'about/index.html']) {
 			expect(paths).toContain(page);
 		}
 		// Site plumbing + the reload contract + the runtime.

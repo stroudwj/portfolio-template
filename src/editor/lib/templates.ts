@@ -15,8 +15,8 @@ export interface SiteTemplate {
 /** Bold dark-room look: near-black canvas, warm accent, geometric sans, and a
  *  tight square work grid next to the freeform home collage. */
 const studioContent: Content = {
-	schemaVersion: 3,
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
+	schemaVersion: 4,
+	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#101014',
 		textColor: '#f4f4f5',
@@ -28,7 +28,7 @@ const studioContent: Content = {
 	nav: [
 		{ path: '', label: 'Home' },
 		{ path: 'work', label: 'Work' },
-		{ path: 'bio', label: 'About' },
+		{ path: 'about', label: 'About' },
 	],
 	profile: { image: '', bio: '' },
 	contact: { email: '' },
@@ -47,7 +47,7 @@ const studioContent: Content = {
 			gallery: { folder: 'work', alt: 'Work', order: 'asc', layout: 'grid', columns: 3, aspect: '1:1' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
 		},
-		bio: {
+		about: {
 			title: 'About — {name}',
 			blocks: [{ id: 'about', type: 'about' }],
 		},
@@ -58,8 +58,8 @@ const studioContent: Content = {
 /** Quiet magazine look: warm paper background, serif type, big two-column
  *  project spreads plus a freeform gallery for looser work. */
 const editorialContent: Content = {
-	schemaVersion: 3,
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
+	schemaVersion: 4,
+	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#faf6f0',
 		textColor: '#221f1a',
@@ -71,7 +71,7 @@ const editorialContent: Content = {
 	nav: [
 		{ path: '', label: 'Home' },
 		{ path: 'projects', label: 'Projects' },
-		{ path: 'bio', label: 'About' },
+		{ path: 'about', label: 'About' },
 	],
 	profile: { image: '', bio: '' },
 	contact: { email: '' },
@@ -90,7 +90,7 @@ const editorialContent: Content = {
 			gallery: { folder: 'projects', alt: 'Project', order: 'asc' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
 		},
-		bio: {
+		about: {
 			title: 'About — {name}',
 			blocks: [{ id: 'about', type: 'about' }],
 		},
@@ -101,8 +101,8 @@ const editorialContent: Content = {
 /** Brutalist index: pure white, typewriter mono, a dense numbered-archive feel —
  *  a loose 4-across index up front and a tight 6-across square archive behind it. */
 const archiveContent: Content = {
-	schemaVersion: 3,
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
+	schemaVersion: 4,
+	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#ffffff',
 		textColor: '#111111',
@@ -114,7 +114,7 @@ const archiveContent: Content = {
 	nav: [
 		{ path: '', label: 'Index' },
 		{ path: 'archive', label: 'Archive' },
-		{ path: 'bio', label: 'Info' },
+		{ path: 'about', label: 'Info' },
 	],
 	profile: { image: '', bio: '' },
 	contact: { email: '' },
@@ -133,7 +133,7 @@ const archiveContent: Content = {
 			gallery: { folder: 'archive', alt: 'Archive piece', order: 'asc', layout: 'grid', columns: 6, aspect: '1:1' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
 		},
-		bio: {
+		about: {
 			title: 'Info — {name}',
 			blocks: [{ id: 'about', type: 'about' }],
 		},
@@ -145,8 +145,8 @@ const archiveContent: Content = {
  *  sans body, a freeform home collage, and a Collections page built from TWO
  *  labeled image groups — showing off multiple galleries on one page. */
 const atelierContent: Content = {
-	schemaVersion: 3,
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
+	schemaVersion: 4,
+	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#eef0e9',
 		textColor: '#1e2620',
@@ -159,7 +159,7 @@ const atelierContent: Content = {
 	nav: [
 		{ path: '', label: 'Home' },
 		{ path: 'collections', label: 'Collections' },
-		{ path: 'bio', label: 'About' },
+		{ path: 'about', label: 'About' },
 	],
 	profile: { image: '', bio: '' },
 	contact: { email: '' },
@@ -186,7 +186,7 @@ const atelierContent: Content = {
 				},
 			],
 		},
-		bio: {
+		about: {
 			title: 'About — {name}',
 			blocks: [{ id: 'about', type: 'about' }],
 		},

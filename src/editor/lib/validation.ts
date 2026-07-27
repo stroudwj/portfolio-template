@@ -90,11 +90,6 @@ export function collectIssues(doc: EditorDoc): string[] {
 			if (e.meta.link && !isUrl(e.meta.link))
 				issues.push(`A ${folder} item link (“${e.meta.title || e.filename}”) is not a valid URL.`);
 		});
-		const missingDescriptions = entries.filter((entry) => !entry.meta.alt.trim()).length;
-		if (missingDescriptions)
-			issues.push(
-				`${missingDescriptions} image${missingDescriptions === 1 ? '' : 's'} in “${folder}” still need${missingDescriptions === 1 ? 's' : ''} a description for visitors who cannot see them.`,
-			);
 	}
 	for (const [key, page] of publishedPages) {
 		if (!page.title.trim()) issues.push(`The page “${page.label ?? key}” needs a browser and search title.`);

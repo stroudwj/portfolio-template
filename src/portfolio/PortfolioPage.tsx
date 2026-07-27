@@ -54,6 +54,8 @@ export interface PortfolioPageProps extends PortfolioData {
 		height: number | undefined,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+	/** Show editor-only guidance for empty portfolio content. */
+	editorPreview?: boolean;
 }
 
 /** Where a flow block was released, in canvas-width % of the page's canvas. */
@@ -178,6 +180,7 @@ export default function PortfolioPage({
 	resizeBreakpoint,
 	onSectionHeight,
 	onFooterHeight,
+	editorPreview = false,
 }: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 	const [isPhone, setIsPhone] = useState(false);
@@ -288,6 +291,7 @@ export default function PortfolioPage({
 						social={content.social}
 						profileImageSrc={profileImageSrc}
 						resume={resume}
+						editorPreview={editorPreview}
 					/>
 				);
 			}

@@ -17,6 +17,7 @@ import { DEFAULT_AR, flowMissing, roundLayout, uniformGridLayouts } from '../../
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import { isUrl } from '../lib/validation';
 import type { ChildrenStyle, FormField, GalleryConfig, PageBlock, TextAlign, TextStyle } from '../../lib/content';
+import AboutContentEditor from './AboutContentEditor';
 
 const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
 	{ value: 'cards', label: 'Thumbnail cards' },
@@ -185,6 +186,7 @@ export default function PageEditor({
 	const isHome = pageKey === 'home';
 	const pageName = page.label || (isHome ? 'Home' : pageKey);
 	const blocks = page.blocks ?? [];
+	const hasAboutBlock = blocks.some((block) => block.type === 'about');
 	// Offer the site's own palette first in every color-blocking picker.
 	const themeColors = [
 		doc.content.theme.backgroundColor,
@@ -269,11 +271,6 @@ export default function PageEditor({
 		}),
 	];
 
-	const removeThisPage = () => {
-		const extra = page.children?.length ? ' and its sub-pages' : '';
-		if (confirm(`Delete the “${page.label ?? pageKey}” page${extra}? Its images come off the site too.`))
-			editor.removePage(pageKey);
-	};
 	const addChild = () => {
 		const name = prompt('Name of the new sub-page:');
 		if (name?.trim()) editor.addChildPage(pageKey, name.trim());
@@ -345,7 +342,13 @@ export default function PageEditor({
 				<button
 					type="button"
 					className="btn-icon danger"
-					onClick={() => editor.removeBlock(pageKey, block.id)}
+					onClick={() => {
+						if (
+							block.type === 'about' &&
+							!confirm('Remove the About content from this page? You can add it again later from Add block.')
+						) return;
+						editor.removeBlock(pageKey, block.id);
+					}}
 					aria-label={`Delete ${blockLabel}`}
 				>
 					✕
@@ -785,7 +788,7 @@ export default function PageEditor({
 						</Field>
 						<Field
 							label="Optional form service address"
-							hint="Leave this blank to use your Profile email (add one near the top of Content). The visitor’s email app opens with their message ready. To send directly instead, paste the form address from a service such as Formspree."
+							hint="Leave this blank to use your public contact email from About content. The visitor’s email app opens with their message ready. To send directly instead, paste the form address from a service such as Formspree."
 							error={endpointInvalid ? 'Use the https:// form address supplied by your form service.' : undefined}
 						>
 							<TextInput aria-label={`Optional form service address for ${formLabel}`} value={block.action} placeholder="https://formspree.io/f/…" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { action: event.target.value })} />
@@ -831,12 +834,13 @@ export default function PageEditor({
 			}
 			case 'about':
 				return (
-					<div className="block" key={block.id}>
+					<div className="block about-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">About — your bio, email &amp; social links</span>
+							<span className="block-label">About content</span>
 							{controls(index, block, true)}
 						</div>
-						<p className="muted">Shows the profile you edit at the top (photo, bio, email, social links).</p>
+						<p className="muted about-editor-intro">Everything below appears in this section and updates in the preview as you type.</p>
+						<AboutContentEditor />
 					</div>
 				);
 			case 'children':
@@ -916,35 +920,47 @@ export default function PageEditor({
 		}
 	};
 
+	const pageDetailsFields = (
+		<>
+			<Field
+				label={nested ? 'Sub-page name' : 'Page name'}
+				hint={nested ? 'Shown on its card and heading.' : 'Shown in the site menu.'}
+			>
+				<TextInput value={page.label ?? ''} onChange={(event) => editor.renamePage(pageKey, event.target.value)} />
+			</Field>
+			<Field label="Heading (optional)">
+				<TextInput
+					value={page.heading ?? ''}
+					placeholder="Shown at the top of the page"
+					onChange={(event) => editor.setPageHeading(pageKey, event.target.value)}
+				/>
+			</Field>
+		</>
+	);
+
 	return (
 		<Section
 			sectionKey={pageKey}
 			defaultCollapsed={nested && includeChildren}
 			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? `Page: ${page.label || 'Home'}` : `Page: ${page.label ?? pageKey}`}
-			action={
-				!isHome ? (
-					<button type="button" className="btn-icon danger" onClick={removeThisPage} aria-label={`Delete page ${pageName}`}>
-						✕
-					</button>
-				) : undefined
-			}
 		>
-			<div className="page-editor-group page-details-group">
-				<h3>Page details</h3>
-				<Field
-					label={nested ? 'Sub-page name' : 'Page name'}
-					hint={nested ? 'Shown on its card and heading.' : 'Shown in the site menu.'}
-				>
-					<TextInput value={page.label ?? ''} onChange={(e) => editor.renamePage(pageKey, e.target.value)} />
-				</Field>
-				<Field label="Heading (optional)">
-					<TextInput
-						value={page.heading ?? ''}
-						placeholder="Shown at the top of the page"
-						onChange={(e) => editor.setPageHeading(pageKey, e.target.value)}
-					/>
-				</Field>
-			</div>
+			{hasAboutBlock ? (
+				<details className="page-settings-disclosure">
+					<summary>
+						<span>
+							<strong>Page settings</strong>
+							<small>Name and heading</small>
+						</span>
+						<span className="page-editor-advanced-chevron" aria-hidden="true">⌄</span>
+					</summary>
+					<div className="page-settings-body">{pageDetailsFields}</div>
+				</details>
+			) : (
+				<div className="page-editor-group page-details-group">
+					<h3>Page details</h3>
+					{pageDetailsFields}
+				</div>
+			)}
 
 			<div className="page-editor-group page-content-group">
 				<div className="page-content-heading">
@@ -959,6 +975,9 @@ export default function PageEditor({
 							<button type="button" onClick={() => runAdd(() => editor.addEmbedBlock(pageKey))}>Video</button>
 							<button type="button" onClick={() => runAdd(() => editor.addButtonBlock(pageKey))}>Button</button>
 							<button type="button" onClick={() => runAdd(() => editor.addDividerBlock(pageKey))}>Divider</button>
+							{!hasAboutBlock && (
+								<button type="button" onClick={() => runAdd(() => editor.addAboutBlock(pageKey))}>About content</button>
+							)}
 							<button type="button" onClick={() => runAdd(() => editor.addFormBlock(pageKey))}>Contact form</button>
 							<button
 								type="button"

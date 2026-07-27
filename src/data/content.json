@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "site": {
     "name": "Your Name",
+    "headerMode": "name",
     "description": "Portfolio",
     "favicon": "favicon.svg",
     "footer": "Made with hangwork.art"
@@ -17,7 +18,7 @@
     { "path": "", "label": "Home" },
     { "path": "art", "label": "Art" },
     { "path": "photography", "label": "Photography" },
-    { "path": "bio", "label": "About" }
+    { "path": "about", "label": "About" }
   ],
   "profile": {
     "image": "placeholder.png",
@@ -51,7 +52,7 @@
       "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc" },
       "blocks": [{ "id": "gallery", "type": "gallery" }]
     },
-    "bio": {
+    "about": {
       "title": "About — {name}",
       "blocks": [{ "id": "about", "type": "about" }]
     }

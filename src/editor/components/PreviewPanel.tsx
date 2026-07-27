@@ -285,6 +285,7 @@ export default function PreviewPanel({
 					? (breakpoint, height) => editor.setFooterHeight(breakpoint, height)
 					: undefined
 			}
+			editorPreview={!fullscreen}
 		/>
 	);
 
@@ -309,7 +310,7 @@ export default function PreviewPanel({
 					{editable && hasFreeformCanvas
 						? 'Drag items; drag blank canvas space to select several. Section edges resize.'
 						: editable
-							? 'This page uses an automatic layout. Edit its blocks in the Pages panel.'
+							? 'Automatic layout — edit the fields and blocks beside this preview.'
 						: device === 'phone' && resizeBreakpoint
 							? 'Drag section edges to adjust the phone layout.'
 							: fullscreen

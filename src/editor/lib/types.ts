@@ -46,7 +46,7 @@ export interface SingleImage {
  */
 export interface EditorDoc {
 	/** Version of the browser-only working document shape. */
-	docVersion: 2;
+	docVersion: 3;
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;

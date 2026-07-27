@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Content } from './content';
 
-export const CONTENT_SCHEMA_VERSION = 3 as const;
+export const CONTENT_SCHEMA_VERSION = 4 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 
@@ -182,6 +182,7 @@ export const contentSchema = passthrough({
 	schemaVersion: z.literal(CONTENT_SCHEMA_VERSION),
 	site: passthrough({
 		name: z.string(),
+		headerMode: z.enum(['name', 'text', 'image']).optional(),
 		logo: z.string().optional(),
 		logoImage: z.string().optional(),
 		description: z.string(),
@@ -421,7 +422,7 @@ function ensurePageBlocks(raw: unknown): unknown {
 		if (!isObject(value)) continue;
 		if (!Array.isArray(value.blocks)) {
 			if (isObject(value.gallery)) value.blocks = [{ id: 'gallery', type: 'gallery' }];
-			else if (key === 'bio') value.blocks = [{ id: 'about', type: 'about' }];
+			else if (key === 'bio' || key === 'about') value.blocks = [{ id: 'about', type: 'about' }];
 			else value.blocks = [];
 		}
 		if (
@@ -499,10 +500,71 @@ export function migrateContentV2ToV3(raw: unknown): unknown {
 	return next;
 }
 
+function renameAboutPath(value: string): string {
+	if (value === 'bio') return 'about';
+	if (value.startsWith('bio/')) return `about/${value.slice(4)}`;
+	return value;
+}
+
+function rewriteAboutLink(value: unknown): unknown {
+	if (typeof value !== 'string' || !value.startsWith('/bio')) return value;
+	const suffix = value.slice(4);
+	if (suffix && !suffix.startsWith('/') && !suffix.startsWith('?') && !suffix.startsWith('#')) return value;
+	return `/about${suffix}`;
+}
+
+/** Schema 4 makes the header choice explicit and gives the built-in About page
+ * the address artists expect. The route rewrite includes nested pages and
+ * internal button/text links, while leaving external URLs untouched. */
+export function migrateContentV3ToV4(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+
+	const site = isObject(next.site) ? next.site : null;
+	if (site && typeof site.headerMode !== 'string') {
+		site.headerMode =
+			typeof site.logoImage === 'string' && site.logoImage
+				? 'image'
+				: typeof site.logo === 'string' && site.logo
+					? 'text'
+					: 'name';
+	}
+
+	if (isObject(next.pages) && isObject(next.pages.bio) && !isObject(next.pages.about)) {
+		const renamed: MutableObject = {};
+		for (const [key, page] of Object.entries(next.pages)) renamed[renameAboutPath(key)] = page;
+		next.pages = renamed;
+	}
+
+	if (Array.isArray(next.nav)) {
+		for (const item of next.nav) {
+			if (isObject(item) && typeof item.path === 'string') item.path = renameAboutPath(item.path);
+		}
+	}
+
+	if (isObject(next.pages)) {
+		for (const page of Object.values(next.pages)) {
+			if (!isObject(page)) continue;
+			if (Array.isArray(page.children))
+				page.children = page.children.map((child) => typeof child === 'string' ? renameAboutPath(child) : child);
+			if (!Array.isArray(page.blocks)) continue;
+			for (const block of page.blocks) {
+				if (!isObject(block)) continue;
+				if (block.type === 'text') block.link = rewriteAboutLink(block.link);
+				if (block.type === 'button') block.url = rewriteAboutLink(block.url);
+			}
+		}
+	}
+
+	next.schemaVersion = 4;
+	return next;
+}
+
 const contentMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateContentV0ToV1,
 	1: migrateContentV1ToV2,
 	2: migrateContentV2ToV3,
+	3: migrateContentV3ToV4,
 };
 
 function readVersion(raw: unknown): number {

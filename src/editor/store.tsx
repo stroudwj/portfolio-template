@@ -5,6 +5,7 @@ import type {
 	Content,
 	CreativeConfig,
 	GalleryConfig,
+	HeaderMode,
 	ImageLayout,
 	MobileComposition,
 	SignatureData,
@@ -258,6 +259,8 @@ export interface EditorContextValue {
 	reset(): Promise<void>;
 	// profile / contact
 	setName(value: string): void;
+	/** Choose whether the site header shows the site name, custom text, or an uploaded image. */
+	setHeaderMode(value: HeaderMode): void;
 	/** Optional header text; empty falls back to the site name. */
 	setLogoText(value: string): void;
 	setBio(value: string): void;
@@ -362,6 +365,8 @@ export interface EditorContextValue {
 		patch: Partial<{ label: string; url: string; align: TextAlign; appearance: 'solid' | 'outline' }>,
 	): void;
 	addDividerBlock(key: string): void;
+	/** Add the shared About content to a page; no-op when that page already has it. */
+	addAboutBlock(key: string): void;
 	addFormBlock(key: string): void;
 	updateFormBlock(
 		key: string,
@@ -655,6 +660,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			},
 
 		setName: (value) => patchContent((c) => ({ ...c, site: { ...c.site, name: value } }), true, 'site:name'),
+		setHeaderMode: (value) =>
+			patchContent(
+				(c) => ({ ...c, site: { ...c.site, headerMode: value } }),
+				true,
+				'site:header-mode',
+			),
 		setLogoText: (value) =>
 			patchContent(
 				(c) => ({ ...c, site: { ...c.site, logo: value || undefined } }),
@@ -1564,6 +1575,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			true, `page:${key}:button:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addDividerBlock: (key) =>
 			patchBlocks(key, (blocks) => [...blocks, { id: uid('divider'), type: 'divider' }]),
+		addAboutBlock: (key) =>
+			patchBlocks(key, (blocks) =>
+				blocks.some((block) => block.type === 'about')
+					? blocks
+					: [...blocks, { id: uid('about'), type: 'about' }],
+			),
 		addFormBlock: (key) =>
 			patchBlocks(key, (blocks) => [
 				...blocks,

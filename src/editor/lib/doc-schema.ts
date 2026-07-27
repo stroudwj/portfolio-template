@@ -3,7 +3,7 @@ import { contentSchema, parseAndMigrateContent } from '../../lib/content-schema'
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 
-export const EDITOR_DOC_VERSION = 2 as const;
+export const EDITOR_DOC_VERSION = 3 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 const singleImageSchema = passthrough({ filename: z.string(), assetId: z.string().nullable() });
@@ -190,9 +190,29 @@ export function migrateEditorDocV1ToV2(raw: unknown): unknown {
 	return next;
 }
 
+/** Editor document v3 follows Content schema 4's /bio → /about rename for
+ * editor-only page thumbnail slots. The page content itself is migrated by the
+ * shared Content boundary. */
+export function migrateEditorDocV2ToV3(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+	if ('content' in next) next.content = parseAndMigrateContent(next.content);
+	if (isObject(next.pageThumbs)) {
+		const renamed: MutableObject = {};
+		for (const [key, value] of Object.entries(next.pageThumbs)) {
+			const nextKey = key === 'bio' ? 'about' : key.startsWith('bio/') ? `about/${key.slice(4)}` : key;
+			renamed[nextKey] = value;
+		}
+		next.pageThumbs = renamed;
+	}
+	next.docVersion = 3;
+	return next;
+}
+
 const docMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateEditorDocV0ToV1,
 	1: migrateEditorDocV1ToV2,
+	2: migrateEditorDocV2ToV3,
 };
 
 function readDocVersion(raw: unknown): number {

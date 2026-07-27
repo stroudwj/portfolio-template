@@ -22,7 +22,7 @@ export default function FooterEditor() {
 	};
 
 	return (
-		<Section title="Footer" sectionKey="_footer">
+		<Section title="Footer" sectionKey="_footer" defaultCollapsed>
 			<div className="field">
 				<label className="field-label" htmlFor="site-footer-text">Footer text</label>
 				<textarea

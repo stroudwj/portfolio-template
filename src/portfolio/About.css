@@ -16,12 +16,29 @@
 	height: auto;
 	display: block;
 }
+.profile-image-placeholder {
+	display: grid;
+	place-items: center;
+	width: 160px;
+	min-height: 120px;
+	border: 1px dashed currentColor;
+	opacity: 0.48;
+	font-size: 12px;
+	text-align: center;
+}
 
 .bio-text {
 	text-align: left;
 	line-height: 1.6;
 	text-wrap: pretty;
 	margin: 0;
+}
+.about-preview-placeholder {
+	opacity: 0.48;
+	font-style: italic;
+}
+.about-preview-links {
+	font-size: 13px;
 }
 
 @media (max-width: 900px) {

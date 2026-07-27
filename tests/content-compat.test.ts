@@ -10,7 +10,7 @@ import {
 } from '../src/lib/content-schema';
 import { parseAndMigrateEditorDoc, UnsupportedEditorDocVersionError } from '../src/editor/lib/doc-schema';
 import { buildBundle } from '../src/editor/lib/exporter';
-import { blankDoc } from '../src/editor/lib/content-init';
+import { blankDoc, existingDoc } from '../src/editor/lib/content-init';
 import { registerAsset } from '../src/editor/lib/assets';
 import { buildEditorBackup, readEditorBackup } from '../src/editor/lib/backup';
 import { collectIssues } from '../src/editor/lib/validation';
@@ -51,7 +51,10 @@ describe('content compatibility', () => {
 		expect(raw).toEqual(original);
 		expect(content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
 		expect(content.pages.home.blocks?.map((block) => block.type)).toEqual(['gallery', 'children']);
-		expect(content.pages.bio.blocks).toEqual([{ id: 'about', type: 'about' }]);
+		expect(content.pages.about.blocks).toEqual([{ id: 'about', type: 'about' }]);
+		expect(content.nav.some((item) => item.path === 'about')).toBe(true);
+		expect(content.pages.bio).toBeUndefined();
+		expect(content.site.headerMode).toBe('name');
 		expect(content.pages.work.label).toBe('Work');
 		expect(content.site.creative).toEqual({ grain: 5 });
 		expect((content.site as unknown as Record<string, unknown>).extensionFlag).toBe('preserve-me');
@@ -64,6 +67,48 @@ describe('content compatibility', () => {
 		expect(() => parseAndMigrateContent({ ...once, schemaVersion: CONTENT_SCHEMA_VERSION + 1 })).toThrow(
 			UnsupportedContentVersionError,
 		);
+	});
+
+	it('moves schema-3 About routes, internal links, and draft thumbnails to /about', () => {
+		const legacy = structuredClone(blankDoc()) as unknown as {
+			docVersion: number;
+			content: {
+				schemaVersion: number;
+				site: { headerMode?: string; logo?: string };
+				nav: Array<{ path: string }>;
+				pages: Record<string, { blocks: Array<Record<string, unknown>> }>;
+			};
+			pageThumbs: Record<string, { filename: string; assetId: null }>;
+		};
+		legacy.docVersion = 2;
+		legacy.content.schemaVersion = 3;
+		delete legacy.content.site.headerMode;
+		legacy.content.site.logo = 'Studio Name';
+		legacy.content.pages.bio = legacy.content.pages.about;
+		delete legacy.content.pages.about;
+		legacy.content.nav = legacy.content.nav.map((item) => ({
+			...item,
+			path: item.path === 'about' ? 'bio' : item.path,
+		}));
+		legacy.content.pages.home.blocks.push(
+			{ id: 'about-link', type: 'button', label: 'About', url: '/bio?from=home' },
+			{ id: 'about-text', type: 'text', text: 'Read more', link: '/bio#practice' },
+		);
+		legacy.pageThumbs.bio = { filename: 'about.jpg', assetId: null };
+
+		const migrated = parseAndMigrateEditorDoc(legacy);
+		expect(migrated.docVersion).toBe(3);
+		expect(migrated.content.pages.about).toBeDefined();
+		expect(migrated.content.pages.bio).toBeUndefined();
+		expect(migrated.content.site.headerMode).toBe('text');
+		expect(migrated.content.pages.home.blocks).toContainEqual(
+			expect.objectContaining({ id: 'about-link', url: '/about?from=home' }),
+		);
+		expect(migrated.content.pages.home.blocks).toContainEqual(
+			expect.objectContaining({ id: 'about-text', link: '/about#practice' }),
+		);
+		expect(migrated.pageThumbs.about).toEqual({ filename: 'about.jpg', assetId: null });
+		expect(migrated.pageThumbs.bio).toBeUndefined();
 	});
 
 	it('preserves layout, contrast and responsive-section fields with no schema-version bump', () => {
@@ -237,7 +282,7 @@ describe('browser draft compatibility', () => {
 		const doc = parseAndMigrateEditorDoc(raw);
 
 		expect(raw).toEqual(original);
-		expect(doc.docVersion).toBe(2);
+		expect(doc.docVersion).toBe(3);
 		expect(doc.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
 		expect(doc.logoImage).toEqual({ filename: '', assetId: null });
 		expect(doc.resumeFile.filename).toBe('resume.pdf');
@@ -251,7 +296,7 @@ describe('browser draft compatibility', () => {
 
 	it('rejects future draft versions', () => {
 		const raw = fixture('editor-doc-v0.json') as Record<string, unknown>;
-		expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 3 })).toThrow(UnsupportedEditorDocVersionError);
+		expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 4 })).toThrow(UnsupportedEditorDocVersionError);
 	});
 
 	it('clears a stale sharing-image choice instead of rejecting the whole draft', () => {
@@ -364,6 +409,36 @@ describe('browser draft compatibility', () => {
 		expect(Object.keys(bundle.contentJson.galleries.art.items)).toEqual(['z-last.jpg', 'a-first.jpg']);
 		expect(bundle.contentJson.pages.art.gallery?.order).toBe('desc');
 		expect(bundle.files.some((file) => file.path.startsWith('src/assets/art/'))).toBe(false);
+	});
+
+	it('omits bundled sample images instead of making artists replace them before publishing', async () => {
+		const doc = existingDoc();
+		doc.galleries.art.push({
+			id: 'real-work',
+			filename: 'real-work.png',
+			assetId: registerAsset(new Blob(['real work'], { type: 'image/png' }), 'real-work.png'),
+			meta: { title: 'Real work', alt: '', description: '', link: '' },
+		});
+
+		const bundle = await buildBundle(doc);
+
+		expect(bundle.contentJson.profile.image).toBe('');
+		expect(Object.keys(bundle.contentJson.galleries['selected-works'].items)).toEqual([]);
+		expect(Object.keys(bundle.contentJson.galleries.photography.items)).toEqual([]);
+		expect(Object.keys(bundle.contentJson.galleries.art.items)).toEqual(['01-real-work.png']);
+		expect(bundle.files.map((file) => file.path)).toContain('src/assets/art/01-real-work.png');
+	});
+
+	it('does not turn optional image descriptions into publishing reminders', () => {
+		const doc = blankDoc();
+		doc.galleries.art = [{
+			id: 'work-without-description',
+			filename: 'work.jpg',
+			assetId: 'asset-present',
+			meta: { title: 'Work', alt: '', description: '', link: '' },
+		}];
+
+		expect(collectIssues(doc).some((issue) => /cannot see|image description/i.test(issue))).toBe(false);
 	});
 
 	it('refuses to publish an uploaded-file reference whose pixels are missing', async () => {

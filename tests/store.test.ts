@@ -94,7 +94,7 @@ describe('Store content and draft migrations', () => {
 		expect(pages['shop-2'].label).toBe('Second existing shop');
 	});
 
-	it('migrates Content v2 to v3 with USD and preserves extension fields', () => {
+	it('migrates Content v2 through the current schema with USD and preserves extension fields', () => {
 		const raw = structuredClone(blankContent) as unknown as Record<string, unknown>;
 		raw.schemaVersion = 2;
 		raw.catalogExtension = { retained: true };
@@ -116,7 +116,7 @@ describe('Store content and draft migrations', () => {
 		const migrated = parseAndMigrateContent(raw);
 
 		expect(raw).toEqual(original);
-		expect(migrated.schemaVersion).toBe(3);
+		expect(migrated.schemaVersion).toBe(blankContent.schemaVersion);
 		expect(migrated.store?.currency).toBe('USD');
 		expect((migrated as unknown as Record<string, unknown>).catalogExtension).toEqual({
 			retained: true,
@@ -208,7 +208,7 @@ describe('Store content and draft migrations', () => {
 		const migrated = parseAndMigrateEditorDoc(raw);
 
 		expect(raw).toEqual(original);
-		expect(migrated.docVersion).toBe(2);
+		expect(migrated.docVersion).toBe(3);
 		expect(migrated.productImages).toEqual({
 			'original-1': { filename: 'framed-original.jpg', assetId: null },
 		});
@@ -415,7 +415,7 @@ describe('Store publishing bundle', () => {
 		entry.name = 'Blue Monotype';
 
 		entry.imageAlt = ' ';
-		await expect(buildBundle(doc)).rejects.toThrow(/add an image description/i);
+		expect((await buildBundle(doc)).contentJson.store?.products[0].imageAlt).toBe('');
 		entry.imageAlt = 'A blue abstract monotype';
 
 		doc.productImages[entry.id] = { filename: '', assetId: null };

@@ -26,6 +26,8 @@ export interface PortfolioProps extends PortfolioData {
 		height: number | undefined,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+	/** Show editor-only guidance for empty portfolio content. */
+	editorPreview?: boolean;
 }
 
 /**
@@ -33,8 +35,12 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, resizeBreakpoint, onSectionHeight, onFooterHeight }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
+	const headerMode =
+		content.site.headerMode ??
+		(logoImageSrc ? 'image' : content.site.logo ? 'text' : 'name');
+	const headerText = headerMode === 'text' ? (content.site.logo || content.site.name) : content.site.name;
 	const pageBackground = content.pages[page]?.background;
 	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const rootStyle: CSSProperties = {
@@ -55,8 +61,8 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 			<CreativeEffects creative={content.site.creative} />
 			<PortfolioFrame
 				nav={content.nav}
-				logo={content.site.logo || content.site.name}
-				logoImageSrc={logoImageSrc}
+				logo={headerText}
+				logoImageSrc={headerMode === 'image' ? logoImageSrc : undefined}
 				base={base}
 				current={current}
 				navStyle={content.theme.navStyle}
@@ -86,6 +92,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					resizeBreakpoint={resizeBreakpoint}
 					onSectionHeight={onSectionHeight}
 					onFooterHeight={onFooterHeight}
+					editorPreview={editorPreview}
 				/>
 			</PortfolioFrame>
 		</div>

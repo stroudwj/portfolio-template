@@ -32,7 +32,7 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 }
 
 /** Collapsed/expanded choices survive reloads — one localStorage map for all sections. */
-const COLLAPSE_STORE = 'portfolio-editor-collapsed';
+const COLLAPSE_STORE = 'portfolio-editor-collapsed-v2';
 const EXPAND_EVENT = 'editor-expand-section';
 
 function loadCollapsed(): Record<string, boolean> {

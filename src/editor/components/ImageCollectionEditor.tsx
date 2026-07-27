@@ -113,10 +113,10 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																	/>
 																</label>
 																<label className="image-description-field">
-																	<span>Describe this image</span>
+																	<span>Description (optional)</span>
 																	<input
 																		className="text-input"
-																		placeholder="Example: Blue ceramic vase on a wooden table"
+																		placeholder="Blue ceramic vase on a wooden table"
 																		value={entry.meta.alt}
 																		onChange={(e) =>
 																			updateGalleryMeta(folder, entry.id, {
@@ -124,12 +124,11 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																			})
 																		}
 																	/>
-																	<small>A short description helps people who cannot see the image.</small>
 																</label>
 																{variant === 'projects' && (
 																	<>
 																		<label className="image-description-field">
-																			<span>Visible caption</span>
+																			<span>Caption (optional)</span>
 																			<textarea
 																				className="text-area"
 																				rows={2}

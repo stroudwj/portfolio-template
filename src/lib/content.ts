@@ -21,6 +21,8 @@ export interface ResponsiveSectionHeight {
 export interface Site {
 	/** Owner name — the single source of truth, reused in the logo and every page title. */
 	name: string;
+	/** Which identity is shown in the site header. Absent legacy content is inferred from the available logo fields. */
+	headerMode?: HeaderMode;
 	/** Optional logo override; falls back to `name` when omitted or empty. */
 	logo?: string;
 	/** Optional logo image (path under src/assets/); shown in the header instead of the text logo. */
@@ -129,6 +131,7 @@ export interface Theme {
 
 /** The navigation layouts an artist can pick from the Design area. */
 export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
+export type HeaderMode = 'name' | 'text' | 'image';
 export type LogoPosition = 'left' | 'center' | 'freeform';
 export type PageHeadingPosition = 'left' | 'center' | 'right' | 'freeform';
 

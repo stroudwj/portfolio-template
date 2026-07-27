@@ -3,24 +3,22 @@ import { Section } from './ui/controls';
 import { SortableList, SortableItem } from './ui/Sortable';
 import { isUrl } from '../lib/validation';
 
-export default function SocialLinksEditor() {
+export function SocialLinksFields() {
 	const { doc, addSocial, updateSocial, removeSocial, moveSocial } = useEditor();
 	if (!doc) return null;
 	const social = doc.content.social;
 	const ids = social.map((_, i) => `s${i}`);
 
 	return (
-		<Section
-			title="Social links"
-			sectionKey="_social"
-			action={
+		<>
+			<div className="about-subsection-head">
+				<span className="field-label">Social links</span>
 				<button type="button" className="btn-ghost" onClick={addSocial}>
-					+ Add
+					＋ Add link
 				</button>
-			}
-		>
+			</div>
 			{social.length === 0 ? (
-				<p className="muted">No links yet.</p>
+				<p className="muted about-empty-copy">Add links visitors can use to find your work elsewhere.</p>
 			) : (
 				<SortableList ids={ids} onReorder={moveSocial}>
 					<div className="card-list">
@@ -70,6 +68,14 @@ export default function SocialLinksEditor() {
 					</div>
 				</SortableList>
 			)}
+		</>
+	);
+}
+
+export default function SocialLinksEditor() {
+	return (
+		<Section title="Social links" sectionKey="_social">
+			<SocialLinksFields />
 		</Section>
 	);
 }

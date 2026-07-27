@@ -229,7 +229,6 @@ function ProductEditor({
 		hasChosenImage &&
 			!image?.assetId &&
 			'a real product photo — the sample image can’t be published; upload your own or replace it',
-		!product.imageAlt.trim() && 'an image description',
 		product.offers.length === 0 && 'at least one buying option',
 		product.offers.some((offer) => !offer.label.trim()) && 'a name for every buying option',
 		product.offers.some((offer) => offer.amountMinor <= 0) &&
@@ -373,10 +372,7 @@ function ProductEditor({
 					</div>
 				</div>
 			</div>
-			<Field
-				label="Image description"
-				hint="Describe what a buyer can see. This is read aloud when the image cannot be seen."
-			>
+			<Field label="Image description (optional)">
 				<TextInput
 					value={product.imageAlt}
 					placeholder="Blue abstract print with layered cobalt shapes"

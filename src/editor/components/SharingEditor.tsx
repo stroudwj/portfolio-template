@@ -30,7 +30,7 @@ export default function SharingEditor() {
 		: undefined;
 
 	// What the card will actually show: the chosen image, else the automatic pick
-	// (profile photo, else the home gallery's first image) — mirrors resolveOgImage.
+	// (About photo, else the home gallery's first image) — mirrors resolveOgImage.
 	const autoEntry = doc.galleries[content.pages.home?.gallery?.folder ?? '']?.[0];
 	const cardImageSrc = selectedEntry
 		? (getAssetPreviewUrl(selectedEntry.assetId) ?? PLACEHOLDER_IMAGE)
@@ -48,7 +48,7 @@ export default function SharingEditor() {
 
 	return (
 		<>
-			<Section title="Search & social" sectionKey="_sharing">
+			<Section title="Search & sharing" sectionKey="_sharing" defaultCollapsed>
 				<Field label="Site language" hint="Helps browsers and screen readers pronounce your words correctly.">
 					<select className="select-input" value={content.site.language ?? 'en'} onChange={(event) => setSiteLanguage(event.target.value)}>
 						<option value="en">English</option>
@@ -77,7 +77,7 @@ export default function SharingEditor() {
 
 				<Field
 					label="Social card image"
-					hint="The picture shown when your link is shared. Automatic uses your profile photo, else your first image."
+					hint="The picture shown when your link is shared. Automatic uses your About photo, else your first image."
 				>
 					<select
 						className="select-input"

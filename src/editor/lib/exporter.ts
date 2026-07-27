@@ -88,6 +88,12 @@ function preservedName(entry: ImageEntry): string {
 	return name;
 }
 
+/** The classic starter uses reference-only placeholder.png files as editor scaffolding.
+ * They have no browser bytes and are not user work, so publishing quietly leaves them out. */
+function isBundledSampleImage(entry: ImageEntry): boolean {
+	return !entry.assetId && entry.filename.trim().toLowerCase() === 'placeholder.png';
+}
+
 function localAssetBlob(assetId: string | null | undefined, label: string): Blob | undefined {
 	if (!assetId) return undefined;
 	const blob = getAssetBlob(assetId);
@@ -198,18 +204,19 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			delete content.galleries[folder];
 			continue;
 		}
+		const publishEntries = entries.filter((entry) => !isBundledSampleImage(entry));
 		const items: Record<string, Partial<ImageMeta>> = {};
 		// A null id deliberately means “this file already lives in the template or
 		// repository.” It cannot be renamed without its bytes. Preserve every name
 		// and the gallery's existing asc/desc rule whenever such a reference exists.
-		const hasReferenceOnlyFiles = entries.some((entry) => !entry.assetId);
-		const hasUploadedFiles = entries.some((entry) => !!entry.assetId);
+		const hasReferenceOnlyFiles = publishEntries.some((entry) => !entry.assetId);
+		const hasUploadedFiles = publishEntries.some((entry) => !!entry.assetId);
 		if (hasReferenceOnlyFiles && hasUploadedFiles)
 			throw new Error(
 				`The “${folder}” image group mixes template images with new uploads. Replace the template images first so the published order stays exact.`,
 			);
 		if (hasReferenceOnlyFiles) {
-			const names = entries.map(preservedName);
+			const names = publishEntries.map(preservedName);
 			for (const config of configsByFolder.get(folder) ?? []) {
 				// Astro's eager glob is sorted with JavaScript's default code-unit order.
 				const runtimeOrder = [...names].sort();
@@ -221,10 +228,10 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			}
 		}
 		const usedNames = new Set<string>();
-		for (let i = 0; i < entries.length; i++) {
-			const entry = entries[i];
+		for (let i = 0; i < publishEntries.length; i++) {
+			const entry = publishEntries[i];
 			const blob = localAssetBlob(entry.assetId, entry.filename || 'Artwork');
-			const baseName = hasReferenceOnlyFiles ? preservedName(entry) : orderedName(i, entries.length, entry);
+			const baseName = hasReferenceOnlyFiles ? preservedName(entry) : orderedName(i, publishEntries.length, entry);
 			let finalName = baseName;
 			for (let suffix = 2; usedNames.has(finalName); suffix++) {
 				if (!blob) throw new Error(`The referenced artwork file “${baseName}” appears more than once.`);
@@ -286,7 +293,6 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			throw new Error(`“${displayName}” cannot be published as Available: ${detail}`);
 		};
 		if (!product.name) problem('add a product name.');
-		if (!product.imageAlt) problem('add an image description for visitors who cannot see it.');
 		if (!product.image) problem('choose or upload a product image.');
 		if (!product.offers.length) problem('add at least one purchase option.');
 		for (const offer of product.offers) {
@@ -322,7 +328,10 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await profileBlob.arrayBuffer()) });
 		content.profile.image = finalName;
 	} else {
-		content.profile.image = doc.profileImage.filename;
+		content.profile.image =
+			!doc.profileImage.assetId && doc.profileImage.filename.trim().toLowerCase() === 'placeholder.png'
+				? ''
+				: doc.profileImage.filename;
 		if (content.profile.image) referencedFiles.add(`src/assets/${content.profile.image}`);
 	}
 

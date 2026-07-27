@@ -17,8 +17,8 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
-	schemaVersion: 3,
-	site: { name: '', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
+	schemaVersion: 4,
+	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
 		textColor: '#111111',
@@ -30,7 +30,7 @@ export const blankContent: Content = {
 		{ path: '', label: 'Home' },
 		{ path: 'art', label: 'Art' },
 		{ path: 'photography', label: 'Photography' },
-		{ path: 'bio', label: 'About' },
+		{ path: 'about', label: 'About' },
 	],
 	profile: { image: '', bio: '' },
 	contact: { email: '' },
@@ -53,7 +53,7 @@ export const blankContent: Content = {
 			gallery: { folder: 'photography', alt: 'Photograph', order: 'asc' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
 		},
-		bio: { title: 'About — {name}', blocks: [{ id: 'about', type: 'about' }] },
+		about: { title: 'About — {name}', blocks: [{ id: 'about', type: 'about' }] },
 	},
 	galleries: { 'selected-works': { items: {} }, art: { items: {} }, photography: { items: {} } },
 };
@@ -123,7 +123,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 	}
 
 	return {
-		docVersion: 2,
+		docVersion: 3,
 		content: cloned,
 		galleries,
 		profileImage: { filename: cloned.profile.image || '', assetId: null },

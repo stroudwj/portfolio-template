@@ -646,6 +646,15 @@ select.select-input {
 	max-width: 128px;
 	object-fit: contain;
 }
+.asset-filename {
+	min-width: 0;
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12px;
+	color: var(--ink-soft);
+}
 .imagedrop-folder {
 	margin-top: 4px;
 	font-size: 13px;
@@ -1052,7 +1061,7 @@ select.select-input {
 	margin-top: 10px;
 }
 
-/* ---- Profile: résumé row ---- */
+/* ---- About: résumé + social fields ---- */
 .resume-row {
 	display: flex;
 	align-items: center;
@@ -1070,6 +1079,34 @@ select.select-input {
 }
 a.resume-name:hover {
 	color: var(--klein);
+}
+.about-content-fields {
+	display: flex;
+	flex-direction: column;
+	padding-top: 12px;
+	margin-top: 12px;
+	border-top: 1px solid var(--wall-2);
+}
+.about-social-fields {
+	padding-top: 12px;
+	border-top: 1px solid var(--wall-2);
+}
+.about-subsection-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+.about-empty-copy,
+.about-editor-intro {
+	margin-top: 4px;
+}
+.identity-layout-note {
+	padding-top: 10px;
+	border-top: 1px solid var(--wall-2);
+}
+.header-layout-intro {
+	margin: 0 0 14px;
 }
 
 /* ---- Start screen: template picker ---- */
@@ -2373,14 +2410,16 @@ a.live-url:hover {
 .page-add-block-menu button:hover {
 	background: var(--wall-1);
 }
-.page-editor-advanced {
+.page-editor-advanced,
+.page-settings-disclosure {
 	overflow: hidden;
 	border: 1px solid var(--wall-2);
 	border-radius: 5px;
 	background: var(--paper);
 	margin-bottom: 12px;
 }
-.page-editor-advanced > summary {
+.page-editor-advanced > summary,
+.page-settings-disclosure > summary {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -2390,18 +2429,23 @@ a.live-url:hover {
 	cursor: pointer;
 	user-select: none;
 }
-.page-editor-advanced > summary::-webkit-details-marker {
+.page-editor-advanced > summary::-webkit-details-marker,
+.page-settings-disclosure > summary::-webkit-details-marker {
 	display: none;
 }
 .page-editor-advanced > summary span:first-child,
-.page-editor-advanced > summary small {
+.page-editor-advanced > summary small,
+.page-settings-disclosure > summary span:first-child,
+.page-settings-disclosure > summary small {
 	display: block;
 }
-.page-editor-advanced > summary strong {
+.page-editor-advanced > summary strong,
+.page-settings-disclosure > summary strong {
 	font-size: 13px;
 	font-weight: 600;
 }
-.page-editor-advanced > summary small {
+.page-editor-advanced > summary small,
+.page-settings-disclosure > summary small {
 	margin-top: 2px;
 	color: var(--ink-soft);
 	font-size: 11px;
@@ -2411,13 +2455,18 @@ a.live-url:hover {
 	font-size: 20px;
 	transition: transform 120ms ease;
 }
-.page-editor-advanced[open] .page-editor-advanced-chevron {
+.page-editor-advanced[open] .page-editor-advanced-chevron,
+.page-settings-disclosure[open] .page-editor-advanced-chevron {
 	transform: rotate(180deg);
 }
 .page-editor-advanced-body {
 	padding: 12px;
 	border-top: 1px solid var(--wall-2);
 	background: var(--wall-1);
+}
+.page-settings-body {
+	padding: 12px;
+	border-top: 1px solid var(--wall-2);
 }
 .block {
 	border: 1px solid var(--wall-2);
