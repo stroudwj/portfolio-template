@@ -58,28 +58,8 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: 'Esc', label: 'Leave fullscreen preview' },
 ];
 
-function KeyboardIcon() {
-	return (
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<rect x="2.5" y="5" width="19" height="14" rx="2.5" />
-			<path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M8 16h8" />
-		</svg>
-	);
-}
-
-function BugIcon() {
-	return (
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<path d="M9 5.5V4a3 3 0 0 1 6 0v1.5M5 13h14M7 9H4M20 9h-3M7 17H4M20 17h-3" />
-			<rect x="7" y="6" width="10" height="14" rx="5" />
-		</svg>
-	);
-}
-
-/** A small "?" button in the top bar that opens a popover listing every editor
- *  shortcut — the shortcuts themselves live next to the code that implements them;
- *  this is just the one place someone can go to remember what they are. */
-function HotkeyGuide() {
+/** Keep infrequent help and destructive actions out of the primary top-bar path. */
+function TopbarMoreMenu({ onReset }: { onReset: () => void }) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -100,28 +80,47 @@ function HotkeyGuide() {
 	}, [open]);
 
 	return (
-		<div className="hotkey-guide" ref={ref}>
+		<div className="topbar-more" ref={ref}>
 			<button
 				type="button"
-				className="btn-ghost hotkey-guide-toggle"
+				className="btn-ghost topbar-more-toggle"
 				aria-expanded={open}
-				aria-label="Keyboard shortcuts"
-				title="Keyboard shortcuts"
+				aria-label="Help and more"
+				title="Help and more"
 				onClick={() => setOpen((o) => !o)}
 			>
-				<KeyboardIcon />
+				•••
 			</button>
 			{open && (
-				<div className="hotkey-guide-popover" role="dialog" aria-label="Keyboard shortcuts">
-					<h3>Keyboard shortcuts</h3>
-					<ul>
-						{SHORTCUTS.map((s, i) => (
-							<li key={i}>
-								<kbd>{s.keys}</kbd>
-								<span>{s.label}</span>
-							</li>
-						))}
-					</ul>
+				<div className="topbar-more-popover" role="dialog" aria-label="Help and more">
+					<a
+						className="topbar-more-action"
+						href="mailto:william.stroud100@gmail.com"
+						onClick={() => setOpen(false)}
+					>
+						Send feedback
+					</a>
+					<details className="topbar-shortcuts">
+						<summary>Keyboard shortcuts</summary>
+						<ul>
+							{SHORTCUTS.map((shortcut, index) => (
+								<li key={index}>
+									<kbd>{shortcut.keys}</kbd>
+									<span>{shortcut.label}</span>
+								</li>
+							))}
+						</ul>
+					</details>
+					<button
+						type="button"
+						className="topbar-more-action danger"
+						onClick={() => {
+							setOpen(false);
+							onReset();
+						}}
+					>
+						Reset editor…
+					</button>
 				</div>
 			)}
 		</div>
@@ -167,6 +166,7 @@ function Shell({ base }: { base: string }) {
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const controlsRef = useRef<HTMLDivElement>(null);
 	const [selectedPage, setSelectedPage] = useState<string | null>(null);
+	const [lastSelectedPage, setLastSelectedPage] = useState<string | null>(null);
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
 		return normalizeEditorTab(saved);
@@ -196,9 +196,9 @@ function Shell({ base }: { base: string }) {
 	// Removing/resetting the page currently open in the workspace returns to the
 	// overview instead of leaving an empty editor panel behind.
 	useEffect(() => {
-		if (!selectedPage) return;
-		if (!doc?.content.pages[selectedPage]) setSelectedPage(null);
-	}, [doc, selectedPage]);
+		if (selectedPage && !doc?.content.pages[selectedPage]) setSelectedPage(null);
+		if (lastSelectedPage && !doc?.content.pages[lastSelectedPage]) setLastSelectedPage(null);
+	}, [doc, selectedPage, lastSelectedPage]);
 
 	// Returning from checkout reloads the page onto the Start screen. If the buyer set out to
 	// publish, resume their saved draft automatically so they land back in the editor (AccountControls
@@ -231,6 +231,7 @@ function Shell({ base }: { base: string }) {
 	const openPageWorkspace = (pageKey: string) => {
 		if (!doc.content.pages[pageKey]) return;
 		setSelectedPage(pageKey);
+		setLastSelectedPage(pageKey);
 		pickTab('pages');
 		expandSection(pageKey);
 		showPreviewPage(pageKey);
@@ -309,19 +310,8 @@ function Shell({ base }: { base: string }) {
 						Redo
 					</button>
 				</div>
-				<a
-					className="btn-ghost feedback-button"
-					href="mailto:william.stroud100@gmail.com"
-					title="Bug or missing feature?"
-				>
-					<BugIcon />
-					<span className="feedback-button-text">Bug or missing feature?</span>
-				</a>
-				<HotkeyGuide />
-				<button type="button" className="btn-ghost danger" onClick={resetAll}>
-					Reset
-				</button>
 				<AccountControls />
+				<TopbarMoreMenu onReset={resetAll} />
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>
@@ -386,7 +376,7 @@ function Shell({ base }: { base: string }) {
 								/>
 							</div>
 						) : (
-							<PageManager onEditPage={openPageWorkspace} />
+							<PageManager onEditPage={openPageWorkspace} selectedPageKey={lastSelectedPage} />
 						)}
 					</div>
 					<div className={`editor-tab-pane ${tab === 'store' ? 'active' : ''}`}>

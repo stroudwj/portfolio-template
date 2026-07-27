@@ -2,6 +2,7 @@
 // blocks — text anywhere, the image gallery, the About section, and sub-pages
 // (thumbnail cards). Sub-pages get their own nested PageEditor so their galleries
 // and text are edited in place; nesting is one level deep by design.
+import { useRef } from 'react';
 import { useEditor } from '../store';
 import { Field, TextInput, TextArea, Section, showEditorTab } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
@@ -176,6 +177,7 @@ export default function PageEditor({
 	includeChildren?: boolean;
 }) {
 	const editor = useEditor();
+	const addMenuRef = useRef<HTMLDetailsElement>(null);
 	const { doc } = editor;
 	if (!doc) return null;
 	const page = doc.content.pages[pageKey];
@@ -275,6 +277,10 @@ export default function PageEditor({
 	const addChild = () => {
 		const name = prompt('Name of the new sub-page:');
 		if (name?.trim()) editor.addChildPage(pageKey, name.trim());
+	};
+	const runAdd = (action: () => void) => {
+		addMenuRef.current?.removeAttribute('open');
+		action();
 	};
 
 	/** Bake the current Grid arrangement into freeform coordinates and switch to
@@ -463,20 +469,36 @@ export default function PageEditor({
 					<div className="block" key={block.id}>
 						<div className="block-head">
 							<span className="block-label">Images</span>
-							{page.gallery && (
-								<LayoutToggle label={`main images on ${pageName}`} mode={galleryMode} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
-							)}
 							{controls(index, block, false)}
 						</div>
-						{page.gallery && galleryMode === 'grid' && (
-							<GridOptions
-								config={page.gallery}
-								label={`${hasFreeCanvas ? 'main canvas' : 'main images'} on ${pageName}`}
-								onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)}
-								onAdopt={() =>
-									void adoptGridAsFreeform(page.gallery!, (patch) => editor.setGalleryConfig(pageKey, patch))
-								}
-							/>
+						{page.gallery && (
+							<details className="block-options image-layout-options">
+								<summary>
+									Layout &amp; mobile <span>{galleryMode === 'grid' ? 'Grid' : 'Freeform'}</span>
+								</summary>
+								<div className="image-layout-options-body">
+									<LayoutToggle label={`main images on ${pageName}`} mode={galleryMode} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
+									{galleryMode === 'grid' && (
+										<GridOptions
+											config={page.gallery}
+											label={`${hasFreeCanvas ? 'main canvas' : 'main images'} on ${pageName}`}
+											onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)}
+											onAdopt={() =>
+												void adoptGridAsFreeform(page.gallery!, (patch) => editor.setGalleryConfig(pageKey, patch))
+											}
+										/>
+									)}
+									{(phoneItemsFor(page.gallery, hasFreeCanvas).length > 0 || page.gallery.mobile) && (
+										<MobileArrangementEditor
+											items={phoneItemsFor(page.gallery, hasFreeCanvas)}
+											mobile={page.gallery.mobile}
+											gridMode={galleryMode === 'grid'}
+											label={`main images on ${pageName}`}
+											onChange={(mobile) => editor.setGalleryConfig(pageKey, { mobile })}
+										/>
+									)}
+								</div>
+							</details>
 						)}
 						{page.gallery && (
 							<ImageCollectionEditor
@@ -490,15 +512,6 @@ export default function PageEditor({
 										? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
 										: undefined
 								}
-							/>
-						)}
-						{page.gallery && (phoneItemsFor(page.gallery, hasFreeCanvas).length > 0 || page.gallery.mobile) && (
-							<MobileArrangementEditor
-								items={phoneItemsFor(page.gallery, hasFreeCanvas)}
-								mobile={page.gallery.mobile}
-								gridMode={galleryMode === 'grid'}
-								label={`main images on ${pageName}`}
-								onChange={(mobile) => editor.setGalleryConfig(pageKey, { mobile })}
 							/>
 						)}
 					</div>
@@ -518,17 +531,33 @@ export default function PageEditor({
 								aria-label={`Name for ${groupLabel}`}
 								onChange={(e) => editor.renameImagesBlock(pageKey, block.id, e.target.value)}
 							/>
-							<LayoutToggle label={groupLabel} mode={groupMode} onPatch={patchGroup} />
 							{controls(index, block, true)}
 						</div>
-						{groupMode === 'grid' && (
-							<GridOptions
-								config={block.gallery}
-								label={groupLabel}
-								onPatch={patchGroup}
-								onAdopt={() => void adoptGridAsFreeform(block.gallery, patchGroup)}
-							/>
-						)}
+						<details className="block-options image-layout-options">
+							<summary>
+								Layout &amp; mobile <span>{groupMode === 'grid' ? 'Grid' : 'Freeform'}</span>
+							</summary>
+							<div className="image-layout-options-body">
+								<LayoutToggle label={groupLabel} mode={groupMode} onPatch={patchGroup} />
+								{groupMode === 'grid' && (
+									<GridOptions
+										config={block.gallery}
+										label={groupLabel}
+										onPatch={patchGroup}
+										onAdopt={() => void adoptGridAsFreeform(block.gallery, patchGroup)}
+									/>
+								)}
+								{(phoneItemsFor(block.gallery).length > 0 || block.gallery.mobile) && (
+									<MobileArrangementEditor
+										items={phoneItemsFor(block.gallery)}
+										mobile={block.gallery.mobile}
+										gridMode={groupMode === 'grid'}
+										label={groupLabel}
+										onChange={(mobile) => patchGroup({ mobile })}
+									/>
+								)}
+							</div>
+						</details>
 						<ImageCollectionEditor
 							embedded
 							folder={block.gallery.folder}
@@ -539,17 +568,8 @@ export default function PageEditor({
 								groupMode === 'grid'
 									? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
 									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking: the top image sits in front.'
-							}
+								}
 						/>
-						{(phoneItemsFor(block.gallery).length > 0 || block.gallery.mobile) && (
-							<MobileArrangementEditor
-								items={phoneItemsFor(block.gallery)}
-								mobile={block.gallery.mobile}
-								gridMode={groupMode === 'grid'}
-								label={groupLabel}
-								onChange={(mobile) => patchGroup({ mobile })}
-							/>
-						)}
 					</div>
 				);
 			}
@@ -909,89 +929,101 @@ export default function PageEditor({
 				) : undefined
 			}
 		>
-			<Field
-				label={nested ? 'Sub-page name' : 'Page name'}
-				hint={nested ? 'Shown on its card and heading.' : 'Shown in the site menu.'}
-			>
-				<TextInput value={page.label ?? ''} onChange={(e) => editor.renamePage(pageKey, e.target.value)} />
-			</Field>
-			<Field label="Heading (optional)">
-				<TextInput
-					value={page.heading ?? ''}
-					placeholder="Shown at the top of the page"
-					onChange={(e) => editor.setPageHeading(pageKey, e.target.value)}
-				/>
-			</Field>
-
-			<Field
-				label="Page background (color blocking)"
-				hint="Give this whole page its own background color. Text adjusts automatically to stay readable."
-			>
-				<div className="color-block-row">
-					<ColorSwatchPicker
-						label={`Background color for ${pageName}`}
-						value={page.background}
-						themeColors={themeColors}
-						onChange={(color) => editor.setPageBackground(pageKey, color)}
+			<div className="page-editor-group page-details-group">
+				<h3>Page details</h3>
+				<Field
+					label={nested ? 'Sub-page name' : 'Page name'}
+					hint={nested ? 'Shown on its card and heading.' : 'Shown in the site menu.'}
+				>
+					<TextInput value={page.label ?? ''} onChange={(e) => editor.renamePage(pageKey, e.target.value)} />
+				</Field>
+				<Field label="Heading (optional)">
+					<TextInput
+						value={page.heading ?? ''}
+						placeholder="Shown at the top of the page"
+						onChange={(e) => editor.setPageHeading(pageKey, e.target.value)}
 					/>
-					{page.heading?.trim() && (
-						<label className="color-block-inline">
-							<span>Heading band</span>
+				</Field>
+			</div>
+
+			<div className="page-editor-group page-content-group">
+				<div className="page-content-heading">
+					<h3>Content</h3>
+					<details className="page-add-block" ref={addMenuRef}>
+						<summary className="btn-primary" aria-label={`Add a block to ${pageName}`}>
+							＋ Add block
+						</summary>
+						<div className="page-add-block-menu">
+							<button type="button" onClick={() => runAdd(() => editor.addTextBlock(pageKey))}>Text</button>
+							<button type="button" onClick={() => runAdd(() => editor.addImagesBlock(pageKey))}>Image group</button>
+							<button type="button" onClick={() => runAdd(() => editor.addEmbedBlock(pageKey))}>Video</button>
+							<button type="button" onClick={() => runAdd(() => editor.addButtonBlock(pageKey))}>Button</button>
+							<button type="button" onClick={() => runAdd(() => editor.addDividerBlock(pageKey))}>Divider</button>
+							<button type="button" onClick={() => runAdd(() => editor.addFormBlock(pageKey))}>Contact form</button>
+							<button
+								type="button"
+								onClick={() =>
+									runAdd(() => {
+										if (doc.content.store) editor.addProductsBlock(pageKey);
+										else showEditorTab('store');
+									})
+								}
+							>
+								{doc.content.store ? 'Products' : 'Set up products…'}
+							</button>
+							{!nested && <button type="button" onClick={() => runAdd(addChild)}>Sub-page</button>}
+						</div>
+					</details>
+				</div>
+				{blocks.map(renderBlock)}
+			</div>
+
+			<details className="page-editor-advanced">
+				<summary>
+					<span>
+						<strong>Mobile &amp; advanced</strong>
+						<small>Page colors and phone arrangement</small>
+					</span>
+					<span className="page-editor-advanced-chevron" aria-hidden="true">⌄</span>
+				</summary>
+				<div className="page-editor-advanced-body">
+					<Field
+						label="Page background (color blocking)"
+						hint="Give this whole page its own background color. Text adjusts automatically to stay readable."
+					>
+						<div className="color-block-row">
 							<ColorSwatchPicker
-								label={`Background color behind the ${pageName} heading`}
-								value={page.sectionColors?.['page:heading']}
+								label={`Background color for ${pageName}`}
+								value={page.background}
 								themeColors={themeColors}
-								onChange={(color) => editor.setSectionColor(pageKey, 'page:heading', color)}
+								onChange={(color) => editor.setPageBackground(pageKey, color)}
 							/>
-						</label>
+							{page.heading?.trim() && (
+								<label className="color-block-inline">
+									<span>Heading band</span>
+									<ColorSwatchPicker
+										label={`Background color behind the ${pageName} heading`}
+										value={page.sectionColors?.['page:heading']}
+										themeColors={themeColors}
+										onChange={(color) => editor.setSectionColor(pageKey, 'page:heading', color)}
+									/>
+								</label>
+							)}
+						</div>
+					</Field>
+
+					{(pagePhoneItems.length > 0 || page.mobile) && (
+						<MobileArrangementEditor
+							items={pagePhoneItems}
+							mobile={page.mobile}
+							simple
+							scope="page"
+							label={pageName}
+							onChange={(mobile) => editor.setPageMobile(pageKey, mobile)}
+						/>
 					)}
 				</div>
-			</Field>
-
-			{(pagePhoneItems.length > 0 || page.mobile) && (
-				<MobileArrangementEditor
-					items={pagePhoneItems}
-					mobile={page.mobile}
-					simple
-					scope="page"
-					label={pageName}
-					onChange={(mobile) => editor.setPageMobile(pageKey, mobile)}
-				/>
-			)}
-
-			{blocks.map(renderBlock)}
-
-			<div className="block-adders">
-				<button type="button" className="btn-link" aria-label={`Add text to ${pageName}`} onClick={() => editor.addTextBlock(pageKey)}>
-					＋ Add text
-				</button>
-				<button type="button" className="btn-link" aria-label={`Add an image group to ${pageName}`} onClick={() => editor.addImagesBlock(pageKey)}>
-					＋ Add image group
-				</button>
-				<button type="button" className="btn-link" aria-label={`Add a video to ${pageName}`} onClick={() => editor.addEmbedBlock(pageKey)}>
-					＋ Add video
-				</button>
-				<details className="more-blocks">
-					<summary aria-label={`More things to add to ${pageName}`}>＋ More blocks</summary>
-					<div>
-						<button type="button" className="btn-link" aria-label={`Add a button to ${pageName}`} onClick={() => editor.addButtonBlock(pageKey)}>Add button</button>
-						<button type="button" className="btn-link" aria-label={`Add a divider to ${pageName}`} onClick={() => editor.addDividerBlock(pageKey)}>Add divider</button>
-						<button type="button" className="btn-link" aria-label={`Add a contact form to ${pageName}`} onClick={() => editor.addFormBlock(pageKey)}>Add contact form</button>
-						<button
-							type="button"
-							className="btn-link"
-							aria-label={`${doc.content.store ? 'Add products to' : 'Set up products for'} ${pageName}`}
-							onClick={() => {
-								if (doc.content.store) editor.addProductsBlock(pageKey);
-								else showEditorTab('store');
-							}}
-						>
-							{doc.content.store ? 'Add products' : 'Set up products…'}
-						</button>
-						{!nested && <button type="button" className="btn-link" aria-label={`Add a sub-page under ${pageName}`} onClick={addChild}>Add sub-page</button>}
-					</div>
-				</details>
-			</div>
+			</details>
 
 			{includeChildren && !nested && (page.children?.length ?? 0) > 0 && (
 				<div className="nested-pages">

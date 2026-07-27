@@ -1,5 +1,5 @@
-// Topbar account area: a "Claim your space" button until signed in, then an account chip
-// plus the primary "Publish website" call to action. Owns the two modals' open state.
+// Topbar account area: a quiet sign-in/account control plus the editor's one
+// primary Publish action. Owns the two modals' open state.
 // (The account-flavored replacement for GitHubControls.)
 import { useEffect, useState } from 'react';
 import { useEditor } from '../store';
@@ -47,31 +47,29 @@ export default function AccountControls() {
 	return (
 		<>
 			{signedIn && account.user ? (
-				<>
-					<span className="gh-chip">
-						<span className="gh-login">{account.user.email}</span>
-						<button type="button" className="gh-signout" onClick={account.signOut}>
-							Sign out
-						</button>
-					</span>
-					<button
-						type="button"
-						className="btn-primary"
-						onClick={onPublishClick}
-						disabled={!built}
-						title={built ? undefined : 'Hang your first piece, then publish.'}
-					>
-						Publish
+				<span className="gh-chip">
+					<span className="gh-login">{account.user.email}</span>
+					<button type="button" className="gh-signout" onClick={account.signOut}>
+						Sign out
 					</button>
-				</>
+				</span>
 			) : (
 				<>
 					{account.error && <span className="gh-chip gh-error-chip">{account.error}</span>}
-					<button type="button" className="btn-primary" onClick={() => setShowSignIn(true)}>
-						{built ? 'Claim your space' : 'Sign in'}
+					<button type="button" className="btn-ghost" onClick={() => setShowSignIn(true)}>
+						Sign in
 					</button>
 				</>
 			)}
+			<button
+				type="button"
+				className="btn-primary"
+				onClick={onPublishClick}
+				disabled={!built}
+				title={built ? undefined : 'Hang your first piece, then publish.'}
+			>
+				Publish
+			</button>
 
 			{showSignIn && (
 				<SignInModal
