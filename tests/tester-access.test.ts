@@ -36,6 +36,7 @@ class TestDb {
 			},
 			async run() {
 				if (sql.includes('UPDATE licenses SET user_id')) return { success: true };
+				if (sql.includes('UPDATE polar_orders SET user_id')) return { success: true };
 				if (sql.includes('INSERT OR IGNORE INTO manual_entitlements')) {
 					if (!db.entitlement || db.entitlement.status !== 'active') {
 						db.entitlement = {

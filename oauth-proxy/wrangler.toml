@@ -25,6 +25,13 @@ EMAIL_FROM = "Hangwork <hello@hangwork.art>"
 LS_STORE_ID = "431697"
 LS_PRODUCT_ID = "1221404"
 
+# Polar production resources. Sandbox uses a separate organization, product,
+# benefit, access token, and webhook endpoint.
+POLAR_SERVER = "production"
+POLAR_PRODUCT_ID = "039844bd-e3ad-45fc-b7ad-f7c9d88fe7fa"
+POLAR_ORGANIZATION_ID = "e0fe39bc-3fb6-44f1-9c6f-b4b0e247108d"
+POLAR_BENEFIT_ID = "250ca7c4-29ad-4a4a-849c-eb83adafb60e"
+
 # Google OAuth ("Continue with Google" in the editor). Create an OAuth client
 # (Web application) in Google Cloud Console; authorized redirect URI = the editor URL
 # (e.g. https://hangwork.art/editor/). /auth/google answers 503 until this + the
@@ -70,6 +77,8 @@ bucket_name = "hangwork-sites"
 #   wrangler secret put SESSION_SECRET      (long random string; signs session JWTs + upload tickets)
 #   wrangler secret put GOOGLE_CLIENT_SECRET (Google OAuth client secret, if Google sign-in is on)
 #   wrangler secret put LS_WEBHOOK_SECRET   (Lemon Squeezy webhook signing secret for /webhooks/lemonsqueezy)
+#   wrangler secret put POLAR_ACCESS_TOKEN  (server-only sandbox/live Organization Access Token)
+#   wrangler secret put POLAR_WEBHOOK_SECRET (signing secret for /webhooks/polar)
 #   wrangler secret put CF_SAAS_TOKEN       (Cloudflare API token, SSL and Certificates:Edit — custom hostnames)
 #   wrangler secret put ADMIN_GOOGLE_SUBS    (comma-separated Google subject ids allowed into /admin)
 #   wrangler secret put ADMIN_EMAILS         (comma-separated account emails allowed into /admin)

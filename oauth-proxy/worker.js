@@ -13,6 +13,9 @@
 //   POST /auth/license/bind           — attach a Lemon Squeezy key to the account
 //   POST /auth/test-access/redeem      — redeem the shared tester code for manual access
 //   POST /webhooks/lemonsqueezy       — signed LS webhook (no CORS gate; signature auth)
+//   POST /webhooks/polar              — signed Polar webhook (no CORS gate; signature auth)
+//   POST /checkout/polar              — create a Polar hosted Checkout Session
+//   POST /checkout/polar/status       — confirm a returned Polar Checkout Session
 //   POST /publish                     — authz + quota + manifest diff → upload tickets
 //   PUT  /upload?ticket=…             — one file's bytes into R2 (hash-verified)
 //   POST /publish/complete            — apply deletions, update D1/KV, answer live URL
@@ -73,6 +76,7 @@ import {
 	adminSiteStatus,
 } from './admin.js';
 import { publish, upload, publishComplete } from './publish.js';
+import { polarCheckoutCreate, polarCheckoutStatus, polarWebhook } from './polar.js';
 import {
 	subdomainCheck,
 	subdomainClaim,
@@ -112,6 +116,9 @@ export default {
 		if (path === '/webhooks/lemonsqueezy' && request.method === 'POST') {
 			return lsWebhook(request, env);
 		}
+		if (path === '/webhooks/polar' && request.method === 'POST') {
+			return polarWebhook(request, env);
+		}
 
 		// Require an Origin in the allowlist — browsers always send Origin on cross-origin
 		// fetch, so only the editor passes; requests with a missing or foreign Origin (curl,
@@ -140,6 +147,8 @@ export default {
 		if (path === '/auth/session') return session(request, env, corsOrigin);
 		if (path === '/auth/license/bind') return licenseBind(request, env, corsOrigin);
 		if (path === '/auth/test-access/redeem') return testAccessRedeem(request, env, corsOrigin);
+		if (path === '/checkout/polar') return polarCheckoutCreate(request, env, corsOrigin, origin);
+		if (path === '/checkout/polar/status') return polarCheckoutStatus(request, env, corsOrigin);
 		if (path === '/admin/session') return adminSession(request, env, corsOrigin);
 		if (path === '/admin/accounts/search') return adminAccountSearch(request, env, corsOrigin);
 		if (path === '/admin/accounts/get') return adminAccountGet(request, env, corsOrigin);

@@ -57,6 +57,14 @@ export async function adoptLicensesForUser(db, user) {
 		.run();
 }
 
+/** Attach Polar orders that arrived before the buyer created or signed into an account. */
+export async function adoptPolarOrdersForUser(db, user) {
+	await db
+		.prepare("UPDATE polar_orders SET user_id = ? WHERE user_id IS NULL AND buyer_email = ? AND status = 'active'")
+		.bind(user.id, user.email)
+		.run();
+}
+
 export async function userHasActiveLicense(db, userId) {
 	const row = await db
 		.prepare(
@@ -69,9 +77,13 @@ export async function userHasActiveLicense(db, userId) {
 				SELECT 1 FROM manual_entitlements
 				WHERE user_id = ? AND status = 'active'
 			)
+			OR EXISTS(
+				SELECT 1 FROM polar_orders
+				WHERE user_id = ? AND status = 'active'
+			)
 			LIMIT 1`,
 		)
-		.bind(userId, userId)
+		.bind(userId, userId, userId)
 		.first();
 	return row != null;
 }
@@ -112,6 +124,7 @@ export async function deleteSiteRows(db, siteId) {
 /** Summarize a user's account for the editor (used by /auth/session). */
 export async function accountSummary(db, user) {
 	await adoptLicensesForUser(db, user);
+	await adoptPolarOrdersForUser(db, user);
 	const licensed = await userHasActiveLicense(db, user.id);
 	const site = await getSiteForUser(db, user.id);
 	return {

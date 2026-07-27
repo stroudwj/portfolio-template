@@ -48,6 +48,19 @@ Dashboard steps (one-time, see also `../site-server/wrangler.toml`):
   repeat hits then never touch Worker/R2.
 - **Lemon Squeezy → Webhooks**: point at `https://<this-worker>/webhooks/lemonsqueezy`,
   events `order_created`, `order_refunded`, `license_key_created`.
+- **Polar → Settings → Webhooks**: point at `https://<this-worker>/webhooks/polar`,
+  events `order.paid`, `order.refunded`, and `benefit_grant.revoked`. Create the
+  Organization Access Token with only `checkouts:read` and `checkouts:write`, then store
+  both credentials as Worker secrets:
+
+  ```sh
+  wrangler secret put POLAR_ACCESS_TOKEN
+  wrangler secret put POLAR_WEBHOOK_SECRET
+  ```
+
+  Sandbox and production are isolated. Keep `POLAR_SERVER`, `POLAR_PRODUCT_ID`,
+  `POLAR_ORGANIZATION_ID`, and `POLAR_BENEFIT_ID` in `wrangler.toml` aligned with the
+  environment that issued those two secrets.
 - **Google Cloud Console** (optional): OAuth client (Web), redirect URI = the editor URL
   (`https://hangwork.art/editor/`); set `GOOGLE_CLIENT_ID` here + in
   `src/editor/lib/account/config.ts`.

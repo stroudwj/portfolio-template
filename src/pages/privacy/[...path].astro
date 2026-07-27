@@ -16,7 +16,7 @@ export function getStaticPaths() {
 
 const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
 
-const lastUpdated = 'July 23, 2026';
+const lastUpdated = 'July 26, 2026';
 const abuseEmail = 'abuse@hangwork.art';
 const supportEmail = 'william.stroud100@gmail.com';
 
@@ -43,7 +43,7 @@ const sections: LegalSection[] = [
 			<h3>Your site content</h3>
 			<p>The images, text, files, product catalog, display prices, and Stripe Payment Links you add, and the site you build. Published sites are public by design.</p>
 			<h3>Payment information</h3>
-			<p>Purchases are handled by Lemon Squeezy as merchant of record. They collect your payment details directly; we receive order and license information (such as your email, the product, and whether the purchase is valid) but not your full card number.</p>
+			<p>Purchases are handled by the merchant of record identified at checkout — currently Lemon Squeezy or Polar. They collect your payment details directly; we receive order and license information (such as your email, the product, and whether the purchase is valid) but not your full card number.</p>
 			<h3>Technical and log data</h3>
 			<p>Like any website, our infrastructure automatically records data such as IP address, browser type, and requests, used for security, abuse prevention, and keeping the Service running.</p>
 			<h3>Support messages</h3>
@@ -64,7 +64,7 @@ const sections: LegalSection[] = [
 		html: `
 			<ul>
 				<li>to run the editor, publish and serve your site, and let you sign in from any device;</li>
-				<li>to process your purchase and confirm your license, through Lemon Squeezy;</li>
+				<li>to process your purchase and confirm your license through the merchant of record shown at checkout;</li>
 				<li>to send you necessary emails — sign-in links, purchase confirmations, and important service notices — through our email provider;</li>
 				<li>to keep the Service secure, prevent abuse, and comply with the law;</li>
 				<li>to answer your support requests.</li>
@@ -87,6 +87,7 @@ const sections: LegalSection[] = [
 			<ul>
 				<li><strong>Cloudflare</strong> — hosting, storage of your site files and account data, DNS, and content-safety scanning of uploaded images.</li>
 				<li><strong>Lemon Squeezy</strong> — payment processing as merchant of record.</li>
+				<li><strong>Polar</strong> — payment processing and automated license benefits as merchant of record.</li>
 				<li><strong>Resend</strong> — sending sign-in links and transactional email.</li>
 				<li><strong>Google</strong> — only if you choose “Continue with Google,” to authenticate you.</li>
 			</ul>

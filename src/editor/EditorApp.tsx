@@ -15,6 +15,7 @@ import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
 import AccountControls from './components/AccountControls';
+import PolarCheckoutDemo from './components/PolarCheckoutDemo';
 import MobileDoor from './components/MobileDoor';
 import { onShowEditorTab } from './components/ui/controls';
 import { useLicense } from './components/useLicense';
@@ -353,6 +354,7 @@ function Shell({ base }: { base: string }) {
 export default function EditorApp({ base = '' }: { base?: string }) {
 	return (
 		<EditorProvider>
+			<PolarCheckoutDemo />
 			<Shell base={base} />
 		</EditorProvider>
 	);
