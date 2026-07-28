@@ -94,15 +94,15 @@ export class CloudflareTarget implements PublishTarget {
 			if (manifest[path]) continue;
 			const carried = saved?.lastManifest?.[path];
 			if (carried) manifest[path] = carried;
-			// Drop the leading "assets/" so the message reads as a page-relative path
-			// (e.g. "selected-works/placeholder.png") instead of a bare filename —
-			// several sample images share the name "placeholder.png".
+			// Explicit product samples were already removed by buildBundle. Anything
+			// missing here is a user or previously-published file reference whose
+			// bytes are unavailable, so report its page-relative path precisely.
 			else missing.add(path.replace(/^assets\//, ''));
 		}
 		if (missing.size) {
 			const list = [...missing];
 			throw new Error(
-				`Still using the sample image${list.length === 1 ? '' : 's'} for: ${list.join(', ')}. Replace ${list.length === 1 ? 'it' : 'them'} with your own before publishing.`,
+				`The referenced file${list.length === 1 ? ' is' : 's are'} missing: ${list.join(', ')}. Reopen the published site or upload ${list.length === 1 ? 'that file' : 'those files'} before publishing.`,
 			);
 		}
 

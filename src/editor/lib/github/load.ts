@@ -169,7 +169,8 @@ export async function loadDocFromRepo(
 		const prefix = `src/assets/${folder}/`;
 		galleries[folder] = folderFiles[folder].map((path) => {
 			const fullName = path.slice(prefix.length); // the on-disk name, incl. NN- prefix (the caption key)
-			const meta = content.galleries[folder]?.items?.[fullName] ?? {};
+				const sourceMeta = content.galleries[folder]?.items?.[fullName] ?? {};
+				const { sampleAssetId: _sampleAssetId, ...meta } = sourceMeta;
 			return {
 				id: meta.id || uid('e'),
 				filename: stripOrderPrefix(fullName),
@@ -182,43 +183,56 @@ export async function loadDocFromRepo(
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,
-				},
-				assetId: assetIdByPath.get(path) ?? null,
-			};
+					},
+					assetId: assetIdByPath.get(path) ?? null,
+					sampleAssetId: null,
+				};
 		});
 	}
 	doc.galleries = galleries;
 	doc.profileImage = hasProfileFile
-		? { filename: profileName, assetId: assetIdByPath.get(profilePath) ?? null }
-		: { filename: profileName || '', assetId: null };
+		? {
+				filename: profileName,
+				assetId: assetIdByPath.get(profilePath) ?? null,
+				sampleAssetId: null,
+			}
+		: { filename: profileName || '', assetId: null, sampleAssetId: null };
 	doc.logoImage = hasLogoFile
-		? { filename: logoName, assetId: assetIdByPath.get(logoPath) ?? null }
-		: { filename: logoName, assetId: null };
+		? {
+				filename: logoName,
+				assetId: assetIdByPath.get(logoPath) ?? null,
+				sampleAssetId: null,
+			}
+		: { filename: logoName, assetId: null, sampleAssetId: null };
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = {
-			filename: path.slice(path.lastIndexOf('/') + 1),
-			assetId: assetIdByPath.get(path) ?? null,
-		};
+				filename: path.slice(path.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(path) ?? null,
+				sampleAssetId: null,
+			};
 	}
 	for (const product of content.store?.products ?? []) {
 		if (!product.image) continue;
 		const path = productPathById.get(product.id) ?? `src/assets/${product.image}`;
 		doc.productImages[product.id] = {
-			filename: path.slice(path.lastIndexOf('/') + 1),
-			assetId: assetIdByPath.get(path) ?? null,
-		};
+				filename: path.slice(path.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(path) ?? null,
+				sampleAssetId: null,
+			};
 	}
 	for (const [name, path] of fontPathByName) {
 		doc.fonts[name] = {
-			filename: path.slice(path.lastIndexOf('/') + 1),
-			assetId: assetIdByPath.get(path) ?? null,
-		};
+				filename: path.slice(path.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(path) ?? null,
+				sampleAssetId: null,
+			};
 	}
 	if (hasResumeFile) {
 		doc.resumeFile = {
-			filename: resumePath.slice(resumePath.lastIndexOf('/') + 1),
-			assetId: assetIdByPath.get(resumePath) ?? null,
-		};
+				filename: resumePath.slice(resumePath.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(resumePath) ?? null,
+				sampleAssetId: null,
+			};
 	}
 
 	const managedPaths = [

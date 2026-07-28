@@ -97,7 +97,7 @@ describe('content compatibility', () => {
 		legacy.pageThumbs.bio = { filename: 'about.jpg', assetId: null };
 
 		const migrated = parseAndMigrateEditorDoc(legacy);
-		expect(migrated.docVersion).toBe(3);
+			expect(migrated.docVersion).toBe(4);
 		expect(migrated.content.pages.about).toBeDefined();
 		expect(migrated.content.pages.bio).toBeUndefined();
 		expect(migrated.content.site.headerMode).toBe('text');
@@ -107,7 +107,11 @@ describe('content compatibility', () => {
 		expect(migrated.content.pages.home.blocks).toContainEqual(
 			expect.objectContaining({ id: 'about-text', link: '/about#practice' }),
 		);
-		expect(migrated.pageThumbs.about).toEqual({ filename: 'about.jpg', assetId: null });
+			expect(migrated.pageThumbs.about).toEqual({
+				filename: 'about.jpg',
+				assetId: null,
+				sampleAssetId: null,
+			});
 		expect(migrated.pageThumbs.bio).toBeUndefined();
 	});
 
@@ -282,11 +286,15 @@ describe('browser draft compatibility', () => {
 		const doc = parseAndMigrateEditorDoc(raw);
 
 		expect(raw).toEqual(original);
-		expect(doc.docVersion).toBe(3);
+			expect(doc.docVersion).toBe(4);
 		expect(doc.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
-		expect(doc.logoImage).toEqual({ filename: '', assetId: null });
+			expect(doc.logoImage).toEqual({ filename: '', assetId: null, sampleAssetId: null });
 		expect(doc.resumeFile.filename).toBe('resume.pdf');
-		expect(doc.fonts['Draft Font']).toEqual({ filename: 'draft.woff2', assetId: null });
+			expect(doc.fonts['Draft Font']).toEqual({
+				filename: 'draft.woff2',
+				assetId: null,
+				sampleAssetId: null,
+			});
 		expect(doc.productImages).toEqual({});
 		expect((doc as unknown as Record<string, unknown>).draftExtension).toBe('keep-this');
 
@@ -296,7 +304,7 @@ describe('browser draft compatibility', () => {
 
 	it('rejects future draft versions', () => {
 		const raw = fixture('editor-doc-v0.json') as Record<string, unknown>;
-		expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 4 })).toThrow(UnsupportedEditorDocVersionError);
+			expect(() => parseAndMigrateEditorDoc({ ...raw, docVersion: 5 })).toThrow(UnsupportedEditorDocVersionError);
 	});
 
 	it('clears a stale sharing-image choice instead of rejecting the whole draft', () => {

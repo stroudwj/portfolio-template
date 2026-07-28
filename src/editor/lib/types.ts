@@ -12,6 +12,8 @@ export interface ImageMeta {
 	title: string;
 	/** Screen-reader description, separate from the visible artwork title. */
 	alt: string;
+	/** Explicitly marks the image as intentionally silent to screen readers. */
+	decorative?: true;
 	description: string;
 	link: string;
 	/** Legacy grid width in columns (1–4; unset = 1). Ignored once `layout` exists. */
@@ -31,12 +33,15 @@ export interface ImageEntry {
 	meta: ImageMeta;
 	/** Key into the asset registry when the pixels were uploaded this session; null = reference only. */
 	assetId: string | null;
+	/** Immutable product sample id. Mutually exclusive with assetId. */
+	sampleAssetId?: string | null;
 }
 
 /** A single standalone image slot (profile picture, page thumbnail). */
 export interface SingleImage {
 	filename: string;
 	assetId: string | null;
+	sampleAssetId?: string | null;
 }
 
 /**
@@ -46,7 +51,7 @@ export interface SingleImage {
  */
 export interface EditorDoc {
 	/** Version of the browser-only working document shape. */
-	docVersion: 3;
+	docVersion: 4;
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;

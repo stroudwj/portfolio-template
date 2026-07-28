@@ -347,9 +347,13 @@ export interface ImageMeta {
 	[key: string]: unknown;
 	/** Stable across publish/reload so optional phone arrangements can refer to this image. */
 	id: string;
+	/** Product-owned sample identity. The editor lifts this into its image slot; published bundles remove samples. */
+	sampleAssetId?: string;
 	title?: string;
 	/** Accessibility description; deliberately separate from the visible title. */
 	alt?: string;
+	/** An intentional empty alt attribute, recorded explicitly instead of inferred. */
+	decorative?: true;
 	description?: string;
 	link?: string;
 	/** Legacy grid width in columns (1–4); ignored once `layout` exists. */

@@ -5,6 +5,7 @@ import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
 import type { PageHeadingPosition } from '../../lib/content';
+import { compatibleThemePresets } from '../lib/templates';
 
 const FONTS: Array<{ label: string; value: string }> = [
 	{ label: 'Helvetica — clean sans', value: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
@@ -31,7 +32,7 @@ const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
 const customFontValue = (name: string) => `"${name}", sans-serif`;
 
 export default function ThemeEditor() {
-	const { doc, setTheme, addCustomFont, removeCustomFont } = useEditor();
+	const { doc, setTheme, applyThemePreset, addCustomFont, removeCustomFont } = useEditor();
 	const fontInputRef = useRef<HTMLInputElement>(null);
 	const [fontError, setFontError] = useState<string | null>(null);
 	if (!doc) return null;
@@ -50,6 +51,7 @@ export default function ThemeEditor() {
 	const pageHeadingPosition = theme.pageHeadingPosition ?? 'right';
 	const pageHeadingX = theme.pageHeadingX ?? 50;
 	const pageHeadingY = theme.pageHeadingY ?? 56;
+	const presets = compatibleThemePresets(doc);
 
 	const applySubheadingScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -77,6 +79,50 @@ export default function ThemeEditor() {
 
 	return (
 		<Section title="Fonts & colors" sectionKey="_theme">
+			<div className="theme-preset-section">
+				<div className="theme-preset-heading">
+					<strong>Compatible themes</strong>
+					<span>Only themes that support this site’s page and gallery features appear.</span>
+				</div>
+				<div className="theme-preset-grid">
+					{presets.map((preset) => {
+						const selected =
+							theme.backgroundColor === preset.tokens.backgroundColor &&
+							theme.textColor === preset.tokens.textColor &&
+							theme.accentColor === preset.tokens.accentColor &&
+							theme.fontFamily === preset.tokens.fontFamily;
+						return (
+							<button
+								key={preset.id}
+								type="button"
+								className={`theme-preset-card${selected ? ' active' : ''}`}
+								aria-pressed={selected}
+								onClick={() => applyThemePreset(preset.tokens)}
+							>
+								<span
+									className="theme-preset-swatch"
+									style={{
+										background: preset.tokens.backgroundColor,
+										color: preset.tokens.textColor,
+										borderColor: preset.tokens.mutedTextColor,
+									}}
+									aria-hidden="true"
+								>
+									<i style={{ background: preset.tokens.accentColor }} />
+									Aa
+								</span>
+								<span>
+									<strong>{preset.name}</strong>
+									<small>{preset.description}</small>
+								</span>
+							</button>
+						);
+					})}
+				</div>
+				<p className="theme-preset-note">
+					Applying a theme changes only its design tokens. Your pages, words, images, uploads, and custom font files stay put.
+				</p>
+			</div>
 			<Field
 				label="Automatic readable text"
 				hint="Adjust text, your logo/name, and navigation over colored page sections. Turn this off to keep your exact theme colors everywhere."

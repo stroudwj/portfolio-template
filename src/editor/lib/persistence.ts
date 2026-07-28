@@ -21,6 +21,14 @@ export interface SavedVersion {
 	doc: EditorDoc;
 }
 
+export function savedVersionToEvict(
+	versions: readonly SavedVersion[],
+): SavedVersion | undefined {
+	return versions.length >= SAVED_VERSION_LIMIT
+		? versions.at(-1)
+		: undefined;
+}
+
 export function saveDoc(doc: EditorDoc): void {
 	try {
 		// Autosave needs to know when this fails so the editor never tells an artist

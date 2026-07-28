@@ -10,6 +10,15 @@ import { SortableList, SortableItem } from './ui/Sortable';
 import { getAssetPreviewUrl } from '../lib/assets';
 import { PLACEHOLDER_IMAGE } from '../lib/content-init';
 import { isUrl } from '../lib/validation';
+import {
+	getSampleArtwork,
+	isSampleWithdrawn,
+	sampleArtworkUrl,
+	sampleReplacement,
+} from '../lib/sample-artwork';
+import type { AccessibleImageUpload } from '../lib/image-accessibility';
+import ImageAccessibilityModal from './ImageAccessibilityModal';
+import { showSampleUnavailable } from '../../portfolio/sampleFallback';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -24,11 +33,38 @@ export interface ImageCollectionEditorProps {
 }
 
 export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded, hint }: ImageCollectionEditorProps) {
-	const { doc, addGalleryImages, replaceGalleryImage, removeGalleryImage, moveGalleryImage, updateGalleryMeta } = useEditor();
+	const {
+		doc,
+		addGalleryImages,
+		replaceGalleryImage,
+		replaceSampleWithSuccessor,
+		removeGalleryImage,
+		moveGalleryImage,
+		updateGalleryMeta,
+	} = useEditor();
 	const [collapsed, setCollapsed] = useState(false);
 	const [compact, setCompact] = useState(true);
+	const [pendingUpload, setPendingUpload] = useState<{
+		files: File[];
+		replaceEntryId?: string;
+		replacingSample?: boolean;
+	} | null>(null);
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
+	const accessibilityReviewCount = entries.filter(
+		(entry) => !entry.sampleAssetId && !entry.meta.alt.trim() && !entry.meta.decorative,
+	).length;
+
+	const finishUpload = (images: AccessibleImageUpload[]) => {
+		if (!pendingUpload) return;
+		if (pendingUpload.replaceEntryId) {
+			const image = images[0];
+			if (image) replaceGalleryImage(folder, pendingUpload.replaceEntryId, image);
+		} else {
+			addGalleryImages(folder, images);
+		}
+		setPendingUpload(null);
+	};
 
 	const body = (
 		<>
@@ -44,9 +80,14 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 
 			{(!collapsed || entries.length === 0) && (
 				<>
-					<ImageDrop multiple onFiles={(files) => addGalleryImages(folder, files)}>
-						<span>{addLabel}</span>
-					</ImageDrop>
+						<ImageDrop multiple onFiles={(files) => setPendingUpload({ files })}>
+							<span>{addLabel}</span>
+						</ImageDrop>
+						{accessibilityReviewCount > 0 && (
+							<p className="accessibility-review-warning" role="status">
+								Accessibility review: {accessibilityReviewCount} older image{accessibilityReviewCount === 1 ? '' : 's'} need alt text or an explicit decorative choice. Open Details to review.
+							</p>
+						)}
 
 					{entries.length === 0 ? (
 						<p className="muted">{emptyLabel}</p>
@@ -68,11 +109,16 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 							</div>
 							<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
 								<div className={`card-list ${compact ? 'image-card-list-compact' : ''}`}>
-									{entries.map((entry, idx) => {
-										const url = getAssetPreviewUrl(entry.assetId) ?? PLACEHOLDER_IMAGE;
-										const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
-										const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
-										return (
+										{entries.map((entry, idx) => {
+											const sample = getSampleArtwork(entry.sampleAssetId);
+											const url =
+												getAssetPreviewUrl(entry.assetId) ??
+												sampleArtworkUrl(entry.sampleAssetId) ??
+												PLACEHOLDER_IMAGE;
+											const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
+											const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
+											const successor = sampleReplacement(entry.sampleAssetId);
+											return (
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
 													<div className={`card ${compact ? 'image-card-compact' : ''}`}>
@@ -87,17 +133,54 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 															⠿
 														</button>
 														<div className="card-media">
-															<img className="card-thumb" src={url} alt="" />
-															<span className="card-filename" title={entry.filename}>
-																{entry.filename}
-															</span>
-															<ImageDrop
-																ariaLabel={`Replace ${artworkName}`}
-																onFiles={(files) => replaceGalleryImage(folder, entry.id, files[0])}
-															>
-																<span>Replace</span>
-															</ImageDrop>
-														</div>
+											<img
+												className="card-thumb"
+												src={url}
+												alt=""
+												onError={
+													sample
+														? (event) => showSampleUnavailable(event.currentTarget)
+														: undefined
+												}
+											/>
+																<span className="card-filename" title={entry.filename}>
+																	{entry.filename}
+																</span>
+																{sample && (
+																	<span className="sample-asset-label">
+																		Sample — replace or remove
+																	</span>
+																)}
+																{sample?.status === 'retiring' && sample.retirementDate && (
+																	<span className="sample-withdrawal-date">
+																		Withdraws {new Date(sample.retirementDate).toLocaleDateString()}
+																	</span>
+																)}
+																{sample && isSampleWithdrawn(sample) && (
+																	<span className="sample-withdrawal-date">Sample withdrawn</span>
+																)}
+																<ImageDrop
+																	ariaLabel={`Replace ${artworkName}`}
+																	onFiles={(files) =>
+																		setPendingUpload({
+																			files: files.slice(0, 1),
+																			replaceEntryId: entry.id,
+																			replacingSample: !!entry.sampleAssetId,
+																		})
+																	}
+																>
+																	<span>Replace</span>
+																</ImageDrop>
+																{successor && (
+																	<button
+																		type="button"
+																		className="btn-link sample-successor"
+																		onClick={() => replaceSampleWithSuccessor(folder, entry.id)}
+																	>
+																		Use replacement
+																	</button>
+																)}
+															</div>
 														{!compact && (
 															<div className="card-fields">
 																<label className="image-description-field">
@@ -112,19 +195,34 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																		}
 																	/>
 																</label>
-																<label className="image-description-field">
-																	<span>Description (optional)</span>
-																	<input
-																		className="text-input"
-																		placeholder="Blue ceramic vase on a wooden table"
-																		value={entry.meta.alt}
-																		onChange={(e) =>
-																			updateGalleryMeta(folder, entry.id, {
-																				alt: e.target.value,
-																			})
-																		}
-																	/>
-																</label>
+																	<label className="image-description-field">
+																		<span>Alt text</span>
+																		<input
+																			className="text-input"
+																			placeholder="Blue ceramic vase on a wooden table"
+																			value={entry.meta.alt}
+																			disabled={!!entry.meta.decorative}
+																			onChange={(e) =>
+																				updateGalleryMeta(folder, entry.id, {
+																					alt: e.target.value,
+																					decorative: undefined,
+																				})
+																			}
+																		/>
+																		<label className="decorative-image-check compact">
+																			<input
+																				type="checkbox"
+																				checked={!!entry.meta.decorative}
+																				onChange={(event) =>
+																					updateGalleryMeta(folder, entry.id, {
+																						alt: event.target.checked ? '' : entry.meta.alt,
+																						decorative: event.target.checked ? true : undefined,
+																					})
+																				}
+																			/>
+																			Decorative image
+																		</label>
+																	</label>
 																{variant === 'projects' && (
 																	<>
 																		<label className="image-description-field">
@@ -199,10 +297,27 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 		</>
 	);
 
-	if (embedded) return body;
+	const uploadModal = pendingUpload && (
+		<ImageAccessibilityModal
+			files={pendingUpload.files}
+			replacingSample={pendingUpload.replacingSample}
+			onCancel={() => setPendingUpload(null)}
+			onConfirm={finishUpload}
+		/>
+	);
+	if (embedded)
+		return (
+			<>
+				{body}
+				{uploadModal}
+			</>
+		);
 	return (
-		<Section title={title ?? ''} action={<span className="count">{entries.length}</span>}>
-			{body}
-		</Section>
+		<>
+			<Section title={title ?? ''} action={<span className="count">{entries.length}</span>}>
+				{body}
+			</Section>
+			{uploadModal}
+		</>
 	);
 }

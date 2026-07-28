@@ -21,7 +21,7 @@
     { "path": "about", "label": "About" }
   ],
   "profile": {
-    "image": "placeholder.png",
+    "image": "",
     "bio": "Born in Somewhere.\nLives and works in Your City.\n\nArtist. Designer. Photographer."
   },
   "contact": {
@@ -62,6 +62,7 @@
       "items": {
         "placeholder.png": {
           "id": "image-selected-works-placeholder-png-1",
+          "sampleAssetId": "internal-placeholder-v1",
           "title": "Sample piece",
           "alt": "Sample portfolio artwork",
           "description": "Replace this sample with your own work.",
@@ -73,6 +74,7 @@
       "items": {
         "placeholder.png": {
           "id": "image-art-placeholder-png-1",
+          "sampleAssetId": "internal-placeholder-v1",
           "title": "Sample piece",
           "alt": "Sample portfolio artwork",
           "description": "Replace this sample with your own work.",
@@ -84,6 +86,7 @@
       "items": {
         "placeholder.png": {
           "id": "image-photography-placeholder-png-1",
+          "sampleAssetId": "internal-placeholder-v1",
           "title": "Sample piece",
           "alt": "Sample portfolio artwork",
           "description": "Optional caption shown in the lightbox.",

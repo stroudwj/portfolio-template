@@ -27,8 +27,12 @@ import {
 } from '../lib/github/subdomain';
 import { ProgressList, appendStep } from './ui/ProgressList';
 import CustomDomainModal from './CustomDomainModal';
+import Portfolio from '../../portfolio/Portfolio';
+import { docToPortfolioData } from '../lib/content-init';
+import { samplePublishImpact, stripSamplesForPublish } from '../lib/sample-publish';
+import type { EditorDoc } from '../lib/types';
 
-type Phase = 'configure' | 'publishing' | 'success' | 'error';
+type Phase = 'configure' | 'samples' | 'publishing' | 'success' | 'error';
 
 export default function PublishModal({ account, onClose }: { account: AccountSession; onClose: () => void }) {
 	const { doc } = useEditor();
@@ -65,6 +69,7 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 
 	if (!doc) return null;
 	if (showDomain) return <CustomDomainModal onClose={closeDomainModal} />;
+	const sampleImpact = samplePublishImpact(doc);
 	const issues = collectIssues(doc);
 	const nameIsValid = !firstPublish || isValidSiteName(siteName);
 	const nameProblem = !siteName
@@ -93,13 +98,13 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 		}
 	};
 
-	const runPublish = async () => {
+	const runPublish = async (sourceDoc: EditorDoc = doc) => {
 		if (firstPublish && (!isValidSiteName(siteName) || nameState === 'taken')) return;
 		setPhase('publishing');
 		setLog([]);
 		setError(null);
 		try {
-			const bundle = await buildBundle(doc);
+			const bundle = await buildBundle(sourceDoc);
 			const target = new CloudflareTarget({
 				client: client(),
 				store: localSiteStore,
@@ -117,6 +122,11 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 			setError(err instanceof AccountError ? err.friendly : err instanceof Error ? err.message : 'Publishing failed.');
 			setPhase('error');
 		}
+	};
+
+	const beginPublish = () => {
+		if (sampleImpact.sampleCount > 0) setPhase('samples');
+		else void runPublish();
 	};
 
 	const copyUrl = async () => {
@@ -186,6 +196,64 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 		);
 	}
 
+	// ---- Sample stripping review ----
+	if (phase === 'samples') {
+		const stripped = stripSamplesForPublish(doc);
+		const preview = docToPortfolioData(stripped);
+		const previewPage = stripped.content.pages.home ? 'home' : Object.keys(stripped.content.pages)[0];
+		return (
+			<Modal
+				title="Review the site without sample images"
+				onClose={onClose}
+				footer={
+					<>
+						<button type="button" className="btn-primary" onClick={onClose}>
+							Review and replace samples
+						</button>
+						<button
+							type="button"
+							className="btn-secondary"
+							disabled={sampleImpact.blockedPages.length > 0}
+							onClick={() => void runPublish(stripped)}
+						>
+							Publish without sample images
+						</button>
+					</>
+				}
+			>
+				<p className="modal-lead">
+					Sample artwork cannot be published as your work. This is the exact sample-stripped document Hangwork will send to the publisher.
+				</p>
+				<div className="sample-strip-preview" aria-label="Sample-stripped site preview">
+					<Portfolio page={previewPage} base={import.meta.env.BASE_URL} {...preview} />
+				</div>
+				<div className="sample-impact-list">
+					<strong>
+						{sampleImpact.sampleCount} sample image{sampleImpact.sampleCount === 1 ? '' : 's'} will be removed
+					</strong>
+					<ul>
+						{sampleImpact.pages.map((page) => (
+							<li key={page.key}>
+								{page.label}: {page.sampleCount} across {page.galleries.join(', ')}
+							</li>
+						))}
+					</ul>
+				</div>
+				{sampleImpact.blockedPages.length > 0 && (
+					<div className="sample-publish-blocked" role="alert">
+						<strong>Publishing is refused until these public pages have meaningful content:</strong>
+						<ul>
+							{sampleImpact.blockedPages.map((page) => (
+								<li key={page.key}>{page.label}</li>
+							))}
+						</ul>
+						Replace samples, add content, save the page as a draft, or remove it.
+					</div>
+				)}
+			</Modal>
+		);
+	}
+
 	// ---- Configure screen ----
 	return (
 		<Modal
@@ -196,7 +264,7 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 					<button type="button" className="btn-ghost" onClick={onClose}>
 						Cancel
 					</button>
-					<button type="button" className="btn-primary" onClick={() => void runPublish()} disabled={!nameIsValid || nameState === 'taken'}>
+					<button type="button" className="btn-primary" onClick={beginPublish} disabled={!nameIsValid || nameState === 'taken'}>
 						{firstPublish ? 'Publish' : 'Publish update'}
 					</button>
 				</>

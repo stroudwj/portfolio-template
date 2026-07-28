@@ -167,8 +167,10 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 
 const imageMetaSchema = passthrough({
 	id: z.string().min(1),
+	sampleAssetId: z.string().min(1).optional(),
 	title: z.string().optional(),
 	alt: z.string().optional(),
+	decorative: z.literal(true).optional(),
 	description: z.string().optional(),
 	link: z.string().optional(),
 	w: z.number().optional(),

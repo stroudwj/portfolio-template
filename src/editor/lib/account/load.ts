@@ -142,7 +142,8 @@ export async function loadPublishedSite(
 		const prefix = `assets/${folder}/`;
 		galleries[folder] = folderFiles[folder].map((path) => {
 			const fullName = path.slice(prefix.length);
-			const meta = content.galleries[folder]?.items?.[fullName] ?? {};
+				const sourceMeta = content.galleries[folder]?.items?.[fullName] ?? {};
+				const { sampleAssetId: _sampleAssetId, ...meta } = sourceMeta;
 			return {
 				id: meta.id || uid('e'),
 				filename: stripOrderPrefix(fullName),
@@ -155,30 +156,52 @@ export async function loadPublishedSite(
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,
-				},
-				assetId: assetIdByPath.get(path) ?? null,
-			};
+					},
+					assetId: assetIdByPath.get(path) ?? null,
+					sampleAssetId: null,
+				};
 		});
 	}
 	doc.galleries = galleries;
-	doc.profileImage = { filename: content.profile.image || '', assetId: assetIdByPath.get(profilePath) ?? null };
-	doc.logoImage = { filename: content.site.logoImage || '', assetId: assetIdByPath.get(logoPath) ?? null };
+	doc.profileImage = {
+		filename: content.profile.image || '',
+		assetId: assetIdByPath.get(profilePath) ?? null,
+		sampleAssetId: null,
+	};
+	doc.logoImage = {
+		filename: content.site.logoImage || '',
+		assetId: assetIdByPath.get(logoPath) ?? null,
+		sampleAssetId: null,
+	};
 	for (const [key, path] of thumbPathByPage) {
-		doc.pageThumbs[key] = { filename: path.slice(path.lastIndexOf('/') + 1), assetId: assetIdByPath.get(path) ?? null };
+		doc.pageThumbs[key] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+			sampleAssetId: null,
+		};
 	}
 	for (const product of content.store?.products ?? []) {
 		if (!product.image) continue;
 		const path = productPathById.get(product.id) ?? `assets/${product.image}`;
 		doc.productImages[product.id] = {
-			filename: path.slice(path.lastIndexOf('/') + 1),
-			assetId: assetIdByPath.get(path) ?? null,
-		};
+				filename: path.slice(path.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(path) ?? null,
+				sampleAssetId: null,
+			};
 	}
 	for (const [name, path] of fontPathByName) {
-		doc.fonts[name] = { filename: path.slice(path.lastIndexOf('/') + 1), assetId: assetIdByPath.get(path) ?? null };
+		doc.fonts[name] = {
+			filename: path.slice(path.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(path) ?? null,
+			sampleAssetId: null,
+		};
 	}
 	if (hasResume) {
-		doc.resumeFile = { filename: resumePath.slice(resumePath.lastIndexOf('/') + 1), assetId: assetIdByPath.get(resumePath) ?? null };
+		doc.resumeFile = {
+			filename: resumePath.slice(resumePath.lastIndexOf('/') + 1),
+			assetId: assetIdByPath.get(resumePath) ?? null,
+			sampleAssetId: null,
+		};
 	}
 
 	// Remember the site so the next publish UPDATES it — the inventory seeds the local

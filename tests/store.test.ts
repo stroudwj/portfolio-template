@@ -208,10 +208,14 @@ describe('Store content and draft migrations', () => {
 		const migrated = parseAndMigrateEditorDoc(raw);
 
 		expect(raw).toEqual(original);
-		expect(migrated.docVersion).toBe(3);
-		expect(migrated.productImages).toEqual({
-			'original-1': { filename: 'framed-original.jpg', assetId: null },
-		});
+			expect(migrated.docVersion).toBe(4);
+			expect(migrated.productImages).toEqual({
+				'original-1': {
+					filename: 'framed-original.jpg',
+					assetId: null,
+					sampleAssetId: null,
+				},
+			});
 		expect((migrated as unknown as Record<string, unknown>).draftExtension).toEqual({
 			retained: true,
 		});

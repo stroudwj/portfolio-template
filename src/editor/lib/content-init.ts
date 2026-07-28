@@ -6,6 +6,7 @@ import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
 import { getAssetUrl, getAssetPreviewUrl, uid } from './assets';
 import { parseAndMigrateEditorDoc } from './doc-schema';
+import { sampleArtworkUrl } from './sample-artwork';
 
 /** Gray placeholder shown for images referenced by name but not uploaded this session. */
 export const PLACEHOLDER_IMAGE =
@@ -61,21 +62,26 @@ export const blankContent: Content = {
 function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 	const galleries: Record<string, ImageEntry[]> = {};
 	for (const [folder, data] of Object.entries(content.galleries)) {
-		galleries[folder] = Object.entries(data.items).map(([filename, meta]) => ({
-			id: meta.id || uid('e'),
-			filename,
-			meta: {
-				...meta,
-				title: meta.title ?? '',
-				alt: meta.alt ?? '',
-				description: meta.description ?? '',
-				link: meta.link ?? '',
-				w: meta.w,
-				h: meta.h,
-				layout: meta.layout,
-			},
-			assetId: null,
-		}));
+		galleries[folder] = Object.entries(data.items).map(([filename, sourceMeta]) => {
+			const { sampleAssetId, ...meta } = sourceMeta;
+			return {
+				id: meta.id || uid('e'),
+				filename,
+				meta: {
+					...meta,
+					title: meta.title ?? '',
+					alt: meta.alt ?? '',
+					decorative: meta.decorative,
+					description: meta.description ?? '',
+					link: meta.link ?? '',
+					w: meta.w,
+					h: meta.h,
+					layout: meta.layout,
+				},
+				assetId: null,
+				sampleAssetId: sampleAssetId ?? null,
+			};
+		});
 	}
 	// Ensure every folder a page points at — main gallery or image group — has a
 	// (possibly empty) list.
@@ -93,12 +99,16 @@ export function initDocFromContent(content: Content): EditorDoc {
 	for (const [key, page] of Object.entries(cloned.pages)) {
 		if (page.thumbnail) {
 			const filename = page.thumbnail.slice(page.thumbnail.lastIndexOf('/') + 1);
-			pageThumbs[key] = { filename, assetId: null };
+			pageThumbs[key] = { filename, assetId: null, sampleAssetId: null };
 		}
 	}
 	const fonts: EditorDoc['fonts'] = {};
 	for (const font of cloned.theme.customFonts ?? []) {
-		fonts[font.name] = { filename: font.file.slice(font.file.lastIndexOf('/') + 1), assetId: null };
+		fonts[font.name] = {
+			filename: font.file.slice(font.file.lastIndexOf('/') + 1),
+			assetId: null,
+			sampleAssetId: null,
+		};
 	}
 	const resumeUrl = cloned.resume?.url ?? '';
 	const galleries = entriesFromContent(cloned);
@@ -108,6 +118,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 		productImages[product.id] = {
 			filename: image.slice(Math.max(image.lastIndexOf('/'), image.lastIndexOf('\\')) + 1),
 			assetId: null,
+			sampleAssetId: null,
 		};
 	}
 
@@ -123,15 +134,19 @@ export function initDocFromContent(content: Content): EditorDoc {
 	}
 
 	return {
-		docVersion: 3,
+		docVersion: 4,
 		content: cloned,
 		galleries,
-		profileImage: { filename: cloned.profile.image || '', assetId: null },
-		logoImage: { filename: cloned.site.logoImage || '', assetId: null },
+		profileImage: { filename: cloned.profile.image || '', assetId: null, sampleAssetId: null },
+		logoImage: { filename: cloned.site.logoImage || '', assetId: null, sampleAssetId: null },
 		pageThumbs,
 		productImages,
 		fonts,
-		resumeFile: { filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1), assetId: null },
+		resumeFile: {
+			filename: resumeUrl.slice(resumeUrl.lastIndexOf('/') + 1),
+			assetId: null,
+			sampleAssetId: null,
+		},
 		ogImage,
 	};
 }
@@ -152,9 +167,11 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			id: e.id,
 			// Editor rendering uses the downscaled working copy; the lightbox gets
 			// the untouched original via `full` (same split the published site makes).
-			src: getAssetPreviewUrl(e.assetId) ?? PLACEHOLDER_IMAGE,
-			full: getAssetUrl(e.assetId),
-			alt: e.meta.alt || e.meta.title || '',
+			src: getAssetPreviewUrl(e.assetId) ?? sampleArtworkUrl(e.sampleAssetId) ?? PLACEHOLDER_IMAGE,
+			full: getAssetUrl(e.assetId) ?? sampleArtworkUrl(e.sampleAssetId),
+			sample: e.sampleAssetId ? true : undefined,
+			alt: e.meta.decorative ? '' : e.meta.alt || e.meta.title || '',
+			decorative: e.meta.decorative,
 			title: e.meta.title || undefined,
 			description: e.meta.description || undefined,
 			link: e.meta.link || undefined,
@@ -164,20 +181,31 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		}));
 	}
 	const uploaded = getAssetPreviewUrl(doc.profileImage.assetId);
-	const profileImageSrc = uploaded ?? (doc.profileImage.filename ? PLACEHOLDER_IMAGE : undefined);
+	const profileImageSrc =
+		uploaded ??
+		sampleArtworkUrl(doc.profileImage.sampleAssetId) ??
+		(doc.profileImage.filename ? PLACEHOLDER_IMAGE : undefined);
 
 	// Header logo: only a real uploaded image replaces the text logo (a gray
 	// placeholder up there would look broken, so fall back to text instead).
-	const logoImageSrc = getAssetPreviewUrl(doc.logoImage?.assetId) ?? undefined;
+	const logoImageSrc =
+		getAssetPreviewUrl(doc.logoImage?.assetId) ?? sampleArtworkUrl(doc.logoImage?.sampleAssetId) ?? undefined;
 
 	// Sub-page card images: explicit thumbnail first, else the page's first gallery image.
 	const pageThumbs: Record<string, string> = {};
 	for (const [key, page] of Object.entries(doc.content.pages)) {
 		const thumb = doc.pageThumbs[key];
-		let src = getAssetPreviewUrl(thumb?.assetId ?? null) ?? (thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
+		let src =
+			getAssetPreviewUrl(thumb?.assetId ?? null) ??
+			sampleArtworkUrl(thumb?.sampleAssetId) ??
+			(thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
 		if (!src && page.gallery) {
 			const first = doc.galleries[page.gallery.folder]?.[0];
-			if (first) src = getAssetPreviewUrl(first.assetId) ?? PLACEHOLDER_IMAGE;
+			if (first)
+				src =
+					getAssetPreviewUrl(first.assetId) ??
+					sampleArtworkUrl(first.sampleAssetId) ??
+					PLACEHOLDER_IMAGE;
 		}
 		if (src) pageThumbs[key] = src;
 	}
@@ -187,6 +215,7 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		const image = doc.productImages[product.id];
 		const src =
 			getAssetPreviewUrl(image?.assetId ?? null) ??
+			sampleArtworkUrl(image?.sampleAssetId) ??
 			(image?.filename || product.image ? PLACEHOLDER_IMAGE : undefined);
 		if (src) productImageSrcs[product.id] = src;
 	}

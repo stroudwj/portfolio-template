@@ -69,7 +69,11 @@ export interface ResolvedImage {
 	srcSet?: string;
 	/** Full-resolution URL for the lightbox (src/srcSet stay display-sized). */
 	full?: string;
+	/** Product-owned sample that may need an offline fallback in editor previews. */
+	sample?: true;
 	alt: string;
+	/** Explicitly use an empty alt attribute even when a title/caption exists. */
+	decorative?: true;
 	title?: string;
 	description?: string;
 	link?: string;

@@ -3,10 +3,14 @@ import { contentSchema, parseAndMigrateContent } from '../../lib/content-schema'
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 
-export const EDITOR_DOC_VERSION = 3 as const;
+export const EDITOR_DOC_VERSION = 4 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
-const singleImageSchema = passthrough({ filename: z.string(), assetId: z.string().nullable() });
+const singleImageSchema = passthrough({
+	filename: z.string(),
+	assetId: z.string().nullable(),
+	sampleAssetId: z.string().nullable().default(null),
+});
 const imageLayoutSchema = passthrough({
 	x: z.number(),
 	y: z.number(),
@@ -16,6 +20,7 @@ const imageLayoutSchema = passthrough({
 const imageMetaSchema = passthrough({
 	title: z.string(),
 	alt: z.string().default(''),
+	decorative: z.literal(true).optional(),
 	description: z.string(),
 	link: z.string(),
 	w: z.number().optional(),
@@ -34,6 +39,7 @@ export const editorDocSchema = passthrough({
 				filename: z.string(),
 				meta: imageMetaSchema,
 				assetId: z.string().nullable(),
+				sampleAssetId: z.string().nullable().default(null),
 			}),
 		),
 	),
@@ -45,6 +51,31 @@ export const editorDocSchema = passthrough({
 	resumeFile: singleImageSchema,
 	ogImage: passthrough({ folder: z.string(), entryId: z.string() }).optional(),
 }).superRefine((value, ctx) => {
+	for (const [folder, entries] of Object.entries(value.galleries)) {
+		entries.forEach((entry, index) => {
+			if (entry.assetId && entry.sampleAssetId)
+				ctx.addIssue({
+					code: 'custom',
+					path: ['galleries', folder, index],
+					message: 'Uploaded assetId and sampleAssetId are mutually exclusive',
+				});
+		});
+	}
+	for (const [slotName, slot] of [
+		['profileImage', value.profileImage],
+		['logoImage', value.logoImage],
+		['resumeFile', value.resumeFile],
+		...Object.entries(value.pageThumbs).map(([key, item]) => [`pageThumbs.${key}`, item] as const),
+		...Object.entries(value.productImages).map(([key, item]) => [`productImages.${key}`, item] as const),
+		...Object.entries(value.fonts).map(([key, item]) => [`fonts.${key}`, item] as const),
+	] as const) {
+		if (slot.assetId && slot.sampleAssetId)
+			ctx.addIssue({
+				code: 'custom',
+				path: [slotName],
+				message: 'Uploaded assetId and sampleAssetId are mutually exclusive',
+			});
+	}
 	const productIds = new Set((value.content.store?.products ?? []).map((product) => product.id));
 	for (const productId of productIds) {
 		if (!(productId in value.productImages))
@@ -209,10 +240,48 @@ export function migrateEditorDocV2ToV3(raw: unknown): unknown {
 	return next;
 }
 
+/** Editor document v4 makes product samples explicit instead of recognizing
+ * placeholder file names. Existing uploads remain uploads; Content-authored
+ * sample ids are lifted into the editor image slot. */
+export function migrateEditorDocV3ToV4(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+	if ('content' in next) next.content = parseAndMigrateContent(next.content);
+	if (isObject(next.galleries)) {
+		for (const entries of Object.values(next.galleries)) {
+			if (!Array.isArray(entries)) continue;
+			for (const entry of entries) {
+				if (!isObject(entry)) continue;
+				const meta = isObject(entry.meta) ? entry.meta : {};
+				entry.sampleAssetId =
+					typeof entry.sampleAssetId === 'string'
+						? entry.sampleAssetId
+						: typeof meta.sampleAssetId === 'string'
+							? meta.sampleAssetId
+							: null;
+				delete meta.sampleAssetId;
+			}
+		}
+	}
+	for (const value of [
+		next.profileImage,
+		next.logoImage,
+		next.resumeFile,
+		...(isObject(next.pageThumbs) ? Object.values(next.pageThumbs) : []),
+		...(isObject(next.productImages) ? Object.values(next.productImages) : []),
+		...(isObject(next.fonts) ? Object.values(next.fonts) : []),
+	]) {
+		if (isObject(value) && !('sampleAssetId' in value)) value.sampleAssetId = null;
+	}
+	next.docVersion = 4;
+	return next;
+}
+
 const docMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateEditorDocV0ToV1,
 	1: migrateEditorDocV1ToV2,
 	2: migrateEditorDocV2ToV3,
+	3: migrateEditorDocV3ToV4,
 };
 
 function readDocVersion(raw: unknown): number {

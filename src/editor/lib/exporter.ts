@@ -10,6 +10,7 @@ import { getAssetBlob } from './assets';
 import { cloneContent } from './content-init';
 import { sanitizeFilename } from './validation';
 import { isTestStripePaymentLink, normalizeStripePaymentLink } from '../../lib/stripe-payment-link';
+import { stripSamplesForPublish } from './sample-publish';
 
 export interface BundleFile {
 	/** Project-relative path, e.g. src/assets/art/01-piece.jpg */
@@ -88,12 +89,6 @@ function preservedName(entry: ImageEntry): string {
 	return name;
 }
 
-/** The classic starter uses reference-only placeholder.png files as editor scaffolding.
- * They have no browser bytes and are not user work, so publishing quietly leaves them out. */
-function isBundledSampleImage(entry: ImageEntry): boolean {
-	return !entry.assetId && entry.filename.trim().toLowerCase() === 'placeholder.png';
-}
-
 function localAssetBlob(assetId: string | null | undefined, label: string): Blob | undefined {
 	if (!assetId) return undefined;
 	const blob = getAssetBlob(assetId);
@@ -139,6 +134,7 @@ function assertBundleFiles(files: BundleFile[], references: ReadonlySet<string>)
 
 /** Pure: build the Content JSON + the image files it references. */
 export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
+	doc = stripSamplesForPublish(doc);
 	const content = cloneContent(doc.content);
 	const files: BundleFile[] = [];
 	const referencedFiles = new Set<string>();
@@ -204,7 +200,9 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			delete content.galleries[folder];
 			continue;
 		}
-		const publishEntries = entries.filter((entry) => !isBundledSampleImage(entry));
+			// Samples are product-owned preview material, identified explicitly.
+			// They never become files or references in a user's published bundle.
+			const publishEntries = entries.filter((entry) => !entry.sampleAssetId);
 		const items: Record<string, Partial<ImageMeta>> = {};
 		// A null id deliberately means “this file already lives in the template or
 		// repository.” It cannot be renamed without its bytes. Preserve every name
@@ -328,10 +326,7 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await profileBlob.arrayBuffer()) });
 		content.profile.image = finalName;
 	} else {
-		content.profile.image =
-			!doc.profileImage.assetId && doc.profileImage.filename.trim().toLowerCase() === 'placeholder.png'
-				? ''
-				: doc.profileImage.filename;
+		content.profile.image = doc.profileImage.sampleAssetId ? '' : doc.profileImage.filename;
 		if (content.profile.image) referencedFiles.add(`src/assets/${content.profile.image}`);
 	}
 

@@ -46,6 +46,7 @@ import { guideById, useGridPrefs } from './gridPrefs';
 import { videoEmbedSrc } from './videoEmbed';
 import { stripePaymentLink } from './paymentEmbed';
 import { safeHref } from './safeHref';
+import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
 import { automaticPhoneOrder } from './mobileOrder';
 import './Gallery.css';
@@ -758,7 +759,8 @@ export default function CanvasGallery({
 							aria-label={!editable && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
 							onClick={!editable && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
 							onKeyDown={!editable && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
-							<img src={img.src} srcSet={img.srcSet} alt={img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
+							<img src={img.src} srcSet={img.srcSet} alt={img.decorative ? '' : img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
+								onError={img.sample ? (event) => showSampleUnavailable(event.currentTarget) : undefined}
 								onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
 								ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
 							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}

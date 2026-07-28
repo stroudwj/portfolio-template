@@ -45,6 +45,8 @@ import {
 import { parseAndMigrateEditorDoc } from './lib/doc-schema';
 import { DEFAULT_AR, flowMissing } from '../portfolio/canvasLayout';
 import { automaticPhoneOrder, type PhoneCanvasPosition } from '../portfolio/mobileOrder';
+import { entryWithSampleSuccessor } from './lib/sample-lifecycle';
+import { contentWithThemePreset } from './lib/templates';
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 	const next = arr.slice();
@@ -276,6 +278,8 @@ export interface EditorContextValue {
 	removeResume(): void;
 	// theme
 	setTheme(patch: Partial<Theme>): void;
+	/** Replace factory theme tokens while preserving the document's uploaded font files. */
+	applyThemePreset(theme: Theme): void;
 	/** Register an uploaded font file and select it as the site font. */
 	addCustomFont(file: File): void;
 	removeCustomFont(name: string): void;
@@ -382,9 +386,18 @@ export interface EditorContextValue {
 	removeBlock(key: string, blockId: string): void;
 	moveBlock(key: string, from: number, to: number): void;
 	// galleries
-	addGalleryImages(folder: string, files: File[]): void;
+	addGalleryImages(
+		folder: string,
+		images: Array<{ file: File; alt: string; decorative?: true }>,
+	): void;
 	/** Swap an uploaded image while preserving its caption, placement and stable id. */
-	replaceGalleryImage(folder: string, id: string, file: File): void;
+	replaceGalleryImage(
+		folder: string,
+		id: string,
+		image: { file: File; alt: string; decorative?: true },
+	): void;
+	/** Opt in to a catalog-provided successor for withdrawn sample artwork. */
+	replaceSampleWithSuccessor(folder: string, id: string): void;
 	removeGalleryImage(folder: string, id: string): void;
 	moveGalleryImage(folder: string, from: number, to: number): void;
 	updateGalleryMeta(folder: string, id: string, patch: Partial<ImageMeta>): void;
@@ -677,18 +690,28 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
 		setProfileImage: (file) => {
 			const assetId = registerAsset(file, file.name);
-			commitDoc((prev) => ({ ...prev, profileImage: { filename: file.name, assetId } }));
+			commitDoc((prev) => ({
+				...prev,
+				profileImage: { filename: file.name, assetId, sampleAssetId: null },
+			}));
 		},
-		removeProfileImage: () => commitDoc((prev) => ({ ...prev, profileImage: { filename: '', assetId: null } })),
+		removeProfileImage: () =>
+			commitDoc((prev) => ({
+				...prev,
+				profileImage: { filename: '', assetId: null, sampleAssetId: null },
+			})),
 
 		setLogoImage: (file) => {
 			const assetId = registerAsset(file, file.name);
-			commitDoc((prev) => ({ ...prev, logoImage: { filename: file.name, assetId } }));
+			commitDoc((prev) => ({
+				...prev,
+				logoImage: { filename: file.name, assetId, sampleAssetId: null },
+			}));
 		},
 		removeLogoImage: () =>
 			commitDoc((prev) => ({
 				...prev,
-				logoImage: { filename: '', assetId: null },
+				logoImage: { filename: '', assetId: null, sampleAssetId: null },
 				content: { ...prev.content, site: { ...prev.content.site, logoImage: undefined } },
 			})),
 
@@ -696,7 +719,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			const assetId = registerAsset(file, file.name);
 			commitDoc((prev) => ({
 				...prev,
-				resumeFile: { filename: file.name, assetId },
+				resumeFile: { filename: file.name, assetId, sampleAssetId: null },
 				content: {
 					...prev.content,
 					resume: { label: prev.content.resume?.label || 'Résumé', url: sanitizeFilename(file.name) },
@@ -706,7 +729,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		removeResume: () =>
 			commitDoc((prev) => ({
 				...prev,
-				resumeFile: { filename: '', assetId: null },
+				resumeFile: { filename: '', assetId: null, sampleAssetId: null },
 				content: { ...prev.content, resume: { label: prev.content.resume?.label || 'Résumé', url: '' } },
 			})),
 
@@ -716,6 +739,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				true,
 				`theme:${Object.keys(patch).sort().join(',')}`,
 			),
+		applyThemePreset: (theme) =>
+			patchContent((content) => contentWithThemePreset(content, theme)),
 
 		addCustomFont: (file) => {
 			const name = fontNameFromFile(file.name);
@@ -733,7 +758,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 							fontFamily: `"${name}", sans-serif`,
 						},
 					},
-					fonts: { ...prev.fonts, [name]: { filename: file.name, assetId } },
+					fonts: {
+						...prev.fonts,
+						[name]: { filename: file.name, assetId, sampleAssetId: null },
+					},
 				};
 			});
 		},
@@ -836,7 +864,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					},
 					productImages: {
 						...prev.productImages,
-						[productId]: { filename: '', assetId: null },
+						[productId]: { filename: '', assetId: null, sampleAssetId: null },
 					},
 				};
 			}),
@@ -933,7 +961,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					},
 					productImages: {
 						...prev.productImages,
-						[productId]: { filename: file.name, assetId },
+						[productId]: { filename: file.name, assetId, sampleAssetId: null },
 					},
 				};
 			});
@@ -958,7 +986,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					},
 					productImages: {
 						...prev.productImages,
-						[productId]: { filename: entry.filename, assetId: entry.assetId },
+						[productId]: {
+							filename: entry.filename,
+							assetId: entry.assetId,
+							sampleAssetId: entry.sampleAssetId,
+						},
 					},
 				};
 			}),
@@ -978,7 +1010,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					},
 					productImages: {
 						...prev.productImages,
-						[productId]: { filename: '', assetId: null },
+						[productId]: { filename: '', assetId: null, sampleAssetId: null },
 					},
 				};
 			}),
@@ -1347,7 +1379,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			const assetId = registerAsset(file, file.name);
 			commitDoc((prev) => ({
 				...prev,
-				pageThumbs: { ...prev.pageThumbs, [key]: { filename: file.name, assetId } },
+				pageThumbs: {
+					...prev.pageThumbs,
+					[key]: { filename: file.name, assetId, sampleAssetId: null },
+				},
 			}));
 		},
 		removePageThumb: (key) =>
@@ -1672,22 +1707,48 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			}),
 		moveBlock: (key, from, to) => patchBlocks(key, (blocks) => arrayMove(blocks, from, to)),
 
-		addGalleryImages: (folder, files) =>
+		addGalleryImages: (folder, images) =>
 			patchGallery(folder, (entries) => [
 				...entries,
-				...files.map((file) => ({
+				...images.map(({ file, alt, decorative }) => ({
 					id: uid('e'),
 					filename: file.name,
-					meta: { title: '', alt: '', description: '', link: '' },
+					meta: { title: '', alt, decorative, description: '', link: '' },
 					assetId: registerAsset(file, file.name),
+					sampleAssetId: null,
 				})),
 			]),
-		replaceGalleryImage: (folder, id, file) => {
+		replaceGalleryImage: (folder, id, { file, alt, decorative }) => {
 			const assetId = registerAsset(file, file.name);
 			patchGallery(folder, (entries) =>
-				entries.map((entry) => (entry.id === id ? { ...entry, filename: file.name, assetId } : entry)),
+				entries.map((entry) => {
+					if (entry.id !== id) return entry;
+					const meta = entry.sampleAssetId
+						? {
+								title: '',
+								alt,
+								decorative,
+								description: '',
+								link: '',
+								layout: entry.meta.layout,
+							}
+						: { ...entry.meta, alt, decorative };
+					return {
+						...entry,
+						filename: file.name,
+						meta,
+						assetId,
+						sampleAssetId: null,
+					};
+				}),
 			);
 		},
+		replaceSampleWithSuccessor: (folder, id) =>
+			patchGallery(folder, (entries) =>
+				entries.map((entry) =>
+					entry.id === id ? entryWithSampleSuccessor(entry) : entry,
+				),
+			),
 		removeGalleryImage: (folder, id) =>
 			commitDoc((prev) => ({
 				...prev,

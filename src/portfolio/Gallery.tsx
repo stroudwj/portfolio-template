@@ -19,6 +19,7 @@ import type {
 	TextLayout,
 } from './types';
 import { safeHref } from './safeHref';
+import { showSampleUnavailable } from './sampleFallback';
 import CanvasGallery from './CanvasGallery';
 import './Gallery.css';
 
@@ -302,7 +303,15 @@ export default function Gallery({
 				</button>
 			)}
 			<figure className="modal-figure">
-				<img src={open.full ?? open.src} alt={open.alt || open.title || 'Full resolution portfolio piece'} />
+				<img
+					src={open.full ?? open.src}
+					alt={open.decorative ? '' : open.alt || open.title || 'Full resolution portfolio piece'}
+					onError={
+						open.sample
+							? (event) => showSampleUnavailable(event.currentTarget)
+							: undefined
+					}
+				/>
 				{(open.title || open.description || open.link) && (
 					<figcaption id={dialogCaptionId} className="modal-caption">
 						{open.title && <span className="modal-caption-title">{open.title}</span>}
@@ -348,7 +357,7 @@ export default function Gallery({
 							<img
 								src={img.src}
 								srcSet={img.srcSet}
-								alt={img.alt || img.title || alt}
+									alt={img.decorative ? '' : img.alt || img.title || alt}
 								className={editable ? undefined : 'lightbox-trigger'}
 								loading="lazy"
 								decoding="async"
@@ -356,6 +365,11 @@ export default function Gallery({
 								tabIndex={editable ? undefined : 0}
 								aria-haspopup={editable ? undefined : 'dialog'}
 								aria-label={editable ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
+								onError={
+									img.sample
+										? (event) => showSampleUnavailable(event.currentTarget)
+										: undefined
+								}
 								onClick={editable ? undefined : (e) => openLightbox(i, e.currentTarget)}
 								onKeyDown={editable ? undefined : (e) => openFromKeyboard(e, i)}
 							/>
@@ -388,7 +402,7 @@ export default function Gallery({
 							<img
 								src={img.src}
 								srcSet={img.srcSet}
-								alt={img.alt || img.title || alt}
+									alt={img.decorative ? '' : img.alt || img.title || alt}
 								className="lightbox-trigger"
 								loading="lazy"
 								decoding="async"
@@ -396,6 +410,11 @@ export default function Gallery({
 								tabIndex={0}
 								aria-haspopup="dialog"
 								aria-label={`Open ${img.title || img.alt || alt} in image viewer`}
+								onError={
+									img.sample
+										? (event) => showSampleUnavailable(event.currentTarget)
+										: undefined
+								}
 								onClick={(e) => openLightbox(i, e.currentTarget)}
 								onKeyDown={(e) => openFromKeyboard(e, i)}
 							/>
