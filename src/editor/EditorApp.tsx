@@ -17,6 +17,7 @@ import PreviewPanel from './components/PreviewPanel';
 import AccountControls from './components/AccountControls';
 import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
+import OnboardingTour from './components/OnboardingTour';
 import { expandSection, onShowEditorTab, showPreviewPage } from './components/ui/controls';
 import { shouldResumePublish } from './lib/polar-checkout';
 import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
@@ -59,7 +60,13 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 ];
 
 /** Keep infrequent help and destructive actions out of the primary top-bar path. */
-function TopbarMoreMenu({ onReset }: { onReset: () => void }) {
+function TopbarMoreMenu({
+	onReset,
+	onShowTour,
+}: {
+	onReset: () => void;
+	onShowTour: () => void;
+}) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -100,6 +107,16 @@ function TopbarMoreMenu({ onReset }: { onReset: () => void }) {
 					>
 						Send feedback
 					</a>
+					<button
+						type="button"
+						className="topbar-more-action"
+						onClick={() => {
+							setOpen(false);
+							onShowTour();
+						}}
+					>
+						Show editor tour
+					</button>
 					<details className="topbar-shortcuts">
 						<summary>Keyboard shortcuts</summary>
 						<ul>
@@ -167,6 +184,7 @@ function Shell({ base }: { base: string }) {
 	const controlsRef = useRef<HTMLDivElement>(null);
 	const [selectedPage, setSelectedPage] = useState<string | null>(null);
 	const [lastSelectedPage, setLastSelectedPage] = useState<string | null>(null);
+	const [tourReplayToken, setTourReplayToken] = useState(0);
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
 		return normalizeEditorTab(saved);
@@ -311,7 +329,10 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<AccountControls />
-				<TopbarMoreMenu onReset={resetAll} />
+				<TopbarMoreMenu
+					onReset={resetAll}
+					onShowTour={() => setTourReplayToken((token) => token + 1)}
+				/>
 			</header>
 
 			<div className={`editor-body view-${mobileView}`}>
@@ -324,6 +345,7 @@ function Shell({ base }: { base: string }) {
 								className={`editor-tab ${tab === t.id ? 'active' : ''}`}
 								title={t.title}
 								aria-pressed={tab === t.id}
+								data-tour={`tab-${t.id}`}
 								onClick={() => pickTab(t.id)}
 							>
 								<span className="editor-tab-icon" aria-hidden="true">
@@ -406,6 +428,23 @@ function Shell({ base }: { base: string }) {
 					/>
 				</div>
 			</div>
+			<OnboardingTour
+				replayToken={tourReplayToken}
+				onSelectTab={pickTab}
+				onSetView={setMobileView}
+				onExit={() => {
+					setMobileView('edit');
+					pickTab('pages');
+				}}
+				onFinish={() => {
+					setMobileView('edit');
+					const firstPage = doc.content.pages.home
+						? 'home'
+						: pageChoices[0]?.key;
+					if (firstPage) openPageWorkspace(firstPage);
+					else pickTab('pages');
+				}}
+			/>
 		</div>
 	);
 }

@@ -14,6 +14,7 @@ import {
 } from '../lib/persistence';
 import { parseAndMigrateEditorDoc } from '../lib/doc-schema';
 import { Modal } from './ui/Modal';
+import { requestFirstRunEditorTour } from '../lib/onboarding';
 
 type ReadyStarter = StarterRecipe & { content: NonNullable<StarterRecipe['content']> };
 
@@ -86,10 +87,18 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 		setPending({ label, isTemplate, run, versions, versionsError });
 	};
 
-	const startOver = () => requestStart('the example portfolio', false, startExisting);
-	const startFresh = () => requestStart('a blank portfolio', false, startBlank);
+	const startWithTour = (run: () => void) => {
+		requestFirstRunEditorTour();
+		run();
+	};
+	const startOver = () =>
+		requestStart('the example portfolio', false, () => startWithTour(startExisting));
+	const startFresh = () =>
+		requestStart('a blank portfolio', false, () => startWithTour(startBlank));
 	const pickStarter = (starter: ReadyStarter) =>
-		requestStart(starter.name, true, () => startTemplate(starter.content));
+		requestStart(starter.name, true, () =>
+			startWithTour(() => startTemplate(starter.content)),
+		);
 
 	const saveAndSwitch = async () => {
 		if (!pending || pending.versionsError) return;
@@ -207,10 +216,10 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 						<p className="template-lead">Choose a starter:</p>
 						{starterPicker}
 						<div className="start-actions start-actions-after-starters">
-							<button type="button" className="btn-primary" onClick={startBlank}>
+							<button type="button" className="btn-primary" onClick={startFresh}>
 								Start with a blank portfolio
 							</button>
-							<button type="button" className="btn-secondary" onClick={startExisting}>
+							<button type="button" className="btn-secondary" onClick={startOver}>
 								Use the example portfolio
 							</button>
 						</div>

@@ -313,7 +313,7 @@ export default function PreviewPanel({
 
 	return (
 		<div className={`preview ${fullscreen ? 'preview-fullscreen' : ''}`}>
-			<div className="preview-toolbar">
+			<div className="preview-toolbar" data-tour="preview-toolbar">
 				<div className="device-toggle" role="group" aria-label="Preview device">
 					<button
 						type="button"
