@@ -52,7 +52,7 @@ async function overRequestCeiling(kv, siteId) {
 
 export default {
 	async fetch(request, env) {
-		if (request.method !== 'GET' && request.method !== 'HEAD') {
+		if (request.method !== 'GET' && request.method !== 'HEAD' && request.method !== 'POST') {
 			return new Response('method not allowed', { status: 405 });
 		}
 
@@ -110,6 +110,47 @@ export default {
 		if (route.status === 'over_quota' || (await overRequestCeiling(env.KV, route.siteId))) {
 			return html(statusPage('Too much traffic', 'This site is over its usage limit right now. Please try again later.'), 429, {
 				'Retry-After': '3600',
+			});
+		}
+
+		if (request.method === 'POST') {
+			if (url.pathname !== '/__hangwork/event') {
+				return new Response('method not allowed', { status: 405 });
+			}
+			const eventOrigin = request.headers.get('Origin');
+			if (eventOrigin && eventOrigin !== url.origin)
+				return new Response('forbidden origin', { status: 403 });
+			const length = Number(request.headers.get('Content-Length') || '0');
+			if (length > 2048) return new Response('payload too large', { status: 413 });
+			let body;
+			try {
+				body = await request.json();
+			} catch {
+				return new Response('bad request', { status: 400 });
+			}
+			const event = typeof body?.event === 'string' ? body.event : '';
+			const page = typeof body?.page === 'string'
+				? body.page.toLowerCase().replace(/[^a-z0-9/_-]+/g, '-').slice(0, 120)
+				: '';
+			if (!page || !['open', 'view', 'inquiry'].includes(event))
+				return new Response('bad request', { status: 400 });
+			const period = new Date().toISOString().slice(0, 7);
+			const key = `analytics:${route.siteId}:${period}`;
+			const aggregate = (await env.KV.get(key, 'json')) || { pages: {} };
+			const current = aggregate.pages[page] || { opens: 0, seconds: 0, longest: 0, inquiries: 0 };
+			if (event === 'open') current.opens += 1;
+			if (event === 'inquiry') current.inquiries += 1;
+			if (event === 'view') {
+				const duration = Math.min(Math.max(Math.round(Number(body?.duration) || 0), 0), 60 * 60);
+				current.seconds += duration;
+				current.longest = Math.max(current.longest, duration);
+			}
+			aggregate.pages[page] = current;
+			aggregate.updatedAt = new Date().toISOString();
+			await env.KV.put(key, JSON.stringify(aggregate), { expirationTtl: 400 * 24 * 60 * 60 });
+			return new Response(null, {
+				status: 204,
+				headers: { 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
 			});
 		}
 

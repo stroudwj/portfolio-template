@@ -5,7 +5,11 @@ import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
 import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
-import { onShowPreviewPage } from './ui/controls';
+import {
+	onPreviewTypeMotion,
+	onShowPreviewPage,
+	type TypeMotionPreviewRequest,
+} from './ui/controls';
 
 /** Canvas guide overlay + snap controls ("Guides", to not clash with the
  *  Freeform/Grid layout toggle). Lives in the preview toolbar so they're
@@ -102,11 +106,13 @@ function DeviceFrame({
 	title,
 	className = '',
 	onEscape,
+	typeMotionPreview,
 }: {
 	children: React.ReactElement;
 	title: string;
 	className?: string;
 	onEscape?: () => void;
+	typeMotionPreview?: TypeMotionPreviewRequest;
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const rootRef = useRef<Root | null>(null);
@@ -150,12 +156,38 @@ function DeviceFrame({
 		if (ready) rootRef.current?.render(children);
 	});
 
+	useEffect(() => {
+		if (!ready || !typeMotionPreview) return;
+		const frameWindow = iframeRef.current?.contentWindow;
+		const doc = iframeRef.current?.contentDocument;
+		if (!frameWindow || !doc) return;
+		const frame = frameWindow.requestAnimationFrame(() => {
+			const target = doc.querySelector<HTMLElement>(
+				`[data-kinetic-target="${CSS.escape(typeMotionPreview.target)}"]`,
+			);
+			if (!target) return;
+			target.scrollIntoView({
+				behavior: frameWindow.matchMedia('(prefers-reduced-motion: reduce)').matches
+					? 'auto'
+					: 'smooth',
+				block: 'center',
+			});
+			// Briefly remove the animation declaration, force style resolution,
+			// then restore it. This reliably replays words, letters, lines, and
+			// the continuous marquee without changing saved content.
+			target.classList.add('kinetic-preview-reset');
+			void target.offsetWidth;
+			target.classList.remove('kinetic-preview-reset');
+		});
+		return () => frameWindow.cancelAnimationFrame(frame);
+	}, [ready, typeMotionPreview]);
+
 	return (
 		<iframe
 			ref={iframeRef}
 			className={`device-frame ${className}`}
 			title={title}
-			src={`${import.meta.env.BASE_URL}editor-preview-frame.html`}
+			src={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/editor-preview-frame.html`}
 			onLoad={() => setFrameLoaded(true)}
 		/>
 	);
@@ -163,7 +195,15 @@ function DeviceFrame({
 
 /** A real desktop viewport even when the editor itself is open on a narrow
  * screen. It scales to fit without activating the portfolio's phone queries. */
-function DesktopDeviceFrame({ children, onEscape }: { children: React.ReactElement; onEscape?: () => void }) {
+function DesktopDeviceFrame({
+	children,
+	onEscape,
+	typeMotionPreview,
+}: {
+	children: React.ReactElement;
+	onEscape?: () => void;
+	typeMotionPreview?: TypeMotionPreviewRequest;
+}) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 1100, height: 700 });
 	useEffect(() => {
@@ -187,7 +227,14 @@ function DesktopDeviceFrame({ children, onEscape }: { children: React.ReactEleme
 				className="desktop-frame-scaled"
 				style={{ width: viewportWidth, height: viewportHeight, transform: `scale(${scale})` }}
 			>
-				<DeviceFrame title="Desktop preview" className="desktop-device-frame" onEscape={onEscape}>{children}</DeviceFrame>
+				<DeviceFrame
+					title="Desktop preview"
+					className="desktop-device-frame"
+					onEscape={onEscape}
+					typeMotionPreview={typeMotionPreview}
+				>
+					{children}
+				</DeviceFrame>
 			</div>
 		</div>
 	);
@@ -214,11 +261,21 @@ export default function PreviewPanel({
 		typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches ? 'phone' : 'desktop',
 	);
 	const [fullscreen, setFullscreen] = useState(false);
+	const [typeMotionPreview, setTypeMotionPreview] =
+		useState<TypeMotionPreviewRequest>();
 	const gridPrefs = useGridPrefs();
 
 	useEdgeSnapShortcut();
 
 	useEffect(() => onShowPreviewPage((pageKey) => setPage(pageKey)), []);
+	useEffect(
+		() =>
+			onPreviewTypeMotion((request) => {
+				setPage(request.pageKey);
+				setTypeMotionPreview(request);
+			}),
+		[],
+	);
 
 	// Esc leaves the fullscreen site preview.
 	useEffect(() => {
@@ -365,11 +422,24 @@ export default function PreviewPanel({
 			{device === 'phone' ? (
 				<div className="preview-surface phone-surface">
 					<div className="phone-frame">
-						<DeviceFrame title="Phone preview" onEscape={fullscreen ? () => setFullscreen(false) : undefined}>{portfolio}</DeviceFrame>
+						<DeviceFrame
+							title="Phone preview"
+							onEscape={fullscreen ? () => setFullscreen(false) : undefined}
+							typeMotionPreview={typeMotionPreview}
+						>
+							{portfolio}
+						</DeviceFrame>
 					</div>
 				</div>
 			) : (
-				<div className="preview-surface desktop-surface"><DesktopDeviceFrame onEscape={fullscreen ? () => setFullscreen(false) : undefined}>{portfolio}</DesktopDeviceFrame></div>
+				<div className="preview-surface desktop-surface">
+					<DesktopDeviceFrame
+						onEscape={fullscreen ? () => setFullscreen(false) : undefined}
+						typeMotionPreview={typeMotionPreview}
+					>
+						{portfolio}
+					</DesktopDeviceFrame>
+				</div>
 			)}
 		</div>
 	);

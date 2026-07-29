@@ -9,6 +9,7 @@ import { themeToRootCss, fontFacesCss, backgroundBlockVars } from '../portfolio/
 import Logo from '../portfolio/Logo';
 import Nav from '../portfolio/Nav';
 import CreativeEffects from '../portfolio/CreativeEffects';
+import Analytics from '../portfolio/Analytics';
 import Favicons from '../components/Favicons.astro';
 import { withBase, stripSlashes } from '../portfolio/types';
 import '../portfolio/frame.css';
@@ -63,7 +64,12 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 ---
 
 <!doctype html>
-<html lang={site.language || 'en'} style={pageBgStyle || undefined}>
+<html
+	lang={site.language || 'en'}
+	style={pageBgStyle || undefined}
+	data-page-transition={site.creative?.pageTransition}
+	data-page-transition-phone={site.creative?.phone?.pageTransition === false ? 'off' : undefined}
+>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="description" content={description} />
@@ -88,11 +94,17 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 			'creative-slow-reveal': site.creative?.slowReveal,
 			'creative-artwork-wobble': site.creative?.artworkWobble,
 			'creative-color-spin': site.creative?.colorSpin,
+			'creative-phone-off-loose-hang': site.creative?.phone?.looseHang === false,
+			'creative-phone-off-slow-reveal': site.creative?.phone?.slowReveal === false,
+			'creative-phone-off-artwork-wobble': site.creative?.phone?.artworkWobble === false,
+			'creative-phone-off-color-spin': site.creative?.phone?.colorSpin === false,
+			[`page-transition-${site.creative?.pageTransition}`]: site.creative?.pageTransition,
 		}}
 	>
+		<Analytics client:load page={current || 'home'} />
 		<slot name="banner" />
 		{
-			(site.creative?.cursor || site.creative?.trail || site.creative?.grain || site.creative?.clickMark) && (
+			(site.creative?.cursor || site.creative?.trail || site.creative?.grain || site.creative?.clickMark || site.creative?.film || site.creative?.pageTransition) && (
 				<CreativeEffects client:load creative={site.creative} />
 			)
 		}

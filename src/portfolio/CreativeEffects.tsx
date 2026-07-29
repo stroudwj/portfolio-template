@@ -9,7 +9,7 @@
 // else to the document body (the published site), so the editor chrome is never
 // affected. The overlay is position:fixed; inside the preview pane that still
 // stays contained because .preview-surface creates a transform containing block.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CreativeClickMark, CreativeConfig, CreativeTrail } from '../lib/content';
 import './CreativeEffects.css';
 
@@ -46,14 +46,30 @@ const GRAIN_TILE =
 
 export default function CreativeEffects({ creative }: { creative?: CreativeConfig }) {
 	const overlayRef = useRef<HTMLDivElement>(null);
+	const filmRef = useRef<HTMLCanvasElement>(null);
+	const [isPhone, setIsPhone] = useState(false);
 	const cursor = creative?.cursor?.trim() || '';
-	const trail = creative?.trail;
+	const effectOnPhone = (key: keyof NonNullable<CreativeConfig['phone']>) =>
+		!isPhone || creative?.phone?.[key] !== false;
+	const trail = effectOnPhone('trail') ? creative?.trail : undefined;
 	const grain = Math.min(Math.max(creative?.grain ?? 0, 0), 30);
-	const clickMark = creative?.clickMark;
+	const clickMark = effectOnPhone('clickMark') ? creative?.clickMark : undefined;
+	const film = effectOnPhone('film') ? creative?.film : undefined;
+	const pageTransition = creative?.pageTransition;
 
 	/** The element the effects attach to: preview pane root, else the page body. */
 	const hostOf = (el: HTMLElement): HTMLElement =>
 		el.closest<HTMLElement>('.portfolio-root') ?? el.ownerDocument.body;
+
+	useEffect(() => {
+		const win = overlayRef.current?.ownerDocument.defaultView;
+		if (!win) return;
+		const query = win.matchMedia('(max-width: 639px)');
+		const update = () => setIsPhone(query.matches);
+		update();
+		query.addEventListener('change', update);
+		return () => query.removeEventListener('change', update);
+	}, [creative]);
 
 	// Emoji cursor.
 	useEffect(() => {
@@ -117,16 +133,131 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 		return () => host.removeEventListener('pointerdown', onPointerDown, { capture: true });
 	}, [clickMark]);
 
-	if (!cursor && !trail && !grain && !clickMark) return null;
+	// Living film surface. A small randomized tile is repeated across a viewport-
+	// sized canvas at a deliberately cinematic low frame rate. The scheduler
+	// pauses in background tabs and never requests high-DPI pixels.
+	useEffect(() => {
+		const canvas = filmRef.current;
+		if (!canvas || !film) return;
+		const overlay = overlayRef.current;
+		if (!overlay) return;
+		const doc = canvas.ownerDocument;
+		const win = doc.defaultView;
+		if (!win) return;
+		const reduced = win.matchMedia('(prefers-reduced-motion: reduce)');
+		const ctx = canvas.getContext('2d', { alpha: true });
+		if (!ctx) return;
+		const tile = doc.createElement('canvas');
+		const tileCtx = tile.getContext('2d', { alpha: true });
+		if (!tileCtx) return;
+		const size = Math.min(Math.max(film.size ?? 100, 50), 200);
+		const tileSize = Math.round(210 * (100 / size));
+		tile.width = tileSize;
+		tile.height = tileSize;
+		const intensity = Math.min(Math.max(film.intensity ?? 12, 1), 30);
+		const speed = Math.min(Math.max(film.speed ?? 100, 25), 200);
+		const interval = Math.round(1000 / (6 + speed / 18));
+		const flicker = film.flicker ?? film.preset === 'projector';
+		const weave = film.weave ?? film.preset === 'projector';
+		let timer = 0;
+
+		const resize = () => {
+			const rect = overlay.getBoundingClientRect();
+			canvas.width = Math.max(1, Math.ceil(rect.width));
+			canvas.height = Math.max(1, Math.ceil(rect.height));
+		};
+		const draw = () => {
+			const pixels = tileCtx.createImageData(tileSize, tileSize);
+			for (let index = 0; index < pixels.data.length; index += 4) {
+				const value = Math.random() > 0.5 ? 232 : 18;
+				pixels.data[index] = value;
+				pixels.data[index + 1] = value;
+				pixels.data[index + 2] = value;
+				pixels.data[index + 3] = Math.round(24 + Math.random() * 58);
+			}
+			tileCtx.putImageData(pixels, 0, 0);
+			if (film.preset !== 'fine-grain') {
+				const dustCount = film.preset === 'dust' ? 10 : 5;
+				tileCtx.fillStyle = 'rgba(245,245,238,.62)';
+				for (let i = 0; i < dustCount; i += 1) {
+					const radius = 0.5 + Math.random() * 2.4;
+					tileCtx.beginPath();
+					tileCtx.arc(Math.random() * tileSize, Math.random() * tileSize, radius, 0, Math.PI * 2);
+					tileCtx.fill();
+				}
+			}
+			if (film.preset === 'projector' && Math.random() > 0.62) {
+				tileCtx.strokeStyle = 'rgba(250,248,240,.48)';
+				tileCtx.lineWidth = Math.random() > 0.8 ? 2 : 1;
+				const x = Math.random() * tileSize;
+				tileCtx.beginPath();
+				tileCtx.moveTo(x, -10);
+				tileCtx.lineTo(x + Math.random() * 4 - 2, tileSize + 10);
+				tileCtx.stroke();
+			}
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			const pattern = ctx.createPattern(tile, 'repeat');
+			if (pattern) {
+				ctx.fillStyle = pattern;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
+			canvas.style.opacity = String((intensity / 100) * (flicker ? 0.86 + Math.random() * 0.28 : 1));
+			canvas.style.transform = weave
+				? `translate(${(Math.random() * 1.6 - 0.8).toFixed(2)}px, ${(Math.random() * 1.2 - 0.6).toFixed(2)}px)`
+				: '';
+		};
+		const start = () => {
+			win.clearInterval(timer);
+			draw();
+			if (!reduced.matches && !doc.hidden) timer = win.setInterval(draw, interval);
+		};
+		const visibility = () => start();
+		resize();
+		start();
+		const observer = new win.ResizeObserver(() => {
+			resize();
+			draw();
+		});
+		observer.observe(overlay);
+		doc.addEventListener('visibilitychange', visibility);
+		reduced.addEventListener('change', start);
+		return () => {
+			win.clearInterval(timer);
+			observer.disconnect();
+			doc.removeEventListener('visibilitychange', visibility);
+			reduced.removeEventListener('change', start);
+		};
+	}, [film]);
+
+	const hasOverlay = !!(
+		cursor ||
+		creative?.trail ||
+		grain ||
+		creative?.clickMark ||
+		creative?.film
+	);
+	if (!hasOverlay && !pageTransition) return null;
 	return (
-		<div ref={overlayRef} className="creative-effects">
-			{grain > 0 && (
-				<div
-					className="creative-grain"
-					style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }}
-					aria-hidden="true"
-				/>
+		<>
+			{pageTransition && <style>{'@view-transition { navigation: auto; }'}</style>}
+			{hasOverlay && (
+				<div ref={overlayRef} className="creative-effects">
+					{grain > 0 && (
+						<div
+							className="creative-grain"
+							style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }}
+							aria-hidden="true"
+						/>
+					)}
+					{film && (
+						<canvas
+							ref={filmRef}
+							className={`creative-film creative-film-${film.preset}`}
+							aria-hidden="true"
+						/>
+					)}
+				</div>
 			)}
-		</div>
+		</>
 	);
 }

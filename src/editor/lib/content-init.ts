@@ -187,6 +187,7 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			layout: e.meta.layout,
 			focusX: e.meta.focusX,
 			focusY: e.meta.focusY,
+			effects: e.meta.effects,
 		}));
 	}
 	const uploaded = getAssetPreviewUrl(doc.profileImage.assetId);

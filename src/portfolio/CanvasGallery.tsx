@@ -50,7 +50,9 @@ import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
 import { automaticPhoneOrder } from './mobileOrder';
+import { artworkEffectClass } from './artworkEffects';
 import './Gallery.css';
+import './ArtworkEffects.css';
 
 export interface CanvasGalleryProps {
 	images: ResolvedImage[];
@@ -853,7 +855,7 @@ export default function CanvasGallery({
 					const dragging =
 						dragId === img.id || (dragId === '__group__' && selected.has(item.key));
 					return (
-						<div key={item.key} className={`canvas-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
+						<div key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
 							role={!editable && onOpen ? 'button' : undefined} tabIndex={!editable && onOpen ? 0 : undefined}
 							aria-haspopup={!editable && onOpen ? 'dialog' : undefined}
@@ -1002,6 +1004,8 @@ export default function CanvasGallery({
 									fontFamily={text.fontFamily}
 									style={text.style}
 									link={editable ? undefined : text.link}
+									kinetic={text.kinetic}
+									kineticTarget={text.kineticTarget}
 								/>
 							) : <em className="canvas-text-empty">Empty text — write in the panel</em>}
 						</div>

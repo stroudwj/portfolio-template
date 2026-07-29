@@ -10,6 +10,7 @@ import Products from './Products';
 import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
+import SectionMotionRuntime from './SectionMotion';
 import SectionResizeHandle, {
 	responsiveHeightVars,
 	type SectionBreakpoint,
@@ -26,6 +27,8 @@ import {
 import { backgroundBlockVars } from './theme';
 import { clampLayout, clampTextLayout, EMBED_AR, MIN_EMBED_W, MIN_TEXT_W, roundLayout, roundTextLayout } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
+import { sharedPageTransitionName } from './pageTransitions';
+import ProjectDetails from './ProjectDetails';
 
 export interface PortfolioPageProps extends PortfolioData {
 	/** Page key: 'home', a nav path like 'art', or a nested path like 'work/project-a'. */
@@ -213,8 +216,10 @@ export default function PortfolioPage({
 	editorPreview = false,
 }: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
+	const [pageRoot, setPageRootState] = useState<HTMLDivElement | null>(null);
 	const [isPhone, setIsPhone] = useState(false);
 	const setPageRoot = useCallback((element: HTMLDivElement | null) => {
+		setPageRootState(element);
 		setPageHost(element ? element.ownerDocument.body : null);
 	}, []);
 	useEffect(() => {
@@ -273,6 +278,7 @@ export default function PortfolioPage({
 	const pageOrder = new Map((config.mobile?.order ?? []).map((key, index) => [key, index]));
 	const automaticPageKeys = [
 		...(config.heading?.trim() ? ['page:heading'] : []),
+		...(config.project ? ['page:project'] : []),
 		...blocks.map((block) => `block:${block.id}`),
 	];
 	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
@@ -296,6 +302,8 @@ export default function PortfolioPage({
 							align: b.align,
 							style: b.style,
 							link: siteHref(b.link, base),
+							kinetic: b.kinetic,
+							kineticTarget: `block:${b.id}`,
 							layout: b.layout,
 						}]
 					: [],
@@ -319,6 +327,8 @@ export default function PortfolioPage({
 						align: block.align,
 						style: block.style,
 						link: siteHref(block.link, base),
+						kinetic: block.kinetic,
+						kineticTarget: `block:${block.id}`,
 						layout: block.layout,
 					};
 					return (
@@ -352,7 +362,9 @@ export default function PortfolioPage({
 							align={block.align}
 							style={block.style}
 							link={siteHref(block.link, base)}
+							kinetic={block.kinetic}
 							flowLayout={block.flowLayout}
+							kineticTarget={`block:${block.id}`}
 						/>
 					</DraggableFlowBlock>
 				) : (
@@ -364,7 +376,9 @@ export default function PortfolioPage({
 						align={block.align}
 						style={block.style}
 						link={siteHref(block.link, base)}
+						kinetic={block.kinetic}
 						flowLayout={block.flowLayout}
+						kineticTarget={`block:${block.id}`}
 					/>
 				);
 			case 'embed':
@@ -413,7 +427,15 @@ export default function PortfolioPage({
 					href: withBase(base, `${key}/`),
 					thumbSrc: pageThumbs?.[key],
 				}));
-				return <ChildPages key={block.id} items={items} style={block.style} onNavigate={onNavigate} />;
+				return (
+					<ChildPages
+						key={block.id}
+						items={items}
+						style={block.style}
+						onNavigate={onNavigate}
+						pageTransition={content.site.creative?.pageTransition}
+					/>
+				);
 			}
 			case 'products':
 				if (!content.store) return null;
@@ -428,6 +450,10 @@ export default function PortfolioPage({
 					/>
 				);
 			case 'gallery': {
+				const sharedTransitionStyle =
+					content.site.creative?.pageTransition === 'gallery'
+						? ({ viewTransitionName: sharedPageTransitionName(page) } as CSSProperties)
+						: undefined;
 				const galleryEl = (
 					<Gallery
 						images={images}
@@ -456,6 +482,7 @@ export default function PortfolioPage({
 						className="collage-container"
 						data-primary-gallery
 						data-carousel-canvas-host={gallery?.layout !== 'grid' ? block.id : undefined}
+						style={sharedTransitionStyle}
 					>
 						{galleryEl}
 					</div>
@@ -465,6 +492,7 @@ export default function PortfolioPage({
 						className={`page-content-wrapper ${page === 'photography' ? 'page-photo' : ''}`}
 						data-primary-gallery
 						data-carousel-canvas-host={gallery?.layout !== 'grid' ? block.id : undefined}
+						style={sharedTransitionStyle}
 					>
 						{galleryEl}
 					</div>
@@ -567,8 +595,16 @@ export default function PortfolioPage({
 						<Hero
 							heading={config.heading}
 							position={content.theme.pageHeadingPosition}
+							kinetic={config.headingKinetic}
 						/>
 					),
+				}]
+			: []),
+		...(config.project
+			? [{
+					key: 'page:project',
+					className: 'portfolio-project-details',
+					rendered: <ProjectDetails project={config.project} />,
 				}]
 			: []),
 		...blocks.flatMap((block) => {
@@ -585,6 +621,10 @@ export default function PortfolioPage({
 
 	return (
 		<>
+			<SectionMotionRuntime
+				root={pageRoot}
+				signature={JSON.stringify(config.sectionMotion ?? {})}
+			/>
 			<div
 				ref={setPageRoot}
 				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${config.heading?.trim() ? 'has-page-heading' : 'without-page-heading'}`}
@@ -592,20 +632,26 @@ export default function PortfolioPage({
 			>
 				{pageParts.map((part) => {
 					const sectionColor = config.sectionColors?.[part.key];
+					const motion = config.sectionMotion?.[part.key];
+					const strength = Math.min(Math.max(motion?.intensity ?? 45, 1), 100);
 					const partStyle = {
 						...pagePartVars(part.key),
 						...backgroundBlockVars(sectionColor, automaticContrast),
+						...(motion ? { '--motion-strength': String(strength) } : {}),
 					} as CSSProperties;
 					return (
 						<div
-							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}`}
+							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
 							style={partStyle}
 							key={part.key}
+							data-motion-effect={motion?.effect}
+							data-motion-strength={motion ? strength : undefined}
+							data-motion-phone={motion?.phone ? 'true' : 'false'}
 							data-section-color={
 								sectionColor || config.background || content.theme.backgroundColor
 							}
 						>
-							{part.rendered}
+							<div className="motion-section-inner">{part.rendered}</div>
 							{resizeBreakpoint && onSectionHeight && (
 								<SectionResizeHandle
 									breakpoint={resizeBreakpoint}

@@ -43,6 +43,33 @@ const responsiveSectionHeightSchema = passthrough({
 	phone: sectionHeightValueSchema.optional(),
 });
 
+const kineticTextSchema = passthrough({
+	effect: z.enum(['words', 'letters', 'lines', 'marquee']),
+	speed: z.number().min(50).max(200).optional(),
+	phone: z.boolean().optional(),
+});
+
+const sectionMotionSchema = passthrough({
+	effect: z.enum(['reveal', 'drift', 'pin', 'scrub', 'sequence']),
+	intensity: z.number().min(1).max(100).optional(),
+	phone: z.boolean().optional(),
+});
+
+const artworkEffectSchema = passthrough({
+	hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
+	reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
+	phone: z.boolean().optional(),
+});
+
+const projectDetailsSchema = passthrough({
+	template: z.enum(['artwork', 'collaboration', 'exhibition']),
+	year: z.string().optional(),
+	medium: z.string().optional(),
+	dimensions: z.string().optional(),
+	collaborators: z.string().optional(),
+	exhibitionHistory: z.string().optional(),
+});
+
 const galleryFolderSchema = z
 	.string()
 	.min(1)
@@ -149,6 +176,7 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		align: z.enum(['left', 'center', 'right']).optional(),
 		style: z.enum(['body', 'heading', 'subheading', 'quote']).optional(),
 		link: z.string().optional(),
+		kinetic: kineticTextSchema.optional(),
 		flowLayout: textFlowLayoutSchema.optional(),
 		layout: textLayoutSchema.optional(),
 	}),
@@ -211,6 +239,7 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	effects: artworkEffectSchema.optional(),
 });
 
 /** Runtime validation for the JSON boundary. Object schemas deliberately preserve
@@ -238,6 +267,25 @@ export const contentSchema = passthrough({
 			slowReveal: z.boolean().optional(),
 			artworkWobble: z.boolean().optional(),
 			colorSpin: z.boolean().optional(),
+			film: passthrough({
+				preset: z.enum(['fine-grain', 'dust', 'projector']),
+				intensity: z.number().min(1).max(30).optional(),
+				size: z.number().min(50).max(200).optional(),
+				speed: z.number().min(25).max(200).optional(),
+				flicker: z.boolean().optional(),
+				weave: z.boolean().optional(),
+			}).optional(),
+			pageTransition: z.enum(['fade', 'slide', 'curtain', 'gallery']).optional(),
+			phone: passthrough({
+				film: z.boolean().optional(),
+				pageTransition: z.boolean().optional(),
+				trail: z.boolean().optional(),
+				clickMark: z.boolean().optional(),
+				looseHang: z.boolean().optional(),
+				slowReveal: z.boolean().optional(),
+				artworkWobble: z.boolean().optional(),
+				colorSpin: z.boolean().optional(),
+			}).optional(),
 		}).optional(),
 	}),
 	theme: passthrough({
@@ -269,6 +317,16 @@ export const contentSchema = passthrough({
 	social: z.array(passthrough({ label: z.string(), url: z.string() })),
 	resume: passthrough({ label: z.string(), url: z.string() }),
 	store: storeConfigSchema.optional(),
+	sectionLibrary: z.array(
+		passthrough({
+			id: z.string().min(1),
+			name: z.string().min(1),
+			block: pageBlockSchema,
+			motion: sectionMotionSchema.optional(),
+			color: z.string().optional(),
+			heights: responsiveSectionHeightSchema.optional(),
+		}),
+	).optional(),
 	pages: z.record(
 		z.string(),
 		passthrough({
@@ -286,6 +344,9 @@ export const contentSchema = passthrough({
 			background: z.string().optional(),
 			sectionColors: z.record(z.string(), z.string()).optional(),
 			sectionHeights: z.record(z.string(), responsiveSectionHeightSchema).optional(),
+			sectionMotion: z.record(z.string(), sectionMotionSchema).optional(),
+			headingKinetic: kineticTextSchema.optional(),
+			project: projectDetailsSchema.optional(),
 		}),
 	),
 	galleries: z.record(galleryFolderSchema, passthrough({ items: z.record(galleryFilenameSchema, imageMetaSchema) })),
@@ -364,6 +425,7 @@ export const contentSchema = passthrough({
 		if (page.mobile) {
 			const allowed = new Set((page.blocks ?? []).map((block) => `block:${block.id}`));
 			allowed.add('page:heading');
+			allowed.add('page:project');
 			if (new Set(page.mobile.order).size !== page.mobile.order.length)
 				ctx.addIssue({ code: 'custom', path: ['pages', pageKey, 'mobile', 'order'], message: 'Phone page order contains the same section more than once' });
 			for (const key of [...page.mobile.order, ...Object.keys(page.mobile.items ?? {})])

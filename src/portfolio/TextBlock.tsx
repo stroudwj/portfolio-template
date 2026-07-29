@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import type {
+	KineticTextConfig,
 	RichTextParagraph,
 	RichTextRun,
 	TextAlign,
@@ -9,6 +10,12 @@ import type {
 import { richTextPlainText } from '../lib/richText';
 import { clampTextFlowLayout } from './canvasLayout';
 import { safeHref } from './safeHref';
+import {
+	KineticInline,
+	KineticMarquee,
+	kineticClass,
+	kineticStyle,
+} from './KineticText';
 import './TextBlock.css';
 
 /** Free text as React nodes: "\n" is a line break, "\n\n" a blank line (like the bio). */
@@ -32,10 +39,17 @@ interface TextContentProps {
 	style?: TextStyle;
 	link?: string;
 	className?: string;
+	kinetic?: KineticTextConfig;
+	kineticTarget?: string;
 }
 
-function RichRun({ run }: { run: RichTextRun }) {
-	let content: ReactNode = run.text;
+function RichRun({ run, kinetic }: { run: RichTextRun; kinetic?: KineticTextConfig }) {
+	let content: ReactNode = (
+		<KineticInline
+			text={run.text}
+			config={kinetic?.effect === 'lines' ? undefined : kinetic}
+		/>
+	);
 	if (run.bold) content = <strong>{content}</strong>;
 	if (run.italic) content = <em>{content}</em>;
 	if (run.underline) content = <u>{content}</u>;
@@ -46,12 +60,28 @@ function RichRun({ run }: { run: RichTextRun }) {
 function RichParagraph({
 	paragraph,
 	link,
+	kinetic,
+	index,
 }: {
 	paragraph: RichTextParagraph;
 	link?: string;
+	kinetic?: KineticTextConfig;
+	index: number;
 }) {
-	const runs = paragraph.runs.map((run, index) => <RichRun key={index} run={run} />);
-	const content = link ? <a href={link}>{runs}</a> : runs;
+	const runs = paragraph.runs.map((run, runIndex) => (
+		<RichRun key={runIndex} run={run} kinetic={kinetic} />
+	));
+	let content: ReactNode = link ? <a href={link}>{runs}</a> : runs;
+	if (kinetic?.effect === 'lines') {
+		content = (
+			<span
+				className="kinetic-unit"
+				style={{ '--kinetic-index': index } as React.CSSProperties}
+			>
+				{content}
+			</span>
+		);
+	}
 	return (
 		<p className={`rich-text-paragraph align-${paragraph.align ?? 'left'}`}>
 			{runs.length === 0 ? <br /> : content}
@@ -71,37 +101,69 @@ export function TextContent({
 	style = 'body',
 	link,
 	className,
+	kinetic,
+	kineticTarget,
 }: TextContentProps) {
 	const href = safeHref(link);
+	const motionClass = kineticClass(kinetic);
+	const motionStyle = kineticStyle(kinetic);
 	if (richText) {
-		const classes = ['text-block-content', 'rich-text-content', className].filter(Boolean).join(' ');
+		const classes = ['text-block-content', 'rich-text-content', motionClass, className].filter(Boolean).join(' ');
+		if (kinetic?.effect === 'marquee') {
+			const plainText = richTextPlainText(richText);
+			return (
+				<div
+					className={classes}
+					style={{ ...(fontFamily ? { fontFamily } : {}), ...motionStyle }}
+					data-kinetic-target={kineticTarget}
+				>
+					<KineticMarquee duplicateText={plainText}>{plainText}</KineticMarquee>
+				</div>
+			);
+		}
 		return (
-			<div className={classes} style={fontFamily ? { fontFamily } : undefined}>
+			<div
+				className={classes}
+				style={{ ...(fontFamily ? { fontFamily } : {}), ...motionStyle }}
+				data-kinetic-target={kineticTarget}
+			>
 				{richText.map((paragraph, index) => (
-					<RichParagraph key={index} paragraph={paragraph} link={href} />
+					<RichParagraph
+						key={index}
+						paragraph={paragraph}
+						link={href}
+						kinetic={kinetic}
+						index={index}
+					/>
 				))}
 			</div>
 		);
 	}
-	const content = href ? (
+	const linkedContent = href ? (
 		<a href={href}>
-			<TextLines text={text} />
+			<KineticInline text={text} config={kinetic} />
 		</a>
 	) : (
-		<TextLines text={text} />
+		<KineticInline text={text} config={kinetic} />
 	);
-	const classes = ['text-block-content', `text-style-${style}`, className].filter(Boolean).join(' ');
-	const textStyle = fontFamily ? { fontFamily } : undefined;
+	const content =
+		kinetic?.effect === 'marquee' ? (
+			<KineticMarquee duplicateText={text}>{linkedContent}</KineticMarquee>
+		) : (
+			linkedContent
+		);
+	const classes = ['text-block-content', `text-style-${style}`, motionClass, className].filter(Boolean).join(' ');
+	const textStyle = { ...(fontFamily ? { fontFamily } : {}), ...motionStyle };
 
 	switch (style) {
 		case 'heading':
-			return <h2 className={classes} style={textStyle}>{content}</h2>;
+			return <h2 className={classes} style={textStyle} data-kinetic-target={kineticTarget}>{content}</h2>;
 		case 'subheading':
-			return <h3 className={classes} style={textStyle}>{content}</h3>;
+			return <h3 className={classes} style={textStyle} data-kinetic-target={kineticTarget}>{content}</h3>;
 		case 'quote':
-			return <blockquote className={classes} style={textStyle}>{content}</blockquote>;
+			return <blockquote className={classes} style={textStyle} data-kinetic-target={kineticTarget}>{content}</blockquote>;
 		default:
-			return <p className={classes} style={textStyle}>{content}</p>;
+			return <p className={classes} style={textStyle} data-kinetic-target={kineticTarget}>{content}</p>;
 	}
 }
 
@@ -113,7 +175,9 @@ export default function TextBlock({
 	align,
 	style = 'body',
 	link,
+	kinetic,
 	flowLayout,
+	kineticTarget,
 }: {
 	text: string;
 	richText?: RichTextParagraph[];
@@ -121,7 +185,9 @@ export default function TextBlock({
 	align?: TextAlign;
 	style?: TextStyle;
 	link?: string;
+	kinetic?: KineticTextConfig;
 	flowLayout?: TextFlowLayout;
+	kineticTarget?: string;
 }) {
 	if (!(richText ? richTextPlainText(richText) : text).trim()) return null;
 	const safeFlowLayout = flowLayout ? clampTextFlowLayout(flowLayout) : undefined;
@@ -133,7 +199,7 @@ export default function TextBlock({
 		: undefined;
 	return (
 		<div
-			className={`text-block align-${richText ? 'left' : align ?? 'left'} style-${style}`}
+			className={`text-block align-${richText ? 'left' : align ?? 'left'} style-${style}${kinetic?.effect === 'marquee' ? ' kinetic-marquee' : ''}`}
 			style={flowStyle}
 		>
 			<TextContent
@@ -142,6 +208,8 @@ export default function TextBlock({
 				fontFamily={fontFamily}
 				style={style}
 				link={link}
+				kinetic={kinetic}
+				kineticTarget={kineticTarget}
 			/>
 		</div>
 	);

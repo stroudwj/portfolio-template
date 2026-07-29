@@ -21,6 +21,8 @@ import type {
 	TextStyle,
 	RichTextParagraph,
 	ResponsiveSectionHeight,
+	KineticTextConfig,
+	ArtworkEffectConfig,
 } from '../lib/content';
 
 export type {
@@ -39,6 +41,8 @@ export type {
 	TextStyle,
 	RichTextParagraph,
 	ResponsiveSectionHeight,
+	KineticTextConfig,
+	ArtworkEffectConfig,
 };
 
 /** One atomic mixed-item move produced by a freeform canvas. */
@@ -57,6 +61,8 @@ export interface CanvasText {
 	align?: TextAlign;
 	style?: TextStyle;
 	link?: string;
+	kinetic?: KineticTextConfig;
+	kineticTarget?: string;
 	layout: TextLayout;
 }
 
@@ -94,6 +100,7 @@ export interface ResolvedImage {
 	/** Carousel fill-mode focal point, in source-image percentages. */
 	focusX?: number;
 	focusY?: number;
+	effects?: ArtworkEffectConfig;
 }
 
 /** Everything the portfolio needs to render, with images already resolved. */

@@ -28,6 +28,11 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	effects: passthrough({
+		hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
+		reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
+		phone: z.boolean().optional(),
+	}).optional(),
 });
 
 export const editorDocSchema = passthrough({

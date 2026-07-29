@@ -1,4 +1,6 @@
-import type { ChildrenStyle } from '../lib/content';
+import type { CSSProperties } from 'react';
+import type { ChildrenStyle, PageTransition } from '../lib/content';
+import { sharedPageTransitionName } from './pageTransitions';
 import './ChildPages.css';
 
 export interface ChildPageItem {
@@ -20,11 +22,13 @@ export default function ChildPages({
 	items,
 	style = 'cards',
 	onNavigate,
+	pageTransition,
 }: {
 	items: ChildPageItem[];
 	style?: ChildrenStyle;
 	/** Editor preview: switch pages in place instead of following the link. */
 	onNavigate?: (path: string) => void;
+	pageTransition?: PageTransition;
 }) {
 	if (!items.length) return null;
 	return (
@@ -44,7 +48,17 @@ export default function ChildPages({
 					}
 				>
 					{style !== 'index' &&
-						(item.thumbSrc ? <img src={item.thumbSrc} alt={item.label} /> : <div className="child-thumb-empty" />)}
+						(item.thumbSrc ? (
+							<img
+								src={item.thumbSrc}
+								alt={item.label}
+								style={
+									pageTransition === 'gallery'
+										? ({ viewTransitionName: sharedPageTransitionName(item.key) } as CSSProperties)
+										: undefined
+								}
+							/>
+						) : <div className="child-thumb-empty" />)}
 					<span>{item.label}</span>
 				</a>
 			))}

@@ -18,7 +18,12 @@ import AccountControls from './components/AccountControls';
 import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
 import OnboardingTour from './components/OnboardingTour';
-import { expandSection, onShowEditorTab, showPreviewPage } from './components/ui/controls';
+import {
+	expandSection,
+	onPreviewTypeMotion,
+	onShowEditorTab,
+	showPreviewPage,
+} from './components/ui/controls';
 import { shouldResumePublish } from './lib/polar-checkout';
 import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
@@ -207,6 +212,9 @@ function Shell({ base }: { base: string }) {
 	useEffect(() => onShowEditorTab((next) => {
 		pickTab(normalizeEditorTab(next));
 	}), []);
+	// On narrower editor layouts the live preview is a separate view. A motion
+	// preview request should reveal it automatically instead of animating offscreen.
+	useEffect(() => onPreviewTypeMotion(() => setMobileView('preview')), []);
 	const phone = usePhoneContext();
 
 	useUndoShortcuts(undo, redo);

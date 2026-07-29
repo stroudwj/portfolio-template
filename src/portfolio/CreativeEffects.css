@@ -17,6 +17,86 @@
 	mix-blend-mode: multiply;
 }
 
+.creative-film {
+	position: absolute;
+	inset: -2px;
+	width: calc(100% + 4px);
+	height: calc(100% + 4px);
+	mix-blend-mode: soft-light;
+	image-rendering: pixelated;
+}
+
+.creative-film-dust {
+	mix-blend-mode: multiply;
+}
+
+.creative-film-projector {
+	mix-blend-mode: overlay;
+}
+
+/* Page entrances are also the fallback for browsers without cross-document
+   View Transitions. PortfolioPage is keyed by page in the live editor, so the
+   same choreography replays there without a navigation. */
+.page-transition-fade .portfolio-page-body,
+body.page-transition-fade .portfolio-page-body {
+	animation: page-transition-fade-in 520ms ease-out both;
+}
+
+.page-transition-slide .portfolio-page-body,
+body.page-transition-slide .portfolio-page-body {
+	animation: page-transition-slide-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-transition-curtain .portfolio-page-body,
+body.page-transition-curtain .portfolio-page-body {
+	animation: page-transition-curtain-in 760ms cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+
+.page-transition-gallery .portfolio-page-body,
+body.page-transition-gallery .portfolio-page-body {
+	animation: page-transition-gallery-in 580ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-page-transition='fade']::view-transition-old(root),
+html[data-page-transition='gallery']::view-transition-old(root) {
+	animation: page-transition-old 260ms ease-in both;
+}
+
+html[data-page-transition='fade']::view-transition-new(root),
+html[data-page-transition='gallery']::view-transition-new(root) {
+	animation: page-transition-fade-in 480ms ease-out both;
+}
+
+html[data-page-transition='slide']::view-transition-old(root) {
+	animation: page-transition-slide-out 320ms ease-in both;
+}
+
+html[data-page-transition='slide']::view-transition-new(root) {
+	animation: page-transition-slide-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-page-transition='curtain']::view-transition-old(root) {
+	animation: page-transition-old 220ms ease-in both;
+}
+
+html[data-page-transition='curtain']::view-transition-new(root) {
+	animation: page-transition-curtain-in 680ms cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+
+html[data-page-transition]::view-transition-group(*) {
+	animation-duration: 620ms;
+	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Native View Transitions own navigation in capable browsers. The ordinary
+   page-entry keyframes remain a clean fallback for older browsers only. */
+@supports (view-transition-name: none) {
+	[class*='page-transition-'] .portfolio-page-body,
+	body[class*='page-transition-'] .portfolio-page-body {
+		animation: none;
+	}
+}
+
 .creative-click-mark {
 	position: absolute;
 	color: var(--color-accent, #333);
@@ -148,6 +228,49 @@
 	}
 }
 
+@keyframes page-transition-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes page-transition-slide-in {
+	from {
+		opacity: 0;
+		transform: translateY(28px);
+	}
+}
+
+@keyframes page-transition-slide-out {
+	to {
+		opacity: 0;
+		transform: translateY(-18px);
+	}
+}
+
+@keyframes page-transition-curtain-in {
+	from {
+		clip-path: inset(0 100% 0 0);
+	}
+	to {
+		clip-path: inset(0);
+	}
+}
+
+@keyframes page-transition-gallery-in {
+	from {
+		opacity: 0;
+		transform: scale(0.985);
+	}
+}
+
+@keyframes page-transition-old {
+	to {
+		opacity: 0;
+		filter: blur(3px);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.creative-trail-bit {
 		display: none;
@@ -160,5 +283,36 @@
 	.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover,
 	.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
 		animation: none;
+	}
+	.creative-film {
+		transform: none !important;
+	}
+	[class*='page-transition-'] .portfolio-page-body,
+	body[class*='page-transition-'] .portfolio-page-body {
+		animation: none;
+	}
+	html[data-page-transition]::view-transition-old(root),
+	html[data-page-transition]::view-transition-new(root),
+	html[data-page-transition]::view-transition-group(*) {
+		animation-duration: 1ms;
+	}
+}
+
+@media (max-width: 639px) {
+	html[data-page-transition-phone='off']::view-transition-old(root),
+	html[data-page-transition-phone='off']::view-transition-new(root),
+	html[data-page-transition-phone='off']::view-transition-group(*) {
+		animation-duration: 1ms;
+	}
+	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item),
+	.creative-phone-off-loose-hang .canvas-item > img {
+		transform: none;
+	}
+	.creative-phone-off-slow-reveal
+		:is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)),
+	.creative-phone-off-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover,
+	.creative-phone-off-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+		animation: none;
+		filter: none;
 	}
 }

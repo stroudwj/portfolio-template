@@ -136,6 +136,9 @@ function assertBundleFiles(files: BundleFile[], references: ReadonlySet<string>)
 export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	doc = stripSamplesForPublish(doc);
 	const content = cloneContent(doc.content);
+	// Saved sections are private editing material. They stay in local drafts and
+	// backups, but never leak into the public content.json.
+	delete content.sectionLibrary;
 	const files: BundleFile[] = [];
 	const referencedFiles = new Set<string>();
 	const emittedImagePathByAssetId = new Map<string, string>();

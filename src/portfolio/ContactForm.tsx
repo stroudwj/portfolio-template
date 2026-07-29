@@ -76,6 +76,7 @@ export default function ContactForm({
 	const isAvailable = endpointIsSafe || emailFallbackIsReady;
 	const trimmedHeading = heading.trim();
 	const feedbackId = `${formId}-feedback`;
+	const recordInquiry = () => window.dispatchEvent(new Event('hangwork:inquiry'));
 
 	const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -100,6 +101,7 @@ export default function ContactForm({
 			const subject = trimmedHeading || 'Portfolio message';
 			const recipient = encodeURIComponent(fallbackEmail.trim()).replace(/%40/gi, '@');
 			window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+			recordInquiry();
 			setSubmitState('email');
 			return;
 		}
@@ -114,6 +116,7 @@ export default function ContactForm({
 			if (!response.ok) throw new Error('Message delivery failed');
 
 			form.reset();
+			recordInquiry();
 			setSubmitState('success');
 		} catch {
 			setSubmitState('failure');

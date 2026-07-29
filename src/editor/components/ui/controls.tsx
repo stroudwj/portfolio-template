@@ -84,6 +84,32 @@ export function onShowPreviewPage(fn: (pageKey: string) => void): () => void {
 	return () => window.removeEventListener(SHOW_PREVIEW_PAGE_EVENT, handler);
 }
 
+const PREVIEW_TYPE_MOTION_EVENT = 'editor-preview-type-motion';
+
+export interface TypeMotionPreviewRequest {
+	pageKey: string;
+	target: string;
+	token: number;
+}
+
+/** Switch the live preview to a page and restart one heading/text animation. */
+export function previewTypeMotion(pageKey: string, target: string) {
+	window.dispatchEvent(
+		new CustomEvent<TypeMotionPreviewRequest>(PREVIEW_TYPE_MOTION_EVENT, {
+			detail: { pageKey, target, token: Date.now() },
+		}),
+	);
+}
+
+export function onPreviewTypeMotion(
+	fn: (request: TypeMotionPreviewRequest) => void,
+): () => void {
+	const handler = (event: Event) =>
+		fn((event as CustomEvent<TypeMotionPreviewRequest>).detail);
+	window.addEventListener(PREVIEW_TYPE_MOTION_EVENT, handler);
+	return () => window.removeEventListener(PREVIEW_TYPE_MOTION_EVENT, handler);
+}
+
 export function Section({
 	title,
 	children,

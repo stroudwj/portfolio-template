@@ -129,6 +129,9 @@ function resolveGalleries(content: Content, assetPaths: Set<string>, ratios: Map
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,
+					focusX: meta.focusX,
+					focusY: meta.focusY,
+					effects: meta.effects,
 					ar: ratios.get(`assets/${config.folder}/${name}`),
 				} satisfies ResolvedImage;
 			});
@@ -229,7 +232,7 @@ export async function generateStaticSite(bundle: PortfolioBundle, opts: StaticSi
 
 	const pages = publishedPages(content);
 	for (const { key, page, served, urlPath } of pages) {
-		const bodyHtml = renderToString(createElement(Portfolio, { page: key, base: '/', ...data }));
+		const bodyHtml = renderToString(createElement(Portfolio, { page: key, base: '/', analytics: true, ...data }));
 		files.push({
 			path: served,
 			bytes: textBytes(
@@ -243,8 +246,10 @@ export async function generateStaticSite(bundle: PortfolioBundle, opts: StaticSi
 					noindex: page.noindex,
 					themeCss,
 					bodyHtml,
-					bootJson: scriptSafeJson({ page: key, data }),
+					bootJson: scriptSafeJson({ page: key, data, analytics: true }),
 					faviconSvg: content.site.favicon,
+					pageTransition: content.site.creative?.pageTransition,
+					pageTransitionPhone: content.site.creative?.phone?.pageTransition,
 				}),
 			),
 		});

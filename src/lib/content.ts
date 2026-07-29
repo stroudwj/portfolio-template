@@ -51,6 +51,38 @@ export type CreativeTrail = 'sparkles' | 'hearts' | 'bubbles';
 /** The temporary marks visitors can leave by clicking open areas of the page. */
 export type CreativeClickMark = 'nail' | 'cross' | 'star';
 
+/** Curated site-wide film treatments. */
+export type FilmTexturePreset = 'fine-grain' | 'dust' | 'projector';
+
+/** Page-change choreography. Gallery uses the browser's shared-image transition
+ * when available and falls back to the same restrained fade as older browsers. */
+export type PageTransition = 'fade' | 'slide' | 'curtain' | 'gallery';
+
+/** Motion-heavy effects can be independently disabled on small screens. */
+export type CreativeEffectKey =
+	| 'film'
+	| 'pageTransition'
+	| 'trail'
+	| 'clickMark'
+	| 'looseHang'
+	| 'slowReveal'
+	| 'artworkWobble'
+	| 'colorSpin';
+
+export interface FilmTextureConfig {
+	preset: FilmTexturePreset;
+	/** Overall opacity, 1–30. */
+	intensity?: number;
+	/** Texture scale, 50–200. */
+	size?: number;
+	/** Frame cadence, 25–200. */
+	speed?: number;
+	/** Projector-like luminance variation. */
+	flicker?: boolean;
+	/** Projector-like fractional frame movement. */
+	weave?: boolean;
+}
+
 /**
  * Playful site-wide effects, all off by default. Rendered by
  * portfolio/CreativeEffects in both the editor preview and the published site.
@@ -72,6 +104,43 @@ export interface CreativeConfig {
 	artworkWobble?: boolean;
 	/** Cycle artwork through the color wheel while it is hovered. */
 	colorSpin?: boolean;
+	/** A living, deliberately low-frame-rate film surface. */
+	film?: FilmTextureConfig;
+	/** Transition used when opening another portfolio page. */
+	pageTransition?: PageTransition;
+	/** Per-effect phone overrides. Missing keys preserve the existing on-phone behavior. */
+	phone?: Partial<Record<CreativeEffectKey, boolean>>;
+}
+
+/** Scroll choreography that can be applied independently to every page section. */
+export type SectionMotionEffect = 'reveal' | 'drift' | 'pin' | 'scrub' | 'sequence';
+
+export interface SectionMotionConfig {
+	effect: SectionMotionEffect;
+	/** Visual strength, 1–100. */
+	intensity?: number;
+	/** Motion stays off on phones unless explicitly enabled. */
+	phone?: boolean;
+}
+
+/** Typography treatments kept intentionally preset-sized instead of exposing a
+ * full animation timeline. */
+export type KineticTextEffect = 'words' | 'letters' | 'lines' | 'marquee';
+
+export interface KineticTextConfig {
+	effect: KineticTextEffect;
+	/** Relative duration, 50–200. */
+	speed?: number;
+	/** Set false to keep this text still on phones. */
+	phone?: boolean;
+}
+
+/** Curated motion applied to one artwork without changing its layout. */
+export interface ArtworkEffectConfig {
+	hover?: 'lift' | 'tilt' | 'zoom' | 'mono';
+	reveal?: 'fade' | 'rise' | 'wipe';
+	/** Set false to keep this artwork still on phones. */
+	phone?: boolean;
 }
 
 /**
@@ -329,6 +398,8 @@ export type PageBlock =
 			/** Legacy whole-block size/style used when richText is absent. */
 			style?: TextStyle;
 			link?: string;
+			/** Optional entrance or looping typography treatment for this text box. */
+			kinetic?: KineticTextConfig;
 			/** Width and horizontal position while the box remains in normal flow. */
 			flowLayout?: TextFlowLayout;
 			layout?: TextLayout;
@@ -386,6 +457,33 @@ export interface PageConfig {
 	sectionColors?: Record<string, string>;
 	/** Per-section minimum heights keyed like sectionColors, with independent breakpoints. */
 	sectionHeights?: Record<string, ResponsiveSectionHeight>;
+	/** Per-section scroll choreography keyed like sectionColors. */
+	sectionMotion?: Record<string, SectionMotionConfig>;
+	/** Optional typography treatment for the page heading. */
+	headingKinetic?: KineticTextConfig;
+	/** Structured, reusable project facts rendered beneath the page heading. */
+	project?: ProjectDetails;
+}
+
+export type ProjectTemplate = 'artwork' | 'collaboration' | 'exhibition';
+
+export interface ProjectDetails {
+	template: ProjectTemplate;
+	year?: string;
+	medium?: string;
+	dimensions?: string;
+	collaborators?: string;
+	exhibitionHistory?: string;
+}
+
+/** A block saved to the document's section library, including its visual behavior. */
+export interface SavedSectionTemplate {
+	id: string;
+	name: string;
+	block: PageBlock;
+	motion?: SectionMotionConfig;
+	color?: string;
+	heights?: ResponsiveSectionHeight;
 }
 
 /**
@@ -423,6 +521,8 @@ export interface ImageMeta {
 	/** Carousel fill-mode focal point, as percentages of the source image. */
 	focusX?: number;
 	focusY?: number;
+	/** Per-artwork reveal/hover treatment. */
+	effects?: ArtworkEffectConfig;
 }
 
 export interface GalleryData {
@@ -442,6 +542,8 @@ export interface Content {
 	resume: Resume;
 	/** Optional sales catalog. Existing portfolios omit it and render unchanged. */
 	store?: StoreConfig;
+	/** Reusable page sections kept with the editable document and its backups. */
+	sectionLibrary?: SavedSectionTemplate[];
 	pages: Record<string, PageConfig>;
 	galleries: Record<string, GalleryData>;
 }

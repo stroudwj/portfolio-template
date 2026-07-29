@@ -69,6 +69,7 @@ import {
 	adminSiteStatus,
 } from './admin.js';
 import { publish, upload, publishComplete } from './publish.js';
+import { siteAnalytics } from './analytics.js';
 import { polarCheckoutCreate, polarCheckoutStatus, polarWebhook } from './polar.js';
 import {
 	subdomainCheck,
@@ -124,6 +125,7 @@ export default {
 		}
 		if (request.method === 'GET') {
 			if (path === '/site/export') return exportSite(request, env, corsOrigin);
+			if (path === '/site/analytics') return siteAnalytics(request, env, corsOrigin);
 			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
 		}
 		if (request.method !== 'POST') {

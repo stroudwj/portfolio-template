@@ -21,6 +21,8 @@ import CustomDomainModal from './CustomDomainModal';
 import RenameSiteModal from './RenameSiteModal';
 import DeleteSiteModal from './DeleteSiteModal';
 import VersionHistory from './VersionHistory';
+import SiteAuditPanel from './SiteAuditPanel';
+import AnalyticsPanel from './AnalyticsPanel';
 
 // The visibility states a site owner controls. `active` serves the site; the others are
 // enforced by the serving Worker (a "coming soon" page / a short offline notice).
@@ -159,6 +161,7 @@ export default function PublishPanel() {
 
 	return (
 		<>
+			<SiteAuditPanel />
 			<Section title="Your web address" sectionKey="_publish-address">
 				{published && liveUrl ? (
 					<>
@@ -225,6 +228,8 @@ export default function PublishPanel() {
 					)}
 				</Section>
 			)}
+
+			<AnalyticsPanel available={signedIn && published} />
 
 			<Section title="Account & license" sectionKey="_publish-account">
 				<div className="status-row">

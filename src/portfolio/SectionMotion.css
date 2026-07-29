@@ -1,0 +1,99 @@
+.motion-section-inner {
+	position: relative;
+	width: 100%;
+	box-sizing: border-box;
+	transform-origin: 50% 50%;
+}
+
+.motion-runtime-ready [data-motion-effect]:not(.motion-disabled) > .motion-section-inner {
+	will-change: transform, opacity, filter;
+}
+
+.motion-runtime-ready .motion-effect-reveal:not(.motion-disabled) > .motion-section-inner {
+	opacity: 0;
+	transform: translateY(calc(var(--motion-strength, 45) * 0.45px));
+	transition:
+		opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.motion-runtime-ready .motion-effect-reveal.motion-visible > .motion-section-inner {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.motion-effect-drift > .motion-section-inner {
+	transform: translate3d(0, var(--motion-y, 0), 0);
+}
+
+.motion-effect-scrub > .motion-section-inner {
+	opacity: var(--motion-opacity, 1);
+	filter: blur(var(--motion-blur, 0));
+	transform: translate3d(0, var(--motion-y, 0), 0) scale(var(--motion-scale, 1));
+}
+
+.motion-effect-pin {
+	min-height: calc(120vh + var(--motion-strength, 45) * 0.8vh);
+}
+
+.motion-effect-pin > .motion-section-inner {
+	position: sticky;
+	top: clamp(72px, 14vh, 160px);
+}
+
+.motion-runtime-ready
+	.motion-effect-sequence:not(.motion-disabled)
+	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
+	opacity: 0;
+	transform: translateY(calc(var(--motion-strength, 45) * 0.3px));
+	transition:
+		opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.motion-runtime-ready
+	.motion-effect-sequence.motion-visible
+	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.motion-effect-sequence.motion-visible :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n + 2) {
+	transition-delay: 90ms;
+}
+
+.motion-effect-sequence.motion-visible :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n) {
+	transition-delay: 180ms;
+}
+
+.motion-disabled > .motion-section-inner {
+	opacity: 1 !important;
+	filter: none !important;
+	transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-motion-effect] {
+		min-height: var(--section-min-desktop, 0px);
+	}
+	[data-motion-effect] > .motion-section-inner,
+	[data-motion-effect] :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
+		opacity: 1 !important;
+		filter: none !important;
+		transform: none !important;
+		transition: none !important;
+	}
+}
+
+@media (max-width: 639px) {
+	[data-motion-phone='false'] {
+		min-height: var(--section-min-phone, 0px);
+	}
+	[data-motion-phone='false'] > .motion-section-inner,
+	[data-motion-phone='false'] :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
+		opacity: 1 !important;
+		filter: none !important;
+		transform: none !important;
+		transition: none !important;
+	}
+}

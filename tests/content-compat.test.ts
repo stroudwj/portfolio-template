@@ -633,6 +633,48 @@ describe('browser draft compatibility', () => {
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
 	});
 
+	it('round-trips film, page transitions, scroll scenes, and kinetic type', async () => {
+		const doc = blankDoc();
+		doc.content.site.creative = {
+			film: {
+				preset: 'projector',
+				intensity: 14,
+				size: 120,
+				speed: 85,
+				flicker: true,
+				weave: true,
+			},
+			pageTransition: 'gallery',
+		};
+		doc.content.pages.home.headingKinetic = { effect: 'words', speed: 90 };
+		doc.content.pages.home.sectionMotion = {
+			'page:heading': { effect: 'reveal', intensity: 42, phone: true },
+			'block:gallery': { effect: 'scrub', intensity: 60 },
+		};
+		doc.content.pages.home.blocks!.push({
+			id: 'kinetic-copy',
+			type: 'text',
+			text: 'Motion for artists',
+			kinetic: { effect: 'letters', speed: 110 },
+		});
+
+		const bundle = await buildBundle(doc);
+		expect(bundle.contentJson.site.creative).toEqual(doc.content.site.creative);
+		expect(bundle.contentJson.pages.home.headingKinetic).toEqual(
+			doc.content.pages.home.headingKinetic,
+		);
+		expect(bundle.contentJson.pages.home.sectionMotion).toEqual(
+			doc.content.pages.home.sectionMotion,
+		);
+		expect(bundle.contentJson.pages.home.blocks).toContainEqual(
+			expect.objectContaining({
+				id: 'kinetic-copy',
+				kinetic: { effect: 'letters', speed: 110 },
+			}),
+		);
+		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
+	});
+
 	it('puts draft pages and every uploaded asset in an editable backup', async () => {
 		const doc = blankDoc();
 		doc.content.pages.art.draft = true;

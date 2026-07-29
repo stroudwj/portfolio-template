@@ -55,6 +55,7 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 				layout: entry.layout,
 				focusX: entry.focusX,
 				focusY: entry.focusY,
+				effects: entry.effects,
 				// Natural ratio so auto-flowed canvas items get correct heights at build time.
 				ar: entry.image.width && entry.image.height ? entry.image.width / entry.image.height : undefined,
 			} satisfies ResolvedImage;

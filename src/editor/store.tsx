@@ -7,6 +7,7 @@ import type {
 	GalleryConfig,
 	HeaderMode,
 	ImageLayout,
+	KineticTextConfig,
 	MobileComposition,
 	SignatureData,
 	SocialLink,
@@ -15,7 +16,11 @@ import type {
 	Theme,
 	PageBlock,
 	PageConfig,
+	ProjectDetails,
+	ProjectTemplate,
 	ResponsiveSectionHeight,
+	SavedSectionTemplate,
+	SectionMotionConfig,
 	RichTextParagraph,
 	TextAlign,
 	TextFlowLayout,
@@ -110,8 +115,30 @@ function pageTreeKeys(pages: Record<string, PageConfig>, root: string): Set<stri
 	return found;
 }
 
-function referencedGalleryFolders(pages: Record<string, PageConfig>): Set<string> {
-	return new Set(Object.values(pages).flatMap((page) => pageGalleryConfigs(page).map((gallery) => gallery.folder)));
+function referencedGalleryFolders(
+	pages: Record<string, PageConfig>,
+	sectionLibrary: SavedSectionTemplate[] = [],
+): Set<string> {
+	const folders = Object.values(pages).flatMap((page) =>
+		pageGalleryConfigs(page).map((gallery) => gallery.folder),
+	);
+	for (const saved of sectionLibrary) {
+		if (saved.block.type === 'images') folders.push(saved.block.gallery.folder);
+	}
+	return new Set(folders);
+}
+
+function cloneReusableBlock(block: PageBlock): PageBlock {
+	const cloned = JSON.parse(JSON.stringify(block)) as PageBlock;
+	const id = uid(block.type);
+	if (cloned.type === 'form') {
+		return {
+			...cloned,
+			id,
+			fields: cloned.fields.map((field) => ({ ...field, id: uid('field') })),
+		};
+	}
+	return { ...cloned, id } as PageBlock;
 }
 
 function referencedAssetIds(doc: EditorDoc): Set<string> {
@@ -163,6 +190,7 @@ function automaticPagePhoneKeys(page: PageConfig): string[] {
 	const canvas = pageHasCanvas(page);
 	return [
 		...(page.heading?.trim() ? ['page:heading'] : []),
+		...(page.project ? ['page:project'] : []),
 		...(page.blocks ?? []).flatMap((block) =>
 			canvas && (block.type === 'text' || block.type === 'embed') && block.layout ? [] : [`block:${block.id}`],
 		),
@@ -314,7 +342,7 @@ export interface EditorContextValue {
 	removeProductOffer(productId: string, offerId: string): void;
 	moveProductOffer(productId: string, from: number, to: number): void;
 	// pages
-	addPage(label: string): void;
+	addPage(label: string, projectTemplate?: ProjectTemplate): void;
 	addChildPage(parentKey: string, label: string): void;
 	removePage(key: string): void;
 	movePage(from: number, to: number): void;
@@ -336,6 +364,8 @@ export interface EditorContextValue {
 	moveChildPage(parentKey: string, from: number, to: number): void;
 	renamePage(key: string, label: string): void;
 	setPageHeading(key: string, heading: string): void;
+	setHeadingKinetic(key: string, kinetic: KineticTextConfig | undefined): void;
+	setProjectDetails(key: string, project: ProjectDetails | undefined): void;
 	setPageThumb(key: string, file: File): void;
 	removePageThumb(key: string): void;
 	// page blocks
@@ -351,6 +381,7 @@ export interface EditorContextValue {
 	setTextAlign(key: string, blockId: string, align: TextAlign): void;
 	setTextStyle(key: string, blockId: string, style: TextStyle): void;
 	setTextLink(key: string, blockId: string, link: string): void;
+	setTextKinetic(key: string, blockId: string, kinetic: KineticTextConfig | undefined): void;
 	/** Set normal-flow text width and horizontal position. */
 	setTextFlowLayout(key: string, blockId: string, layout: TextFlowLayout | undefined): void;
 	/** Pin a text block to the page canvas (or undefined to return it to the flow). */
@@ -417,6 +448,10 @@ export interface EditorContextValue {
 	): void;
 	removeBlock(key: string, blockId: string): void;
 	moveBlock(key: string, from: number, to: number): void;
+	/** Save a block and its section motion/color/height to the reusable library. */
+	saveSectionTemplate(key: string, blockId: string, name: string): void;
+	insertSectionTemplate(key: string, templateId: string): void;
+	removeSectionTemplate(templateId: string): void;
 	// galleries
 	addGalleryImages(
 		folder: string,
@@ -454,6 +489,10 @@ export interface EditorContextValue {
 	setPageBackground(key: string, color: string | undefined): void;
 	/** Background color of one page section, keyed 'block:<id>' / 'page:heading'. */
 	setSectionColor(key: string, partKey: string, color: string | undefined): void;
+	/** Scroll choreography for one page section. */
+	setSectionMotion(key: string, partKey: string, motion: SectionMotionConfig | undefined): void;
+	/** Replace one page's motion/type treatments with those copied from another page. */
+	applyPageEffects(key: string, source: PageConfig): void;
 	/** Responsive minimum height of one page section. */
 	setSectionHeight(
 		key: string,
@@ -1160,7 +1199,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			}),
 
 		// ---- pages ----
-		addPage: (label) =>
+		addPage: (label, projectTemplate) =>
 			commitDoc((prev) => {
 				const key = uniquePageKey(slugify(label), prev.content.pages);
 				const folder = uniqueFolder(key, prev);
@@ -1168,6 +1207,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const page: PageConfig = {
 					title: `${name} — {name}`,
 					label: name,
+					heading: projectTemplate ? name : undefined,
+					project: projectTemplate ? { template: projectTemplate } : undefined,
 					gallery: { folder, alt: name, order: 'asc' },
 					blocks: [{ id: 'gallery', type: 'gallery' }],
 				};
@@ -1246,7 +1287,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				}
 				const contentGalleries = { ...prev.content.galleries };
 				const docGalleries = { ...prev.galleries };
-				const stillUsed = referencedGalleryFolders(pages);
+				const stillUsed = referencedGalleryFolders(pages, prev.content.sectionLibrary);
 				for (const folder of doomedFolders) {
 					if (stillUsed.has(folder)) continue;
 					delete contentGalleries[folder];
@@ -1420,6 +1461,20 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
 		setPageHeading: (key, heading) =>
 			patchPage(key, (page) => ({ ...page, heading: heading || undefined }), true, `page:${key}:heading`),
+		setHeadingKinetic: (key, headingKinetic) =>
+			patchPage(
+				key,
+				(page) => ({ ...page, headingKinetic }),
+				true,
+				`page:${key}:heading-kinetic`,
+			),
+		setProjectDetails: (key, project) =>
+			patchPage(
+				key,
+				(page) => ({ ...page, project }),
+				true,
+				`page:${key}:project-details`,
+			),
 
 		setPageThumb: (key, file) => {
 			const assetId = registerAsset(file, file.name);
@@ -1495,6 +1550,18 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					block.id === blockId && block.type === 'text' ? { ...block, link: link || undefined } : block,
 				),
 			true, `page:${key}:text-link:${blockId}`),
+		setTextKinetic: (key, blockId, kinetic) =>
+			patchBlocks(
+				key,
+				(blocks) =>
+					blocks.map((block) =>
+						block.id === blockId && block.type === 'text'
+							? { ...block, kinetic }
+							: block,
+					),
+				true,
+				`page:${key}:text-kinetic:${blockId}`,
+			),
 		setTextFlowLayout: (key, blockId, flowLayout) =>
 			patchBlocks(
 				key,
@@ -1751,13 +1818,16 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const sectionKey = `block:${blockId}`;
 				const sectionColors = { ...(page.sectionColors ?? {}) };
 				const sectionHeights = { ...(page.sectionHeights ?? {}) };
+				const sectionMotion = { ...(page.sectionMotion ?? {}) };
 				delete sectionColors[sectionKey];
 				delete sectionHeights[sectionKey];
+				delete sectionMotion[sectionKey];
 				const nextPage = {
 						...page,
 						blocks,
 						sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 						sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
+						sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
 						mobile: page.mobile
 							? {
 								...page.mobile,
@@ -1787,7 +1857,10 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 							? page.gallery?.folder
 							: undefined;
 				if (removedFolder) {
-					const stillUsed = referencedGalleryFolders(next.content.pages);
+					const stillUsed = referencedGalleryFolders(
+						next.content.pages,
+						next.content.sectionLibrary,
+					);
 					if (!stillUsed.has(removedFolder)) {
 						const contentGalleries = { ...next.content.galleries };
 						delete contentGalleries[removedFolder];
@@ -1800,6 +1873,82 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				return next;
 			}),
 		moveBlock: (key, from, to) => patchBlocks(key, (blocks) => arrayMove(blocks, from, to)),
+		saveSectionTemplate: (key, blockId, name) =>
+			patchContent((content) => {
+				const page = content.pages[key];
+				const source = page?.blocks?.find((block) => block.id === blockId);
+				if (!page || !source) return content;
+				const block =
+					source.type === 'gallery' && page.gallery
+						? ({
+								id: source.id,
+								type: 'images',
+								name: `${page.label || key} images`,
+								gallery: { ...page.gallery },
+							} satisfies Extract<PageBlock, { type: 'images' }>)
+						: (JSON.parse(JSON.stringify(source)) as PageBlock);
+				const partKey = `block:${blockId}`;
+				const template: SavedSectionTemplate = {
+					id: uid('section'),
+					name: name.trim() || `${page.label || key} section`,
+					block,
+					motion: page.sectionMotion?.[partKey]
+						? { ...page.sectionMotion[partKey] }
+						: undefined,
+					color: page.sectionColors?.[partKey],
+					heights: page.sectionHeights?.[partKey]
+						? { ...page.sectionHeights[partKey] }
+						: undefined,
+				};
+				return {
+					...content,
+					sectionLibrary: [...(content.sectionLibrary ?? []), template],
+				};
+			}),
+		insertSectionTemplate: (key, templateId) =>
+			commitDoc((prev) => {
+				const page = prev.content.pages[key];
+				const template = prev.content.sectionLibrary?.find((item) => item.id === templateId);
+				if (!page || !template) return prev;
+				if (
+					template.block.type === 'about' &&
+					(page.blocks ?? []).some((block) => block.type === 'about')
+				) return prev;
+				const block = cloneReusableBlock(template.block);
+				const partKey = `block:${block.id}`;
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						pages: {
+							...prev.content.pages,
+							[key]: {
+								...page,
+								blocks: [...(page.blocks ?? []), block],
+								sectionMotion: template.motion
+									? { ...(page.sectionMotion ?? {}), [partKey]: { ...template.motion } }
+									: page.sectionMotion,
+								sectionColors: template.color
+									? { ...(page.sectionColors ?? {}), [partKey]: template.color }
+									: page.sectionColors,
+								sectionHeights: template.heights
+									? { ...(page.sectionHeights ?? {}), [partKey]: { ...template.heights } }
+									: page.sectionHeights,
+							},
+						},
+					},
+				};
+			}),
+		removeSectionTemplate: (templateId) =>
+			patchContent((content) => {
+				const sectionLibrary = (content.sectionLibrary ?? []).filter(
+					(template) => template.id !== templateId,
+				);
+				return {
+					...content,
+					sectionLibrary: sectionLibrary.length ? sectionLibrary : undefined,
+				};
+			}),
 
 		addGalleryImages: (folder, images) =>
 			patchGallery(folder, (entries) => [
@@ -1929,6 +2078,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				if (!merged.slowReveal) delete merged.slowReveal;
 				if (!merged.artworkWobble) delete merged.artworkWobble;
 				if (!merged.colorSpin) delete merged.colorSpin;
+				if (!merged.film) delete merged.film;
+				if (!merged.pageTransition) delete merged.pageTransition;
+				if (!merged.phone || Object.keys(merged.phone).length === 0) delete merged.phone;
 				return { ...c, site: { ...c.site, creative: Object.keys(merged).length ? merged : undefined } };
 			}),
 
@@ -1955,6 +2107,53 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				true,
 				`page:${key}:sectioncolor:${partKey}`,
 			),
+		setSectionMotion: (key, partKey, motion) =>
+			patchPage(
+				key,
+				(page) => {
+					const next = { ...(page.sectionMotion ?? {}) };
+					if (motion) next[partKey] = motion;
+					else delete next[partKey];
+					return {
+						...page,
+						sectionMotion: Object.keys(next).length ? next : undefined,
+					};
+				},
+				true,
+				`page:${key}:sectionmotion:${partKey}`,
+			),
+		applyPageEffects: (key, source) =>
+			patchPage(key, (page) => {
+				const sourceBlocks = source.blocks ?? [];
+				const sourceTexts = sourceBlocks.filter(
+					(block): block is Extract<PageBlock, { type: 'text' }> => block.type === 'text',
+				);
+				let textIndex = 0;
+				const sectionMotion: Record<string, SectionMotionConfig> = {};
+				const headingMotion = source.sectionMotion?.['page:heading'];
+				if (headingMotion) sectionMotion['page:heading'] = { ...headingMotion };
+				const blocks = (page.blocks ?? []).map((block, index) => {
+					const sourceBlock = sourceBlocks[index];
+					const sourceMotion = sourceBlock
+						? source.sectionMotion?.[`block:${sourceBlock.id}`]
+						: undefined;
+					if (sourceMotion) sectionMotion[`block:${block.id}`] = { ...sourceMotion };
+					if (block.type !== 'text') return block;
+					const sourceText =
+						sourceBlock?.type === 'text' ? sourceBlock : sourceTexts[textIndex];
+					textIndex += 1;
+					return {
+						...block,
+						kinetic: sourceText?.kinetic ? { ...sourceText.kinetic } : undefined,
+					};
+				});
+				return {
+					...page,
+					blocks,
+					headingKinetic: source.headingKinetic ? { ...source.headingKinetic } : undefined,
+					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+				};
+			}),
 		setSectionHeight: (key, partKey, breakpoint, height) =>
 			patchPage(
 				key,

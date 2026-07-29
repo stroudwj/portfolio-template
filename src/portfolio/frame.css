@@ -126,26 +126,26 @@
    roughly 200px down to 20px. Keep a calm header-safe baseline even when the
    optional heading is empty; the Layout control can still tighten it further. */
 .portfolio-page-body.page-home.without-page-heading .collage-container {
-	padding-top: 112px;
+	padding-top: 28px;
 }
 
 .page-content-wrapper {
-	padding: 120px 40px 40px;
+	padding: 30px 40px 40px;
 }
 
 .page-content-wrapper.page-photo {
-	padding: 136px 40px 40px;
+	padding: 34px 40px 40px;
 }
 
 @media (max-width: 768px) {
 	.collage-container {
-		padding: 64px 20px 40px;
+		padding: 16px 20px 40px;
 	}
 	.page-content-wrapper {
-		padding: 64px 20px 40px;
+		padding: 16px 20px 40px;
 	}
 	.page-content-wrapper.page-photo {
-		padding-top: 64px;
+		padding-top: 16px;
 	}
 }
 

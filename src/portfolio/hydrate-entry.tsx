@@ -15,14 +15,14 @@ import type { PortfolioData } from './types';
 
 declare global {
 	interface Window {
-		__HW__?: { page: string; data: PortfolioData };
+		__HW__?: { page: string; data: PortfolioData; analytics?: boolean };
 	}
 }
 
 const boot = window.__HW__;
 const root = document.getElementById('hw-root');
 if (boot && root) {
-	hydrateRoot(root, <Portfolio page={boot.page} base="/" {...boot.data} />, {
+	hydrateRoot(root, <Portfolio page={boot.page} base="/" analytics={boot.analytics} {...boot.data} />, {
 		// A markup mismatch falls back to a client render of the same tree — never fatal.
 		onRecoverableError: () => {},
 	});

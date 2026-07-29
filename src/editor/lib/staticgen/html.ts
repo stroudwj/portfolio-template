@@ -38,6 +38,8 @@ export interface PageShellOptions {
 	bootJson?: string;
 	/** The SVG favicon file name at the site root (site.favicon). */
 	faviconSvg?: string;
+	pageTransition?: string;
+	pageTransitionPhone?: boolean;
 }
 
 /** One published page. Paths are root-absolute — every site serves from its own domain root. */
@@ -75,7 +77,7 @@ export function pageShell(o: PageShellOptions): string {
 		: '';
 
 	return `<!doctype html>
-<html lang="${escapeHtml(o.language)}">
+<html lang="${escapeHtml(o.language)}"${o.pageTransition ? ` data-page-transition="${escapeHtml(o.pageTransition)}"` : ''}${o.pageTransitionPhone === false ? ' data-page-transition-phone="off"' : ''}>
 	<head>
 		${head}
 	</head>

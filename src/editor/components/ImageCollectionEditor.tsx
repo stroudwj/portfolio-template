@@ -19,6 +19,7 @@ import {
 import type { AccessibleImageUpload } from '../lib/image-accessibility';
 import ImageAccessibilityModal from './ImageAccessibilityModal';
 import { showSampleUnavailable } from '../../portfolio/sampleFallback';
+import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -145,6 +146,17 @@ export default function ImageCollectionEditor({
 											const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
 											const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
 											const successor = sampleReplacement(entry.sampleAssetId);
+											const artworkEffects = entry.meta.effects;
+											const patchEffects = (
+												patch: Partial<NonNullable<typeof artworkEffects>>,
+											) => {
+												const effects = { ...(artworkEffects ?? {}), ...patch };
+												for (const key of Object.keys(effects) as Array<keyof typeof effects>)
+													if (effects[key] === undefined) delete effects[key];
+												updateGalleryMeta(folder, entry.id, {
+													effects: Object.keys(effects).length ? effects : undefined,
+												});
+											};
 											return (
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
@@ -249,6 +261,97 @@ export default function ImageCollectionEditor({
 																			Decorative image
 																		</label>
 																	</label>
+																	<div className="artwork-effects-editor">
+																		<div className="artwork-effects-heading">
+																			<span>Artwork effects</span>
+																			<div>
+																				<button
+																					type="button"
+																					className="btn-link"
+																					onClick={() =>
+																						writeEffectClipboard({
+																							kind: 'artwork',
+																							effects: artworkEffects,
+																						})
+																					}
+																				>
+																					Copy
+																				</button>
+																				<button
+																					type="button"
+																					className="btn-link"
+																					onClick={() => {
+																						const copied = readEffectClipboard();
+																						if (copied?.kind === 'artwork')
+																							updateGalleryMeta(folder, entry.id, {
+																								effects: copied.effects
+																									? { ...copied.effects }
+																									: undefined,
+																							});
+																						else alert('Copy effects from an artwork first.');
+																					}}
+																				>
+																					Paste
+																				</button>
+																			</div>
+																		</div>
+																		<div className="artwork-effects-grid">
+																			<label>
+																				<span>On hover</span>
+																				<select
+																					className="select-input"
+																					value={artworkEffects?.hover ?? ''}
+																					onChange={(event) =>
+																						patchEffects({
+																							hover: (event.target.value || undefined) as NonNullable<
+																								typeof artworkEffects
+																							>['hover'],
+																						})
+																					}
+																				>
+																					<option value="">Still</option>
+																					<option value="lift">Lift</option>
+																					<option value="tilt">Tilt</option>
+																					<option value="zoom">Zoom</option>
+																					<option value="mono">Mono to color</option>
+																				</select>
+																			</label>
+																			<label>
+																				<span>On arrival</span>
+																				<select
+																					className="select-input"
+																					value={artworkEffects?.reveal ?? ''}
+																					onChange={(event) =>
+																						patchEffects({
+																							reveal: (event.target.value || undefined) as NonNullable<
+																								typeof artworkEffects
+																							>['reveal'],
+																						})
+																					}
+																				>
+																					<option value="">Still</option>
+																					<option value="fade">Fade</option>
+																					<option value="rise">Rise</option>
+																					<option value="wipe">Wipe</option>
+																				</select>
+																			</label>
+																		</div>
+																		{(artworkEffects?.hover || artworkEffects?.reveal) && (
+																			<label className="effect-phone-control">
+																				<input
+																					type="checkbox"
+																					checked={artworkEffects.phone !== false}
+																					onChange={(event) =>
+																						patchEffects({
+																							phone: event.target.checked ? undefined : false,
+																						})
+																					}
+																				/>
+																				Use on phones
+																			</label>
+																		)}
+																		<small>Reduced-motion visitors automatically see a still version.</small>
+																	</div>
 																{variant === 'projects' && (
 																	<>
 																		<label className="image-description-field">

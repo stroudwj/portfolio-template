@@ -1,7 +1,7 @@
 // Editor state types. The editor edits the SAME Content schema the site uses
 // (imported from src/lib/content.ts), plus a little extra bookkeeping that the
 // browser needs — ordered image lists and references to uploaded blobs.
-import type { Content, ImageLayout } from '../../lib/content';
+import type { ArtworkEffectConfig, Content, ImageLayout } from '../../lib/content';
 
 export type { Content, ImageLayout };
 
@@ -25,6 +25,7 @@ export interface ImageMeta {
 	/** Carousel fill-mode focal point, in source-image percentages. */
 	focusX?: number;
 	focusY?: number;
+	effects?: ArtworkEffectConfig;
 }
 
 /** One image in a gallery (or the profile image), in the editor's working state. */

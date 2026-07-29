@@ -4,7 +4,13 @@
 // and text are edited in place; nesting is one level deep by design.
 import { useRef } from 'react';
 import { useEditor } from '../store';
-import { Field, TextInput, Section, showEditorTab } from './ui/controls';
+import {
+	Field,
+	TextInput,
+	Section,
+	previewTypeMotion,
+	showEditorTab,
+} from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
@@ -27,9 +33,19 @@ import {
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import { isUrl } from '../lib/validation';
 import { fontOptionsForTheme } from '../lib/font-options';
-import type { ChildrenStyle, FormField, GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
+import type {
+	ChildrenStyle,
+	FormField,
+	GalleryConfig,
+	KineticTextEffect,
+	PageBlock,
+	ProjectTemplate,
+	SectionMotionEffect,
+	TextAlign,
+} from '../../lib/content';
 import AboutContentEditor from './AboutContentEditor';
 import RichTextEditor from './RichTextEditor';
+import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
 
 const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
 	{ value: 'cards', label: 'Thumbnail cards' },
@@ -43,6 +59,26 @@ const FORM_FIELD_TYPES: Array<{ value: FormField['type']; label: string }> = [
 	{ value: 'email', label: 'Email' },
 	{ value: 'text', label: 'Short answer' },
 	{ value: 'textarea', label: 'Long answer' },
+];
+
+const KINETIC_TEXT_EFFECTS: Array<{ value: KineticTextEffect | ''; label: string }> = [
+	{ value: '', label: 'Still' },
+	{ value: 'words', label: 'Words rise' },
+	{ value: 'letters', label: 'Letters rise' },
+	{ value: 'lines', label: 'Lines rise' },
+	{ value: 'marquee', label: 'Marquee' },
+];
+
+const SECTION_MOTION_EFFECTS: Array<{
+	value: SectionMotionEffect | '';
+	label: string;
+}> = [
+	{ value: '', label: 'Still' },
+	{ value: 'reveal', label: 'Reveal' },
+	{ value: 'drift', label: 'Drift' },
+	{ value: 'pin', label: 'Pin' },
+	{ value: 'scrub', label: 'Scroll scrub' },
+	{ value: 'sequence', label: 'Sequence' },
 ];
 
 const CROP_OPTIONS: Array<{ value: string; label: string }> = [
@@ -288,6 +324,9 @@ export default function PageEditor({
 		...(page.heading?.trim()
 			? [{ key: 'page:heading', label: `Page heading: ${page.heading.trim().slice(0, 45)}`, kind: 'section' as const }]
 			: []),
+		...(page.project
+			? [{ key: 'page:project', label: 'Project details', kind: 'section' as const }]
+			: []),
 		...blocks.flatMap((block, index) => {
 		if (hasFreeCanvas && (block.type === 'text' || block.type === 'embed') && block.layout) return [];
 		const label =
@@ -311,6 +350,37 @@ export default function PageEditor({
 											? 'About section'
 											: 'Sub-pages';
 		return [{ key: `block:${block.id}`, label, kind: 'section' as const }];
+		}),
+	];
+	const motionSectionItems = [
+		...(page.heading?.trim()
+			? [{ key: 'page:heading', label: `Heading — ${page.heading.trim().slice(0, 38)}` }]
+			: []),
+		...(page.project ? [{ key: 'page:project', label: 'Project details' }] : []),
+		...blocks.flatMap((block, index) => {
+			if (hasFreeCanvas && (block.type === 'text' || block.type === 'embed') && block.layout) return [];
+			if (block.type === 'images' && block.gallery.carouselHost) return [];
+			const label =
+				block.type === 'text'
+					? block.text.trim().replace(/\s+/g, ' ').slice(0, 38) || `Text ${index + 1}`
+					: block.type === 'gallery'
+						? 'Main images'
+						: block.type === 'images'
+							? block.name || `Image group ${index + 1}`
+							: block.type === 'embed'
+								? 'Video'
+								: block.type === 'children'
+									? 'Sub-pages'
+									: block.type === 'about'
+										? 'About content'
+										: block.type === 'products'
+											? 'Products'
+											: block.type === 'form'
+												? block.heading || 'Contact form'
+												: block.type === 'button'
+													? `Button — ${block.label || 'Untitled'}`
+													: 'Divider';
+			return [{ key: `block:${block.id}`, label }];
 		}),
 	];
 
@@ -436,6 +506,19 @@ export default function PageEditor({
 			<button
 				type="button"
 				className="btn-icon"
+				title="Save this section with its motion and color"
+				onClick={() => {
+					const savedName = prompt('Name this reusable section:', `${name} section`);
+					if (savedName?.trim())
+						editor.saveSectionTemplate(pageKey, block.id, savedName.trim());
+				}}
+				aria-label={`Save ${blockLabel} for reuse`}
+			>
+				☆
+			</button>
+			<button
+				type="button"
+				className="btn-icon"
 				disabled={index === 0}
 				onClick={() => editor.moveBlock(pageKey, index, index - 1)}
 				aria-label={`Move ${blockLabel} earlier`}
@@ -529,6 +612,75 @@ export default function PageEditor({
 								>
 									Reset to page font
 								</button>
+							)}
+						</div>
+						<div className="kinetic-editor-row">
+							<label>
+								<span>Type motion</span>
+								<select
+									className="select-input"
+									value={block.kinetic?.effect ?? ''}
+									aria-label={`Type motion for ${textLabel}`}
+									onChange={(event) => {
+										const effect = event.target.value as KineticTextEffect | '';
+										editor.setTextKinetic(
+											pageKey,
+											block.id,
+											effect
+												? { effect, speed: block.kinetic?.speed ?? 100 }
+												: undefined,
+										);
+									}}
+								>
+									{KINETIC_TEXT_EFFECTS.map((effect) => (
+										<option key={effect.value || 'still'} value={effect.value}>
+											{effect.label}
+										</option>
+									))}
+								</select>
+							</label>
+							{block.kinetic && (
+								<>
+									<label className="kinetic-speed">
+										<span>Tempo <output>{block.kinetic.speed ?? 100}%</output></span>
+										<input
+											type="range"
+											min={50}
+											max={200}
+											step={5}
+											value={block.kinetic.speed ?? 100}
+											aria-label={`Type motion tempo for ${textLabel}`}
+											onChange={(event) =>
+												editor.setTextKinetic(pageKey, block.id, {
+													...block.kinetic!,
+													speed: Number(event.target.value),
+												})
+											}
+										/>
+									</label>
+									<label className="effect-phone-control">
+										<input
+											type="checkbox"
+											checked={block.kinetic.phone !== false}
+											onChange={(event) =>
+												editor.setTextKinetic(pageKey, block.id, {
+													...block.kinetic!,
+													phone: event.target.checked ? undefined : false,
+												})
+											}
+										/>
+										Use on phones
+									</label>
+									<button
+										type="button"
+										className="btn-secondary kinetic-preview-button"
+										onClick={() =>
+											previewTypeMotion(pageKey, `block:${block.id}`)
+										}
+									>
+										▶ Preview motion
+									</button>
+								</>
 							)}
 						</div>
 						<details className="block-options">
@@ -1312,6 +1464,142 @@ export default function PageEditor({
 					onChange={(event) => editor.setPageHeading(pageKey, event.target.value)}
 				/>
 			</Field>
+			{page.heading?.trim() && (
+				<Field
+					label="Heading motion"
+					hint="Animates the page heading when the page opens."
+				>
+					<div className="heading-kinetic-controls">
+						<select
+							className="select-input"
+							value={page.headingKinetic?.effect ?? ''}
+							aria-label={`Heading motion for ${pageName}`}
+							onChange={(event) => {
+								const effect = event.target.value as KineticTextEffect | '';
+								editor.setHeadingKinetic(
+									pageKey,
+									effect
+										? { effect, speed: page.headingKinetic?.speed ?? 100 }
+										: undefined,
+								);
+							}}
+						>
+							{KINETIC_TEXT_EFFECTS.map((effect) => (
+								<option key={effect.value || 'still'} value={effect.value}>
+									{effect.label}
+								</option>
+							))}
+						</select>
+						{page.headingKinetic && (
+							<>
+								<label className="motion-range compact">
+									<span>Tempo <output>{page.headingKinetic.speed ?? 100}%</output></span>
+									<input
+										type="range"
+										min={50}
+										max={200}
+										step={5}
+										value={page.headingKinetic.speed ?? 100}
+										aria-label={`Heading motion tempo for ${pageName}`}
+										onChange={(event) =>
+											editor.setHeadingKinetic(pageKey, {
+												...page.headingKinetic!,
+												speed: Number(event.target.value),
+											})
+										}
+									/>
+								</label>
+								<label className="effect-phone-control">
+									<input
+										type="checkbox"
+										checked={page.headingKinetic.phone !== false}
+										onChange={(event) =>
+											editor.setHeadingKinetic(pageKey, {
+												...page.headingKinetic!,
+												phone: event.target.checked ? undefined : false,
+											})
+										}
+									/>
+									Use on phones
+								</label>
+								<button
+									type="button"
+									className="btn-secondary kinetic-preview-button"
+									onClick={() => previewTypeMotion(pageKey, 'page:heading')}
+								>
+									▶ Preview motion
+								</button>
+							</>
+						)}
+					</div>
+				</Field>
+			)}
+			<div className="project-template-editor">
+				<label className="field">
+					<span className="field-label">Project fields</span>
+					<select
+						className="select-input"
+						value={page.project?.template ?? ''}
+						aria-label={`Project field template for ${pageName}`}
+						onChange={(event) => {
+							const template = event.target.value as ProjectTemplate | '';
+							editor.setProjectDetails(
+								pageKey,
+								template
+									? { ...page.project, template }
+									: undefined,
+							);
+						}}
+					>
+						<option value="">Not a project page</option>
+						<option value="artwork">Artwork — year, medium, dimensions</option>
+						<option value="collaboration">Collaboration — add collaborators</option>
+						<option value="exhibition">Exhibition — add exhibition history</option>
+					</select>
+					<span className="field-hint">Structured facts stay consistent across project pages.</span>
+				</label>
+				{page.project && (
+					<div className="project-field-grid">
+						{([
+							['year', 'Year', '2026'],
+							['medium', 'Medium', 'Oil on canvas'],
+							['dimensions', 'Dimensions', '120 × 90 cm'],
+							['collaborators', 'Collaborators', 'Names and roles'],
+							['exhibitionHistory', 'Exhibition history', 'Venue, city, year'],
+						] as const).map(([key, label, placeholder]) => (
+							<label className={key === 'exhibitionHistory' ? 'wide' : ''} key={key}>
+								<span>{label}</span>
+								{key === 'exhibitionHistory' ? (
+									<textarea
+										className="text-area"
+										rows={3}
+										placeholder={placeholder}
+										value={page.project?.[key] ?? ''}
+										onChange={(event) =>
+											editor.setProjectDetails(pageKey, {
+												...page.project!,
+												[key]: event.target.value || undefined,
+											})
+										}
+									/>
+								) : (
+									<input
+										className="text-input"
+										placeholder={placeholder}
+										value={page.project?.[key] ?? ''}
+										onChange={(event) =>
+											editor.setProjectDetails(pageKey, {
+												...page.project!,
+												[key]: event.target.value || undefined,
+											})
+										}
+									/>
+								)}
+							</label>
+						))}
+					</div>
+				)}
+			</div>
 		</>
 	);
 
@@ -1351,6 +1639,36 @@ export default function PageEditor({
 						</div>
 					</details>
 				</div>
+				{(doc.content.sectionLibrary?.length ?? 0) > 0 && (
+					<details className="section-library">
+						<summary>Saved sections <span>{doc.content.sectionLibrary?.length}</span></summary>
+						<div className="section-library-list">
+							{doc.content.sectionLibrary!.map((template) => (
+								<div className="section-library-row" key={template.id}>
+									<span>
+										<strong>{template.name}</strong>
+										<small>{template.motion ? `${template.motion.effect} motion included` : 'Still section'}</small>
+									</span>
+									<button
+										type="button"
+										className="btn-secondary"
+										onClick={() => editor.insertSectionTemplate(pageKey, template.id)}
+									>
+										Insert
+									</button>
+									<button
+										type="button"
+										className="btn-icon danger"
+										aria-label={`Delete saved section ${template.name}`}
+										onClick={() => editor.removeSectionTemplate(template.id)}
+									>
+										✕
+									</button>
+								</div>
+							))}
+						</div>
+					</details>
+				)}
 				{blocks.map((block, index) => (
 					<div key={block.id} data-editor-block={block.id}>
 						{renderBlock(block, index)}
@@ -1372,11 +1690,113 @@ export default function PageEditor({
 				<summary>
 					<span>
 						<strong>Mobile &amp; advanced</strong>
-						<small>Page colors and phone arrangement</small>
+						<small>Scroll scenes, page colors and phone arrangement</small>
 					</span>
 					<span className="page-editor-advanced-chevron" aria-hidden="true">⌄</span>
 				</summary>
 				<div className="page-editor-advanced-body">
+					<div className="copy-effects-panel">
+						<span>
+							<strong>Page effects</strong>
+							<small>Copy scroll scenes and kinetic type to another page.</small>
+						</span>
+						<div>
+							<button
+								type="button"
+								className="btn-secondary"
+								onClick={() => writeEffectClipboard({ kind: 'page', page })}
+							>
+								Copy effects
+							</button>
+							<button
+								type="button"
+								className="btn-secondary"
+								onClick={() => {
+									const copied = readEffectClipboard();
+									if (copied?.kind === 'page') editor.applyPageEffects(pageKey, copied.page);
+									else alert('Copy effects from a page first.');
+								}}
+							>
+								Paste effects
+							</button>
+						</div>
+					</div>
+					<Field
+						label="Scroll scenes"
+						hint="Choose how each section responds as visitors move through the page. Motion stays off on phones unless you opt in."
+					>
+						<div className="scroll-scene-list">
+							{motionSectionItems.map((item) => {
+								const motion = page.sectionMotion?.[item.key];
+								return (
+									<div className="scroll-scene-row" key={item.key}>
+										<div className="scroll-scene-heading">
+											<strong>{item.label}</strong>
+											<select
+												className="select-input"
+												value={motion?.effect ?? ''}
+												aria-label={`Scroll scene for ${item.label}`}
+												onChange={(event) => {
+													const effect = event.target.value as SectionMotionEffect | '';
+													editor.setSectionMotion(
+														pageKey,
+														item.key,
+														effect
+															? {
+																	effect,
+																	intensity: motion?.intensity ?? 45,
+																	phone: motion?.phone,
+																}
+															: undefined,
+													);
+												}}
+											>
+												{SECTION_MOTION_EFFECTS.map((effect) => (
+													<option key={effect.value || 'still'} value={effect.value}>
+														{effect.label}
+													</option>
+												))}
+											</select>
+										</div>
+										{motion && (
+											<div className="scroll-scene-options">
+												<label className="motion-range compact">
+													<span>Strength <output>{motion.intensity ?? 45}%</output></span>
+													<input
+														type="range"
+														min={1}
+														max={100}
+														step={1}
+														value={motion.intensity ?? 45}
+														onChange={(event) =>
+															editor.setSectionMotion(pageKey, item.key, {
+																...motion,
+																intensity: Number(event.target.value),
+															})
+														}
+													/>
+												</label>
+												<label className="compact-check">
+													<input
+														type="checkbox"
+														checked={motion.phone ?? false}
+														onChange={(event) =>
+															editor.setSectionMotion(pageKey, item.key, {
+																...motion,
+																phone: event.target.checked || undefined,
+															})
+														}
+													/>
+													Use on phones
+												</label>
+											</div>
+										)}
+									</div>
+								);
+							})}
+						</div>
+					</Field>
+
 					<Field
 						label="Background colors"
 						hint="Color the whole page, or give only the heading its own band. Text contrast adjusts automatically."

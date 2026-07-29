@@ -1,11 +1,14 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
 import CreativeEffects from './CreativeEffects';
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
+import { flushSync } from 'react-dom';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
 import type { ImageLayout, PortfolioData, TextLayout } from './types';
 import type { CanvasLayoutUpdates } from './types';
 import type { SectionBreakpoint } from './SectionResizeHandle';
+import { transitionInDocument } from './pageTransitions';
+import Analytics from './Analytics';
 
 export interface PortfolioProps extends PortfolioData {
 	page: string;
@@ -36,6 +39,8 @@ export interface PortfolioProps extends PortfolioData {
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
+	/** Published static runtime only: record privacy-light page totals. */
+	analytics?: boolean;
 }
 
 /**
@@ -43,7 +48,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const headerMode =
 		content.site.headerMode ??
@@ -60,11 +65,50 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
 		content.site.creative?.artworkWobble && 'creative-artwork-wobble',
 		content.site.creative?.colorSpin && 'creative-color-spin',
+		content.site.creative?.pageTransition && `page-transition-${content.site.creative.pageTransition}`,
+		content.site.creative?.phone?.looseHang === false && 'creative-phone-off-loose-hang',
+		content.site.creative?.phone?.slowReveal === false && 'creative-phone-off-slow-reveal',
+		content.site.creative?.phone?.artworkWobble === false && 'creative-phone-off-artwork-wobble',
+		content.site.creative?.phone?.colorSpin === false && 'creative-phone-off-color-spin',
 	]
 		.filter(Boolean)
 		.join(' ');
+	const transition = content.site.creative?.pageTransition;
+	const transitionOnPhone = content.site.creative?.phone?.pageTransition !== false;
+	const portfolioRootRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!transition) return;
+		const root = portfolioRootRef.current?.ownerDocument.documentElement;
+		if (!root) return;
+		const previous = root.dataset.pageTransition;
+		const previousPhone = root.dataset.pageTransitionPhone;
+		root.dataset.pageTransition = transition;
+		if (!transitionOnPhone) root.dataset.pageTransitionPhone = 'off';
+		else delete root.dataset.pageTransitionPhone;
+		return () => {
+			if (previous) root.dataset.pageTransition = previous;
+			else delete root.dataset.pageTransition;
+			if (previousPhone) root.dataset.pageTransitionPhone = previousPhone;
+			else delete root.dataset.pageTransitionPhone;
+		};
+	}, [transition, transitionOnPhone]);
+	const navigate = onNavigate
+		? (path: string) => {
+				if (!transition) {
+					onNavigate(path);
+					return;
+				}
+				const owner = portfolioRootRef.current?.ownerDocument ?? document;
+				transitionInDocument(
+					owner,
+					() => flushSync(() => onNavigate(path)),
+					{ phone: transitionOnPhone },
+				);
+			}
+		: undefined;
 	return (
-		<div className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={rootStyle}>
+		<div ref={portfolioRootRef} className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={rootStyle}>
+			{analytics && <Analytics page={page} />}
 			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
 			<CreativeEffects creative={content.site.creative} />
 			<PortfolioFrame
@@ -81,9 +125,10 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				logoPosition={content.theme.logoPosition}
 				logoX={content.theme.logoX}
 				logoY={content.theme.logoY}
-				onNavigate={onNavigate}
+				onNavigate={navigate}
 			>
 				<PortfolioPage
+					key={page}
 					page={page}
 					content={content}
 					galleries={galleries}
@@ -92,7 +137,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					productImageSrcs={productImageSrcs}
 					resumeHref={resumeHref}
 					base={base}
-					onNavigate={onNavigate}
+					onNavigate={navigate}
 					onImageLayout={onImageLayout}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}

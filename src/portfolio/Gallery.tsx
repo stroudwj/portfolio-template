@@ -36,7 +36,9 @@ import {
 	snapToEdges,
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
+import { artworkEffectClass } from './artworkEffects';
 import './Gallery.css';
+import './ArtworkEffects.css';
 
 export const GRID_MAX_SPAN = 4;
 export const DEFAULT_CAROUSEL_FRAME: ImageLayout = { x: 20, y: 12.5, w: 60, ar: 16 / 10 };
@@ -718,7 +720,7 @@ export default function Gallery({
 						</div>
 					)}
 					<section
-						className={`inline-carousel ${embeddedCarousel ? '' : 'carousel-canvas-item'} ${carouselSelected ? 'selected' : ''}`}
+						className={`inline-carousel ${embeddedCarousel ? '' : 'carousel-canvas-item'} ${carouselSelected ? 'selected' : ''} ${artworkEffectClass(activeCarouselEntry.img)}`}
 						role="region"
 						aria-roledescription="carousel"
 						aria-label={`${settings?.alt || alt} carousel`}
@@ -843,7 +845,7 @@ export default function Gallery({
 				>
 					{renderedImages.map(({ img, i }) => (
 						<div
-							className="uniform-item"
+							className={`uniform-item ${artworkEffectClass(img)}`}
 							style={phoneItemVars(settings, imagePhoneKey(img, i), i)}
 							key={img.id ?? `${img.src}-${i}`}
 						>
@@ -890,7 +892,7 @@ export default function Gallery({
 				<div className="masonry-grid">
 					{renderedImages.map(({ img, i }) => (
 						<div
-							className="masonry-item"
+							className={`masonry-item ${artworkEffectClass(img)}`}
 							style={{ ...spanVars(img), ...phoneItemVars(settings, imagePhoneKey(img, i), i) }}
 							key={img.id ?? `${img.src}-${i}`}
 						>
