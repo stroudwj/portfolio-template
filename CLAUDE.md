@@ -44,7 +44,7 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
   `gh-publish-dryrun.mts`.
 - `.hangwork/` — `runtime-release.json` + `project.json`: the runtime integrity manifest
   (below). Generated; commit alongside source.
-- `src/lib/pricing.ts` — single source of price (`currentPriceText`, `pricing.launchPricingActive`).
+- `src/lib/pricing.ts` — single source of the $99 lifetime price (`currentPriceText`).
   Never hardcode a price in a component.
 
 ## How publishing works (current — Cloudflare accounts, NOT GitHub)

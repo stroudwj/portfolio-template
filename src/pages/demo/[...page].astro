@@ -8,7 +8,7 @@ import PortfolioPage from '../../portfolio/PortfolioPage';
 import { content, pageTitle } from '../../lib/content';
 import { resolvePageGalleries, resolveProfileImage, resolveChildThumbs, resolveProductImages } from '../../lib/resolveImages';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
-import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText } from '../../lib/pricing';
 import { withBase } from '../../portfolio/types';
 
 export function getStaticPaths() {
@@ -33,9 +33,7 @@ const base = withBase(siteBase, 'demo');
 
 <Layout title={`Demo — ${pageTitle(page.title)}`} showLogo={true} base={base} noindex={true}>
 	<a slot="banner" class="demo-banner" href={withBase(siteBase)}>
-		This is a demo — hang your own for{' '}
-		{pricing.launchPricingActive && <del>{regularPriceText}</del>}
-		<strong>{currentPriceText}, once</strong>
+		This is a demo — hang your own for <strong>{currentPriceText}, yours forever</strong>
 	</a>
 	{
 		hasImages || hasInteractiveBlocks ? (
@@ -81,11 +79,6 @@ const base = withBase(siteBase, 'demo');
 	}
 	.demo-banner strong {
 		font-weight: 500;
-	}
-	.demo-banner del {
-		margin-right: 0.35rem;
-		color: #6b6963;
-		text-decoration-thickness: 1px;
 	}
 	.demo-banner:hover strong {
 		text-decoration: underline;

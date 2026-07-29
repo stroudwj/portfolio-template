@@ -1,17 +1,12 @@
 /**
  * Hangwork pricing is defined here once so every product surface changes together.
- * Flip `launchPricingActive` off when launch pricing ends; the regular price then
- * becomes the current price and all launch anchors disappear.
  */
 export const pricing = Object.freeze({
-	launchPrice: 49,
-	regularPrice: 99,
-	monthlyPrice: 10,
+	lifetimePrice: 99,
 	refundDays: 14,
-	launchPricingActive: true,
 });
 
-export const currentPrice = pricing.launchPricingActive ? pricing.launchPrice : pricing.regularPrice;
+export const currentPrice = pricing.lifetimePrice;
 
 export function formatPrice(amount: number): string {
 	return new Intl.NumberFormat('en-US', {
@@ -22,5 +17,3 @@ export function formatPrice(amount: number): string {
 }
 
 export const currentPriceText = formatPrice(currentPrice);
-export const regularPriceText = formatPrice(pricing.regularPrice);
-export const monthlyPriceText = formatPrice(pricing.monthlyPrice);

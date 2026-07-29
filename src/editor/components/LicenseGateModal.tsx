@@ -1,29 +1,25 @@
 // The publishing license gate. Polar checkout is created server-side for the signed-in
-// account using the selected lifetime or monthly product; signed webhooks keep the
+// account using the lifetime product; signed webhooks keep the
 // account entitlement in sync and the return flow resumes publishing.
 import { useState } from 'react';
 import { Modal } from './ui/Modal';
 import { AccountError } from '../lib/account/client';
 import { clearResumePublish, markResumePublish, startPolarCheckout } from '../lib/polar-checkout';
-import type { PolarCheckoutPlan } from '../lib/polar-checkout';
-import { currentPriceText, monthlyPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText, pricing } from '../../lib/pricing';
 
 export default function LicenseGateModal({
 	onClose,
 	onUnlocked,
 	redeemTestAccess,
 	context = 'publish',
-	initialPlan = 'lifetime',
 }: {
 	onClose: () => void;
 	onUnlocked: () => void;
 	redeemTestAccess: (code: string) => Promise<void>;
 	/** 'publish' = resume Publish after checkout; 'unlock' = pay before building. */
 	context?: 'publish' | 'unlock';
-	initialPlan?: PolarCheckoutPlan;
 }) {
 	const [testerMode, setTesterMode] = useState(false);
-	const [plan, setPlan] = useState<PolarCheckoutPlan>(initialPlan);
 	const [code, setCode] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -33,7 +29,7 @@ export default function LicenseGateModal({
 		setError(null);
 		if (context === 'publish') markResumePublish();
 		try {
-			await startPolarCheckout(plan);
+			await startPolarCheckout();
 		} catch (err) {
 			if (context === 'publish') clearResumePublish();
 			setError(
@@ -61,7 +57,7 @@ export default function LicenseGateModal({
 
 	return (
 		<Modal
-			title={testerMode ? 'Unlock tester publishing' : 'Choose your Hangwork license'}
+			title={testerMode ? 'Unlock tester publishing' : 'Own Hangwork forever'}
 			onClose={onClose}
 			dismissable={!busy}
 			footer={
@@ -75,11 +71,7 @@ export default function LicenseGateModal({
 						</button>
 					) : (
 						<button type="button" className="btn-primary" onClick={() => void buyLicense()} disabled={busy}>
-							{busy
-								? 'Opening Polar…'
-								: plan === 'monthly'
-									? `Start ${monthlyPriceText}/month`
-									: `Pay ${currentPriceText} once`}
+							{busy ? 'Opening Polar…' : `Pay ${currentPriceText} once`}
 						</button>
 					)}
 				</>
@@ -116,54 +108,31 @@ export default function LicenseGateModal({
 							}}
 							disabled={busy}
 						>
-							Choose a paid plan
+							Buy lifetime access
 						</button>
 					</p>
 				</>
 			) : (
 				<>
-					<div className="checkout-options" role="group" aria-label="Choose a Hangwork license">
-						<button
-							type="button"
-							className={`checkout-option${plan === 'lifetime' ? ' selected' : ''}`}
-							aria-pressed={plan === 'lifetime'}
-							onClick={() => setPlan('lifetime')}
-							disabled={busy}
-						>
+					<div className="checkout-options">
+						<div className="checkout-option selected">
 							<span className="checkout-option-heading">
-								<span>Lifetime</span>
+								<span>Lifetime access</span>
 								<span className="checkout-price">
-									{pricing.launchPricingActive && <del>{regularPriceText}</del>}
 									<strong>{currentPriceText}</strong>
 									<small>once</small>
 								</span>
 							</span>
-							<span>Publish forever with no renewal.</span>
-						</button>
-						<button
-							type="button"
-							className={`checkout-option${plan === 'monthly' ? ' selected' : ''}`}
-							aria-pressed={plan === 'monthly'}
-							onClick={() => setPlan('monthly')}
-							disabled={busy}
-						>
-							<span className="checkout-option-heading">
-								<span>Monthly</span>
-								<span className="checkout-price">
-									<strong>{monthlyPriceText}</strong>
-									<small>/ month</small>
-								</span>
-							</span>
-							<span>Stay unlocked while the subscription is active.</span>
-						</button>
+							<span>Yours forever, with no renewal or subscription.</span>
+						</div>
 					</div>
 					<p className="modal-lead">
 						{context === 'unlock'
-							? 'Building and previewing are free. Choose lifetime access or start monthly; Polar handles the secure checkout. Your work is saved.'
-							: 'Publishing needs a license. Choose lifetime access or pay monthly; Polar handles the secure checkout and your work stays saved.'}
+							? 'Building and previewing are free. Buy lifetime access when you are ready; Polar handles the secure checkout and your work stays saved.'
+							: 'Publishing needs a lifetime license. Polar handles the secure checkout and your work stays saved.'}
 					</p>
 					<p className="modal-note">
-						Both plans include the editor, yourname.hangwork.art, publishing, and future editor updates.
+						Your license includes the editor, yourname.hangwork.art, publishing, and future editor updates.
 						{' '}{pricing.refundDays}-day refund, no questions asked.
 					</p>
 					{error && <p className="field-error">{error}</p>}

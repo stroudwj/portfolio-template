@@ -1557,7 +1557,7 @@ a.resume-name:hover {
 }
 .checkout-options {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: minmax(0, 1fr);
 	gap: 10px;
 	margin: 0 0 18px;
 	padding: 0 0 18px;
@@ -1575,18 +1575,11 @@ a.resume-name:hover {
 	color: var(--ink);
 	text-align: left;
 	font: inherit;
-	cursor: pointer;
-}
-.checkout-option:hover:not(:disabled) {
-	border-color: var(--ink-soft);
+	cursor: default;
 }
 .checkout-option.selected {
 	border-color: var(--klein);
 	box-shadow: 0 0 0 1px var(--klein);
-}
-.checkout-option:disabled {
-	cursor: default;
-	opacity: 0.7;
 }
 .checkout-option > span:last-child {
 	font-size: 13px;
@@ -1608,11 +1601,6 @@ a.resume-name:hover {
 	gap: 7px;
 	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
-}
-.checkout-price del {
-	font-weight: 400;
-	color: var(--ink-soft);
-	text-decoration-thickness: 1px;
 }
 .checkout-price strong {
 	font-weight: 500;

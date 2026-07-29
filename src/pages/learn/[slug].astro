@@ -4,7 +4,7 @@
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
 import { SEO_ARTICLES, type SeoArticle } from '../../lib/seoArticles';
-import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText } from '../../lib/pricing';
 import Favicons from '../../components/Favicons.astro';
 
 export function getStaticPaths() {
@@ -131,10 +131,10 @@ const howToLd = isHowTo
 								<p>
 									For a portfolio, the fair comparison is Squarespace's entry tier — not its commerce plans. As of mid-2026, that plan runs about $16/month billed annually (roughly $190 a year), or $25/month month-to-month. Wix's cheapest ad-free plan is nearly identical, so the same math applies to both.
 								</p>
-								<p>Now put that next to Hangwork's one-time <strong>{currentPriceText}</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}:</p>
+								<p>Now put that next to Hangwork's one-time <strong>{currentPriceText}</strong>:</p>
 								<ul>
-									<li><strong>By your fourth month</strong> on Squarespace's cheapest plan, you've already paid more than Hangwork costs in total — and the billing keeps going.</li>
-									<li>On month-to-month pricing, you pass Hangwork's full price in <strong>two months</strong>.</li>
+									<li>At roughly $16 a month on an annual plan, you pass Hangwork's full price during the <strong>seventh month</strong> — and the billing keeps going.</li>
+									<li>On $25 month-to-month pricing, you pass Hangwork's full price in <strong>four months</strong>.</li>
 									<li><strong>Three years in,</strong> Squarespace's entry plan comes to around <strong>$575</strong>. Hangwork is still {currentPriceText}, once.</li>
 								</ul>
 								<p>The subscription never buys you out — it buys you another year. Hangwork is a single payment, and the published site isn't tied to keeping a plan active.</p>
@@ -147,7 +147,7 @@ const howToLd = isHowTo
 									<table>
 										<thead><tr><th>Question</th><th>Hangwork</th><th>Squarespace</th></tr></thead>
 										<tbody>
-											<tr><th>Cost model</th><td class="hangwork-win"><strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> (launch price; <del>{regularPriceText}</del> regular)</>}</td><td>~$16/mo billed annually (~$190/yr), or $25/mo monthly — recurring</td></tr>
+											<tr><th>Cost model</th><td class="hangwork-win"><strong>{currentPriceText} once</strong></td><td>~$16/mo billed annually (~$190/yr), or $25/mo monthly — recurring</td></tr>
 											<tr><th>Primary job</th><td class="hangwork-win">Image-first artist portfolios</td><td>General websites, services, stores, and portfolios</td></tr>
 											<tr><th>Site storage</th><td class="hangwork-win">A free account owned by the artist</td><td>Squarespace's hosted platform</td></tr>
 											<tr><th>Custom domain</th><td class="hangwork-win"><strong>Connect your own at no extra cost</strong></td><td>Free for year one on annual plans, then renews — and only while the plan is active</td></tr>
@@ -207,7 +207,7 @@ const howToLd = isHowTo
 							<section>
 								<h2>What “no subscription” means at Hangwork</h2>
 								<p>
-									Hangwork costs <strong>{currentPriceText} once</strong>{pricing.launchPricingActive && <> at launch; the regular one-time price is {regularPriceText}</>}.
+									Hangwork costs <strong>{currentPriceText} once</strong>.
 									That includes the visual editor, publishing, an address such as yourname.hangwork.art, and future
 									editor updates. There is no renewal tier and no monthly hosting invoice from Hangwork.
 								</p>

@@ -6,7 +6,7 @@ import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { useAccount } from './useAccount';
 import { hasPublishableContent } from '../lib/validation';
-import { currentPriceText, monthlyPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText } from '../../lib/pricing';
 import { loadSiteInfo } from '../lib/account/site-store';
 import { AccountError } from '../lib/account/client';
 import { ACCOUNT_API_URL } from '../lib/account/config';
@@ -257,10 +257,9 @@ export default function PublishPanel() {
 				</div>
 				{/* Quiet, optional pay-upfront path. The default flow stays pay-at-publish —
 				    this is only for people who prefer to settle it before they build. */}
-				{!unlocked && account.status !== 'checking' && pricing.launchPricingActive && (
+				{!unlocked && account.status !== 'checking' && (
 					<p className="muted license-lock-note">
-						Choose {monthlyPriceText}/month, or lock in lifetime access for {currentPriceText} before it becomes{' '}
-						{regularPriceText}. You can also wait and choose when you publish.
+						Lifetime access is {currentPriceText}, paid once. You can buy now or wait until you publish.
 					</p>
 				)}
 				<div className="publish-panel-actions">

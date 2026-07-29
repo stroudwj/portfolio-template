@@ -10,14 +10,9 @@ import { touchUser } from './lib/db.js';
 import { sessionUser } from './auth.js';
 
 const CHECKOUT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const CHECKOUT_PLANS = new Set(['lifetime', 'monthly']);
-
-function productIdForPlan(env, plan) {
-	return plan === 'monthly' ? env.POLAR_MONTHLY_PRODUCT_ID || '' : env.POLAR_PRODUCT_ID || '';
-}
 
 function configuredProductIds(env) {
-	return new Set([env.POLAR_PRODUCT_ID, env.POLAR_MONTHLY_PRODUCT_ID].filter(Boolean));
+	return new Set([env.POLAR_PRODUCT_ID].filter(Boolean));
 }
 
 function acceptsProduct(env, productId) {
@@ -76,8 +71,8 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 		return json({ error: 'invalid_json' }, 400, corsOrigin);
 	}
 	const plan = typeof body?.plan === 'string' ? body.plan : 'lifetime';
-	if (!CHECKOUT_PLANS.has(plan)) return json({ error: 'invalid_plan' }, 400, corsOrigin);
-	const productId = productIdForPlan(env, plan);
+	if (plan !== 'lifetime') return json({ error: 'invalid_plan' }, 400, corsOrigin);
+	const productId = env.POLAR_PRODUCT_ID || '';
 	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !productId) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
@@ -221,9 +216,8 @@ async function recordPaidOrder(env, order) {
 
 async function revokeOrder(env, payload) {
 	if (payload?.type === 'benefit_grant.revoked') {
-		// Polar automatically revokes subscription benefits when the paid period
-		// ends or payment recovery is exhausted. Revoke every renewal order for
-		// that subscription so an older paid cycle cannot keep access alive.
+		// Preserve revocation handling for legacy monthly subscriptions sold before
+		// Hangwork moved to lifetime-only pricing.
 		const subscriptionId = payload.data?.subscription_id;
 		if (subscriptionId) {
 			await env.DB.prepare("UPDATE polar_orders SET status = 'revoked' WHERE subscription_id = ?")
@@ -272,5 +266,4 @@ export const _test = {
 	checkoutReturnUrls,
 	isPolarCheckoutUrl,
 	paidOrder,
-	productIdForPlan,
 };

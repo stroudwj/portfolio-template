@@ -4,19 +4,12 @@
 // Layout.astro carries the portfolio's theme, og:image and description from
 // content.json, none of which belong on a marketing page.
 import { withBase } from '../portfolio/types';
-import {
-	currentPrice,
-	currentPriceText,
-	monthlyPriceText,
-	pricing,
-	regularPriceText,
-} from '../lib/pricing';
+import { currentPrice, currentPriceText, pricing } from '../lib/pricing';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
 const checkoutEntryUrl = `${editorUrl}?unlock=1`;
-const monthlyCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=monthly`;
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
@@ -28,7 +21,7 @@ const artPortfolioGuideUrl = withBase(base, 'learn/how-to-make-an-art-portfolio-
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const title = 'Portfolio website builder for artists — Hangwork';
 const description =
-	'Build an art portfolio website with a visual editor. Choose lifetime access or a $10 monthly plan, with an included hangwork.art address and site files you own.';
+	`Build an art portfolio website with a visual editor. Pay ${currentPriceText} once for lifetime access, an included hangwork.art address, and site files you own.`;
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
 const applicationLd = {
 	'@context': 'https://schema.org',
@@ -37,22 +30,13 @@ const applicationLd = {
 	applicationCategory: 'DesignApplication',
 	operatingSystem: 'Web browser',
 	description,
-	offers: [
-		{
-			'@type': 'Offer',
-			name: 'Hangwork lifetime license',
-			price: currentPrice,
-			priceCurrency: 'USD',
-			url: canonicalUrl,
-		},
-		{
-			'@type': 'Offer',
-			name: 'Hangwork monthly license',
-			price: pricing.monthlyPrice,
-			priceCurrency: 'USD',
-			url: canonicalUrl,
-		},
-	],
+	offers: {
+		'@type': 'Offer',
+		name: 'Hangwork lifetime license',
+		price: currentPrice,
+		priceCurrency: 'USD',
+		url: canonicalUrl,
+	},
 };
 ---
 
@@ -102,17 +86,15 @@ const applicationLd = {
 					>
 				</h1>
 				<p class="lede">
-					A portfolio site for visual artists. Choose lifetime access or pay monthly — either way,
-					your work and published site files stay yours.
+					A portfolio site for visual artists. Pay once, publish forever, and keep your work and
+					published site files.
 				</p>
 				<div class="hero-actions">
 					<div class="primary-action">
 						<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
 						<p class="hero-price">
-							<span class="hero-current-price">{monthlyPriceText}/month</span>
-							<span>or</span>
-							{pricing.launchPricingActive && <del>{regularPriceText}</del>}
-							<span class="hero-current-price">{currentPriceText} lifetime</span>
+							<span class="hero-current-price">{currentPriceText} once.</span>
+							<span>Yours forever.</span>
 						</p>
 					</div>
 					<a class="btn btn-secondary" href={examplesUrl}>View example sites</a>
@@ -163,46 +145,26 @@ const applicationLd = {
 
 			<section class="band pricing" id="pricing">
 				<div class="pricing-copy">
-					<h2>Choose your license</h2>
+					<h2>One price. Yours forever.</h2>
 					<p class="included">
-						Both options include the editor, your yourname.hangwork.art address, publishing, and future editor
-						updates.
+						Your lifetime license includes the editor, your yourname.hangwork.art address, publishing, and
+						future editor updates.
 					</p>
 					<div class="pricing-options">
 						<article class="pricing-option">
-							<p class="pricing-option-label">Lifetime</p>
+							<p class="pricing-option-label">Lifetime access</p>
 							<p class="price-lockup">
-								{pricing.launchPricingActive && <del>{regularPriceText}</del>}
 								<strong>{currentPriceText}</strong>
 								<span>once</span>
 							</p>
-							<p>Pay once and keep publishing with no renewal.</p>
-							{
-								pricing.launchPricingActive && (
-									<p class="launch-note">
-										Launch price for early artists. Goes to {regularPriceText} when the first hundred walls
-										are hung.
-									</p>
-								)
-							}
+							<p>Build, publish, and keep updating your portfolio with no renewal or subscription.</p>
 							<a class="btn btn-primary" href={checkoutEntryUrl}>
-								{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Choose lifetime — ${currentPriceText}`}
-							</a>
-						</article>
-						<article class="pricing-option">
-							<p class="pricing-option-label">Monthly</p>
-							<p class="price-lockup">
-								<strong>{monthlyPriceText}</strong>
-								<span>/ month</span>
-							</p>
-							<p>Stay unlocked while your subscription is active. Cancel from Polar’s customer portal.</p>
-							<a class="btn btn-secondary" href={monthlyCheckoutEntryUrl}>
-								Start monthly — {monthlyPriceText}
+								Own Hangwork — {currentPriceText}
 							</a>
 						</article>
 					</div>
 					<p class="pricing-comparison">
-						Prefer to build first? The editor and preview are free; choose a license only when you publish.
+						Prefer to build first? The editor and preview are free; buy lifetime access only when you publish.
 						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
 					</p>
 					<p class="ownership-note">
@@ -469,7 +431,7 @@ const applicationLd = {
 	}
 	.pricing-options {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: minmax(0, 32rem);
 		gap: 16px;
 		margin: 0 0 28px;
 	}
@@ -504,12 +466,6 @@ const applicationLd = {
 	.pricing-option .price-lockup {
 		margin-bottom: 14px;
 	}
-	.price-lockup del {
-		font-size: clamp(28px, 4vw, 38px);
-		font-weight: 400;
-		color: var(--ink-soft);
-		text-decoration-thickness: 1px;
-	}
 	.price-lockup strong {
 		font-size: clamp(48px, 7vw, 56px);
 		font-weight: 500;
@@ -518,15 +474,11 @@ const applicationLd = {
 	.price-lockup span {
 		font-size: 16px;
 	}
-	.launch-note,
 	.pricing-comparison,
 	.included {
 		max-width: 42rem;
 		margin: 0 0 24px;
 		font-size: 16px;
-	}
-	.launch-note {
-		color: var(--ink-soft);
 	}
 	.pricing-comparison {
 		padding: 18px 0;

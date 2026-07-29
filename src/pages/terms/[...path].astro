@@ -5,7 +5,7 @@
 //
 // STARTING-POINT TEMPLATE, NOT LEGAL ADVICE. Have a lawyer skim it if you can.
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
-import { pricing } from '../../lib/pricing';
+import { currentPriceText, pricing } from '../../lib/pricing';
 import LegalPage, { type LegalSection } from '../../components/LegalPage.astro';
 
 export function getStaticPaths() {
@@ -16,7 +16,7 @@ export function getStaticPaths() {
 const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
 const governingState = 'Virginia'; // US state whose law governs
 
-const lastUpdated = 'July 28, 2026';
+const lastUpdated = 'July 29, 2026';
 const abuseEmail = 'abuse@hangwork.art';
 const supportEmail = 'william.stroud100@gmail.com';
 const refundDays = pricing.refundDays;
@@ -55,8 +55,7 @@ const sections: LegalSection[] = [
 		id: 'payment',
 		heading: 'Payment, price, and refunds',
 		html: `
-			<p>Hangwork offers a lifetime license and a monthly subscription. Both include the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates. The lifetime license is paid once and does not renew. The monthly plan renews each month at the price shown at checkout until you cancel it through Polar’s customer portal.</p>
-			<p>A monthly license remains active through each paid subscription period. If you cancel, access continues until the end of the period you already paid for. Polar revokes the license when that period ends or when a failed renewal can no longer be recovered. Losing monthly license access stops new publishing; it does not transfer ownership of your content or published site files to Hangwork.</p>
+			<p>Hangwork offers one lifetime license for ${currentPriceText}. It includes the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates. The license is paid once and does not renew.</p>
 			<p>Payments are processed by <strong>Polar</strong> as merchant of record. Polar handles checkout, card details, receipts, and any applicable sales tax or VAT. We don’t see or store your full card details.</p>
 			<p>If Hangwork isn’t for you, email <a href="mailto:${supportEmail}">${supportEmail}</a> within ${refundDays} days of your purchase for a full refund, no questions asked. After ${refundDays} days the purchase is non-refundable except where the law requires otherwise.</p>
 		`,
@@ -147,7 +146,7 @@ const sections: LegalSection[] = [
 		id: 'liability',
 		heading: 'Limitation of liability',
 		html: `
-			<p>To the fullest extent the law allows, Hangwork and its operator won’t be liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, data, or goodwill, arising from your use of the Service. Our total liability for any claim relating to the Service is limited to the amount you paid us in the 12 months before the claim.</p>
+			<p>To the fullest extent the law allows, Hangwork and its operator won’t be liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, data, or goodwill, arising from your use of the Service. Our total liability for any claim relating to the Service is limited to the amount you paid us for the Service.</p>
 			<p>You are responsible for keeping your own copies of Your Content. The download button exists so you always can.</p>
 		`,
 	},

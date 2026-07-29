@@ -89,11 +89,11 @@ Wordmark: "hangwork" in Inter 500, ink, with the period in "hangwork.art" in --k
 
 ## Pricing display
 
-- Prices live in one shared config (launchPrice, regularPrice, refundDays, launchPricingActive) — never hardcoded in components.
-- While launch pricing is active, format everywhere as: struck regular price in --ink-soft, live price in --ink. Klein is never used on price text.
+- The $99 lifetime price lives in one shared config with the refund window — never hardcoded in components.
+- Format the price as one payment with lifetime access. There are no sale anchors, tiers, or recurring plans. Klein is never used on price text.
 - A price never appears without "once" or "one-time" beside it.
-- Placements: hero microcopy, #pricing section (with the annual-subscription comparison), nav link, FAQ money section, checkout summary, editor upgrade prompt if a demo mode exists.
-- No urgency theatrics: no countdown timers, no claimed-percentage bars, no exit popups. The only scarcity mention is the honest milestone line in the pricing section.
+- Placements: hero microcopy, #pricing section, nav link, FAQ money section, checkout summary, and editor upgrade prompt if a demo mode exists.
+- No urgency or scarcity theatrics: no countdown timers, claimed-percentage bars, launch milestones, or exit popups.
 
 ## Editor-specific
 

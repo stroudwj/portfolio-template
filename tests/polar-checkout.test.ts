@@ -5,7 +5,6 @@ import { signJwt } from '../oauth-proxy/lib/jwt.js';
 
 const ORIGIN = 'https://hangwork.art';
 const PRODUCT_ID = 'c56f15d7-6325-4060-85a5-af7536f35e4c';
-const MONTHLY_PRODUCT_ID = 'b94f0e5f-84cc-4d4e-b26e-0fb347f748de';
 const CHECKOUT_ID = 'b419206b-45e0-4e46-9213-01fc19f629e7';
 const USER_ID = 'buyer-user';
 const USER_EMAIL = 'buyer@example.com';
@@ -31,7 +30,6 @@ const ENV = {
 	POLAR_SERVER: 'sandbox',
 	POLAR_ACCESS_TOKEN: 'polar_oat_test',
 	POLAR_PRODUCT_ID: PRODUCT_ID,
-	POLAR_MONTHLY_PRODUCT_ID: MONTHLY_PRODUCT_ID,
 	SESSION_SECRET,
 	DB: checkoutDb,
 };
@@ -96,22 +94,11 @@ describe('Polar checkout sessions', () => {
 		expect(payload.return_url).toBe('https://hangwork.art/editor/');
 	});
 
-	it('creates checkout for the configured monthly product when selected', async () => {
-		fetchMock.mockResolvedValueOnce(
-			new Response(
-				JSON.stringify({
-					id: CHECKOUT_ID,
-					url: `https://sandbox.polar.sh/checkout/${CHECKOUT_ID}`,
-				}),
-				{ status: 201, headers: { 'Content-Type': 'application/json' } },
-			),
-		);
-
+	it('rejects the retired monthly checkout plan before calling Polar', async () => {
 		const response = await worker.fetch(checkoutRequest(token, '/checkout/polar', { plan: 'monthly' }), ENV);
-		expect(response.status).toBe(200);
-		const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
-		expect(payload.products).toEqual([MONTHLY_PRODUCT_ID]);
-		expect(payload.metadata.plan).toBe('monthly');
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual({ error: 'invalid_plan' });
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('rejects an unknown checkout plan before calling Polar', async () => {
@@ -166,26 +153,6 @@ describe('Polar checkout sessions', () => {
 			new Response(JSON.stringify({
 				id: CHECKOUT_ID,
 				product_id: PRODUCT_ID,
-				external_customer_id: USER_ID,
-				status: 'succeeded',
-			}), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			}),
-		);
-		const response = await worker.fetch(
-			checkoutRequest(token, '/checkout/polar/status', { checkout_id: CHECKOUT_ID }),
-			ENV,
-		);
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({ status: 'succeeded' });
-	});
-
-	it('confirms a returned monthly checkout belongs to the signed-in account', async () => {
-		fetchMock.mockResolvedValueOnce(
-			new Response(JSON.stringify({
-				id: CHECKOUT_ID,
-				product_id: MONTHLY_PRODUCT_ID,
 				external_customer_id: USER_ID,
 				status: 'succeeded',
 			}), {
@@ -289,7 +256,6 @@ function signedWebhook(payload: unknown, secret: string, db: PolarDb) {
 		{
 			POLAR_WEBHOOK_SECRET: secret,
 			POLAR_PRODUCT_ID: PRODUCT_ID,
-			POLAR_MONTHLY_PRODUCT_ID: MONTHLY_PRODUCT_ID,
 			DB: db,
 		},
 	);
@@ -324,49 +290,6 @@ describe('Polar webhook entitlement', () => {
 		});
 	});
 
-	it('records monthly renewals and revokes every cycle with the subscription benefit', async () => {
-		const db = new PolarDb();
-		for (const id of ['monthly-order-1', 'monthly-order-2']) {
-			const response = await signedWebhook(
-				{
-					type: 'order.paid',
-					timestamp: new Date().toISOString(),
-					data: {
-						id,
-						paid: true,
-						product_id: MONTHLY_PRODUCT_ID,
-						subscription_id: 'subscription-1',
-						customer_id: 'customer-1',
-						checkout_id: CHECKOUT_ID,
-						customer: { email: USER_EMAIL, external_id: USER_ID },
-					},
-				},
-				'polar-webhook-test-secret',
-				db,
-			);
-			expect(response.status).toBe(200);
-		}
-		expect(db.orders).toHaveLength(2);
-		expect(db.orders.every((order) => order.status === 'active')).toBe(true);
-
-		const revoked = await signedWebhook(
-			{
-				type: 'benefit_grant.revoked',
-				timestamp: new Date().toISOString(),
-				data: {
-					subscription_id: 'subscription-1',
-					order_id: 'monthly-order-1',
-					customer_id: 'customer-1',
-					benefit_id: 'monthly-license-benefit',
-				},
-			},
-			'polar-webhook-test-secret',
-			db,
-		);
-		expect(revoked.status).toBe(200);
-		expect(db.orders.every((order) => order.status === 'revoked')).toBe(true);
-	});
-
 	it('rejects an invalid signature', async () => {
 		const response = await worker.fetch(
 			new Request('https://worker.example/webhooks/polar', {
@@ -381,7 +304,6 @@ describe('Polar webhook entitlement', () => {
 			{
 				POLAR_WEBHOOK_SECRET: 'real-secret',
 				POLAR_PRODUCT_ID: PRODUCT_ID,
-				POLAR_MONTHLY_PRODUCT_ID: MONTHLY_PRODUCT_ID,
 				DB: new PolarDb(),
 			},
 		);

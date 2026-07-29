@@ -24,10 +24,8 @@ EMAIL_FROM = "Hangwork <hello@hangwork.art>"
 # Polar production resources. Sandbox uses a separate organization, products,
 # benefits, access token, and webhook endpoint.
 POLAR_SERVER = "production"
-# Lifetime ($49 launch / $99 regular) product.
+# Lifetime $99 product.
 POLAR_PRODUCT_ID = "039844bd-e3ad-45fc-b7ad-f7c9d88fe7fa"
-# Recurring $10/month product.
-POLAR_MONTHLY_PRODUCT_ID = "1b966bbb-585e-47c6-9cba-84a4db99e720"
 POLAR_ORGANIZATION_ID = "e0fe39bc-3fb6-44f1-9c6f-b4b0e247108d"
 
 # Google OAuth ("Continue with Google" in the editor). Create an OAuth client
