@@ -112,6 +112,32 @@ describe('discipline-led starter catalog', () => {
 		);
 	});
 
+	it('seeds the Painter About page with a traceable public-domain Monet portrait', () => {
+		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
+		const doc = initDocFromContent(painter.content);
+		const portrait = SAMPLE_ARTWORK.get('painter-wikimedia-monet-self-portrait-v1')!;
+		const bytes = readFileSync(`public/${portrait.url}`);
+
+		expect(doc.profileImage).toEqual({
+			filename: '11-claude-monet-self-portrait.jpg',
+			assetId: null,
+			sampleAssetId: portrait.id,
+		});
+		expect(docToPortfolioData(doc).profileImageSrc).toContain(portrait.url);
+		expect(stripSamplesForPublish(doc).profileImage).toEqual({
+			filename: '',
+			assetId: null,
+			sampleAssetId: null,
+		});
+		expect(jpegDimensions(bytes)).toEqual({ width: 1920, height: 2423 });
+		expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(
+			portrait.checksum,
+		);
+		expect(portrait.source).toBe('Wikimedia Commons');
+		expect(portrait.rightsProof).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
+		expect(portrait.status).toBe('active');
+	});
+
 	it('keeps twelve local public-domain photographs tied to the Met manifest', () => {
 		const photographer = AVAILABLE_STARTERS.find(
 			(starter) => starter.id === 'photographer',
@@ -320,6 +346,10 @@ describe('discipline-led starter catalog', () => {
 		expect(() =>
 			normalizeAccessibleImages([{ ...described, alt: '' }]),
 		).toThrow(/alt text or an explicit decorative choice/i);
+		expect(imageAccessibilityComplete([{ ...described, alt: '' }], false)).toBe(true);
+		expect(normalizeAccessibleImages([{ ...described, alt: '' }], false)).toEqual([
+			{ file: described.file, alt: '', decorative: undefined },
+		]);
 		expect(normalizeAccessibleImages([described, decorative])).toEqual([
 			{ file: described.file, alt: 'A graphite portrait on cream paper.', decorative: undefined },
 			{ file: decorative.file, alt: '', decorative: true },

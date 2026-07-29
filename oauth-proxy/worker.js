@@ -296,11 +296,11 @@ function handoffEmail(link) {
 /** The post-purchase email: reassurance first, then the desktop link. */
 function postPurchaseEmail(link) {
 	return {
-		subject: 'You own Hangwork now',
-		text: `You own Hangwork — that's yours to keep.\n\nNothing's lost and nothing needs redoing. When you're at a computer, open the link below and the canvas will be waiting. No rush.\n\n${link}\n\nWhenever you're ready to hang your first piece.`,
+		subject: 'Your Hangwork access is ready',
+		text: `Your Hangwork license is active.\n\nNothing's lost and nothing needs redoing. When you're at a computer, open the link below and the canvas will be waiting. No rush.\n\n${link}\n\nWhenever you're ready to hang your first piece.`,
 		html: emailHtml(
 			[
-				'You own Hangwork — that’s yours to keep.',
+				'Your Hangwork license is active.',
 				'Nothing’s lost and nothing needs redoing. When you’re at a computer, open the link below and the canvas will be waiting. No rush.',
 			],
 			'Open Hangwork on your computer',

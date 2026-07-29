@@ -59,8 +59,10 @@ Dashboard steps (one-time, see also `../site-server/wrangler.toml`):
   ```
 
   Sandbox and production are isolated. Keep `POLAR_SERVER`, `POLAR_PRODUCT_ID`,
-  `POLAR_ORGANIZATION_ID`, and `POLAR_BENEFIT_ID` in `wrangler.toml` aligned with the
-  environment that issued those two secrets.
+  `POLAR_MONTHLY_PRODUCT_ID`, and `POLAR_ORGANIZATION_ID` in `wrangler.toml` aligned
+  with the environment that issued those two secrets. The monthly product must use
+  Polar's license-key benefit so `benefit_grant.revoked` closes every stored renewal
+  entitlement when the paid subscription ends.
 - **Google Cloud Console** (optional): OAuth client (Web), redirect URI = the editor URL
   (`https://hangwork.art/editor/`); set `GOOGLE_CLIENT_ID` here + in
   `src/editor/lib/account/config.ts`.
@@ -81,7 +83,7 @@ processes.
 
 Phones can browse and buy but not build, so the editor offers to email the person their
 editor link to open on a computer. A signed-in buyer is addressed from their Hangwork
-session and gets the post-purchase "You own Hangwork now" copy; signed-out visitors provide
+session and gets the post-purchase "Your Hangwork access is ready" copy; signed-out visitors provide
 their own address. Content is fixed server-side. Powered by [Resend](https://resend.com):
 
 ```sh

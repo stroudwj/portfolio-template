@@ -5,26 +5,35 @@ import { useEffect, useState } from 'react';
 import { useAccount } from './useAccount';
 import SignInModal from './SignInModal';
 import LicenseGateModal from './LicenseGateModal';
+import type { PolarCheckoutPlan } from '../lib/polar-checkout';
 
 const INTENT_KEY = 'portfolio-editor:unlock-intent';
+const PLAN_KEY = 'portfolio-editor:unlock-plan';
 
-function initialIntent(): boolean {
-	if (typeof window === 'undefined') return false;
+function initialIntent(): { active: boolean; plan: PolarCheckoutPlan } {
+	if (typeof window === 'undefined') return { active: false, plan: 'lifetime' };
 	const url = new URL(window.location.href);
 	const fromUrl = url.searchParams.get('unlock') === '1';
+	const requestedPlan = url.searchParams.get('plan') === 'monthly' ? 'monthly' : 'lifetime';
 	if (fromUrl) {
 		try {
 			sessionStorage.setItem(INTENT_KEY, '1');
+			sessionStorage.setItem(PLAN_KEY, requestedPlan);
 		} catch {
 			/* the in-memory intent still works */
 		}
 		url.searchParams.delete('unlock');
+		url.searchParams.delete('plan');
 		window.history.replaceState({}, '', url.pathname + url.search + url.hash);
 	}
 	try {
-		return fromUrl || sessionStorage.getItem(INTENT_KEY) === '1';
+		const storedPlan = sessionStorage.getItem(PLAN_KEY) === 'monthly' ? 'monthly' : 'lifetime';
+		return {
+			active: fromUrl || sessionStorage.getItem(INTENT_KEY) === '1',
+			plan: fromUrl ? requestedPlan : storedPlan,
+		};
 	} catch {
-		return fromUrl;
+		return { active: fromUrl, plan: requestedPlan };
 	}
 }
 
@@ -33,19 +42,20 @@ export default function CheckoutIntent() {
 	const [intent, setIntent] = useState(initialIntent);
 
 	const clearIntent = () => {
-		setIntent(false);
+		setIntent((current) => ({ ...current, active: false }));
 		try {
 			sessionStorage.removeItem(INTENT_KEY);
+			sessionStorage.removeItem(PLAN_KEY);
 		} catch {
 			/* ignore */
 		}
 	};
 
 	useEffect(() => {
-		if (intent && account.licensed) clearIntent();
-	}, [intent, account.licensed]);
+		if (intent.active && account.licensed) clearIntent();
+	}, [intent.active, account.licensed]);
 
-	if (!intent || account.status === 'checking') return null;
+	if (!intent.active || account.status === 'checking') return null;
 
 	if (account.status === 'signed-out') {
 		return (
@@ -63,6 +73,7 @@ export default function CheckoutIntent() {
 	return (
 		<LicenseGateModal
 			context="unlock"
+			initialPlan={intent.plan}
 			redeemTestAccess={account.redeemTestAccess}
 			onClose={clearIntent}
 			onUnlocked={clearIntent}

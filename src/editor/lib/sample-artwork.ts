@@ -15,7 +15,11 @@ export interface SampleArtwork {
 	alt: string;
 	creator: string;
 	credit: string;
-	source: 'Art Institute of Chicago' | 'The Metropolitan Museum of Art' | 'Hangwork internal';
+	source:
+		| 'Art Institute of Chicago'
+		| 'The Metropolitan Museum of Art'
+		| 'Wikimedia Commons'
+		| 'Hangwork internal';
 	objectUrl: string;
 	rightsProof: string;
 	accessionNumber: string;
@@ -29,6 +33,8 @@ export interface SampleArtwork {
 
 const AIC_RIGHTS = 'https://www.artic.edu/open-access/open-access-images';
 const MET_RIGHTS = 'https://www.metmuseum.org/policies/image-resources';
+const WIKIMEDIA_RIGHTS =
+	'https://commons.wikimedia.org/wiki/File:Autoportret_Claude_Monet.jpg#Licensing';
 
 const artworks: SampleArtwork[] = [
 	{
@@ -224,6 +230,26 @@ const artworks: SampleArtwork[] = [
 		sourceImageUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP-43276-001.jpg',
 		downloadedAt: '2026-07-27',
 		checksum: 'sha256:adb02060305d07b4198423140bbd559117bc40e4d093718f36b6c824657b435b',
+		status: 'active',
+	},
+	{
+		id: 'painter-wikimedia-monet-self-portrait-v1',
+		url: 'assets/starters/painter/11-claude-monet-self-portrait.jpg',
+		width: 1920,
+		height: 2423,
+		aspectRatio: 1920 / 2423,
+		title: 'Self-portrait in Beret',
+		alt: 'Claude Monet faces the viewer wearing a dark beret and jacket against a pale painted background.',
+		creator: 'Claude Monet',
+		credit: 'Claude Monet. Self-portrait in Beret, 1886. Wikimedia Commons, public domain.',
+		source: 'Wikimedia Commons',
+		objectUrl: 'https://commons.wikimedia.org/wiki/File:Autoportret_Claude_Monet.jpg',
+		rightsProof: WIKIMEDIA_RIGHTS,
+		accessionNumber: 'Wikidata Q48977623',
+		sourceImageUrl:
+			'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Autoportret_Claude_Monet.jpg/1920px-Autoportret_Claude_Monet.jpg',
+		downloadedAt: '2026-07-28',
+		checksum: 'sha256:fb77d9404850756a3bf2d10ec8428fb7f9bdb32e453ae1a13b293c9b69fb0aab',
 		status: 'active',
 	},
 	{
@@ -503,6 +529,12 @@ export const SAMPLE_ARTWORK = new Map(artworks.map((artwork) => [artwork.id, art
 
 export function getSampleArtwork(id: string | null | undefined): SampleArtwork | undefined {
 	return id ? SAMPLE_ARTWORK.get(id) : undefined;
+}
+
+export function sampleArtworkIdForUrl(url: string | null | undefined): string | null {
+	if (!url) return null;
+	for (const artwork of SAMPLE_ARTWORK.values()) if (artwork.url === url) return artwork.id;
+	return null;
 }
 
 export function isSampleWithdrawn(artwork: SampleArtwork, now = new Date()): boolean {

@@ -13,8 +13,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
-import { PLACEHOLDER_IMAGE, docToPortfolioData, existingDoc } from '../lib/content-init';
+import { PLACEHOLDER_IMAGE, docToPortfolioData, initDocFromContent } from '../lib/content-init';
 import { HANDOFF_SENT_EVENT, HandoffError, desktopLinkUrl, justSentTo, sendDesktopLink } from '../lib/handoff';
+import { AVAILABLE_STARTERS } from '../lib/templates';
 import { isEmail } from '../lib/validation';
 import { useAccount } from './useAccount';
 
@@ -61,12 +62,15 @@ export default function MobileDoor({ base, brandLockup }: { base: string; brandL
 	}, []);
 
 	// Read-only preview source: the draft on this device if there is one, else the
-	// example portfolio (held locally — nothing is created or saved on a phone).
+	// populated Painter demo (held locally — nothing is created or saved on a phone).
 	useEffect(() => {
 		if (!doc && hasDraft) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
-	const [exampleDoc] = useState(() => existingDoc());
-	const previewDoc = doc ?? (hasDraft ? null : exampleDoc);
+	const [painterDemoDoc] = useState(() => {
+		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter');
+		return painter?.content ? initDocFromContent(painter.content) : null;
+	});
+	const previewDoc = doc ?? (hasDraft ? null : painterDemoDoc);
 	const [page, setPage] = useState('home');
 
 	const send = async () => {

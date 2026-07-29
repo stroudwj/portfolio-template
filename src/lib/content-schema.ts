@@ -19,6 +19,11 @@ const textLayoutSchema = passthrough({
 	h: z.number().optional(),
 });
 
+const textFlowLayoutSchema = passthrough({
+	x: z.number(),
+	w: z.number(),
+});
+
 const mobileItemStyleSchema = passthrough({
 	width: z.number().min(35).max(100).optional(),
 	align: z.enum(['left', 'center', 'right']).optional(),
@@ -59,6 +64,15 @@ const galleryConfigSchema = passthrough({
 	layout: z.enum(['freeform', 'grid']).optional(),
 	columns: z.number().int().min(1).max(6).optional(),
 	aspect: z.string().optional(),
+	carousel: z.boolean().optional(),
+	carouselFit: z.enum(['fit', 'fill']).optional(),
+	carouselFrame: imageLayoutSchema.optional(),
+	carouselFreeResize: z.boolean().optional(),
+	carouselMoveImage: z.boolean().optional(),
+	carouselHost: z.string().min(1).optional(),
+	carouselShowCount: z.boolean().optional(),
+	carouselShowTitle: z.boolean().optional(),
+	carouselRequireAlt: z.boolean().optional(),
 	mobile: mobileCompositionSchema.optional(),
 });
 
@@ -114,9 +128,28 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		id: z.string(),
 		type: z.literal('text'),
 		text: z.string(),
+		richText: z
+			.array(
+				passthrough({
+					align: z.enum(['left', 'center', 'right']).optional(),
+					runs: z.array(
+						passthrough({
+							text: z.string(),
+							size: z.enum(['body', 'subheading', 'heading']).optional(),
+							bold: z.literal(true).optional(),
+							italic: z.literal(true).optional(),
+							underline: z.literal(true).optional(),
+							strike: z.literal(true).optional(),
+						}),
+					),
+				}),
+			)
+			.optional(),
+		fontFamily: z.string().min(1).optional(),
 		align: z.enum(['left', 'center', 'right']).optional(),
 		style: z.enum(['body', 'heading', 'subheading', 'quote']).optional(),
 		link: z.string().optional(),
+		flowLayout: textFlowLayoutSchema.optional(),
 		layout: textLayoutSchema.optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('embed'), url: z.string(), layout: imageLayoutSchema.optional() }),
@@ -176,6 +209,8 @@ const imageMetaSchema = passthrough({
 	w: z.number().optional(),
 	h: z.number().optional(),
 	layout: imageLayoutSchema.optional(),
+	focusX: z.number().min(0).max(100).optional(),
+	focusY: z.number().min(0).max(100).optional(),
 });
 
 /** Runtime validation for the JSON boundary. Object schemas deliberately preserve

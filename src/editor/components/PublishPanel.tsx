@@ -6,7 +6,7 @@ import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { useAccount } from './useAccount';
 import { hasPublishableContent } from '../lib/validation';
-import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText, monthlyPriceText, pricing, regularPriceText } from '../../lib/pricing';
 import { loadSiteInfo } from '../lib/account/site-store';
 import { AccountError } from '../lib/account/client';
 import { ACCOUNT_API_URL } from '../lib/account/config';
@@ -242,7 +242,7 @@ export default function PublishPanel() {
 				<div className="status-row">
 					<span className="status-label">License</span>
 					{unlocked ? (
-						<span className="status-value">✓ Unlocked — yours forever</span>
+						<span className="status-value">✓ Unlocked — access active</span>
 					) : account.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
@@ -259,8 +259,8 @@ export default function PublishPanel() {
 				    this is only for people who prefer to settle it before they build. */}
 				{!unlocked && account.status !== 'checking' && pricing.launchPricingActive && (
 					<p className="muted license-lock-note">
-						Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price, forever. You
-						can also just pay when you publish.
+						Choose {monthlyPriceText}/month, or lock in lifetime access for {currentPriceText} before it becomes{' '}
+						{regularPriceText}. You can also wait and choose when you publish.
 					</p>
 				)}
 				<div className="publish-panel-actions">

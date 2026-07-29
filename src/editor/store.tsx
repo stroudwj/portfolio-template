@@ -16,7 +16,9 @@ import type {
 	PageBlock,
 	PageConfig,
 	ResponsiveSectionHeight,
+	RichTextParagraph,
 	TextAlign,
+	TextFlowLayout,
 	TextLayout,
 	TextStyle,
 } from '../lib/content';
@@ -339,17 +341,47 @@ export interface EditorContextValue {
 	// page blocks
 	addTextBlock(key: string): void;
 	updateTextBlock(key: string, blockId: string, text: string): void;
+	updateRichTextBlock(
+		key: string,
+		blockId: string,
+		text: string,
+		richText: RichTextParagraph[],
+	): void;
+	setTextFont(key: string, blockId: string, fontFamily: string | undefined): void;
 	setTextAlign(key: string, blockId: string, align: TextAlign): void;
 	setTextStyle(key: string, blockId: string, style: TextStyle): void;
 	setTextLink(key: string, blockId: string, link: string): void;
+	/** Set normal-flow text width and horizontal position. */
+	setTextFlowLayout(key: string, blockId: string, layout: TextFlowLayout | undefined): void;
 	/** Pin a text block to the page canvas (or undefined to return it to the flow). */
 	setTextLayout(key: string, blockId: string, layout: TextLayout | undefined): void;
 	/** Change gallery display settings (freeform/grid, columns, crop aspect). */
 	setGalleryConfig(key: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'mobile'>>): void;
 	/** Add an extra image group (its own folder + canvas/grid) to the page. */
 	addImagesBlock(key: string): void;
-	/** Change an image group's display settings (freeform/grid, columns, crop aspect). */
-	updateImagesBlock(key: string, blockId: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'mobile'>>): void;
+	/** Change an image group's display settings, including its optional carousel presentation. */
+	updateImagesBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<
+			Pick<
+				GalleryConfig,
+				| 'layout'
+				| 'columns'
+				| 'aspect'
+				| 'carousel'
+				| 'carouselFit'
+				| 'carouselFrame'
+				| 'carouselFreeResize'
+				| 'carouselMoveImage'
+				| 'carouselHost'
+				| 'carouselShowCount'
+				| 'carouselShowTitle'
+				| 'carouselRequireAlt'
+				| 'mobile'
+			>
+		>,
+	): void;
 	/** Give an image group a display name (shown in the editor so groups are tellable apart). */
 	renameImagesBlock(key: string, blockId: string, name: string): void;
 	/** Choose how a page's sub-pages are presented (cards, big covers, list, text index). */
@@ -772,10 +804,24 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				delete fonts[name];
 				const usesIt = prev.content.theme.fontFamily.includes(`"${name}"`);
 				const headingUsesIt = prev.content.theme.headingFontFamily?.includes(`"${name}"`) ?? false;
+				const pages = Object.fromEntries(
+					Object.entries(prev.content.pages).map(([key, page]) => [
+						key,
+						{
+							...page,
+							blocks: page.blocks?.map((block) =>
+								block.type === 'text' && block.fontFamily?.includes(`"${name}"`)
+									? { ...block, fontFamily: undefined }
+									: block,
+							),
+						},
+					]),
+				);
 				return {
 					...prev,
 					content: {
 						...prev.content,
+						pages,
 						theme: {
 							...prev.content.theme,
 							customFonts: customFonts.length ? customFonts : undefined,
@@ -1403,6 +1449,32 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				true,
 				`page:${key}:text:${blockId}`,
 			),
+		updateRichTextBlock: (key, blockId, text, richText) =>
+			patchBlocks(
+				key,
+				(blocks) =>
+					blocks.map((block) =>
+						block.id === blockId && block.type === 'text'
+							? {
+									...block,
+									text,
+									richText,
+									align: undefined,
+									style: undefined,
+								}
+							: block,
+					),
+				true,
+				`page:${key}:rich-text:${blockId}`,
+			),
+		setTextFont: (key, blockId, fontFamily) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'text'
+						? { ...block, fontFamily: fontFamily || undefined }
+						: block,
+				),
+			),
 		setTextAlign: (key, blockId, align) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) =>
@@ -1423,6 +1495,16 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					block.id === blockId && block.type === 'text' ? { ...block, link: link || undefined } : block,
 				),
 			true, `page:${key}:text-link:${blockId}`),
+		setTextFlowLayout: (key, blockId, flowLayout) =>
+			patchBlocks(
+				key,
+				(blocks) =>
+					blocks.map((block) =>
+						block.id === blockId && block.type === 'text' ? { ...block, flowLayout } : block,
+					),
+				true,
+				`page:${key}:text-flow-layout:${blockId}`,
+			),
 		setTextLayout: (key, blockId, layout) => {
 			// Record real placement changes only. The preview re-commits text heights
 			// after measuring the rendered text; height-only corrections are automatic.
@@ -1685,21 +1767,33 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 								),
 							}
 							: undefined,
-						gallery: phoneKey && page.gallery ? withoutPhoneItem(page.gallery, phoneKey) : page.gallery,
-				};
+						gallery:
+							target?.type === 'gallery'
+								? undefined
+								: phoneKey && page.gallery
+									? withoutPhoneItem(page.gallery, phoneKey)
+									: page.gallery,
+					};
 				const next = {
 					...prev,
 					content: { ...prev.content, pages: { ...prev.content.pages, [key]: nextPage } },
 				};
-				// Removing an image group takes its folder (and images) off the site too.
-				if (target?.type === 'images') {
+				// Removing either kind of image group takes its folder (and images)
+				// off the site when nothing else still references it.
+				const removedFolder =
+					target?.type === 'images'
+						? target.gallery.folder
+						: target?.type === 'gallery'
+							? page.gallery?.folder
+							: undefined;
+				if (removedFolder) {
 					const stillUsed = referencedGalleryFolders(next.content.pages);
-					if (!stillUsed.has(target.gallery.folder)) {
+					if (!stillUsed.has(removedFolder)) {
 						const contentGalleries = { ...next.content.galleries };
-						delete contentGalleries[target.gallery.folder];
+						delete contentGalleries[removedFolder];
 						next.content = { ...next.content, galleries: contentGalleries };
 						const docGalleries = { ...prev.galleries };
-						delete docGalleries[target.gallery.folder];
+						delete docGalleries[removedFolder];
 						next.galleries = docGalleries;
 					}
 				}

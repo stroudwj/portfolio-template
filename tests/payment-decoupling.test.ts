@@ -150,7 +150,7 @@ describe('worker /handoff', () => {
 
 		const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
 		expect(sent.to).toEqual(['buyer@example.com']);
-		expect(sent.subject).toBe('You own Hangwork now');
+		expect(sent.subject).toBe('Your Hangwork access is ready');
 		expect(sent.text).toContain('https://hangwork.art/editor/');
 		expect(sent.text).not.toContain('license_key');
 	});

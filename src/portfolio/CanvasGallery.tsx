@@ -10,7 +10,7 @@
 // onEmbedLayout. Images without a stored layout yet are auto-flowed into rows
 // (flowMissing) and, in the editor, committed once their real aspect ratio is
 // measured.
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type {
 	CanvasEmbed,
 	CanvasLayoutUpdates,
@@ -34,6 +34,7 @@ import {
 	MIN_TEXT_W,
 	MIN_W,
 	nearestEdge,
+	pointerInCanvas,
 	roundLayout,
 	roundTextLayout,
 	snapSpanToEdges,
@@ -57,6 +58,8 @@ export interface CanvasGalleryProps {
 	texts?: CanvasText[];
 	/** Video embeds pinned to the canvas, rendered inside the composition. */
 	embeds?: CanvasEmbed[];
+	/** Self-contained blocks, such as carousels, placed on this same canvas. */
+	widgets?: CanvasWidget[];
 	/** Fallback alt text for images without their own title. */
 	alt?: string;
 	/** Editor preview: enables move/resize instead of the lightbox. */
@@ -71,16 +74,28 @@ export interface CanvasGalleryProps {
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned video embed. */
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
+	/** Reports a finished move/resize for a self-contained canvas widget. */
+	onWidgetLayout?: (id: string, layout: ImageLayout) => void;
 	/** Reports one finished mixed-item move so the editor can commit one undo step. */
 	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
 	/** Published site: open the lightbox for image i and restore focus to its trigger afterwards. */
 	onOpen?: (index: number, trigger?: HTMLElement) => void;
 }
 
+export interface CanvasWidget {
+	id: string;
+	layout: ImageLayout;
+	freeResize?: boolean;
+	/** Let pointer drags on the widget image reposition that image instead of moving the widget. */
+	moveImage?: boolean;
+	content: ReactNode;
+}
+
 export default function CanvasGallery({
 	images,
 	texts = [],
 	embeds = [],
+	widgets = [],
 	alt = 'Portfolio piece',
 	editable = false,
 	mobile,
@@ -88,6 +103,7 @@ export default function CanvasGallery({
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
+	onWidgetLayout,
 	onBulkLayoutChange,
 	onOpen,
 }: CanvasGalleryProps) {
@@ -112,6 +128,7 @@ export default function CanvasGallery({
 	>(null);
 	const [centerGuide, setCenterGuide] = useState(false);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
+	const draggedClickRef = useRef<string | null>(null);
 	const gridPrefs = useGridPrefs();
 
 	// Snap targets follow the chosen guide: square guides snap x AND y to the
@@ -150,6 +167,12 @@ export default function CanvasGallery({
 			xs.push(l.x, l.x + l.w);
 			ys.push(l.y, bottomOf(l));
 		});
+		widgets.forEach((widget, i) => {
+			if (excluded.has(`widget:${widget.id}`)) return;
+			const l = widgetLayouts[i];
+			xs.push(l.x, l.x + l.w);
+			ys.push(l.y, bottomOf(l));
+		});
 		shownTexts.forEach((t, i) => {
 			if (excluded.has(`text:${t.id}`)) return;
 			const l = textLayouts[i];
@@ -175,11 +198,13 @@ export default function CanvasGallery({
 	);
 	const textLayouts = shownTexts.map((t) => textDrafts[t.id] ?? t.layout);
 	const embedLayouts = embeds.map((v) => drafts[v.id] ?? v.layout);
+	const widgetLayouts = widgets.map((widget) => drafts[widget.id] ?? widget.layout);
 	const height = Math.max(
 		canvasHeight(layouts),
 		...textLayouts.map(textBottom),
 		...embedLayouts.map(bottomOf),
-		1,
+		...widgetLayouts.map(bottomOf),
+		editable ? 30 : 1,
 	);
 	const multiSelected = selected.size > 1;
 
@@ -252,6 +277,7 @@ export default function CanvasGallery({
 		...images.map((img, i) => ({ key: `image:${keyOf(img, i)}`, y: layouts[i].y, kind: 'image' as const, index: i })),
 		...shownTexts.map((t, i) => ({ key: `text:${t.id}`, y: textLayouts[i].y, kind: 'text' as const, index: i })),
 		...embeds.map((v, i) => ({ key: `video:${v.id}`, y: embedLayouts[i].y, kind: 'video' as const, index: i })),
+		...widgets.map((widget, i) => ({ key: `widget:${widget.id}`, y: widgetLayouts[i].y, kind: 'image' as const, index: images.length + i })),
 	]);
 	const automaticOrderOf = new Map(automaticKeys.map((key, rank) => [key, rank]));
 	const requestedOrderOf = new Map((mobile?.order ?? []).map((key, rank) => [key, rank]));
@@ -272,6 +298,7 @@ export default function CanvasGallery({
 	const renderItems = [
 		...images.map((_, index) => ({ type: 'image' as const, index, key: `image:${keyOf(images[index], index)}` })),
 		...embeds.map((embed, index) => ({ type: 'embed' as const, index, key: `video:${embed.id}` })),
+		...widgets.map((widget, index) => ({ type: 'widget' as const, index, key: `widget:${widget.id}` })),
 		...shownTexts.map((text, index) => ({ type: 'text' as const, index, key: `text:${text.id}` })),
 	];
 	if (phoneActive)
@@ -291,6 +318,7 @@ export default function CanvasGallery({
 	const imageZ = (i: number) => images.length - i;
 	const embedZ = (i: number) => images.length + embeds.length - i;
 	const textZ = (i: number) => images.length + embeds.length + shownTexts.length - i;
+	const widgetZ = (i: number) => images.length + embeds.length + shownTexts.length + widgets.length - i;
 
 	const measure = (key: string, el: HTMLImageElement) => {
 		if (el.naturalWidth && el.naturalHeight)
@@ -352,6 +380,7 @@ export default function CanvasGallery({
 		mode: 'move' | 'resize',
 		minW: number,
 		commit: (id: string, layout: ImageLayout) => void,
+		freeResize = false,
 	) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -359,15 +388,17 @@ export default function CanvasGallery({
 		e.stopPropagation();
 		// Inside the phone-preview iframe the drag must listen on THAT window.
 		const win = canvas.ownerDocument.defaultView ?? window;
-		const scale = 100 / canvas.getBoundingClientRect().width; // px -> canvas-width %
-		const startX = e.clientX;
-		const startY = e.clientY;
+		const origin = pointerInCanvas(e.clientX, e.clientY, canvas.getBoundingClientRect());
+		let lastPointer = { x: e.clientX, y: e.clientY };
 		const { xs, ys } = neighborEdges(new Set([selectionKey]));
 		let finalDraft: ImageLayout | undefined;
+		draggedClickRef.current = null;
 		setDragId(id);
-		const move = (ev: PointerEvent) => {
-			const dx = (ev.clientX - startX) * scale;
-			const dy = (ev.clientY - startY) * scale;
+		const update = (clientX: number, clientY: number) => {
+			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
+			const dx = current.x - origin.x;
+			const dy = current.y - origin.y;
+			if (Math.abs(dx) + Math.abs(dy) > 0.3) draggedClickRef.current = id;
 			const h = from.w / from.ar;
 			let next: ImageLayout;
 			if (mode === 'move') {
@@ -379,6 +410,24 @@ export default function CanvasGallery({
 				next = { ...from, x, y };
 			} else {
 				setCenterGuide(false);
+				if (freeResize) {
+					let width = Math.min(Math.max(from.w + dx, minW), 100 - from.x);
+					let height = Math.max(from.w / from.ar + dy, MIN_W);
+					const snappedRight = nearestEdge(from.x + width, xs, EDGE_SNAP);
+					const snappedBottom = nearestEdge(from.y + height, ys, EDGE_SNAP);
+					width =
+						snappedRight === null
+							? Math.max(snapX(from.x + width) - from.x, minW)
+							: Math.max(snappedRight - from.x, minW);
+					height =
+						snappedBottom === null
+							? Math.max(snapY(from.y + height) - from.y, MIN_W)
+							: Math.max(snappedBottom - from.y, MIN_W);
+					next = { ...from, w: width, ar: Math.min(Math.max(width / height, 0.2), 5) };
+					finalDraft = clampLayout(next);
+					setDrafts((d) => ({ ...d, [id]: finalDraft! }));
+					return;
+				}
 				// Snap the RIGHT edge to the guides so resized items line up with
 				// columns — unless a neighbor's edge is closer: right edge to a
 				// neighbor's side, or bottom edge to a neighbor's top/bottom.
@@ -400,9 +449,16 @@ export default function CanvasGallery({
 			finalDraft = clampLayout(next);
 			setDrafts((d) => ({ ...d, [id]: finalDraft! }));
 		};
+		const move = (ev: PointerEvent) => {
+			lastPointer = { x: ev.clientX, y: ev.clientY };
+			update(ev.clientX, ev.clientY);
+		};
+		const scroll = () => update(lastPointer.x, lastPointer.y);
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
 			setDragId(null);
 			setCenterGuide(false);
 			const done = finalDraft ?? draftsRef.current[id];
@@ -415,6 +471,8 @@ export default function CanvasGallery({
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	const startGroupDrag = (e: React.PointerEvent) => {
@@ -426,9 +484,8 @@ export default function CanvasGallery({
 		e.preventDefault();
 		e.stopPropagation();
 		const win = canvas.ownerDocument.defaultView ?? window;
-		const scale = 100 / canvas.getBoundingClientRect().width;
-		const startX = e.clientX;
-		const startY = e.clientY;
+		const origin = pointerInCanvas(e.clientX, e.clientY, canvas.getBoundingClientRect());
+		let lastPointer = { x: e.clientX, y: e.clientY };
 		const left = Math.min(...chosen.map((item) => item.layout.x));
 		const top = Math.min(...chosen.map((item) => item.layout.y));
 		const right = Math.max(...chosen.map((item) => item.layout.x + item.layout.w));
@@ -442,9 +499,10 @@ export default function CanvasGallery({
 		let finalTextDrafts: Record<string, TextLayout> = {};
 		setDragId('__group__');
 
-		const move = (event: PointerEvent) => {
-			const rawDx = (event.clientX - startX) * scale;
-			const rawDy = (event.clientY - startY) * scale;
+		const update = (clientX: number, clientY: number) => {
+			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
+			const rawDx = current.x - origin.x;
+			const rawDy = current.y - origin.y;
 			const proposedLeft = Math.min(Math.max(left + rawDx, 0), 100 - groupW);
 			const edgeLeft = snapSpanToEdges(snapX(proposedLeft), groupW, xs);
 			const snappedLeft = Math.min(
@@ -480,10 +538,17 @@ export default function CanvasGallery({
 			setDrafts((current) => ({ ...current, ...nextDrafts }));
 			setTextDrafts((current) => ({ ...current, ...nextTexts }));
 		};
+		const move = (event: PointerEvent) => {
+			lastPointer = { x: event.clientX, y: event.clientY };
+			update(event.clientX, event.clientY);
+		};
+		const scroll = () => update(lastPointer.x, lastPointer.y);
 
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
 			setDragId(null);
 			setCenterGuide(false);
 			const updates: CanvasLayoutUpdates = {};
@@ -527,6 +592,8 @@ export default function CanvasGallery({
 
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	const startMarquee = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -618,6 +685,31 @@ export default function CanvasGallery({
 		startItemDrag(e, embed.id, key, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout);
 	};
 
+	const startWidgetDrag = (e: React.PointerEvent, widget: CanvasWidget, index: number, mode: 'move' | 'resize') => {
+		if (!editable || e.button !== 0 || !onWidgetLayout) return;
+		const target = e.target as HTMLElement;
+		if (
+			mode === 'move' &&
+			target.closest(
+				widget.moveImage
+					? 'button, a, .inline-carousel-image'
+					: 'button, a',
+			)
+		) return;
+		const key = `widget:${widget.id}`;
+		setSelected(new Set([key]));
+		startItemDrag(
+			e,
+			widget.id,
+			key,
+			widgetLayouts[index],
+			mode,
+			MIN_W,
+			onWidgetLayout,
+			widget.freeResize === true,
+		);
+	};
+
 	const startTextDrag = (e: React.PointerEvent, text: CanvasText, index: number, mode: 'move' | 'resize') => {
 		if (!editable || e.button !== 0) return;
 		const canvas = canvasRef.current;
@@ -643,17 +735,17 @@ export default function CanvasGallery({
 		}
 		setSelected(new Set([selectionKey]));
 		const win = canvas.ownerDocument.defaultView ?? window;
-		const scale = 100 / canvas.getBoundingClientRect().width;
 		const from = textLayouts[index];
-		const startX = e.clientX;
-		const startY = e.clientY;
+		const origin = pointerInCanvas(e.clientX, e.clientY, canvas.getBoundingClientRect());
+		let lastPointer = { x: e.clientX, y: e.clientY };
 		const { xs, ys } = neighborEdges(new Set([selectionKey]));
 		const fromH = textBottom(from) - from.y;
 		let finalDraft: TextLayout | undefined;
 		setDragId(id);
-		const move = (ev: PointerEvent) => {
-			const dx = (ev.clientX - startX) * scale;
-			const dy = (ev.clientY - startY) * scale;
+		const update = (clientX: number, clientY: number) => {
+			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
+			const dx = current.x - origin.x;
+			const dy = current.y - origin.y;
 			const next =
 				mode === 'move'
 					? {
@@ -672,9 +764,16 @@ export default function CanvasGallery({
 			finalDraft = clampTextLayout(next);
 			setTextDrafts((d) => ({ ...d, [id]: finalDraft! }));
 		};
+		const move = (ev: PointerEvent) => {
+			lastPointer = { x: ev.clientX, y: ev.clientY };
+			update(ev.clientX, ev.clientY);
+		};
+		const scroll = () => update(lastPointer.x, lastPointer.y);
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
 			setDragId(null);
 			setCenterGuide(false);
 			const done = finalDraft ?? textDraftsRef.current[id];
@@ -690,6 +789,8 @@ export default function CanvasGallery({
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	return (
@@ -834,6 +935,48 @@ export default function CanvasGallery({
 						</div>
 					);
 				}
+				if (item.type === 'widget') {
+					const i = item.index;
+					const widget = widgets[i];
+					const l = widgetLayouts[i];
+					const dragging = dragId === widget.id;
+					const vars = {
+						...phoneVars(item.key),
+						'--x': String(l.x),
+						'--y': String((l.y / height) * 100),
+						'--w': String(l.w),
+						'--ar': String(l.ar),
+						zIndex: dragging ? DRAG_Z : widgetZ(i),
+					} as CSSProperties;
+					return (
+						<div
+							key={item.key}
+							className={`canvas-item canvas-widget-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`}
+							style={vars}
+							onPointerDown={editable ? (event) => startWidgetDrag(event, widget, i, 'move') : undefined}
+							onClickCapture={
+								editable
+									? (event) => {
+											if (draggedClickRef.current !== widget.id) return;
+											event.preventDefault();
+											event.stopPropagation();
+											draggedClickRef.current = null;
+										}
+									: undefined
+							}
+						>
+							<div className="canvas-widget-content">{widget.content}</div>
+							{editable && (
+								<span
+									className="canvas-resize canvas-widget-resize"
+									onPointerDown={(event) => startWidgetDrag(event, widget, i, 'resize')}
+									title="Resize carousel"
+									aria-hidden="true"
+								/>
+							)}
+						</div>
+					);
+				}
 				const i = item.index;
 				const text = shownTexts[i];
 				const l = textLayouts[i];
@@ -852,7 +995,15 @@ export default function CanvasGallery({
 					} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
 						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={editable ? (e) => startTextDrag(e, text, i, 'move') : undefined}>
 						<div className={`canvas-text align-${text.align ?? 'left'}`}>
-							{text.text.trim() ? <TextContent text={text.text} style={text.style} link={editable ? undefined : text.link} /> : <em className="canvas-text-empty">Empty text — write in the panel</em>}
+							{text.text.trim() ? (
+								<TextContent
+									text={text.text}
+									richText={text.richText}
+									fontFamily={text.fontFamily}
+									style={text.style}
+									link={editable ? undefined : text.link}
+								/>
+							) : <em className="canvas-text-empty">Empty text — write in the panel</em>}
 						</div>
 						{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startTextDrag(e, text, i, 'resize')} aria-hidden="true" />}
 					</div>

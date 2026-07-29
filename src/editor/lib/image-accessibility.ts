@@ -12,14 +12,16 @@ export interface AccessibleImageUpload {
 
 export function imageAccessibilityComplete(
 	rows: readonly ImageAccessibilityChoice[],
+	required = true,
 ): boolean {
-	return rows.every((row) => row.decorative || row.alt.trim().length > 0);
+	return !required || rows.every((row) => row.decorative || row.alt.trim().length > 0);
 }
 
 export function normalizeAccessibleImages(
 	rows: readonly ImageAccessibilityChoice[],
+	required = true,
 ): AccessibleImageUpload[] {
-	if (!imageAccessibilityComplete(rows))
+	if (!imageAccessibilityComplete(rows, required))
 		throw new Error('Every image needs alt text or an explicit decorative choice.');
 	return rows.map((row) => ({
 		file: row.file,

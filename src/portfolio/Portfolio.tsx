@@ -18,6 +18,14 @@ export interface PortfolioProps extends PortfolioData {
 	/** Editor preview: reports a video embed placed/moved on the page canvas. */
 	onEmbedLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onCanvasLayouts?: (page: string, folder: string, updates: CanvasLayoutUpdates) => void;
+	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onCarouselHost?: (
+		page: string,
+		blockId: string,
+		hostId: string | undefined,
+		layout?: ImageLayout,
+	) => void;
+	onCarouselFocus?: (folder: string, imageId: string, focusX: number, focusY: number) => void;
 	resizeBreakpoint?: SectionBreakpoint;
 	onSectionHeight?: (
 		page: string,
@@ -35,7 +43,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const headerMode =
 		content.site.headerMode ??
@@ -89,6 +97,9 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
 					onCanvasLayouts={onCanvasLayouts}
+					onCarouselFrame={onCarouselFrame}
+					onCarouselHost={onCarouselHost}
+					onCarouselFocus={onCarouselFocus}
 					resizeBreakpoint={resizeBreakpoint}
 					onSectionHeight={onSectionHeight}
 					onFooterHeight={onFooterHeight}

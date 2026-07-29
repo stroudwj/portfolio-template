@@ -22,6 +22,9 @@ export interface ImageMeta {
 	h?: number;
 	/** Freeform canvas placement (set the first time the image is arranged). */
 	layout?: ImageLayout;
+	/** Carousel fill-mode focal point, in source-image percentages. */
+	focusX?: number;
+	focusY?: number;
 }
 
 /** One image in a gallery (or the profile image), in the editor's working state. */

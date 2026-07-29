@@ -9,18 +9,20 @@ import { Modal } from './ui/Modal';
 export default function ImageAccessibilityModal({
 	files,
 	replacingSample = false,
+	required = true,
 	onCancel,
 	onConfirm,
 }: {
 	files: File[];
 	replacingSample?: boolean;
+	required?: boolean;
 	onCancel: () => void;
 	onConfirm: (images: AccessibleImageUpload[]) => void;
 }) {
 	const [rows, setRows] = useState(() =>
 		files.map((file) => ({ file, alt: '', decorative: false })),
 	);
-	const complete = imageAccessibilityComplete(rows);
+	const complete = imageAccessibilityComplete(rows, required);
 
 	return (
 		<Modal
@@ -35,7 +37,7 @@ export default function ImageAccessibilityModal({
 						type="button"
 						className="btn-primary"
 						disabled={!complete}
-						onClick={() => onConfirm(normalizeAccessibleImages(rows))}
+						onClick={() => onConfirm(normalizeAccessibleImages(rows, required))}
 					>
 						{replacingSample ? 'Replace sample image' : `Add image${files.length === 1 ? '' : 's'}`}
 					</button>
@@ -43,7 +45,9 @@ export default function ImageAccessibilityModal({
 			}
 		>
 			<p className="modal-lead">
-				Add concise alt text describing what matters in the image, or explicitly mark it decorative. This choice is required for every new upload.
+				{required
+					? 'Add concise alt text describing what matters in the image, or explicitly mark it decorative. This choice is required for every new upload.'
+					: 'Alt text is optional for this image group. Add it when the image communicates information, or continue without it.'}
 			</p>
 			{replacingSample && (
 				<p className="sample-replacement-note">

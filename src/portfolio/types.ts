@@ -16,8 +16,10 @@ import type {
 	StoreConfig,
 	StoreProduct,
 	TextAlign,
+	TextFlowLayout,
 	TextLayout,
 	TextStyle,
+	RichTextParagraph,
 	ResponsiveSectionHeight,
 } from '../lib/content';
 
@@ -32,8 +34,10 @@ export type {
 	StoreConfig,
 	StoreProduct,
 	TextAlign,
+	TextFlowLayout,
 	TextLayout,
 	TextStyle,
+	RichTextParagraph,
 	ResponsiveSectionHeight,
 };
 
@@ -48,6 +52,8 @@ export interface CanvasLayoutUpdates {
 export interface CanvasText {
 	id: string;
 	text: string;
+	richText?: RichTextParagraph[];
+	fontFamily?: string;
 	align?: TextAlign;
 	style?: TextStyle;
 	link?: string;
@@ -85,6 +91,9 @@ export interface ResolvedImage {
 	layout?: ImageLayout;
 	/** Natural width/height ratio when the resolver knows it (Astro build does). */
 	ar?: number;
+	/** Carousel fill-mode focal point, in source-image percentages. */
+	focusX?: number;
+	focusY?: number;
 }
 
 /** Everything the portfolio needs to render, with images already resolved. */

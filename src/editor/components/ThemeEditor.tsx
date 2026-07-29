@@ -6,16 +6,7 @@ import { Field, Section } from './ui/controls';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
 import type { PageHeadingPosition } from '../../lib/content';
 import { compatibleThemePresets } from '../lib/templates';
-
-const FONTS: Array<{ label: string; value: string }> = [
-	{ label: 'Helvetica — clean sans', value: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
-	{ label: 'System — native sans', value: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
-	{ label: 'Futura — geometric sans', value: 'Futura, "Century Gothic", "Trebuchet MS", sans-serif' },
-	{ label: 'Georgia — classic serif', value: 'Georgia, "Times New Roman", serif' },
-	{ label: 'Palatino — bookish serif', value: '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif' },
-	{ label: 'Garamond — elegant serif', value: 'Garamond, "Apple Garamond", "EB Garamond", Georgia, serif' },
-	{ label: 'Courier — typewriter mono', value: '"Courier New", Courier, monospace' },
-];
+import { customFontValue, fontOptionsForTheme } from '../lib/font-options';
 
 type ColorKey = 'backgroundColor' | 'textColor' | 'mutedTextColor' | 'accentColor';
 
@@ -28,9 +19,6 @@ const COLOR_FIELDS: Array<{ key: ColorKey; label: string }> = [
 
 const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
 
-/** The fontFamily value a custom font is selected as. */
-const customFontValue = (name: string) => `"${name}", sans-serif`;
-
 export default function ThemeEditor() {
 	const { doc, setTheme, applyThemePreset, addCustomFont, removeCustomFont } = useEditor();
 	const fontInputRef = useRef<HTMLInputElement>(null);
@@ -38,10 +26,7 @@ export default function ThemeEditor() {
 	if (!doc) return null;
 	const theme = doc.content.theme;
 	const customFonts = theme.customFonts ?? [];
-	const options = [
-		...FONTS,
-		...customFonts.map((f) => ({ label: `${f.name} — your font`, value: customFontValue(f.name) })),
-	];
+	const options = fontOptionsForTheme(theme);
 	const fontKnown = options.some((f) => f.value === theme.fontFamily);
 	const headingFont = theme.headingFontFamily ?? '';
 	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
@@ -52,6 +37,13 @@ export default function ThemeEditor() {
 	const pageHeadingX = theme.pageHeadingX ?? 50;
 	const pageHeadingY = theme.pageHeadingY ?? 56;
 	const presets = compatibleThemePresets(doc);
+	const textBoxFonts = new Set(
+		Object.values(doc.content.pages).flatMap((page) =>
+			(page.blocks ?? []).flatMap((block) =>
+				block.type === 'text' && block.fontFamily ? [block.fontFamily] : [],
+			),
+		),
+	);
 
 	const applySubheadingScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -307,7 +299,11 @@ export default function ThemeEditor() {
 					<span className="font-row-name" style={{ fontFamily: customFontValue(f.name) }}>
 						{f.name}
 					</span>
-					{theme.fontFamily === customFontValue(f.name) && <span className="count">in use</span>}
+					{(
+						theme.fontFamily === customFontValue(f.name) ||
+						theme.headingFontFamily === customFontValue(f.name) ||
+						textBoxFonts.has(customFontValue(f.name))
+					) && <span className="count">in use</span>}
 					<button
 						type="button"
 						className="btn-icon danger"

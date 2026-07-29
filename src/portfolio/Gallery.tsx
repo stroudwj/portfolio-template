@@ -21,9 +21,26 @@ import type {
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import CanvasGallery from './CanvasGallery';
+import {
+	bottomOf,
+	clampLayout,
+	columnEdges,
+	columnSpans,
+	EDGE_SNAP,
+	MIN_W,
+	nearestEdge,
+	roundLayout,
+	snapSpanToCenter,
+	snapSpanToEdges,
+	snapTo,
+	snapToEdges,
+} from './canvasLayout';
+import { guideById, useGridPrefs } from './gridPrefs';
 import './Gallery.css';
 
 export const GRID_MAX_SPAN = 4;
+export const DEFAULT_CAROUSEL_FRAME: ImageLayout = { x: 20, y: 12.5, w: 60, ar: 16 / 10 };
+const MIN_CAROUSEL_CANVAS_HEIGHT = 62.5;
 
 const clampSpan = (value: number | undefined): number =>
 	Math.min(Math.max(Math.round(value ?? 1), 1), GRID_MAX_SPAN);
@@ -87,6 +104,26 @@ export interface GalleryProps {
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
 	/** Reports one atomic mixed-item canvas move (editor only). */
 	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
+	/** Reports carousel frame movement/resizing (editor only). */
+	onCarouselFrameChange?: (layout: ImageLayout) => void;
+	/** Reports an explicit drop of a standalone carousel onto a freeform canvas. */
+	onCarouselHostChange?: (hostId: string, layout: ImageLayout) => void;
+	/** Reports the crop focal point for one carousel image (editor only). */
+	onCarouselFocusChange?: (id: string, focusX: number, focusY: number) => void;
+	/** Carousels owned by other image-group blocks but hosted on this freeform canvas. */
+	carouselWidgets?: CarouselWidget[];
+	/** Reports movement/resizing for a carousel hosted by this freeform canvas. */
+	onCarouselWidgetLayout?: (id: string, layout: ImageLayout) => void;
+	/** Render only the carousel itself; an outer CanvasGallery owns its frame. */
+	embeddedCarousel?: boolean;
+}
+
+export interface CarouselWidget {
+	id: string;
+	images: ResolvedImage[];
+	settings: GalleryConfig;
+	alt?: string;
+	onFocusChange?: (id: string, focusX: number, focusY: number) => void;
 }
 
 /**
@@ -108,13 +145,28 @@ export default function Gallery({
 	onTextLayout,
 	onEmbedLayout,
 	onBulkLayoutChange,
+	onCarouselFrameChange,
+	onCarouselHostChange,
+	onCarouselFocusChange,
+	carouselWidgets = [],
+	onCarouselWidgetLayout,
+	embeddedCarousel = false,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
+	const [carouselPosition, setCarouselPosition] = useState(0);
+	const [carouselFrameDraft, setCarouselFrameDraft] = useState<ImageLayout | null>(null);
+	const [carouselFocusDraft, setCarouselFocusDraft] = useState<{ id: string; x: number; y: number } | null>(null);
+	const [carouselSelected, setCarouselSelected] = useState(false);
+	const [carouselCenterGuide, setCarouselCenterGuide] = useState(false);
 	const open = openIndex !== null ? images[openIndex] : null;
 	const isOpen = openIndex !== null;
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
 	const returnFocusRef = useRef<HTMLElement | null>(null);
+	const galleryRootRef = useRef<HTMLDivElement | null>(null);
+	const cropDraggedRef = useRef(false);
+	const frameDraggedRef = useRef(false);
+	const gridPrefs = useGridPrefs();
 	const dialogTitleId = useId();
 	const dialogCaptionId = useId();
 	// The <body> this gallery actually renders in (the editor preview can run
@@ -123,6 +175,7 @@ export default function Gallery({
 	const [host, setHost] = useState<HTMLElement | null>(null);
 	const [isPhone, setIsPhone] = useState(false);
 	const setGalleryRoot = useCallback((el: HTMLDivElement | null) => {
+		galleryRootRef.current = el;
 		setHost(el ? el.ownerDocument.body : null);
 	}, []);
 	const closeLightbox = useCallback(() => setOpenIndex(null), []);
@@ -143,6 +196,25 @@ export default function Gallery({
 				return isPhone && hidden ? [] : [i];
 			}),
 		[isPhone, renderedImages, settings?.mobile?.items],
+	);
+	const carouselEntries = useMemo(
+		() =>
+			renderedImages.filter(({ img, i }) => {
+				const hidden = settings?.mobile?.items?.[imagePhoneKey(img, i)]?.hidden;
+				return !isPhone || !hidden;
+			}),
+		[isPhone, renderedImages, settings?.mobile?.items],
+	);
+	const activeCarouselEntry = carouselEntries[carouselPosition] ?? carouselEntries[0];
+	const moveCarousel = useCallback(
+		(direction: -1 | 1) => {
+			if (carouselEntries.length < 2) return;
+			setCarouselFocusDraft(null);
+			setCarouselPosition(
+				(current) => (current + direction + carouselEntries.length) % carouselEntries.length,
+			);
+		},
+		[carouselEntries.length],
 	);
 	const openLightbox = useCallback(
 		(index: number, trigger?: HTMLElement) => {
@@ -172,6 +244,212 @@ export default function Gallery({
 		e.preventDefault();
 		openLightbox(index, e.currentTarget);
 	};
+	const savedCarouselFrame = settings?.carouselFrame ?? DEFAULT_CAROUSEL_FRAME;
+	const carouselFrame = carouselFrameDraft ?? savedCarouselFrame;
+	const carouselFit = settings?.carouselFit ?? 'fit';
+	// Keep the section height stable during a gesture. Otherwise dragging a
+	// standalone carousel downward pushes a target canvas away from the pointer.
+	const carouselCanvasHeight = Math.max(MIN_CAROUSEL_CANVAS_HEIGHT, bottomOf(savedCarouselFrame));
+	const carouselGuide = guideById(gridPrefs.guide);
+	const carouselGuideSnap = editable && gridPrefs.snap && carouselGuide.kind !== 'off';
+	const carouselSquareStep =
+		carouselGuideSnap && carouselGuide.kind === 'squares' ? 100 / carouselGuide.n : 0;
+	const carouselColumnEdges =
+		carouselGuideSnap && carouselGuide.kind === 'columns' ? columnEdges(carouselGuide.n) : [];
+	const snapCarouselX = (value: number): number =>
+		carouselColumnEdges.length ? snapToEdges(value, carouselColumnEdges) : snapTo(value, carouselSquareStep);
+	const snapCarouselY = (value: number): number => snapTo(value, carouselSquareStep);
+
+	const startCarouselFrameGesture = (
+		event: React.PointerEvent<HTMLElement>,
+		mode: 'move' | 'resize',
+	) => {
+		if (!editable || !onCarouselFrameChange || event.button !== 0) return;
+		const root = galleryRootRef.current;
+		const stage = root?.querySelector<HTMLElement>('.inline-carousel-stage');
+		if (!root || !stage) return;
+		event.preventDefault();
+		event.stopPropagation();
+		setCarouselSelected(true);
+		const win = root.ownerDocument.defaultView ?? window;
+		const rootRect = root.getBoundingClientRect();
+		if (!rootRect.width) return;
+		const from = carouselFrame;
+		const startX = event.clientX;
+		const startY = event.clientY;
+		let draft = from;
+		frameDraggedRef.current = false;
+		const move = (next: PointerEvent) => {
+			const dx = ((next.clientX - startX) / rootRect.width) * 100;
+			const dy = ((next.clientY - startY) / rootRect.width) * 100;
+			if (Math.abs(dx) + Math.abs(dy) > 0.3) frameDraggedRef.current = true;
+			if (mode === 'move') {
+				let x = snapCarouselX(from.x + dx);
+				let y = snapCarouselY(from.y + dy);
+				if (gridPrefs.edgeSnap) {
+					x = snapSpanToEdges(x, from.w, [0, 100]);
+					y = snapSpanToEdges(y, from.w / from.ar, [0, MIN_CAROUSEL_CANVAS_HEIGHT]);
+				}
+				if (gridPrefs.centerSnap) {
+					const centered = snapSpanToCenter(x, from.w);
+					x = centered.value;
+					setCarouselCenterGuide(centered.snapped);
+				} else {
+					setCarouselCenterGuide(false);
+				}
+				draft = clampLayout({ ...from, x, y });
+			} else {
+				setCarouselCenterGuide(false);
+				if (settings?.carouselFreeResize === true) {
+					let width = Math.min(Math.max(from.w + dx, MIN_W), 100 - from.x);
+					let height = Math.max(from.w / from.ar + dy, MIN_W);
+					if (carouselGuideSnap) {
+						width = Math.max(snapCarouselX(from.x + width) - from.x, MIN_W);
+						height = Math.max(snapCarouselY(from.y + height) - from.y, MIN_W);
+					}
+					if (gridPrefs.edgeSnap) {
+						const right = nearestEdge(from.x + width, [0, 100], EDGE_SNAP);
+						const bottom = nearestEdge(
+							from.y + height,
+							[0, MIN_CAROUSEL_CANVAS_HEIGHT],
+							EDGE_SNAP,
+						);
+						if (right !== null) width = Math.max(right - from.x, MIN_W);
+						if (bottom !== null) height = Math.max(bottom - from.y, MIN_W);
+					}
+					draft = clampLayout({
+						...from,
+						w: width,
+						ar: Math.min(Math.max(width / height, 0.2), 5),
+					});
+					setCarouselFrameDraft(draft);
+					return;
+				}
+				let width = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
+				if (carouselGuideSnap) width = snapCarouselX(from.x + width) - from.x;
+				if (gridPrefs.edgeSnap) {
+					const right = nearestEdge(from.x + width, [0, 100], EDGE_SNAP);
+					const bottom = nearestEdge(from.y + width / from.ar, [0, MIN_CAROUSEL_CANVAS_HEIGHT], EDGE_SNAP);
+					const widthAtRight = right === null ? null : right - from.x;
+					const widthAtBottom = bottom === null ? null : (bottom - from.y) * from.ar;
+					const rightDistance = widthAtRight === null ? Infinity : Math.abs(widthAtRight - width);
+					const bottomDistance = widthAtBottom === null ? Infinity : Math.abs(widthAtBottom - width);
+					if (rightDistance <= bottomDistance && rightDistance < Infinity) width = widthAtRight as number;
+					else if (bottomDistance < Infinity) width = widthAtBottom as number;
+				}
+				draft = clampLayout({ ...from, w: Math.max(width, MIN_W) });
+			}
+			setCarouselFrameDraft(draft);
+		};
+		const up = (next: PointerEvent) => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			setCarouselCenterGuide(false);
+			setCarouselFrameDraft(null);
+			if (
+				next.type !== 'pointercancel' &&
+				mode === 'move' &&
+				frameDraggedRef.current &&
+				onCarouselHostChange
+			) {
+				const target = Array.from(
+					root.ownerDocument.querySelectorAll<HTMLElement>('[data-carousel-canvas-host]'),
+				)
+					.map((wrapper) => ({
+						hostId: wrapper.dataset.carouselCanvasHost,
+						canvas: wrapper.querySelector<HTMLElement>('.canvas-gallery'),
+					}))
+					.find(({ hostId, canvas }) => {
+						if (!hostId || !canvas || root.contains(canvas)) return false;
+						const rect = canvas.getBoundingClientRect();
+						return (
+							next.clientX >= rect.left &&
+							next.clientX <= rect.right &&
+							next.clientY >= rect.top &&
+							next.clientY <= rect.bottom
+						);
+					});
+				if (target?.hostId && target.canvas) {
+					const targetRect = target.canvas.getBoundingClientRect();
+					const scale = 100 / targetRect.width;
+					const dropped = clampLayout({
+						x: (rootRect.left + (draft.x / 100) * rootRect.width - targetRect.left) * scale,
+						y: (rootRect.top + (draft.y / 100) * rootRect.width - targetRect.top) * scale,
+						w: (draft.w / 100) * rootRect.width * scale,
+						ar: draft.ar,
+					});
+					onCarouselHostChange(target.hostId, roundLayout(dropped));
+					return;
+				}
+			}
+			if (frameDraggedRef.current) onCarouselFrameChange(roundLayout(draft));
+		};
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+	};
+
+	const startCarouselCrop = (
+		event: React.PointerEvent<HTMLImageElement>,
+		id: string,
+		focusX: number,
+		focusY: number,
+	) => {
+		if (!editable || settings?.carouselMoveImage !== true || !onCarouselFocusChange || event.button !== 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		setCarouselSelected(true);
+		const image = event.currentTarget;
+		const rect = image.getBoundingClientRect();
+		const naturalWidth = image.naturalWidth || rect.width;
+		const naturalHeight = image.naturalHeight || rect.height;
+		const imageScale =
+			carouselFit === 'fill'
+				? Math.max(rect.width / naturalWidth, rect.height / naturalHeight)
+				: Math.min(rect.width / naturalWidth, rect.height / naturalHeight);
+		const scaledWidth = naturalWidth * imageScale;
+		const scaledHeight = naturalHeight * imageScale;
+		const travelX =
+			carouselFit === 'fill'
+				? Math.max(scaledWidth - rect.width, 0)
+				: Math.max(rect.width - scaledWidth, 0);
+		const travelY =
+			carouselFit === 'fill'
+				? Math.max(scaledHeight - rect.height, 0)
+				: Math.max(rect.height - scaledHeight, 0);
+		const direction = carouselFit === 'fill' ? -1 : 1;
+		const win = image.ownerDocument.defaultView ?? window;
+		const startX = event.clientX;
+		const startY = event.clientY;
+		let nextX = focusX;
+		let nextY = focusY;
+		cropDraggedRef.current = false;
+		const move = (next: PointerEvent) => {
+			const dx = next.clientX - startX;
+			const dy = next.clientY - startY;
+			if (Math.abs(dx) + Math.abs(dy) > 3) cropDraggedRef.current = true;
+			nextX =
+				travelX > 0.5
+					? Math.min(Math.max(focusX + direction * (dx / travelX) * 100, 0), 100)
+					: focusX;
+			nextY =
+				travelY > 0.5
+					? Math.min(Math.max(focusY + direction * (dy / travelY) * 100, 0), 100)
+					: focusY;
+			setCarouselFocusDraft({ id, x: nextX, y: nextY });
+		};
+		const up = () => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			setCarouselFocusDraft(null);
+			if (cropDraggedRef.current) onCarouselFocusChange(id, Math.round(nextX), Math.round(nextY));
+		};
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+	};
 
 	useEffect(() => {
 		const win = host?.ownerDocument.defaultView;
@@ -186,6 +464,10 @@ export default function Gallery({
 	useEffect(() => {
 		if (openIndex !== null && !lightboxIndices.includes(openIndex)) closeLightbox();
 	}, [closeLightbox, lightboxIndices, openIndex]);
+
+	useEffect(() => {
+		setCarouselPosition((current) => Math.min(current, Math.max(carouselEntries.length - 1, 0)));
+	}, [carouselEntries.length]);
 
 	useEffect(() => {
 		if (!isOpen || !host) return;
@@ -253,7 +535,15 @@ export default function Gallery({
 		};
 	}, [closeLightbox, host, isOpen, moveLightbox]);
 
-	if (images.length === 0 && !texts?.length && !embeds?.length) {
+	const editableEmptyCanvas =
+		editable && settings?.carousel !== true && settings?.layout !== 'grid';
+	if (
+		images.length === 0 &&
+		!texts?.length &&
+		!embeds?.length &&
+		carouselWidgets.length === 0 &&
+		!editableEmptyCanvas
+	) {
 		return (
 			<div className="gallery-empty">
 				<p>This page is empty… add some images, text, or videos.</p>
@@ -262,10 +552,45 @@ export default function Gallery({
 	}
 
 	const uniformMode = settings?.layout === 'grid';
+	const carouselMode = settings?.carousel === true;
 	const canvasMode =
-		!uniformMode && (editable || images.some((img) => img.layout) || !!texts?.length || !!embeds?.length);
+		!carouselMode &&
+		!uniformMode &&
+		(editable || images.some((img) => img.layout) || !!texts?.length || !!embeds?.length || carouselWidgets.length > 0);
 	const cols = uniformColumns(settings?.columns);
 	const cellAr = parseAspect(settings?.aspect);
+	const carouselRootStyle = carouselMode
+		&& !embeddedCarousel
+		? ({
+				'--carousel-ch': String(carouselCanvasHeight),
+			} as CSSProperties)
+		: undefined;
+	const carouselItemStyle = carouselMode
+		&& !embeddedCarousel
+		? ({
+				'--carousel-x': String(carouselFrame.x),
+				'--carousel-y': String((carouselFrame.y / carouselCanvasHeight) * 100),
+				'--carousel-w': String(carouselFrame.w),
+				'--carousel-ar': String(carouselFrame.ar),
+			} as CSSProperties)
+		: undefined;
+	const canvasCarouselWidgets = carouselWidgets.map((widget) => ({
+		id: widget.id,
+		layout: widget.settings.carouselFrame ?? DEFAULT_CAROUSEL_FRAME,
+		freeResize: widget.settings.carouselFreeResize === true,
+		moveImage: widget.settings.carouselMoveImage === true,
+		content: (
+			<Gallery
+				key={widget.id}
+				images={widget.images}
+				alt={widget.alt}
+				settings={widget.settings}
+				editable={editable}
+				embeddedCarousel
+				onCarouselFocusChange={widget.onFocusChange}
+			/>
+		),
+	}));
 
 	const modal = open && openIndex !== null ? (
 		<div
@@ -299,13 +624,28 @@ export default function Gallery({
 					aria-label="Show previous image"
 					onClick={() => moveLightbox(-1)}
 				>
-					‹
+					◀
 				</button>
 			)}
 			<figure className="modal-figure">
 				<img
 					src={open.full ?? open.src}
 					alt={open.decorative ? '' : open.alt || open.title || 'Full resolution portfolio piece'}
+					className={lightboxIndices.length > 1 ? 'lightbox-clickable' : undefined}
+					role={lightboxIndices.length > 1 ? 'button' : undefined}
+					tabIndex={lightboxIndices.length > 1 ? 0 : undefined}
+					title={lightboxIndices.length > 1 ? 'Show next image' : undefined}
+					onClick={lightboxIndices.length > 1 ? () => moveLightbox(1) : undefined}
+					onKeyDown={
+						lightboxIndices.length > 1
+							? (event) => {
+									if (event.key === 'Enter' || event.key === ' ') {
+										event.preventDefault();
+										moveLightbox(1);
+									}
+								}
+							: undefined
+					}
 					onError={
 						open.sample
 							? (event) => showSampleUnavailable(event.currentTarget)
@@ -331,15 +671,168 @@ export default function Gallery({
 					aria-label="Show next image"
 					onClick={() => moveLightbox(1)}
 				>
-					›
+					▶
 				</button>
 			)}
 		</div>
 	) : null;
 
 	return (
-		<div ref={setGalleryRoot} className="gallery-root" data-phone-ready={isPhone ? 'true' : undefined}>
-			{uniformMode ? (
+		<div
+			ref={setGalleryRoot}
+			className={`gallery-root ${
+				carouselMode ? (embeddedCarousel ? 'carousel-embedded-root' : 'carousel-gallery-root') : ''
+			} ${carouselMode && editable ? 'carousel-editable' : ''}`}
+			data-phone-ready={isPhone ? 'true' : undefined}
+			style={carouselRootStyle}
+			onPointerDown={
+				carouselMode && editable && !embeddedCarousel
+					? (event) => {
+							if (event.target === event.currentTarget) setCarouselSelected(false);
+						}
+					: undefined
+			}
+		>
+			{carouselMode && activeCarouselEntry ? (
+				<>
+					{editable && !embeddedCarousel && carouselCenterGuide && (
+						<div className="carousel-center-guide canvas-center-guide" aria-hidden="true" />
+					)}
+					{editable && !embeddedCarousel && carouselGuide.kind === 'squares' && (
+						<div
+							className="carousel-grid-overlay canvas-grid-overlay"
+							style={
+								{
+									'--gn': String(carouselGuide.n),
+									'--gh': `${(10000 / (carouselGuide.n * carouselCanvasHeight)).toFixed(4)}%`,
+								} as CSSProperties
+							}
+							aria-hidden="true"
+						/>
+					)}
+					{editable && !embeddedCarousel && carouselGuide.kind === 'columns' && (
+						<div className="carousel-column-overlay canvas-column-overlay" aria-hidden="true">
+							{columnSpans(carouselGuide.n).map(({ x, w }, index) => (
+								<span key={index} style={{ left: `${x}%`, width: `${w}%` }} />
+							))}
+						</div>
+					)}
+					<section
+						className={`inline-carousel ${embeddedCarousel ? '' : 'carousel-canvas-item'} ${carouselSelected ? 'selected' : ''}`}
+						role="region"
+						aria-roledescription="carousel"
+						aria-label={`${settings?.alt || alt} carousel`}
+						style={carouselItemStyle}
+					>
+					<div className="inline-carousel-frame">
+					<div
+						className={`inline-carousel-stage ${carouselFit === 'fill' ? 'fill' : 'fit'}`}
+						onPointerDown={
+							editable && !embeddedCarousel && onCarouselFrameChange
+								? (event) => {
+										const target = event.target as HTMLElement;
+										if (target.closest('button')) return;
+										if (settings?.carouselMoveImage === true && target.closest('img')) return;
+										startCarouselFrameGesture(event, 'move');
+									}
+								: undefined
+						}
+					>
+						<img
+							key={activeCarouselEntry.img.id ?? activeCarouselEntry.img.src}
+							src={activeCarouselEntry.img.src}
+							srcSet={activeCarouselEntry.img.srcSet}
+							alt={
+								activeCarouselEntry.img.decorative
+									? ''
+									: activeCarouselEntry.img.alt || activeCarouselEntry.img.title || alt
+							}
+							className="inline-carousel-image lightbox-trigger"
+							decoding="async"
+							draggable={false}
+							role="button"
+							tabIndex={0}
+							aria-haspopup="dialog"
+							aria-label={`Open ${activeCarouselEntry.img.title || activeCarouselEntry.img.alt || alt} in image viewer`}
+							style={{
+								objectPosition: `${
+									carouselFocusDraft?.id === activeCarouselEntry.img.id
+										? carouselFocusDraft?.x
+										: activeCarouselEntry.img.focusX ?? 50
+								}% ${
+									carouselFocusDraft?.id === activeCarouselEntry.img.id
+										? carouselFocusDraft?.y
+										: activeCarouselEntry.img.focusY ?? 50
+								}%`,
+							}}
+							onError={
+								activeCarouselEntry.img.sample
+									? (event) => showSampleUnavailable(event.currentTarget)
+									: undefined
+							}
+							onPointerDown={(event) =>
+								startCarouselCrop(
+									event,
+									activeCarouselEntry.img.id ?? String(activeCarouselEntry.i),
+									activeCarouselEntry.img.focusX ?? 50,
+									activeCarouselEntry.img.focusY ?? 50,
+								)
+							}
+							onClick={(event) => {
+								if (cropDraggedRef.current || frameDraggedRef.current) {
+									cropDraggedRef.current = false;
+									frameDraggedRef.current = false;
+									return;
+								}
+								openLightbox(activeCarouselEntry.i, event.currentTarget);
+							}}
+							onKeyDown={(event) => openFromKeyboard(event, activeCarouselEntry.i)}
+						/>
+						{carouselEntries.length > 1 && (
+							<>
+								<button
+									type="button"
+									className="inline-carousel-nav previous"
+									aria-label="Show previous image"
+									onClick={() => moveCarousel(-1)}
+								>
+									◀
+								</button>
+								<button
+									type="button"
+									className="inline-carousel-nav next"
+									aria-label="Show next image"
+									onClick={() => moveCarousel(1)}
+								>
+									▶
+								</button>
+							</>
+						)}
+					</div>
+					{editable && !embeddedCarousel && onCarouselFrameChange && (
+						<span
+							className="canvas-resize carousel-frame-resize"
+							title="Resize carousel"
+							onPointerDown={(event) => startCarouselFrameGesture(event, 'resize')}
+							aria-hidden="true"
+						/>
+					)}
+					</div>
+					{settings?.carouselShowTitle === true && activeCarouselEntry.img.title && (
+						<p className="inline-carousel-title">{activeCarouselEntry.img.title}</p>
+					)}
+					{settings?.carouselShowCount !== false && carouselEntries.length > 1 && (
+							<p
+								className="inline-carousel-count"
+								aria-live="polite"
+								aria-label={`Image ${carouselPosition + 1} of ${carouselEntries.length}`}
+							>
+								{carouselPosition + 1} / {carouselEntries.length}
+							</p>
+						)}
+					</section>
+				</>
+			) : uniformMode ? (
 				<div
 					className={`uniform-grid ${cellAr ? 'cropped' : ''}`}
 					style={{
@@ -381,6 +874,7 @@ export default function Gallery({
 					images={images}
 					texts={texts}
 					embeds={embeds}
+					widgets={canvasCarouselWidgets}
 					alt={alt}
 					mobile={settings?.mobile}
 					phoneActive={isPhone}
@@ -388,6 +882,7 @@ export default function Gallery({
 					onLayoutChange={onLayoutChange}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
+					onWidgetLayout={onCarouselWidgetLayout}
 					onBulkLayoutChange={onBulkLayoutChange}
 					onOpen={editable ? undefined : openLightbox}
 				/>

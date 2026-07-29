@@ -233,12 +233,47 @@ export interface GalleryConfig {
 	columns?: number;
 	/** Grid mode: crop ratio like "1:1" or "4:3"; absent = original ratios (no crop). */
 	aspect?: string;
+	/** Extra image groups may opt into a one-image-at-a-time, click-through carousel. */
+	carousel?: boolean;
+	/** Carousel image sizing: fit shows the full image; fill crops it to the frame. */
+	carouselFit?: 'fit' | 'fill';
+	/** Freeform carousel frame placement and aspect ratio within its page section. */
+	carouselFrame?: ImageLayout;
+	/** Let the carousel frame's width and height resize independently. */
+	carouselFreeResize?: boolean;
+	/** Drag the active image within its frame instead of moving the carousel. Defaults to false. */
+	carouselMoveImage?: boolean;
+	/** Block ID of a freeform image-group canvas this carousel was explicitly dropped onto. */
+	carouselHost?: string;
+	/** Show the current/total number beneath the carousel. Defaults to true. */
+	carouselShowCount?: boolean;
+	/** Show the current image title beneath the carousel. Defaults to false. */
+	carouselShowTitle?: boolean;
+	/** Require alt text or a decorative choice when uploading to this carousel. */
+	carouselRequireAlt?: boolean;
 	/** Opt-in independent phone arrangement. Absent = a complete automatic layout. */
 	mobile?: MobileComposition;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';
 export type TextStyle = 'body' | 'heading' | 'subheading' | 'quote';
+export type RichTextSize = 'body' | 'subheading' | 'heading';
+
+/** One safely-rendered inline run inside a rich text box. */
+export interface RichTextRun {
+	text: string;
+	size?: RichTextSize;
+	bold?: true;
+	italic?: true;
+	underline?: true;
+	strike?: true;
+}
+
+/** One independently aligned paragraph inside a rich text box. */
+export interface RichTextParagraph {
+	align?: TextAlign;
+	runs: RichTextRun[];
+}
 
 export interface FormField {
 	id: string;
@@ -264,6 +299,12 @@ export interface TextLayout {
 	h?: number;
 }
 
+/** Horizontal width and placement for a text box that remains in page flow. */
+export interface TextFlowLayout {
+	x: number;
+	w: number;
+}
+
 /**
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
  * 'embed' is a YouTube/Vimeo video (its optional `layout` pins the player onto
@@ -274,7 +315,24 @@ export interface TextLayout {
  * section (bio, email, social links).
  */
 export type PageBlock =
-	| { id: string; type: 'text'; text: string; align?: TextAlign; style?: TextStyle; link?: string; layout?: TextLayout }
+	| {
+			id: string;
+			type: 'text';
+			/** Plain-text mirror retained for compatibility, search, and empty checks. */
+			text: string;
+			/** Structured inline formatting. Absent means this is a legacy plain-text block. */
+			richText?: RichTextParagraph[];
+			/** Independent box font. Absent stays linked to the page body font. */
+			fontFamily?: string;
+			/** Legacy whole-block alignment used when richText is absent. */
+			align?: TextAlign;
+			/** Legacy whole-block size/style used when richText is absent. */
+			style?: TextStyle;
+			link?: string;
+			/** Width and horizontal position while the box remains in normal flow. */
+			flowLayout?: TextFlowLayout;
+			layout?: TextLayout;
+		}
 	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'images'; gallery: GalleryConfig; /** Editor-only display name so groups are tellable apart. */ name?: string }
@@ -362,6 +420,9 @@ export interface ImageMeta {
 	h?: number;
 	/** Freeform canvas placement. Absent = auto-flowed until first arranged. */
 	layout?: ImageLayout;
+	/** Carousel fill-mode focal point, as percentages of the source image. */
+	focusX?: number;
+	focusY?: number;
 }
 
 export interface GalleryData {

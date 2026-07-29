@@ -68,6 +68,191 @@
 	font-size: 1rem;
 }
 
+/* ---- Inline click-through carousel (optional on extra image groups) ---- */
+.carousel-gallery-root {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 100 / var(--carousel-ch, 62.5);
+}
+
+.inline-carousel.carousel-canvas-item {
+	position: absolute;
+	top: calc(var(--carousel-y, 0) * 1%);
+	left: calc(var(--carousel-x, 0) * 1%);
+	width: calc(var(--carousel-w, 80) * 1%);
+}
+
+.inline-carousel {
+	width: 100%;
+	font-family: var(--font-family);
+}
+
+.inline-carousel-frame {
+	position: relative;
+	width: 100%;
+	aspect-ratio: var(--carousel-ar, 1.6);
+}
+
+.inline-carousel-stage {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: rgba(127, 127, 127, 0.06);
+}
+
+.inline-carousel-image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+}
+
+.inline-carousel-stage.fit .inline-carousel-image {
+	object-fit: contain;
+}
+
+.inline-carousel-stage.fill .inline-carousel-image {
+	object-fit: cover;
+}
+
+.inline-carousel-image.lightbox-trigger {
+	cursor: zoom-in;
+}
+
+.carousel-editable .inline-carousel-stage.fill .inline-carousel-image {
+	cursor: move;
+	touch-action: none;
+}
+
+.carousel-editable .carousel-canvas-item {
+	user-select: none;
+}
+
+.carousel-editable .inline-carousel-stage {
+	cursor: grab;
+	touch-action: none;
+}
+
+.carousel-editable .inline-carousel-stage.fit .inline-carousel-image {
+	cursor: grab;
+}
+
+.carousel-editable .inline-carousel-stage:hover {
+	outline: 1.5px solid #002fa7;
+	outline-offset: 2px;
+}
+
+.carousel-editable .carousel-canvas-item.selected .inline-carousel-stage {
+	outline: 2px solid #002fa7;
+	outline-offset: 2px;
+}
+
+.inline-carousel-nav {
+	position: absolute;
+	top: 50%;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	width: 15.333px;
+	height: 19.333px;
+	padding: 0;
+	border: 0;
+	border-radius: 1.333px;
+	background: rgba(0, 0, 0, 0.42);
+	color: #fff;
+	font-family: var(--font-family);
+	font-size: 6px;
+	font-weight: 500;
+	line-height: 1;
+	cursor: pointer;
+	transform: translateY(-50%);
+	transition: background-color 0.2s ease;
+}
+
+.inline-carousel-nav:hover,
+.inline-carousel-nav:focus-visible {
+	background: rgba(0, 0, 0, 0.7);
+}
+
+.inline-carousel-nav:focus-visible {
+	outline: 1px solid #fff;
+	outline-offset: -1px;
+}
+
+.inline-carousel-nav.previous {
+	left: 4px;
+}
+
+.inline-carousel-nav.next {
+	right: 4px;
+}
+
+.inline-carousel-count {
+	margin: 8px 0 0;
+	color: var(--color-text-muted);
+	font-family: var(--font-family);
+	font-size: 0.8rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.inline-carousel-title {
+	margin: 10px 0 0;
+	color: var(--color-text);
+	font-family: var(--font-family);
+	font-size: 1rem;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.carousel-frame-resize {
+	z-index: 4;
+	touch-action: none;
+}
+
+.carousel-canvas-item:hover .carousel-frame-resize,
+.carousel-canvas-item.selected .carousel-frame-resize {
+	opacity: 1;
+}
+
+.carousel-embedded-root,
+.carousel-embedded-root .inline-carousel {
+	width: 100%;
+	height: 100%;
+}
+
+.carousel-embedded-root .inline-carousel-frame {
+	height: 100%;
+	aspect-ratio: auto;
+}
+
+@media (max-width: 639px) {
+	.carousel-gallery-root {
+		aspect-ratio: auto;
+		width: 100%;
+	}
+	.inline-carousel.carousel-canvas-item {
+		position: static;
+		width: 100%;
+	}
+	.inline-carousel-nav {
+		width: 13.333px;
+		height: 16.667px;
+	}
+	.inline-carousel-nav.previous {
+		left: 2.667px;
+	}
+	.inline-carousel-nav.next {
+		right: 2.667px;
+	}
+}
+
 /* ---- Uniform grid (classic auto-arranged layout) ----
    A plain N-column grid: every image the same width, optionally cropped to one
    aspect ratio (--cell-ar) so rows line up perfectly. No manual placement. */
@@ -149,6 +334,23 @@
 .canvas-item.canvas-text-item {
 	aspect-ratio: auto;
 	height: auto;
+}
+
+.canvas-widget-content {
+	width: 100%;
+	height: 100%;
+}
+
+.canvas-widget-content > .gallery-root,
+.canvas-widget-content .inline-carousel,
+.canvas-widget-content .inline-carousel-frame {
+	width: 100%;
+	height: 100%;
+}
+
+.canvas-widget-item .inline-carousel-stage {
+	height: 100%;
+	aspect-ratio: auto;
 }
 
 .canvas-text {
@@ -367,9 +569,12 @@
 		margin-left: var(--mobile-margin-left, 0);
 		margin-right: var(--mobile-margin-right, 0);
 	}
-	.canvas-gallery:not(.editable) .canvas-item img {
+	.canvas-gallery:not(.editable) .canvas-item:not(.canvas-widget-item) img {
 		height: auto;
 		object-fit: unset;
+	}
+	.canvas-gallery:not(.editable) .canvas-widget-item {
+		aspect-ratio: var(--ar, 1.6);
 	}
 	/* Videos have no intrinsic height — keep the player 16:9 when stacked. */
 	.canvas-gallery:not(.editable) .canvas-item.canvas-embed-item {
@@ -393,6 +598,12 @@
 	opacity: 0;
 	transition: opacity 0.3s ease;
 	pointer-events: none;
+	font-family: var(--font-family);
+}
+
+.modal button,
+.modal a {
+	font-family: var(--font-family);
 }
 
 .modal.show {
@@ -435,6 +646,10 @@
 
 .modal.show img {
 	transform: scale(1);
+}
+
+.modal img.lightbox-clickable {
+	cursor: pointer;
 }
 
 .modal-caption {
@@ -513,8 +728,9 @@
 	border-radius: 4px;
 	background: rgba(0, 0, 0, 0.35);
 	color: rgba(255, 255, 255, 0.8);
-	font: inherit;
-	font-size: 44px;
+	font-family: var(--font-family);
+	font-size: 18px;
+	font-weight: 500;
 	line-height: 1;
 	cursor: pointer;
 	transform: translateY(-50%);

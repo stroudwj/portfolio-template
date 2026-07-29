@@ -10,6 +10,19 @@ import { touchUser } from './lib/db.js';
 import { sessionUser } from './auth.js';
 
 const CHECKOUT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const CHECKOUT_PLANS = new Set(['lifetime', 'monthly']);
+
+function productIdForPlan(env, plan) {
+	return plan === 'monthly' ? env.POLAR_MONTHLY_PRODUCT_ID || '' : env.POLAR_PRODUCT_ID || '';
+}
+
+function configuredProductIds(env) {
+	return new Set([env.POLAR_PRODUCT_ID, env.POLAR_MONTHLY_PRODUCT_ID].filter(Boolean));
+}
+
+function acceptsProduct(env, productId) {
+	return Boolean(productId) && configuredProductIds(env).has(productId);
+}
 
 function polarApiBase(env) {
 	if (env.POLAR_SERVER === 'sandbox') return 'https://sandbox-api.polar.sh/v1';
@@ -56,7 +69,16 @@ function polarHeaders(env) {
 /** POST /checkout/polar — create a hosted Checkout Session for Hangwork. */
 export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 	const apiBase = polarApiBase(env);
-	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !env.POLAR_PRODUCT_ID) {
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'invalid_json' }, 400, corsOrigin);
+	}
+	const plan = typeof body?.plan === 'string' ? body.plan : 'lifetime';
+	if (!CHECKOUT_PLANS.has(plan)) return json({ error: 'invalid_plan' }, 400, corsOrigin);
+	const productId = productIdForPlan(env, plan);
+	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !productId) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
 	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
@@ -66,13 +88,14 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 	const { successUrl, returnUrl } = checkoutReturnUrls(origin, env);
 	const customerIp = request.headers.get('CF-Connecting-IP') || '';
 	const payload = {
-		products: [env.POLAR_PRODUCT_ID],
+		products: [productId],
 		success_url: successUrl,
 		return_url: returnUrl,
 		allow_discount_codes: true,
 		metadata: {
 			source: 'hangwork-editor',
 			environment: env.POLAR_SERVER,
+			plan,
 		},
 		customer_email: user.email,
 		external_customer_id: user.id,
@@ -100,7 +123,7 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 /** POST /checkout/polar/status — confirm the session state after Polar redirects back. */
 export async function polarCheckoutStatus(request, env, corsOrigin) {
 	const apiBase = polarApiBase(env);
-	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !env.POLAR_PRODUCT_ID) {
+	if (!apiBase || !env.POLAR_ACCESS_TOKEN || configuredProductIds(env).size === 0) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
 	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
@@ -127,7 +150,7 @@ export async function polarCheckoutStatus(request, env, corsOrigin) {
 	const data = await response.json().catch(() => ({}));
 	if (
 		!response.ok ||
-		data?.product_id !== env.POLAR_PRODUCT_ID ||
+		!acceptsProduct(env, data?.product_id) ||
 		data?.external_customer_id !== user.id
 	) {
 		const upstreamFailure = !response.ok && response.status !== 404;
@@ -154,6 +177,7 @@ function paidOrder(payload) {
 		customerId: order.customer_id || order.customer?.id || null,
 		externalCustomerId: order.customer?.external_id || null,
 		checkoutId: order.checkout_id || null,
+		subscriptionId: order.subscription_id || null,
 		productId: order.product_id,
 		email,
 		paidAt: payload.timestamp || new Date().toISOString(),
@@ -161,19 +185,20 @@ function paidOrder(payload) {
 }
 
 async function recordPaidOrder(env, order) {
-	if (order.productId !== env.POLAR_PRODUCT_ID) return;
+	if (!acceptsProduct(env, order.productId)) return;
 	const user = order.externalCustomerId
 		? await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(order.externalCustomerId).first()
 		: await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(order.email).first();
 	const createdAt = new Date().toISOString();
 	await env.DB.prepare(
 		`INSERT INTO polar_orders
-			(id, user_id, polar_customer_id, checkout_id, product_id, buyer_email, status, paid_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+			(id, user_id, polar_customer_id, checkout_id, subscription_id, product_id, buyer_email, status, paid_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			user_id = COALESCE(polar_orders.user_id, excluded.user_id),
 			polar_customer_id = excluded.polar_customer_id,
 			checkout_id = excluded.checkout_id,
+			subscription_id = excluded.subscription_id,
 			product_id = excluded.product_id,
 			buyer_email = excluded.buyer_email,
 			status = 'active',
@@ -184,6 +209,7 @@ async function recordPaidOrder(env, order) {
 			user?.id ?? null,
 			order.customerId,
 			order.checkoutId,
+			order.subscriptionId,
 			order.productId,
 			order.email,
 			order.paidAt,
@@ -195,7 +221,16 @@ async function recordPaidOrder(env, order) {
 
 async function revokeOrder(env, payload) {
 	if (payload?.type === 'benefit_grant.revoked') {
-		if (env.POLAR_BENEFIT_ID && payload.data?.benefit_id !== env.POLAR_BENEFIT_ID) return;
+		// Polar automatically revokes subscription benefits when the paid period
+		// ends or payment recovery is exhausted. Revoke every renewal order for
+		// that subscription so an older paid cycle cannot keep access alive.
+		const subscriptionId = payload.data?.subscription_id;
+		if (subscriptionId) {
+			await env.DB.prepare("UPDATE polar_orders SET status = 'revoked' WHERE subscription_id = ?")
+				.bind(subscriptionId)
+				.run();
+			return;
+		}
 		const orderId = payload.data?.order_id;
 		if (orderId) {
 			await env.DB.prepare("UPDATE polar_orders SET status = 'revoked' WHERE id = ?").bind(orderId).run();
@@ -205,7 +240,7 @@ async function revokeOrder(env, payload) {
 
 	if (payload?.type !== 'order.refunded') return;
 	const order = payload.data;
-	if (!order?.id || order.product_id !== env.POLAR_PRODUCT_ID) return;
+	if (!order?.id || !acceptsProduct(env, order.product_id)) return;
 	// A partial refund does not revoke lifetime access; Polar's benefit-grant
 	// revocation event remains authoritative if an operator revokes it manually.
 	if (Number(order.refunded_amount || 0) < Number(order.total_amount || 0)) return;
@@ -214,7 +249,7 @@ async function revokeOrder(env, payload) {
 
 /** POST /webhooks/polar — Standard Webhooks signature auth; no CORS gate. */
 export async function polarWebhook(request, env) {
-	if (!env.POLAR_WEBHOOK_SECRET || !env.POLAR_PRODUCT_ID || !env.DB) {
+	if (!env.POLAR_WEBHOOK_SECRET || configuredProductIds(env).size === 0 || !env.DB) {
 		return new Response('unconfigured', { status: 503 });
 	}
 	const body = await request.text();
@@ -237,4 +272,5 @@ export const _test = {
 	checkoutReturnUrls,
 	isPolarCheckoutUrl,
 	paidOrder,
+	productIdForPlan,
 };

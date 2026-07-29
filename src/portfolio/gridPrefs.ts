@@ -41,11 +41,13 @@ export interface GridPrefs {
 	edgeSnap: boolean;
 	/** Magnetic alignment of an item's/group's horizontal midpoint to the canvas center. */
 	centerSnap: boolean;
+	/** Editor-only section boundary lines and resize handles, visible by default. */
+	sectionEdges: boolean;
 }
 
 function load(): GridPrefs {
 	if (typeof window === 'undefined')
-		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
+		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true, sectionEdges: true };
 	try {
 		const parsed = JSON.parse(window.localStorage.getItem(GRID_PREFS_KEY) ?? '') as Partial<GridPrefs> & {
 			cols?: number;
@@ -58,9 +60,10 @@ function load(): GridPrefs {
 			snap: parsed.snap !== false,
 			edgeSnap: parsed.edgeSnap !== false,
 			centerSnap: parsed.centerSnap !== false,
+			sectionEdges: parsed.sectionEdges !== false,
 		};
 	} catch {
-		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
+		return { guide: 'off', snap: true, edgeSnap: true, centerSnap: true, sectionEdges: true };
 	}
 }
 
@@ -83,7 +86,13 @@ const subscribe = (fn: () => void): (() => void) => {
 };
 
 const getSnapshot = (): GridPrefs => prefs;
-const serverPrefs: GridPrefs = { guide: 'off', snap: true, edgeSnap: true, centerSnap: true };
+const serverPrefs: GridPrefs = {
+	guide: 'off',
+	snap: true,
+	edgeSnap: true,
+	centerSnap: true,
+	sectionEdges: true,
+};
 const getServerSnapshot = (): GridPrefs => serverPrefs;
 
 /** Live guide prefs — re-renders the caller whenever any component changes them. */

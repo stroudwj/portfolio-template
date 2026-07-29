@@ -90,7 +90,8 @@ export default function SectionResizeHandle({
 				onChange(next);
 			}}
 		>
-			<span aria-hidden="true" />
+			<span className="section-resize-line" aria-hidden="true" />
+			<span className="section-resize-icon" aria-hidden="true">↕</span>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 // Geometry for the freeform image canvas. All units are percentages of the
 // canvas WIDTH — including y — so a saved layout scales proportionally at any
 // viewport size and the canvas's total height reduces to one aspect ratio.
-import type { ImageLayout, TextLayout } from '../lib/content';
+import type { ImageLayout, TextFlowLayout, TextLayout } from '../lib/content';
 
 export const DEFAULT_AR = 4 / 3;
 /** Smallest width an image can be resized to, in canvas-width %. */
@@ -26,6 +26,8 @@ export function clampLayout(l: ImageLayout): ImageLayout {
 
 /** Smallest width a canvas text can be resized to, in canvas-width %. */
 export const MIN_TEXT_W = 10;
+/** Smallest useful normal-flow text box width, in content-width %. */
+export const MIN_FLOW_TEXT_W = 20;
 
 /** Aspect ratio of an embedded video player pinned to the canvas. */
 export const EMBED_AR = 16 / 9;
@@ -42,6 +44,26 @@ export const textBottom = (t: TextLayout): number => t.y + (t.h ?? TEXT_H_GUESS)
 export function clampTextLayout(t: TextLayout): TextLayout {
 	const w = Math.min(Math.max(t.w, MIN_TEXT_W), 100);
 	return { ...t, w, x: Math.min(Math.max(t.x, 0), 100 - w), y: Math.max(t.y, 0) };
+}
+
+/** Keep a normal-flow text box inside the page's padded content area. */
+export function clampTextFlowLayout(layout: TextFlowLayout): TextFlowLayout {
+	const w = Math.min(Math.max(layout.w, MIN_FLOW_TEXT_W), 100);
+	return { w, x: Math.min(Math.max(layout.x, 0), 100 - w) };
+}
+
+/** Pointer location in canvas-width units. Re-reading the live rectangle makes
+ * dragging stay attached to the cursor when the page scrolls beneath it. */
+export function pointerInCanvas(
+	clientX: number,
+	clientY: number,
+	rect: { left: number; top: number; width: number },
+): { x: number; y: number } {
+	const scale = rect.width > 0 ? 100 / rect.width : 0;
+	return {
+		x: (clientX - rect.left) * scale,
+		y: (clientY - rect.top) * scale,
+	};
 }
 
 /** Snap a value to the nearest multiple of `step` (no-op for step <= 0). */
@@ -149,6 +171,11 @@ export const roundTextLayout = (t: TextLayout): TextLayout => ({
 	w: round2(t.w),
 	...(t.h !== undefined ? { h: round2(t.h) } : {}),
 });
+
+export const roundTextFlowLayout = (layout: TextFlowLayout): TextFlowLayout => {
+	const clamped = clampTextFlowLayout(layout);
+	return { x: round2(clamped.x), w: round2(clamped.w) };
+};
 
 export interface FlowItem {
 	layout?: ImageLayout;

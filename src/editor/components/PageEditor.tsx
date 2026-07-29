@@ -4,7 +4,7 @@
 // and text are edited in place; nesting is one level deep by design.
 import { useRef } from 'react';
 import { useEditor } from '../store';
-import { Field, TextInput, TextArea, Section, showEditorTab } from './ui/controls';
+import { Field, TextInput, Section, showEditorTab } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
@@ -12,31 +12,30 @@ import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
 import { videoEmbedSrc } from '../../portfolio/videoEmbed';
 import { stripePaymentLink } from '../../portfolio/paymentEmbed';
-import { parseAspect, uniformColumns } from '../../portfolio/Gallery';
-import { DEFAULT_AR, flowMissing, roundLayout, uniformGridLayouts } from '../../portfolio/canvasLayout';
+import { DEFAULT_CAROUSEL_FRAME, parseAspect, uniformColumns } from '../../portfolio/Gallery';
+import {
+	bottomOf,
+	canvasHeight,
+	clampTextFlowLayout,
+	DEFAULT_AR,
+	flowMissing,
+	roundLayout,
+	roundTextLayout,
+	textBottom,
+	uniformGridLayouts,
+} from '../../portfolio/canvasLayout';
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import { isUrl } from '../lib/validation';
-import type { ChildrenStyle, FormField, GalleryConfig, PageBlock, TextAlign, TextStyle } from '../../lib/content';
+import { fontOptionsForTheme } from '../lib/font-options';
+import type { ChildrenStyle, FormField, GalleryConfig, PageBlock, TextAlign } from '../../lib/content';
 import AboutContentEditor from './AboutContentEditor';
+import RichTextEditor from './RichTextEditor';
 
 const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
 	{ value: 'cards', label: 'Thumbnail cards' },
 	{ value: 'large', label: 'Big covers' },
 	{ value: 'list', label: 'List with thumbnails' },
 	{ value: 'index', label: 'Text index (no images)' },
-];
-
-const ALIGNMENTS: Array<{ value: TextAlign; label: string; title: string }> = [
-	{ value: 'left', label: 'L', title: 'Align left' },
-	{ value: 'center', label: 'C', title: 'Align center' },
-	{ value: 'right', label: 'R', title: 'Align right' },
-];
-
-const TEXT_STYLES: Array<{ value: TextStyle; label: string }> = [
-	{ value: 'body', label: 'Body text' },
-	{ value: 'heading', label: 'Large heading' },
-	{ value: 'subheading', label: 'Small heading' },
-	{ value: 'quote', label: 'Quote' },
 ];
 
 const FORM_FIELD_TYPES: Array<{ value: FormField['type']; label: string }> = [
@@ -56,10 +55,37 @@ const CROP_OPTIONS: Array<{ value: string; label: string }> = [
 	{ value: '2:3', label: 'Portrait 2:3' },
 ];
 
+const CAROUSEL_RATIOS = [
+	{ value: '16:9', label: 'Wide 16:9', ar: 16 / 9 },
+	{ value: '16:10', label: 'Landscape 16:10', ar: 16 / 10 },
+	{ value: '3:2', label: 'Landscape 3:2', ar: 3 / 2 },
+	{ value: '4:3', label: 'Landscape 4:3', ar: 4 / 3 },
+	{ value: '1:1', label: 'Square 1:1', ar: 1 },
+	{ value: '3:4', label: 'Portrait 3:4', ar: 3 / 4 },
+	{ value: '2:3', label: 'Portrait 2:3', ar: 2 / 3 },
+] as const;
+
 const isPageOrWebLink = (value: string): boolean =>
 	!value.trim() || isUrl(value) || value.startsWith('/') || value.startsWith('#');
 
-type GalleryPatch = Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'mobile'>>;
+type GalleryPatch = Partial<
+	Pick<
+		GalleryConfig,
+		| 'layout'
+		| 'columns'
+		| 'aspect'
+		| 'carousel'
+		| 'carouselFit'
+		| 'carouselFrame'
+		| 'carouselFreeResize'
+		| 'carouselMoveImage'
+		| 'carouselHost'
+		| 'carouselShowCount'
+		| 'carouselShowTitle'
+		| 'carouselRequireAlt'
+		| 'mobile'
+	>
+>;
 
 /** Natural width/height ratio of an image URL (undefined when it can't load). */
 const measureAr = (url: string | null | undefined): Promise<number | undefined> =>
@@ -71,15 +97,17 @@ const measureAr = (url: string | null | undefined): Promise<number | undefined> 
 		img.src = url;
 	});
 
-/** Freeform/Grid toggle shared by the main gallery block and extra image groups. */
+/** Layout toggle shared by the main gallery block and extra image groups. */
 function LayoutToggle({
 	mode,
 	onPatch,
 	label,
+	carousel = false,
 }: {
-	mode: 'freeform' | 'grid';
+	mode: 'freeform' | 'grid' | 'carousel';
 	onPatch: (patch: GalleryPatch) => void;
 	label: string;
+	carousel?: boolean;
 }) {
 	return (
 		<div className="align-toggle" role="group" aria-label={`${label} layout`}>
@@ -89,7 +117,7 @@ function LayoutToggle({
 				title="Freeform canvas — drag images anywhere in the preview"
 				aria-label={`Use Freeform layout for ${label}`}
 				aria-pressed={mode === 'freeform'}
-				onClick={() => onPatch({ layout: undefined })}
+				onClick={() => onPatch({ layout: undefined, carousel: undefined })}
 			>
 				Freeform
 			</button>
@@ -99,10 +127,22 @@ function LayoutToggle({
 				title="Auto grid — images arrange themselves in neat rows"
 				aria-label={`Use Grid layout for ${label}`}
 				aria-pressed={mode === 'grid'}
-				onClick={() => onPatch({ layout: 'grid' })}
+				onClick={() => onPatch({ layout: 'grid', carousel: undefined })}
 			>
 				Grid
 			</button>
+			{carousel && (
+				<button
+					type="button"
+					className={`btn-icon btn-chip ${mode === 'carousel' ? 'active' : ''}`}
+					title="Click-through carousel — show one image at a time"
+					aria-label={`Use Carousel layout for ${label}`}
+					aria-pressed={mode === 'carousel'}
+					onClick={() => onPatch({ layout: undefined, carousel: true })}
+				>
+					Carousel
+				</button>
+			)}
 		</div>
 	);
 }
@@ -179,6 +219,8 @@ export default function PageEditor({
 }) {
 	const editor = useEditor();
 	const addMenuRef = useRef<HTMLDetailsElement>(null);
+	const floatingAddMenuRef = useRef<HTMLDetailsElement>(null);
+	const pageContentRef = useRef<HTMLDivElement>(null);
 	const { doc } = editor;
 	if (!doc) return null;
 	const page = doc.content.pages[pageKey];
@@ -193,6 +235,7 @@ export default function PageEditor({
 		doc.content.theme.textColor,
 		doc.content.theme.accentColor,
 	].filter(Boolean);
+	const textFontOptions = fontOptionsForTheme(doc.content.theme);
 	const galleryMode = page.gallery?.layout === 'grid' ? 'grid' : 'freeform';
 	/** Text can be dragged onto the canvas only when the page shows a freeform gallery. */
 	const hasFreeCanvas = !!page.gallery && galleryMode === 'freeform' && blocks.some((b) => b.type === 'gallery');
@@ -275,10 +318,47 @@ export default function PageEditor({
 		const name = prompt('Name of the new sub-page:');
 		if (name?.trim()) editor.addChildPage(pageKey, name.trim());
 	};
-	const runAdd = (action: () => void) => {
+	const runAdd = (action: () => void, scrollToNewBlock = true) => {
+		const before = new Set(blocks.map((block) => block.id));
 		addMenuRef.current?.removeAttribute('open');
+		floatingAddMenuRef.current?.removeAttribute('open');
 		action();
+		if (!scrollToNewBlock) return;
+		requestAnimationFrame(() =>
+			requestAnimationFrame(() => {
+				const added = Array.from(
+					pageContentRef.current?.querySelectorAll<HTMLElement>(':scope > [data-editor-block]') ?? [],
+				).find((element) => !before.has(element.dataset.editorBlock ?? ''));
+				added?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}),
+		);
 	};
+
+	const addBlockMenuItems = () => (
+		<>
+			<button type="button" onClick={() => runAdd(() => editor.addTextBlock(pageKey))}>Text</button>
+			<button type="button" onClick={() => runAdd(() => editor.addImagesBlock(pageKey))}>Image group</button>
+			<button type="button" onClick={() => runAdd(() => editor.addEmbedBlock(pageKey))}>Video</button>
+			<button type="button" onClick={() => runAdd(() => editor.addButtonBlock(pageKey))}>Button</button>
+			<button type="button" onClick={() => runAdd(() => editor.addDividerBlock(pageKey))}>Divider</button>
+			{!hasAboutBlock && (
+				<button type="button" onClick={() => runAdd(() => editor.addAboutBlock(pageKey))}>About content</button>
+			)}
+			<button type="button" onClick={() => runAdd(() => editor.addFormBlock(pageKey))}>Contact form</button>
+			<button
+				type="button"
+				onClick={() =>
+					runAdd(() => {
+						if (doc.content.store) editor.addProductsBlock(pageKey);
+						else showEditorTab('store');
+					})
+				}
+			>
+				{doc.content.store ? 'Products' : 'Set up products…'}
+			</button>
+			{!nested && <button type="button" onClick={() => runAdd(addChild, false)}>Sub-page</button>}
+		</>
+	);
 
 	/** Bake the current Grid arrangement into freeform coordinates and switch to
 	 *  Freeform, so the images start exactly where the grid showed them. Aspect
@@ -302,6 +382,39 @@ export default function PageEditor({
 			Object.fromEntries(entries.map((e, i) => [e.id, roundLayout(layouts[i])])),
 		);
 		onPatch({ layout: undefined });
+	};
+
+	/** Put a newly pinned text box after the lowest existing canvas item and
+	 * center it horizontally, so it is immediately visible without covering art. */
+	const textLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'text' }>) => {
+		const width = Math.min(block.flowLayout?.w ?? 50, 60);
+		let bottom = 18;
+		if (hasFreeCanvas && page.gallery) {
+			const entries = doc.galleries[page.gallery.folder] ?? [];
+			const flowed = flowMissing(
+				entries.map((entry) => ({
+					layout: entry.meta.layout,
+					ar: entry.meta.layout?.ar ?? DEFAULT_AR,
+				})),
+			);
+			const imageLayouts = entries.flatMap((entry, entryIndex) => {
+				const layout = entry.meta.layout ?? flowed.get(entryIndex);
+				return layout ? [layout] : [];
+			});
+			bottom = Math.max(bottom, canvasHeight(imageLayouts));
+			for (const candidate of blocks) {
+				if (candidate.id === block.id) continue;
+				if (candidate.type === 'text' && candidate.layout)
+					bottom = Math.max(bottom, textBottom(candidate.layout));
+				if (candidate.type === 'embed' && candidate.layout)
+					bottom = Math.max(bottom, bottomOf(candidate.layout));
+			}
+		}
+		return roundTextLayout({
+			x: (100 - width) / 2,
+			y: bottom + 2,
+			w: width,
+		});
 	};
 
 	const controls = (index: number, block: PageBlock, removable: boolean) => {
@@ -360,44 +473,64 @@ export default function PageEditor({
 	const renderBlock = (block: PageBlock, index: number) => {
 		switch (block.type) {
 			case 'text': {
-				const align = block.align ?? 'left';
 				const textLabel = `text block ${index + 1} on ${pageName}`;
+				const fontLinked = !block.fontFamily;
+				const flowLayout = clampTextFlowLayout(block.flowLayout ?? { x: 0, w: 100 });
+				const setFlowLayout = (patch: Partial<typeof flowLayout>) =>
+					editor.setTextFlowLayout(
+						pageKey,
+						block.id,
+						clampTextFlowLayout({ ...flowLayout, ...patch }),
+					);
 				return (
-					<div className="block" key={block.id}>
+					<div className="block text-box-editor-block" key={block.id}>
 						<div className="block-head text-block-head">
-							<span className="block-label">Text</span>
-							<select
-								className="select-input block-style-select"
-								value={block.style ?? 'body'}
-								aria-label={`Style for ${textLabel}`}
-								onChange={(event) => editor.setTextStyle(pageKey, block.id, event.target.value as TextStyle)}
-							>
-								{TEXT_STYLES.map((style) => <option key={style.value} value={style.value}>{style.label}</option>)}
-							</select>
-							<div className="align-toggle" role="group" aria-label={`Alignment for ${textLabel}`}>
-								{ALIGNMENTS.map((a) => (
-									<button
-										key={a.value}
-										type="button"
-										className={`btn-icon ${align === a.value ? 'active' : ''}`}
-										title={a.title}
-										aria-label={`${a.title} for ${textLabel}`}
-										aria-pressed={align === a.value}
-										onClick={() => editor.setTextAlign(pageKey, block.id, a.value)}
-									>
-										{a.label}
-									</button>
-								))}
-							</div>
+							<span className="block-label">Text box</span>
 							{controls(index, block, true)}
 						</div>
-						<TextArea
-							rows={4}
-							aria-label={`Words in ${textLabel}`}
-							value={block.text}
-							placeholder="Write something… One blank line makes a paragraph break."
-							onChange={(e) => editor.updateTextBlock(pageKey, block.id, e.target.value)}
+						<RichTextEditor
+							value={block.richText}
+							legacyText={block.text}
+							legacyStyle={block.style}
+							legacyAlign={block.align}
+							fontFamily={block.fontFamily ?? doc.content.theme.fontFamily}
+							label={textLabel}
+							onChange={(text, richText) =>
+								editor.updateRichTextBlock(pageKey, block.id, text, richText)
+							}
 						/>
+						<div className="text-box-font-row">
+							<label>
+								<span>Font</span>
+								<select
+									className="select-input"
+									value={block.fontFamily ?? ''}
+									aria-label={`Font for ${textLabel}`}
+									onChange={(event) =>
+										editor.setTextFont(pageKey, block.id, event.target.value || undefined)
+									}
+								>
+									<option value="">Page font — linked</option>
+									{textFontOptions.map((font) => (
+										<option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+											{font.label}
+										</option>
+									))}
+								</select>
+							</label>
+							<span className={`text-font-status ${fontLinked ? 'linked' : 'independent'}`}>
+								{fontLinked ? 'Linked to page font' : 'Independent font'}
+							</span>
+							{!fontLinked && (
+								<button
+									type="button"
+									className="btn-link"
+									onClick={() => editor.setTextFont(pageKey, block.id, undefined)}
+								>
+									Reset to page font
+								</button>
+							)}
+						</div>
 						<details className="block-options">
 							<summary aria-label={`Add a link to ${textLabel}`}>Add a link to this text</summary>
 							<input
@@ -409,21 +542,97 @@ export default function PageEditor({
 							/>
 							{!isPageOrWebLink(block.link ?? '') && <span className="field-error">Use a full web address beginning with https://.</span>}
 						</details>
+						{!block.layout && (
+							<div className="text-flow-layout" role="group" aria-label={`Width and position for ${textLabel}`}>
+								<div className="text-flow-layout-head">
+									<span>
+										<strong>Box width &amp; position</strong>
+										<small>Adjust this text box within the page.</small>
+									</span>
+									{block.flowLayout && (
+										<button
+											type="button"
+											className="btn-link"
+											onClick={() => editor.setTextFlowLayout(pageKey, block.id, undefined)}
+										>
+											Reset
+										</button>
+									)}
+								</div>
+								<label className="text-flow-slider">
+									<span>Width <output>{Math.round(flowLayout.w)}%</output></span>
+									<input
+										type="range"
+										min="20"
+										max="100"
+										step="1"
+										value={flowLayout.w}
+										aria-label={`Width for ${textLabel}`}
+										onChange={(event) => {
+											const w = Number(event.target.value);
+											setFlowLayout({ w, x: Math.min(flowLayout.x, 100 - w) });
+										}}
+									/>
+								</label>
+								<label className="text-flow-slider">
+									<span>Position <output>{Math.round(flowLayout.x)}%</output></span>
+									<input
+										type="range"
+										min="0"
+										max={100 - flowLayout.w}
+										step="1"
+										value={flowLayout.x}
+										disabled={flowLayout.w === 100}
+										aria-label={`Horizontal position for ${textLabel}`}
+										onChange={(event) => setFlowLayout({ x: Number(event.target.value) })}
+									/>
+								</label>
+								<div className="text-flow-presets" role="group" aria-label={`Position presets for ${textLabel}`}>
+									<button type="button" className="btn-chip" onClick={() => setFlowLayout({ x: 0 })}>Left</button>
+									<button
+										type="button"
+										className="btn-chip"
+										onClick={() => setFlowLayout({ x: (100 - flowLayout.w) / 2 })}
+									>
+										Center
+									</button>
+									<button
+										type="button"
+										className="btn-chip"
+										onClick={() => setFlowLayout({ x: 100 - flowLayout.w })}
+									>
+										Right
+									</button>
+								</div>
+							</div>
+						)}
 						{block.layout ? (
-							<p className="muted">
-								Placed on the canvas — drag it in the preview.{' '}
+							<div className="text-box-canvas-status">
+								<span>Placed on the canvas — drag the box to move it; drag its blue corner to resize.</span>
 								<button
 									type="button"
-									className="btn-link"
+									className="btn-secondary text-placement-button"
 									onClick={() => editor.setTextLayout(pageKey, block.id, undefined)}
 								>
 									Back to normal flow
 								</button>
-							</p>
+							</div>
 						) : (
-							hasFreeCanvas &&
 							!!block.text.trim() && (
-								<p className="muted">Drag this text in the preview to place it anywhere on the canvas.</p>
+								<div className="text-box-canvas-status">
+									<span>
+										{hasFreeCanvas
+											? 'Drag this text box in the preview to place it anywhere on the image canvas.'
+											: 'Place this text box in its own draggable canvas section.'}
+									</span>
+									<button
+										type="button"
+										className="btn-secondary text-placement-button"
+										onClick={() => editor.setTextLayout(pageKey, block.id, textLayoutAtCanvasBottom(block))}
+									>
+										Place on canvas
+									</button>
+								</div>
 							)
 						)}
 					</div>
@@ -472,7 +681,7 @@ export default function PageEditor({
 					<div className="block" key={block.id}>
 						<div className="block-head">
 							<span className="block-label">Images</span>
-							{controls(index, block, false)}
+							{controls(index, block, true)}
 						</div>
 						{page.gallery && (
 							<details className="block-options image-layout-options">
@@ -523,6 +732,28 @@ export default function PageEditor({
 				const groupMode = block.gallery.layout === 'grid' ? 'grid' : 'freeform';
 				const patchGroup = (patch: GalleryPatch) => editor.updateImagesBlock(pageKey, block.id, patch);
 				const groupLabel = `${block.name || `image group ${index + 1}`} on ${pageName}`;
+				const carousel = block.gallery.carousel === true;
+				const carouselHostBlock = block.gallery.carouselHost
+					? blocks.find(
+							(candidate) =>
+								candidate.id === block.gallery.carouselHost &&
+								(candidate.type === 'gallery' ||
+									(candidate.type === 'images' &&
+										candidate.gallery.carousel !== true &&
+										candidate.gallery.layout !== 'grid')),
+						)
+					: undefined;
+				const carouselFrame = block.gallery.carouselFrame ?? DEFAULT_CAROUSEL_FRAME;
+				const carouselRatio =
+					CAROUSEL_RATIOS.find((option) => Math.abs(option.ar - carouselFrame.ar) < 0.01)?.value ?? 'custom';
+				const setCarouselRatio = (value: string) => {
+					const option = CAROUSEL_RATIOS.find((candidate) => candidate.value === value);
+					if (!option) return;
+					patchGroup({
+						carouselFreeResize: undefined,
+						carouselFrame: roundLayout({ ...carouselFrame, ar: option.ar }),
+					});
+				};
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
@@ -538,11 +769,154 @@ export default function PageEditor({
 						</div>
 						<details className="block-options image-layout-options">
 							<summary>
-								Layout &amp; mobile <span>{groupMode === 'grid' ? 'Grid' : 'Freeform'}</span>
+								Layout &amp; mobile <span>{carousel ? 'Carousel' : groupMode === 'grid' ? 'Grid' : 'Freeform'}</span>
 							</summary>
 							<div className="image-layout-options-body">
-								<LayoutToggle label={groupLabel} mode={groupMode} onPatch={patchGroup} />
-								{groupMode === 'grid' && (
+								<LayoutToggle
+									label={groupLabel}
+									mode={carousel ? 'carousel' : groupMode}
+									onPatch={patchGroup}
+									carousel
+								/>
+								{carousel && (
+									<div className="carousel-settings">
+										<div className="align-toggle carousel-fit-toggle" role="group" aria-label={`Image sizing for ${groupLabel}`}>
+											<button
+												type="button"
+												className={`btn-icon btn-chip ${(block.gallery.carouselFit ?? 'fit') === 'fit' ? 'active' : ''}`}
+												aria-pressed={(block.gallery.carouselFit ?? 'fit') === 'fit'}
+												onClick={() => patchGroup({ carouselFit: undefined })}
+											>
+												Fit image
+											</button>
+											<button
+												type="button"
+												className={`btn-icon btn-chip ${block.gallery.carouselFit === 'fill' ? 'active' : ''}`}
+												aria-pressed={block.gallery.carouselFit === 'fill'}
+												onClick={() => patchGroup({ carouselFit: 'fill' })}
+											>
+												Fill frame
+											</button>
+										</div>
+										<div
+											className="align-toggle carousel-drag-toggle"
+											role="group"
+											aria-label={`Drag behavior for ${groupLabel}`}
+										>
+											<button
+												type="button"
+												className={`btn-icon btn-chip ${block.gallery.carouselMoveImage !== true ? 'active' : ''}`}
+												aria-pressed={block.gallery.carouselMoveImage !== true}
+												onClick={() => patchGroup({ carouselMoveImage: undefined })}
+											>
+												Move carousel
+											</button>
+											<button
+												type="button"
+												className={`btn-icon btn-chip ${block.gallery.carouselMoveImage === true ? 'active' : ''}`}
+												aria-pressed={block.gallery.carouselMoveImage === true}
+												onClick={() => patchGroup({ carouselMoveImage: true })}
+											>
+												Move image
+											</button>
+										</div>
+										<div className="carousel-frame-options">
+											<label className="compact-check">
+												<input
+													type="checkbox"
+													checked={block.gallery.carouselFreeResize === true}
+													onChange={(event) =>
+														patchGroup({ carouselFreeResize: event.target.checked || undefined })
+													}
+												/>
+												Freeform frame resize
+											</label>
+											<label className="carousel-ratio-option">
+												Frame ratio
+												<select
+													className="select-input"
+													value={carouselRatio}
+													onChange={(event) => setCarouselRatio(event.target.value)}
+												>
+													{carouselRatio === 'custom' && <option value="custom">Custom</option>}
+													{CAROUSEL_RATIOS.map((option) => (
+														<option key={option.value} value={option.value}>
+															{option.label}
+														</option>
+													))}
+												</select>
+											</label>
+										</div>
+										<p className="muted carousel-edit-hint">
+											{block.gallery.carouselMoveImage === true
+												? block.gallery.carouselFit === 'fill'
+													? 'Drag the image in the preview to choose its crop. Use Move carousel to reposition the whole frame.'
+													: 'Drag the fitted image within its frame. Use Move carousel to reposition the whole frame.'
+												: carouselHostBlock
+													? 'Drag anywhere on the image or blue frame to move it on its canvas. Drag the blue corner circle to resize.'
+													: 'Drag anywhere on the image or blue frame to move the carousel. Drop it onto a freeform image group to place it there.'}
+										</p>
+										{carouselHostBlock && (
+											<div className="carousel-host-option">
+												<span>
+													Placed on{' '}
+													<strong>
+														{carouselHostBlock.type === 'gallery'
+															? 'the main image canvas'
+															: carouselHostBlock.type === 'images'
+																? carouselHostBlock.name || 'another image group'
+																: 'another freeform canvas'}
+													</strong>
+												</span>
+												<button
+													type="button"
+													className="btn-link"
+													onClick={() =>
+														patchGroup({
+															carouselHost: undefined,
+															carouselFrame: undefined,
+														})
+													}
+												>
+													Return to its own section
+												</button>
+											</div>
+										)}
+										<div className="carousel-display-options">
+											<label>
+												<input
+													type="checkbox"
+													checked={block.gallery.carouselShowCount !== false}
+													onChange={(event) => patchGroup({ carouselShowCount: event.target.checked ? undefined : false })}
+												/>
+												Number count
+											</label>
+											<label>
+												<input
+													type="checkbox"
+													checked={block.gallery.carouselShowTitle === true}
+													onChange={(event) => patchGroup({ carouselShowTitle: event.target.checked || undefined })}
+												/>
+												Image title below
+											</label>
+										</div>
+										{block.gallery.carouselFrame && (
+											<button
+												type="button"
+												className="btn-link carousel-reset-frame"
+												onClick={() =>
+													patchGroup({
+														carouselFrame: undefined,
+														carouselFreeResize: undefined,
+													})
+												}
+											>
+												Reset carousel size and position
+											</button>
+										)}
+									</div>
+								)}
+								{!carousel && groupMode === 'grid' && (
 									<GridOptions
 										config={block.gallery}
 										label={groupLabel}
@@ -550,7 +924,7 @@ export default function PageEditor({
 										onAdopt={() => void adoptGridAsFreeform(block.gallery, patchGroup)}
 									/>
 								)}
-								{(phoneItemsFor(block.gallery).length > 0 || block.gallery.mobile) && (
+								{!carousel && (phoneItemsFor(block.gallery).length > 0 || block.gallery.mobile) && (
 									<MobileArrangementEditor
 										items={phoneItemsFor(block.gallery)}
 										mobile={block.gallery.mobile}
@@ -567,8 +941,11 @@ export default function PageEditor({
 							variant="gallery"
 							addLabel="+ Add image(s)"
 							emptyLabel="No images in this group yet."
+							requireAltText={false}
 							hint={
-								groupMode === 'grid'
+								carousel
+									? 'Images appear one at a time in this order. Visitors use the previous and next controls to click through.'
+									: groupMode === 'grid'
 									? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
 									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking: the top image sits in front.'
 								}
@@ -962,7 +1339,7 @@ export default function PageEditor({
 				</div>
 			)}
 
-			<div className="page-editor-group page-content-group">
+			<div className="page-editor-group page-content-group" ref={pageContentRef}>
 				<div className="page-content-heading">
 					<h3>Content</h3>
 					<details className="page-add-block" ref={addMenuRef}>
@@ -970,32 +1347,26 @@ export default function PageEditor({
 							＋ Add block
 						</summary>
 						<div className="page-add-block-menu">
-							<button type="button" onClick={() => runAdd(() => editor.addTextBlock(pageKey))}>Text</button>
-							<button type="button" onClick={() => runAdd(() => editor.addImagesBlock(pageKey))}>Image group</button>
-							<button type="button" onClick={() => runAdd(() => editor.addEmbedBlock(pageKey))}>Video</button>
-							<button type="button" onClick={() => runAdd(() => editor.addButtonBlock(pageKey))}>Button</button>
-							<button type="button" onClick={() => runAdd(() => editor.addDividerBlock(pageKey))}>Divider</button>
-							{!hasAboutBlock && (
-								<button type="button" onClick={() => runAdd(() => editor.addAboutBlock(pageKey))}>About content</button>
-							)}
-							<button type="button" onClick={() => runAdd(() => editor.addFormBlock(pageKey))}>Contact form</button>
-							<button
-								type="button"
-								onClick={() =>
-									runAdd(() => {
-										if (doc.content.store) editor.addProductsBlock(pageKey);
-										else showEditorTab('store');
-									})
-								}
-							>
-								{doc.content.store ? 'Products' : 'Set up products…'}
-							</button>
-							{!nested && <button type="button" onClick={() => runAdd(addChild)}>Sub-page</button>}
+							{addBlockMenuItems()}
 						</div>
 					</details>
 				</div>
-				{blocks.map(renderBlock)}
+				{blocks.map((block, index) => (
+					<div key={block.id} data-editor-block={block.id}>
+						{renderBlock(block, index)}
+					</div>
+				))}
 			</div>
+			{!nested && (
+				<details className="page-add-block floating-add-block" ref={floatingAddMenuRef}>
+					<summary className="floating-add-button" aria-label={`Add a block to ${pageName}`} title="Add block">
+						＋
+					</summary>
+					<div className="page-add-block-menu">
+						{addBlockMenuItems()}
+					</div>
+				</details>
+			)}
 
 			<details className="page-editor-advanced">
 				<summary>
@@ -1007,26 +1378,41 @@ export default function PageEditor({
 				</summary>
 				<div className="page-editor-advanced-body">
 					<Field
-						label="Page background (color blocking)"
-						hint="Give this whole page its own background color. Text adjusts automatically to stay readable."
+						label="Background colors"
+						hint="Color the whole page, or give only the heading its own band. Text contrast adjusts automatically."
 					>
-						<div className="color-block-row">
-							<ColorSwatchPicker
-								label={`Background color for ${pageName}`}
-								value={page.background}
-								themeColors={themeColors}
-								onChange={(color) => editor.setPageBackground(pageKey, color)}
-							/>
-							{page.heading?.trim() && (
-								<label className="color-block-inline">
-									<span>Heading band</span>
+						<div className="color-surface-controls">
+							<div className="color-surface-control">
+								<span className="color-surface-copy">
+									<strong>Whole page</strong>
+									<small>Behind every section on {pageName}</small>
+								</span>
+								<div className="color-surface-action">
 									<ColorSwatchPicker
-										label={`Background color behind the ${pageName} heading`}
-										value={page.sectionColors?.['page:heading']}
+										label={`Whole-page background color for ${pageName}`}
+										value={page.background}
 										themeColors={themeColors}
-										onChange={(color) => editor.setSectionColor(pageKey, 'page:heading', color)}
+										onChange={(color) => editor.setPageBackground(pageKey, color)}
 									/>
-								</label>
+									<span>{page.background ?? 'Uses site background'}</span>
+								</div>
+							</div>
+							{page.heading?.trim() && (
+								<div className="color-surface-control">
+									<span className="color-surface-copy">
+										<strong>Heading band</strong>
+										<small>Only behind the page heading</small>
+									</span>
+									<div className="color-surface-action">
+										<ColorSwatchPicker
+											label={`Heading-band background color for ${pageName}`}
+											value={page.sectionColors?.['page:heading']}
+											themeColors={themeColors}
+											onChange={(color) => editor.setSectionColor(pageKey, 'page:heading', color)}
+										/>
+										<span>{page.sectionColors?.['page:heading'] ?? 'No separate band'}</span>
+									</div>
+								</div>
 							)}
 						</div>
 					</Field>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import Hero from './Hero';
-import Gallery from './Gallery';
+import Gallery, { type CarouselWidget } from './Gallery';
 import About from './About';
 import TextBlock from './TextBlock';
 import Embed from './Embed';
@@ -45,6 +45,14 @@ export interface PortfolioPageProps extends PortfolioData {
 		folder: string,
 		updates: CanvasLayoutUpdates,
 	) => void;
+	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onCarouselHost?: (
+		page: string,
+		blockId: string,
+		hostId: string | undefined,
+		layout?: ImageLayout,
+	) => void;
+	onCarouselFocus?: (folder: string, imageId: string, focusX: number, focusY: number) => void;
 	/** Editor preview: responsive minimum-height editing for page sections. */
 	resizeBreakpoint?: SectionBreakpoint;
 	onSectionHeight?: (
@@ -113,18 +121,36 @@ function DraggableFlowBlock({
 		if (!canvas) return;
 		e.preventDefault();
 		const win = el.ownerDocument.defaultView ?? window;
-		const startX = e.clientX;
-		const startY = e.clientY;
-		let moved = false;
-		const move = (ev: PointerEvent) => {
-			const dx = ev.clientX - startX;
-			const dy = ev.clientY - startY;
-			if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
-			setDelta({ x: dx, y: dy });
+		const startRect = el.getBoundingClientRect();
+		const pointerOffset = {
+			x: e.clientX - startRect.left,
+			y: e.clientY - startRect.top,
 		};
+		let liveDelta = { x: 0, y: 0 };
+		let lastPointer = { x: e.clientX, y: e.clientY };
+		let moved = false;
+		const update = (clientX: number, clientY: number) => {
+			const visibleRect = el.getBoundingClientRect();
+			const naturalLeft = visibleRect.left - liveDelta.x;
+			const naturalTop = visibleRect.top - liveDelta.y;
+			liveDelta = {
+				x: clientX - pointerOffset.x - naturalLeft,
+				y: clientY - pointerOffset.y - naturalTop,
+			};
+			if (Math.abs(liveDelta.x) + Math.abs(liveDelta.y) > 3) moved = true;
+			setDelta(liveDelta);
+		};
+		const move = (ev: PointerEvent) => {
+			lastPointer = { x: ev.clientX, y: ev.clientY };
+			update(ev.clientX, ev.clientY);
+		};
+		const scroll = () => update(lastPointer.x, lastPointer.y);
 		const up = (ev: PointerEvent) => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
+			const box = (el.querySelector(boxSelector) ?? el).getBoundingClientRect();
 			setDelta(null);
 			if (!moved) return;
 			const rect = canvas.getBoundingClientRect();
@@ -132,7 +158,6 @@ function DraggableFlowBlock({
 			// Only pin when the pointer lets go inside the canvas; otherwise snap back.
 			if (ev.clientX < rect.left || ev.clientX > rect.right || ev.clientY < rect.top || ev.clientY > rect.bottom)
 				return;
-			const box = (el.querySelector(boxSelector) ?? el).getBoundingClientRect();
 			const scale = 100 / rect.width; // px -> canvas-width %
 			onPlace({
 				x: (box.left - rect.left) * scale,
@@ -143,6 +168,8 @@ function DraggableFlowBlock({
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	return (
@@ -177,6 +204,9 @@ export default function PortfolioPage({
 	onTextLayout,
 	onEmbedLayout,
 	onCanvasLayouts,
+	onCarouselFrame,
+	onCarouselHost,
+	onCarouselFocus,
 	resizeBreakpoint,
 	onSectionHeight,
 	onFooterHeight,
@@ -207,6 +237,39 @@ export default function PortfolioPage({
 
 	// Text and videos pin to the canvas only when the page renders one (freeform gallery).
 	const blocks = config.blocks ?? [];
+	const freeformHosts = blocks.flatMap((block) => {
+		if (block.type === 'gallery' && gallery && gallery.layout !== 'grid')
+			return [{ id: block.id }];
+		if (block.type === 'images' && block.gallery.carousel !== true && block.gallery.layout !== 'grid')
+			return [{ id: block.id }];
+		return [];
+	});
+	const carouselHostById = new Map<string, string>();
+	const hostedCarousels = new Map<string, CarouselWidget[]>();
+	blocks.forEach((block) => {
+		if (block.type !== 'images' || block.gallery.carousel !== true || !block.gallery.carouselHost) return;
+		const host = freeformHosts.find((candidate) => candidate.id === block.gallery.carouselHost);
+		if (!host) return;
+		carouselHostById.set(block.id, host.id);
+		const widget: CarouselWidget = {
+			id: block.id,
+			images: galleries[block.gallery.folder] ?? [],
+			settings: block.gallery,
+			alt: block.gallery.alt,
+			onFocusChange: onCarouselFocus
+				? (imageId, focusX, focusY) =>
+						onCarouselFocus(block.gallery.folder, imageId, focusX, focusY)
+				: undefined,
+		};
+		hostedCarousels.set(host.id, [...(hostedCarousels.get(host.id) ?? []), widget]);
+	});
+	const carouselLayoutChange = onCarouselFrame
+		? (blockId: string, layout: ImageLayout) => onCarouselFrame(page, blockId, layout)
+		: undefined;
+	const carouselHostChange = onCarouselHost
+		? (blockId: string, hostId: string, layout: ImageLayout) =>
+				onCarouselHost(page, blockId, hostId, layout)
+		: undefined;
 	const pageOrder = new Map((config.mobile?.order ?? []).map((key, index) => [key, index]));
 	const automaticPageKeys = [
 		...(config.heading?.trim() ? ['page:heading'] : []),
@@ -224,8 +287,17 @@ export default function PortfolioPage({
 	const hasCanvas = !!gallery && gallery.layout !== 'grid' && blocks.some((b) => b.type === 'gallery');
 	const canvasTexts: CanvasText[] = hasCanvas
 		? blocks.flatMap((b) =>
-				b.type === 'text' && b.layout
-					? [{ id: b.id, text: b.text, align: b.align, style: b.style, link: siteHref(b.link, base), layout: b.layout }]
+			b.type === 'text' && b.layout
+					? [{
+							id: b.id,
+							text: b.text,
+							richText: b.richText,
+							fontFamily: b.fontFamily,
+							align: b.align,
+							style: b.style,
+							link: siteHref(b.link, base),
+							layout: b.layout,
+						}]
 					: [],
 			)
 		: [];
@@ -238,6 +310,28 @@ export default function PortfolioPage({
 			case 'text':
 				// Pinned texts render inside the canvas instead of the page flow.
 				if (hasCanvas && block.layout) return null;
+				if (block.layout) {
+					const standaloneText: CanvasText = {
+						id: block.id,
+						text: block.text,
+						richText: block.richText,
+						fontFamily: block.fontFamily,
+						align: block.align,
+						style: block.style,
+						link: siteHref(block.link, base),
+						layout: block.layout,
+					};
+					return (
+						<div key={block.id} className="page-content-wrapper standalone-text-box-canvas">
+							<Gallery
+								images={[]}
+								texts={[standaloneText]}
+								editable={!!textLayoutChange}
+								onTextLayout={textLayoutChange}
+							/>
+						</div>
+					);
+				}
 				return textLayoutChange && hasCanvas ? (
 					<DraggableFlowBlock
 						key={block.id}
@@ -251,10 +345,27 @@ export default function PortfolioPage({
 							)
 						}
 					>
-						<TextBlock text={block.text} align={block.align} style={block.style} link={siteHref(block.link, base)} />
+						<TextBlock
+							text={block.text}
+							richText={block.richText}
+							fontFamily={block.fontFamily}
+							align={block.align}
+							style={block.style}
+							link={siteHref(block.link, base)}
+							flowLayout={block.flowLayout}
+						/>
 					</DraggableFlowBlock>
 				) : (
-					<TextBlock key={block.id} text={block.text} align={block.align} style={block.style} link={siteHref(block.link, base)} />
+					<TextBlock
+						key={block.id}
+						text={block.text}
+						richText={block.richText}
+						fontFamily={block.fontFamily}
+						align={block.align}
+						style={block.style}
+						link={siteHref(block.link, base)}
+						flowLayout={block.flowLayout}
+					/>
 				);
 			case 'embed':
 				// Pinned videos render inside the canvas instead of the page flow.
@@ -324,10 +435,12 @@ export default function PortfolioPage({
 						settings={gallery}
 						texts={canvasTexts}
 						embeds={canvasEmbeds}
+						carouselWidgets={hostedCarousels.get(block.id)}
 						editable={!!onLayoutChange}
 						onLayoutChange={onLayoutChange}
 						onTextLayout={textLayoutChange}
 						onEmbedLayout={embedLayoutChange}
+						onCarouselWidgetLayout={carouselLayoutChange}
 						onBulkLayoutChange={
 							onCanvasLayouts && gallery
 								? (updates) => onCanvasLayouts(page, gallery.folder, updates)
@@ -338,7 +451,12 @@ export default function PortfolioPage({
 				// Home keeps its collage layout; other pages the standard wrapper (the
 				// page-photo modifier preserves the original photography page's spacing).
 				return page === 'home' ? (
-					<div key={block.id} className="collage-container" data-primary-gallery>
+					<div
+						key={block.id}
+						className="collage-container"
+						data-primary-gallery
+						data-carousel-canvas-host={gallery?.layout !== 'grid' ? block.id : undefined}
+					>
 						{galleryEl}
 					</div>
 				) : (
@@ -346,6 +464,7 @@ export default function PortfolioPage({
 						key={block.id}
 						className={`page-content-wrapper ${page === 'photography' ? 'page-photo' : ''}`}
 						data-primary-gallery
+						data-carousel-canvas-host={gallery?.layout !== 'grid' ? block.id : undefined}
 					>
 						{galleryEl}
 					</div>
@@ -356,12 +475,22 @@ export default function PortfolioPage({
 				// (in the editor) its own drag-anywhere canvas. Pinned text/video stays
 				// with the primary gallery above, so this block passes none.
 				const groupImages = galleries[block.gallery.folder] ?? [];
+				if (carouselHostById.has(block.id)) return null;
 				return (
-					<div key={block.id} className="page-content-wrapper image-group">
+					<div
+						key={block.id}
+						className="page-content-wrapper image-group"
+						data-carousel-canvas-host={
+							block.gallery.carousel !== true && block.gallery.layout !== 'grid'
+								? block.id
+								: undefined
+						}
+					>
 						<Gallery
 							images={groupImages}
 							alt={block.gallery.alt}
 							settings={block.gallery}
+							carouselWidgets={hostedCarousels.get(block.id)}
 							editable={!!onImageLayout}
 							onLayoutChange={
 								onImageLayout ? (id, layout) => onImageLayout(block.gallery.folder, id, layout) : undefined
@@ -369,6 +498,20 @@ export default function PortfolioPage({
 							onBulkLayoutChange={
 								onCanvasLayouts
 									? (updates) => onCanvasLayouts(page, block.gallery.folder, updates)
+									: undefined
+							}
+							onCarouselWidgetLayout={carouselLayoutChange}
+							onCarouselFrameChange={
+								onCarouselFrame ? (layout) => onCarouselFrame(page, block.id, layout) : undefined
+							}
+							onCarouselHostChange={
+								carouselHostChange
+									? (hostId, layout) => carouselHostChange(block.id, hostId, layout)
+									: undefined
+							}
+							onCarouselFocusChange={
+								onCarouselFocus
+									? (id, focusX, focusY) => onCarouselFocus(block.gallery.folder, id, focusX, focusY)
 									: undefined
 							}
 						/>

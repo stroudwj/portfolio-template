@@ -4,12 +4,19 @@
 // Layout.astro carries the portfolio's theme, og:image and description from
 // content.json, none of which belong on a marketing page.
 import { withBase } from '../portfolio/types';
-import { currentPrice, currentPriceText, pricing, regularPriceText } from '../lib/pricing';
+import {
+	currentPrice,
+	currentPriceText,
+	monthlyPriceText,
+	pricing,
+	regularPriceText,
+} from '../lib/pricing';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
 const checkoutEntryUrl = `${editorUrl}?unlock=1`;
+const monthlyCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=monthly`;
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
@@ -21,7 +28,7 @@ const artPortfolioGuideUrl = withBase(base, 'learn/how-to-make-an-art-portfolio-
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const title = 'Portfolio website builder for artists — Hangwork';
 const description =
-	'Build an art portfolio website with a visual editor. One payment, no subscription, an included hangwork.art address, and site files you own.';
+	'Build an art portfolio website with a visual editor. Choose lifetime access or a $10 monthly plan, with an included hangwork.art address and site files you own.';
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
 const applicationLd = {
 	'@context': 'https://schema.org',
@@ -30,12 +37,22 @@ const applicationLd = {
 	applicationCategory: 'DesignApplication',
 	operatingSystem: 'Web browser',
 	description,
-	offers: {
-		'@type': 'Offer',
-		price: currentPrice,
-		priceCurrency: 'USD',
-		url: canonicalUrl,
-	},
+	offers: [
+		{
+			'@type': 'Offer',
+			name: 'Hangwork lifetime license',
+			price: currentPrice,
+			priceCurrency: 'USD',
+			url: canonicalUrl,
+		},
+		{
+			'@type': 'Offer',
+			name: 'Hangwork monthly license',
+			price: pricing.monthlyPrice,
+			priceCurrency: 'USD',
+			url: canonicalUrl,
+		},
+	],
 };
 ---
 
@@ -85,16 +102,17 @@ const applicationLd = {
 					>
 				</h1>
 				<p class="lede">
-					A portfolio site for visual artists. One payment, no subscription, no platform holding
-					your work hostage.
+					A portfolio site for visual artists. Choose lifetime access or pay monthly — either way,
+					your work and published site files stay yours.
 				</p>
 				<div class="hero-actions">
 					<div class="primary-action">
 						<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
 						<p class="hero-price">
+							<span class="hero-current-price">{monthlyPriceText}/month</span>
+							<span>or</span>
 							{pricing.launchPricingActive && <del>{regularPriceText}</del>}
-							<span class="hero-current-price">{currentPriceText}</span>
-							<span>once. No subscription.</span>
+							<span class="hero-current-price">{currentPriceText} lifetime</span>
 						</p>
 					</div>
 					<a class="btn btn-secondary" href={examplesUrl}>View example sites</a>
@@ -145,61 +163,57 @@ const applicationLd = {
 
 			<section class="band pricing" id="pricing">
 				<div class="pricing-copy">
-					<h2>One price</h2>
-					<p class="price-lockup">
-						{pricing.launchPricingActive && <del>{regularPriceText}</del>}
-						<strong>{currentPriceText}</strong>
-						<span>once</span>
-					</p>
-					{
-						pricing.launchPricingActive && (
-							<p class="launch-note">
-								Launch price for early artists. Goes to {regularPriceText} when the first hundred walls are
-								hung.
-							</p>
-						)
-					}
-					<p class="pricing-comparison">
-						Squarespace and Wix use ongoing website plans. Hangwork: <strong>{currentPriceText}, once.</strong>
-						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
-					</p>
+					<h2>Choose your license</h2>
 					<p class="included">
-						Includes the editor, your yourname.hangwork.art address, publishing, and every future update to
-						the editor.
+						Both options include the editor, your yourname.hangwork.art address, publishing, and future editor
+						updates.
+					</p>
+					<div class="pricing-options">
+						<article class="pricing-option">
+							<p class="pricing-option-label">Lifetime</p>
+							<p class="price-lockup">
+								{pricing.launchPricingActive && <del>{regularPriceText}</del>}
+								<strong>{currentPriceText}</strong>
+								<span>once</span>
+							</p>
+							<p>Pay once and keep publishing with no renewal.</p>
+							{
+								pricing.launchPricingActive && (
+									<p class="launch-note">
+										Launch price for early artists. Goes to {regularPriceText} when the first hundred walls
+										are hung.
+									</p>
+								)
+							}
+							<a class="btn btn-primary" href={checkoutEntryUrl}>
+								{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Choose lifetime — ${currentPriceText}`}
+							</a>
+						</article>
+						<article class="pricing-option">
+							<p class="pricing-option-label">Monthly</p>
+							<p class="price-lockup">
+								<strong>{monthlyPriceText}</strong>
+								<span>/ month</span>
+							</p>
+							<p>Stay unlocked while your subscription is active. Cancel from Polar’s customer portal.</p>
+							<a class="btn btn-secondary" href={monthlyCheckoutEntryUrl}>
+								Start monthly — {monthlyPriceText}
+							</a>
+						</article>
+					</div>
+					<p class="pricing-comparison">
+						Prefer to build first? The editor and preview are free; choose a license only when you publish.
+						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
 					</p>
 					<p class="ownership-note">
 						<a href={`${faqUrl}#if-hangwork-shuts-down`}>
 							Your site lives in an account you own — here's what that means.
 						</a>
 					</p>
-					<!-- Two doors, weighted by device. Desktop leads with building (payment waits
-					     until publish); phones lead with owning it now — building is desktop work,
-					     so the pay-upfront path (checkout → emailed desktop link) is the phone's
-					     honest way in. The anchor is the real launch price, not a countdown. -->
 					<div class="pricing-actions">
 						<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
-						<a class="btn btn-primary paynow-cta" href={checkoutEntryUrl}>
-							{pricing.launchPricingActive ? `Lock in ${currentPriceText}` : `Own Hangwork — ${currentPriceText}`}
-						</a>
 					</div>
-					<div class="paynow-framing">
-						{pricing.launchPricingActive && (
-							<p class="paynow-anchor">
-								Lock in {currentPriceText} before it becomes {regularPriceText}. Same one-time price,
-								forever.
-							</p>
-						)}
-						<p class="paynow-refund">
-							Changed your mind before you build? {pricing.refundDays} days, no questions.
-						</p>
-					</div>
-					<p class="paynow-quiet">
-						Prefer to pay upfront?{' '}
-						<a href={checkoutEntryUrl}>
-							{pricing.launchPricingActive ? `Lock in ${currentPriceText} now` : 'Unlock Hangwork now'}
-						</a>{' '}
-						— you build whenever you like.
-					</p>
+					<p class="paynow-refund">{pricing.refundDays}-day refund, no questions asked.</p>
 				</div>
 			</section>
 		</main>
@@ -451,7 +465,33 @@ const applicationLd = {
 	}
 
 	.pricing-copy {
-		max-width: 46rem;
+		max-width: 52rem;
+	}
+	.pricing-options {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px;
+		margin: 0 0 28px;
+	}
+	.pricing-option {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		min-width: 0;
+		padding: 24px;
+		border: 1px solid var(--wall-2);
+		border-radius: 6px;
+	}
+	.pricing-option > p {
+		margin: 0 0 18px;
+	}
+	.pricing-option > .btn {
+		margin-top: auto;
+	}
+	.pricing-option-label {
+		color: var(--ink-soft);
+		font-size: 14px;
+		font-weight: 500;
 	}
 	.price-lockup {
 		display: flex;
@@ -460,6 +500,9 @@ const applicationLd = {
 		margin: 0 0 20px;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
+	}
+	.pricing-option .price-lockup {
+		margin-bottom: 14px;
 	}
 	.price-lockup del {
 		font-size: clamp(28px, 4vw, 38px);
@@ -515,13 +558,16 @@ const applicationLd = {
 		text-decoration-color: var(--wall-2);
 	}
 
-	/* Pay-upfront framing: a quiet aside on desktop (publish-time payment converts
-	   there), the leading door on phones (see the pricing-section comment). */
 	.pricing-actions {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+	.paynow-refund {
+		margin: 14px 0 0;
+		font-size: 13px;
+		color: var(--ink-soft);
 	}
 	.paynow-cta {
 		display: none;
@@ -585,10 +631,11 @@ const applicationLd = {
 		main {
 			padding: 0 20px;
 		}
-		/* Phones: lead with locking in the price; building demotes to the second door
-		   (it opens the editor's send-me-a-link screen there). */
+		.pricing-options {
+			grid-template-columns: 1fr;
+		}
 		.pricing-actions {
-			flex-direction: column-reverse;
+			flex-direction: column;
 			align-items: stretch;
 		}
 		.pricing-actions .btn {

@@ -30,9 +30,11 @@ export function friendlyMessage(status: number, code: string): string {
 		case 'invalid_session':
 			return 'Your sign-in has expired. Please sign in again.';
 		case 'license_required':
-			return 'Publishing needs your Hangwork license. Buy once, or sign in with the email you bought with.';
+			return 'Publishing needs an active Hangwork license. Choose lifetime or monthly, or sign in with the email you bought with.';
 		case 'polar_unconfigured':
 			return 'Secure checkout isn’t switched on right now.';
+		case 'invalid_plan':
+			return 'That license option is not available. Choose lifetime or monthly and try again.';
 		case 'polar_unreachable':
 		case 'polar_checkout_failed':
 			return 'Polar checkout couldn’t be opened. Check your connection and try again.';

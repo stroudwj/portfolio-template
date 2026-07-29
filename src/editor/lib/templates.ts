@@ -281,7 +281,7 @@ const painterContent: Content = {
 		{ path: 'about', label: 'About' },
 	],
 	profile: {
-		image: '',
+		image: 'assets/starters/painter/11-claude-monet-self-portrait.jpg',
 		bio: 'Write a short introduction to your practice, materials, and current interests. The paintings in this starter are museum-owned Open Access samples and cannot be published as your work.',
 	},
 	contact: { email: '' },

@@ -214,6 +214,7 @@ export default function PreviewPanel({
 		typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches ? 'phone' : 'desktop',
 	);
 	const [fullscreen, setFullscreen] = useState(false);
+	const gridPrefs = useGridPrefs();
 
 	useEdgeSnapShortcut();
 
@@ -236,7 +237,7 @@ export default function PreviewPanel({
 	// Editing (drag/resize) happens in the plain desktop view; the phone and
 	// fullscreen views show the published site's exact behavior instead.
 	const editable = device === 'desktop' && !fullscreen && canvasEditingEnabled;
-	const resizeBreakpoint = fullscreen ? undefined : device;
+	const resizeBreakpoint = fullscreen || !gridPrefs.sectionEdges ? undefined : device;
 	const currentPage = doc.content.pages[currentKey];
 	const hasFreeformCanvas = pageGalleryConfigs(currentPage).some(
 		(config) => config.layout !== 'grid' && (doc.galleries[config.folder]?.length ?? 0) > 0,
@@ -273,6 +274,27 @@ export default function PreviewPanel({
 							editor.applyCanvasLayouts(pageKey, folder, updates)
 					: undefined
 			}
+			onCarouselFrame={
+				editable
+					? (pageKey, blockId, layout) =>
+							editor.updateImagesBlock(pageKey, blockId, { carouselFrame: layout })
+					: undefined
+			}
+			onCarouselHost={
+				editable
+					? (pageKey, blockId, hostId, layout) =>
+							editor.updateImagesBlock(pageKey, blockId, {
+								carouselHost: hostId,
+								carouselFrame: layout,
+							})
+					: undefined
+			}
+			onCarouselFocus={
+				editable
+					? (folder, id, focusX, focusY) =>
+							editor.updateGalleryMeta(folder, id, { focusX, focusY })
+					: undefined
+			}
 			resizeBreakpoint={resizeBreakpoint}
 			onSectionHeight={
 				resizeBreakpoint
@@ -306,13 +328,27 @@ export default function PreviewPanel({
 					</button>
 				</div>
 				{editable && hasFreeformCanvas && <GuideTools />}
+				{!fullscreen && (
+					<label className="preview-option-toggle" title="Show section boundaries and resize handles in the editor preview">
+						<input
+							type="checkbox"
+							checked={gridPrefs.sectionEdges}
+							onChange={(event) => setGridPrefs({ sectionEdges: event.target.checked })}
+						/>
+						Section edges
+					</label>
+				)}
 				<span className="preview-hint">
 					{editable && hasFreeformCanvas
-						? 'Drag items; drag blank canvas space to select several. Section edges resize.'
+						? gridPrefs.sectionEdges
+							? 'Drag items; drag blank canvas space to select several. Drag a section edge to resize.'
+							: 'Drag items; drag blank canvas space to select several.'
 						: editable
-							? 'Automatic layout — edit the fields and blocks beside this preview.'
-						: device === 'phone' && resizeBreakpoint
-							? 'Drag section edges to adjust the phone layout.'
+							? gridPrefs.sectionEdges
+								? 'Automatic layout — drag a section edge to resize, or edit the blocks beside this preview.'
+								: 'Automatic layout — edit the fields and blocks beside this preview.'
+							: device === 'phone' && resizeBreakpoint
+								? 'Drag section edges to adjust the phone layout.'
 							: fullscreen
 								? 'Exactly how your published site will look.'
 								: 'Live site preview. Canvas tools appear while you edit a page in Pages.'}

@@ -166,26 +166,51 @@
 .section-resize-handle {
 	position: absolute;
 	right: 0;
-	bottom: -6px;
+	bottom: -9px;
 	left: 0;
 	z-index: 7000;
-	height: 12px;
+	height: 18px;
 	cursor: ns-resize;
 	touch-action: none;
 }
-.section-resize-handle span {
+.section-resize-line {
 	position: absolute;
-	right: 16px;
-	bottom: 5px;
-	left: 16px;
+	top: 50%;
+	right: 12px;
+	left: 12px;
 	height: 1px;
-	background: rgba(0, 47, 167, 0.36);
-	opacity: 0;
-	transition: opacity 120ms ease;
+	background: rgba(0, 47, 167, 0.5);
+	transform: translateY(-50%);
+	transition: background-color 120ms ease;
 }
-.section-resize-handle:hover span,
-.section-resize-handle:focus-visible span {
-	opacity: 1;
+.section-resize-icon {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 18px;
+	box-sizing: border-box;
+	border: 1px solid rgba(0, 47, 167, 0.55);
+	border-radius: 9px;
+	background: #fff;
+	color: #002fa7;
+	font-family: system-ui, sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1;
+	transform: translate(-50%, -50%);
+	transition: border-color 120ms ease, background-color 120ms ease;
+}
+.section-resize-handle:hover .section-resize-line,
+.section-resize-handle:focus-visible .section-resize-line {
+	background: #002fa7;
+}
+.section-resize-handle:hover .section-resize-icon,
+.section-resize-handle:focus-visible .section-resize-icon {
+	border-color: #002fa7;
+	background: #f5f7ff;
 }
 .section-resize-handle:focus-visible {
 	outline: 2px solid #002fa7;

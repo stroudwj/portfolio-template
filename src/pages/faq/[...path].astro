@@ -12,7 +12,7 @@
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
 import Favicons from '../../components/Favicons.astro';
-import { currentPriceText, pricing, regularPriceText } from '../../lib/pricing';
+import { currentPriceText, monthlyPriceText, pricing, regularPriceText } from '../../lib/pricing';
 
 export function getStaticPaths() {
 	if (!IS_PRODUCT_SITE) return [];
@@ -39,8 +39,8 @@ const visiblePriceHtml = pricing.launchPricingActive
 	? `<del class="regular-price">${regularPriceText}</del> <strong class="current-price">${currentPriceText}</strong>`
 	: `<strong class="current-price">${currentPriceText}</strong>`;
 const plainPrice = pricing.launchPricingActive
-	? `${regularPriceText} regular price; ${currentPriceText} launch price, paid once.`
-	: `${currentPriceText}, paid once.`;
+	? `${monthlyPriceText} per month, or ${regularPriceText} regular price with a ${currentPriceText} launch price for lifetime access.`
+	: `${monthlyPriceText} per month, or ${currentPriceText} for lifetime access.`;
 
 // One source of truth: `a` is the plain-text answer used for both the visible copy and
 // the JSON-LD below (so structured data always matches the page). `aHtml` overrides the
@@ -63,7 +63,7 @@ const groups: Group[] = [
 			{
 				slug: 'what-is-hangwork',
 				q: 'What is Hangwork?',
-				a: "Hangwork is a portfolio site builder for visual artists. You design your site in our editor, and it's published as a fast, plain-file website. One payment, no subscription. It stays portfolio-first, with a simple product catalog when you want to sell work through your own Stripe checkout.",
+				a: "Hangwork is a portfolio site builder for visual artists. You design your site in our editor, and it's published as a fast, plain-file website. Choose lifetime access or a monthly plan. It stays portfolio-first, with a simple product catalog when you want to sell work through your own Stripe checkout.",
 			},
 			{
 				slug: 'do-i-need-to-code',
@@ -88,7 +88,7 @@ const groups: Group[] = [
 			{
 				slug: 'if-i-stop-paying',
 				q: 'What happens if I stop paying?',
-				a: "Nothing, because there's nothing to stop paying. There's no subscription and no renewal. Your site stays up.",
+				a: "With lifetime access, nothing renews. On the monthly plan, publishing access stays active through the paid period and ends when Polar revokes the subscription after cancellation or unrecovered payment failure. Your already-published site and downloadable site files remain yours.",
 			},
 			{
 				slug: 'if-hangwork-shuts-down',
@@ -103,7 +103,7 @@ const groups: Group[] = [
 			{
 				slug: 'can-i-leave',
 				q: 'Can I leave?',
-				a: "Yes, and there’s nothing to cancel. Download your site from the editor and you’re holding a folder of ordinary web files that works on any host, exactly as it is.",
+				a: "Yes. A lifetime license has nothing to cancel; a monthly subscription can be canceled from Polar’s customer portal. Download your site from the editor and you’re holding a folder of ordinary web files that works on any host, exactly as it is.",
 			},
 		],
 	},
@@ -133,13 +133,13 @@ const groups: Group[] = [
 			{
 				slug: 'what-it-costs',
 				q: 'How much does it cost?',
-				a: `${plainPrice} That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No subscription, renewal, or higher tier. There is a ${pricing.refundDays}-day refund, no questions asked.`,
-				aHtml: `${visiblePriceHtml}, once. That covers the editor, your yourname.hangwork.art address, publishing, and every future editor update. No subscription, renewal, or higher tier. There is a ${pricing.refundDays}-day refund, no questions asked.`,
+				a: `${plainPrice} Both options cover the editor, your yourname.hangwork.art address, publishing, and future editor updates. Monthly access remains unlocked while the subscription is active. There is a ${pricing.refundDays}-day refund, no questions asked.`,
+				aHtml: `<strong class="current-price">${monthlyPriceText}</strong> per month, or ${visiblePriceHtml} once for lifetime access. Both options cover the editor, your yourname.hangwork.art address, publishing, and future editor updates. Monthly access remains unlocked while the subscription is active. There is a ${pricing.refundDays}-day refund, no questions asked.`,
 			},
 			{
 				slug: 'why-one-payment',
-				q: 'Why one payment instead of a subscription?',
-				a: "Because your site's hosting doesn't cost us anything each month — it lives in your account, not ours. Subscription builders charge rent forever and take your site down when you stop paying. We charge once, for the tool.",
+				q: 'Why offer a lifetime option?',
+				a: "Because your published site is made from plain files and does not need to be trapped behind endless rent. The monthly plan lowers the upfront cost; the lifetime plan is there for artists who prefer to pay once and never renew.",
 			},
 			{
 				slug: 'refund-policy',

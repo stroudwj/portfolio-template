@@ -26,6 +26,8 @@ const imageMetaSchema = passthrough({
 	w: z.number().optional(),
 	h: z.number().optional(),
 	layout: imageLayoutSchema.optional(),
+	focusX: z.number().min(0).max(100).optional(),
+	focusY: z.number().min(0).max(100).optional(),
 });
 
 export const editorDocSchema = passthrough({

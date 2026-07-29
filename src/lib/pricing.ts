@@ -5,7 +5,8 @@
  */
 export const pricing = Object.freeze({
 	launchPrice: 49,
-	regularPrice: 79,
+	regularPrice: 99,
+	monthlyPrice: 10,
 	refundDays: 14,
 	launchPricingActive: true,
 });
@@ -22,3 +23,4 @@ export function formatPrice(amount: number): string {
 
 export const currentPriceText = formatPrice(currentPrice);
 export const regularPriceText = formatPrice(pricing.regularPrice);
+export const monthlyPriceText = formatPrice(pricing.monthlyPrice);

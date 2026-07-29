@@ -30,9 +30,20 @@ export interface ImageCollectionEditorProps {
 	embedded?: boolean;
 	/** Overrides the default "arrange in the preview" helper line. */
 	hint?: string;
+	/** Whether uploads must supply alt text or an explicit decorative choice. */
+	requireAltText?: boolean;
 }
 
-export default function ImageCollectionEditor({ folder, title, variant, addLabel, emptyLabel, embedded, hint }: ImageCollectionEditorProps) {
+export default function ImageCollectionEditor({
+	folder,
+	title,
+	variant,
+	addLabel,
+	emptyLabel,
+	embedded,
+	hint,
+	requireAltText = false,
+}: ImageCollectionEditorProps) {
 	const {
 		doc,
 		addGalleryImages,
@@ -51,9 +62,9 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 	} | null>(null);
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
-	const accessibilityReviewCount = entries.filter(
-		(entry) => !entry.sampleAssetId && !entry.meta.alt.trim() && !entry.meta.decorative,
-	).length;
+	const accessibilityReviewCount = requireAltText
+		? entries.filter((entry) => !entry.sampleAssetId && !entry.meta.alt.trim() && !entry.meta.decorative).length
+		: 0;
 
 	const finishUpload = (images: AccessibleImageUpload[]) => {
 		if (!pendingUpload) return;
@@ -64,6 +75,22 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 			addGalleryImages(folder, images);
 		}
 		setPendingUpload(null);
+	};
+	const beginUpload = (
+		files: File[],
+		options?: { replaceEntryId?: string; replacingSample?: boolean },
+	) => {
+		if (requireAltText) {
+			setPendingUpload({ files, ...options });
+			return;
+		}
+		const images = files.map((file) => ({ file, alt: '' }));
+		if (options?.replaceEntryId) {
+			const image = images[0];
+			if (image) replaceGalleryImage(folder, options.replaceEntryId, image);
+		} else {
+			addGalleryImages(folder, images);
+		}
 	};
 
 	const body = (
@@ -80,7 +107,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 
 			{(!collapsed || entries.length === 0) && (
 				<>
-						<ImageDrop multiple onFiles={(files) => setPendingUpload({ files })}>
+						<ImageDrop multiple onFiles={(files) => beginUpload(files)}>
 							<span>{addLabel}</span>
 						</ImageDrop>
 						{accessibilityReviewCount > 0 && (
@@ -162,11 +189,10 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 																<ImageDrop
 																	ariaLabel={`Replace ${artworkName}`}
 																	onFiles={(files) =>
-																		setPendingUpload({
-																			files: files.slice(0, 1),
-																			replaceEntryId: entry.id,
-																			replacingSample: !!entry.sampleAssetId,
-																		})
+														beginUpload(files.slice(0, 1), {
+															replaceEntryId: entry.id,
+															replacingSample: !!entry.sampleAssetId,
+														})
 																	}
 																>
 																	<span>Replace</span>
@@ -301,6 +327,7 @@ export default function ImageCollectionEditor({ folder, title, variant, addLabel
 		<ImageAccessibilityModal
 			files={pendingUpload.files}
 			replacingSample={pendingUpload.replacingSample}
+			required={requireAltText}
 			onCancel={() => setPendingUpload(null)}
 			onConfirm={finishUpload}
 		/>

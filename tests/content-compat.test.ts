@@ -16,6 +16,8 @@ import { buildEditorBackup, readEditorBackup } from '../src/editor/lib/backup';
 import { collectIssues } from '../src/editor/lib/validation';
 import { automaticPhoneOrder } from '../src/portfolio/mobileOrder';
 import {
+	clampTextFlowLayout,
+	pointerInCanvas,
 	snapSpanToCenter,
 	snapSpanToEdges,
 } from '../src/portfolio/canvasLayout';
@@ -43,6 +45,18 @@ describe('content compatibility', () => {
 		expect(snapSpanToEdges(20.8, 30, [20, 70])).toBe(20);
 	});
 
+	it('keeps a dragged item under the pointer when its canvas scrolls', () => {
+		const start = pointerInCanvas(250, 300, { left: 50, top: 100, width: 1000 });
+		const afterScroll = pointerInCanvas(250, 300, { left: 50, top: 20, width: 1000 });
+		expect(start).toEqual({ x: 20, y: 20 });
+		expect(afterScroll).toEqual({ x: 20, y: 28 });
+	});
+
+	it('keeps normal-flow text width and position inside the content area', () => {
+		expect(clampTextFlowLayout({ x: 90, w: 40 })).toEqual({ x: 60, w: 40 });
+		expect(clampTextFlowLayout({ x: -10, w: 5 })).toEqual({ x: 0, w: 20 });
+	});
+
 	it('migrates unversioned content without mutating it or dropping extensions', () => {
 		const raw = fixture('content-v0.json') as Record<string, unknown>;
 		const original = structuredClone(raw);
@@ -67,6 +81,103 @@ describe('content compatibility', () => {
 		expect(() => parseAndMigrateContent({ ...once, schemaVersion: CONTENT_SCHEMA_VERSION + 1 })).toThrow(
 			UnsupportedContentVersionError,
 		);
+	});
+
+	it('preserves the click-through carousel option on image groups', () => {
+		const raw = structuredClone(blankDoc().content);
+		raw.pages.home.blocks = [
+			...(raw.pages.home.blocks ?? []),
+			{
+				id: 'carousel',
+				type: 'images',
+				name: 'Process',
+				gallery: {
+					folder: 'process',
+					alt: 'Process images',
+					order: 'asc',
+					carousel: true,
+					carouselFit: 'fill',
+					carouselFrame: { x: 8, y: 4, w: 72, ar: 1.5 },
+					carouselFreeResize: true,
+					carouselMoveImage: true,
+					carouselHost: 'gallery',
+					carouselShowCount: false,
+					carouselShowTitle: true,
+					carouselRequireAlt: true,
+				},
+			},
+		];
+		raw.galleries.process = { items: { '01-process.jpg': { id: 'process-one', focusX: 75, focusY: 25 } } };
+
+		const parsed = parseAndMigrateContent(raw);
+		const group = parsed.pages.home.blocks?.find((block) => block.type === 'images');
+		expect(group?.type === 'images' ? group.gallery : undefined).toMatchObject({
+			carousel: true,
+			carouselFit: 'fill',
+			carouselFrame: { x: 8, y: 4, w: 72, ar: 1.5 },
+			carouselFreeResize: true,
+			carouselMoveImage: true,
+			carouselHost: 'gallery',
+			carouselShowCount: false,
+			carouselShowTitle: true,
+			carouselRequireAlt: true,
+		});
+		expect(parsed.galleries.process.items['01-process.jpg']).toMatchObject({ focusX: 75, focusY: 25 });
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
+	it('preserves structured rich text and independent text-box fonts', () => {
+		const raw = structuredClone(blankDoc().content);
+		raw.pages.home.blocks = [
+			...(raw.pages.home.blocks ?? []),
+			{
+				id: 'rich-copy',
+				type: 'text',
+				text: 'Large idea\nDetailed work',
+				richText: [
+					{
+						align: 'center',
+						runs: [
+							{ text: 'Large ', size: 'heading', bold: true },
+							{ text: 'idea', size: 'heading', italic: true, underline: true },
+						],
+					},
+					{
+						runs: [
+							{ text: 'Detailed ', size: 'subheading' },
+							{ text: 'work', strike: true },
+						],
+					},
+				],
+				fontFamily: 'Georgia, "Times New Roman", serif',
+				flowLayout: { x: 18, w: 64 },
+				layout: { x: 12, y: 8, w: 42 },
+			},
+		];
+
+		const parsed = parseAndMigrateContent(raw);
+		const block = parsed.pages.home.blocks?.find((candidate) => candidate.id === 'rich-copy');
+		expect(block?.type === 'text' ? block : undefined).toMatchObject({
+			text: 'Large idea\nDetailed work',
+			fontFamily: 'Georgia, "Times New Roman", serif',
+			flowLayout: { x: 18, w: 64 },
+			richText: [
+				{
+					align: 'center',
+					runs: [
+						{ text: 'Large ', size: 'heading', bold: true },
+						{ text: 'idea', size: 'heading', italic: true, underline: true },
+					],
+				},
+				{
+					runs: [
+						{ text: 'Detailed ', size: 'subheading' },
+						{ text: 'work', strike: true },
+					],
+				},
+			],
+		});
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
 	});
 
 	it('moves schema-3 About routes, internal links, and draft thumbnails to /about', () => {

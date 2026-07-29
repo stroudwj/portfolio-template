@@ -6,7 +6,7 @@ import type { PortfolioData, ResolvedImage } from '../../portfolio/types';
 import type { EditorDoc, ImageEntry } from './types';
 import { getAssetUrl, getAssetPreviewUrl, uid } from './assets';
 import { parseAndMigrateEditorDoc } from './doc-schema';
-import { sampleArtworkUrl } from './sample-artwork';
+import { sampleArtworkIdForUrl, sampleArtworkUrl } from './sample-artwork';
 
 /** Gray placeholder shown for images referenced by name but not uploaded this session. */
 export const PLACEHOLDER_IMAGE =
@@ -77,6 +77,8 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,
+					focusX: meta.focusX,
+					focusY: meta.focusY,
 				},
 				assetId: null,
 				sampleAssetId: sampleAssetId ?? null,
@@ -111,6 +113,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 		};
 	}
 	const resumeUrl = cloned.resume?.url ?? '';
+	const profileSampleAssetId = sampleArtworkIdForUrl(cloned.profile.image);
 	const galleries = entriesFromContent(cloned);
 	const productImages: EditorDoc['productImages'] = {};
 	for (const product of cloned.store?.products ?? []) {
@@ -137,7 +140,11 @@ export function initDocFromContent(content: Content): EditorDoc {
 		docVersion: 4,
 		content: cloned,
 		galleries,
-		profileImage: { filename: cloned.profile.image || '', assetId: null, sampleAssetId: null },
+		profileImage: {
+			filename: cloned.profile.image.slice(cloned.profile.image.lastIndexOf('/') + 1),
+			assetId: null,
+			sampleAssetId: profileSampleAssetId,
+		},
 		logoImage: { filename: cloned.site.logoImage || '', assetId: null, sampleAssetId: null },
 		pageThumbs,
 		productImages,
@@ -178,6 +185,8 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			w: e.meta.w,
 			h: e.meta.h,
 			layout: e.meta.layout,
+			focusX: e.meta.focusX,
+			focusY: e.meta.focusY,
 		}));
 	}
 	const uploaded = getAssetPreviewUrl(doc.profileImage.assetId);

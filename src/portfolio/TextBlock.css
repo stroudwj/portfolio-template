@@ -1,29 +1,27 @@
-/* Full-width block so L/C/R alignment moves the text relative to the page,
-   not within a hidden centered column. The paragraph stays capped at a
-   readable width; the alignment places that column AND the text inside it. */
+/* Normal-flow text uses the whole padded content width by default. Each block
+   can opt into its own width and horizontal position through the two custom
+   properties; this avoids the old invisible 640px cap that made copy stop
+   unexpectedly halfway across wide pages. */
 .text-block {
+	--text-flow-x: 0;
+	--text-flow-w: 100;
 	margin: 1.5rem 0;
 	padding: 0 40px;
 	color: var(--color-text);
 	font-family: var(--font-family);
 }
 .text-block .text-block-content {
-	max-width: 640px;
-	margin: 0;
+	box-sizing: border-box;
+	width: calc(var(--text-flow-w) * 1%);
+	margin: 0 0 0 calc(var(--text-flow-x) * 1%);
 	font-size: 1rem;
 	line-height: 1.75;
 }
 .text-block.align-center {
 	text-align: center;
 }
-.text-block.align-center .text-block-content {
-	margin-inline: auto;
-}
 .text-block.align-right {
 	text-align: right;
-}
-.text-block.align-right .text-block-content {
-	margin-left: auto;
 }
 
 .text-block-content.text-style-heading,
@@ -51,6 +49,60 @@
 	font-size: clamp(1.15rem, 3vw, 1.45rem);
 	font-style: italic;
 	line-height: 1.55;
+}
+
+.rich-text-content {
+	font-family: var(--font-family);
+}
+
+.rich-text-paragraph {
+	margin: 0 0 0.6em;
+	white-space: pre-wrap;
+}
+
+.rich-text-paragraph:last-child {
+	margin-bottom: 0;
+}
+
+.rich-text-paragraph.align-left {
+	text-align: left;
+}
+
+.rich-text-paragraph.align-center {
+	text-align: center;
+}
+
+.rich-text-paragraph.align-right {
+	text-align: right;
+}
+
+.rich-text-run {
+	white-space: pre-wrap;
+}
+
+.rich-text-run.text-size-body {
+	font-size: 1rem;
+	line-height: 1.75;
+}
+
+.rich-text-run.text-size-subheading {
+	font-size: clamp(
+		calc(1.2rem * var(--subheading-scale, 1)),
+		calc(3vw * var(--subheading-scale, 1)),
+		calc(1.5rem * var(--subheading-scale, 1))
+	);
+	line-height: 1.3;
+}
+
+.rich-text-run.text-size-heading {
+	font-size: clamp(1.75rem, 5vw, 3rem);
+	line-height: 1.12;
+	letter-spacing: -0.015em;
+}
+
+.rich-text-run u {
+	text-decoration-thickness: 0.08em;
+	text-underline-offset: 0.14em;
 }
 
 .text-block-content a {

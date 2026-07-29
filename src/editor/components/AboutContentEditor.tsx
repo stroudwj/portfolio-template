@@ -3,6 +3,7 @@ import { useEditor } from '../store';
 import { Field, TextArea, TextInput } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl, getAssetUrl } from '../lib/assets';
+import { sampleArtworkUrl } from '../lib/sample-artwork';
 import { isEmail, isPdfFile, MAX_PDF_BYTES, MAX_PDF_MB } from '../lib/validation';
 import { SocialLinksFields } from './SocialLinksEditor';
 
@@ -24,7 +25,9 @@ export default function AboutContentEditor() {
 	if (!doc) return null;
 
 	const { content } = doc;
-	const profileUrl = getAssetPreviewUrl(doc.profileImage.assetId);
+	const profileUrl =
+		getAssetPreviewUrl(doc.profileImage.assetId) ??
+		sampleArtworkUrl(doc.profileImage.sampleAssetId);
 	const emailError =
 		content.contact.email && !isEmail(content.contact.email)
 			? 'Enter a valid email address.'

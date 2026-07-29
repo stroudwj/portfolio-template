@@ -16,7 +16,7 @@ export function getStaticPaths() {
 const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
 const governingState = 'Virginia'; // US state whose law governs
 
-const lastUpdated = 'July 26, 2026';
+const lastUpdated = 'July 28, 2026';
 const abuseEmail = 'abuse@hangwork.art';
 const supportEmail = 'william.stroud100@gmail.com';
 const refundDays = pricing.refundDays;
@@ -55,7 +55,8 @@ const sections: LegalSection[] = [
 		id: 'payment',
 		heading: 'Payment, price, and refunds',
 		html: `
-			<p>Hangwork is a one-time purchase. There is no subscription and no renewal. The price shown at checkout is what you pay, once, for the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates.</p>
+			<p>Hangwork offers a lifetime license and a monthly subscription. Both include the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates. The lifetime license is paid once and does not renew. The monthly plan renews each month at the price shown at checkout until you cancel it through Polar’s customer portal.</p>
+			<p>A monthly license remains active through each paid subscription period. If you cancel, access continues until the end of the period you already paid for. Polar revokes the license when that period ends or when a failed renewal can no longer be recovered. Losing monthly license access stops new publishing; it does not transfer ownership of your content or published site files to Hangwork.</p>
 			<p>Payments are processed by <strong>Polar</strong> as merchant of record. Polar handles checkout, card details, receipts, and any applicable sales tax or VAT. We don’t see or store your full card details.</p>
 			<p>If Hangwork isn’t for you, email <a href="mailto:${supportEmail}">${supportEmail}</a> within ${refundDays} days of your purchase for a full refund, no questions asked. After ${refundDays} days the purchase is non-refundable except where the law requires otherwise.</p>
 		`,
