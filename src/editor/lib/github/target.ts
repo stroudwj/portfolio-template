@@ -88,6 +88,15 @@ function referencedAssetPaths(content: Content): string[] {
 	for (const font of content.theme.customFonts ?? []) paths.push(`src/assets/${font.file}`);
 	for (const [folder, gallery] of Object.entries(content.galleries))
 		for (const filename of Object.keys(gallery.items)) paths.push(`src/assets/${folder}/${filename}`);
+	for (const page of Object.values(content.pages))
+		for (const block of page.blocks ?? [])
+			if (
+				block.type === 'shots' &&
+				block.src &&
+				!block.src.startsWith('//') &&
+				!/^[a-z][a-z\d+.-]*:/i.test(block.src)
+			)
+				paths.push(`public/${block.src.replace(/^\/+/, '')}`);
 	const resume = content.resume?.url.trim();
 	if (resume && !resume.startsWith('//') && !/^[a-z][a-z\d+.-]*:/i.test(resume))
 		paths.push(`public/${resume.replace(/^\/+/, '')}`);

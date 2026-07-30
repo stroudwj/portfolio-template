@@ -128,16 +128,52 @@
 
 /* Editor preview: a flow block (text or video) can be dragged onto the page canvas. */
 .flow-text-draggable {
+	position: relative;
 	cursor: grab;
 	touch-action: none;
 	user-select: none;
 }
-/* The iframe would swallow the drag start — let the wrapper receive it instead
-   (the published site renders the embed without this wrapper, fully playable). */
-.flow-text-draggable iframe {
-	pointer-events: none;
+
+.flow-embed-draggable {
+	cursor: default;
+	touch-action: auto;
+	user-select: auto;
 }
-.flow-text-draggable:hover {
+
+.flow-embed-drag-handle {
+	position: absolute;
+	z-index: 3;
+	top: 8px;
+	left: 50%;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 6px 10px;
+	border: 1px solid rgba(255, 255, 255, 0.8);
+	border-radius: 999px;
+	background: rgba(0, 47, 167, 0.92);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	color: #fff;
+	font: 600 11px/1.2 system-ui, sans-serif;
+	cursor: grab;
+	touch-action: none;
+	transform: translateX(-50%);
+}
+
+.flow-embed-drag-handle:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+}
+
+.flow-embed-drag-shield {
+	position: fixed;
+	z-index: 2147483000;
+	inset: 0;
+	cursor: grabbing;
+	touch-action: none;
+}
+
+.flow-text-draggable:not(.flow-embed-draggable):hover {
 	outline: 1.5px dashed #002fa7;
 	outline-offset: 2px;
 }

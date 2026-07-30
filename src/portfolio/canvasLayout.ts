@@ -188,9 +188,9 @@ export interface FlowItem {
  * rows of three flowing below everything already placed. Deterministic, so the
  * server render, the hydrated client, and the editor preview all agree.
  */
-export function flowMissing(items: FlowItem[]): Map<number, ImageLayout> {
+export function flowMissing(items: FlowItem[], minimumY = 0): Map<number, ImageLayout> {
 	const placed = items.flatMap((i) => (i.layout ? [i.layout] : []));
-	let y = placed.length ? canvasHeight(placed) + GUTTER : 0;
+	let y = Math.max(placed.length ? canvasHeight(placed) + GUTTER : 0, minimumY);
 	const w = (100 - GUTTER * (COLS + 1)) / COLS;
 	const out = new Map<number, ImageLayout>();
 	let col = 0;

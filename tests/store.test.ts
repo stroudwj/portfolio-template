@@ -800,3 +800,107 @@ describe('legacy Stripe embeds', () => {
 		},
 	);
 });
+
+describe('canvas placement without an image group', () => {
+	it('keeps standalone canvas drag surfaces but omits competing section edges', () => {
+		const content = structuredClone(blankContent);
+		content.pages.home = {
+			...content.pages.home,
+			heading: undefined,
+			gallery: undefined,
+			blocks: [
+				{
+					id: 'copy',
+					type: 'text',
+					text: 'Normal-flow copy',
+					layout: { x: 10, y: 35, w: 45 },
+					flowLayout: { x: 12, w: 70 },
+				},
+				{
+					id: 'map',
+					type: 'embed',
+					kind: 'map',
+					url: 'https://www.google.com/maps/place/Space+Needle/',
+					layout: { x: 8, y: 60, w: 70, ar: 4 / 3 },
+					flowLayout: { x: 10, w: 80 },
+				},
+			],
+		};
+
+		const markup = renderToStaticMarkup(
+			createElement(PortfolioPage, {
+				page: 'home',
+				content,
+				galleries: {},
+				base: '',
+				resizeBreakpoint: 'desktop',
+				onSectionHeight: vi.fn(),
+			}),
+		);
+
+		expect(markup).toContain('Normal-flow copy');
+		expect(markup).toContain('canvas-gallery');
+		expect(markup).toContain('standalone-embed-canvas');
+		expect(markup).toContain('standalone-text-box-canvas');
+		expect(markup).toContain('standalone-canvas-page-part');
+		expect(markup).not.toContain('section-resize-handle');
+	});
+
+	it('renders independently ordered sections as separate freeform canvases', () => {
+		const content = structuredClone(blankContent);
+		content.pages.home = {
+			...content.pages.home,
+			heading: undefined,
+			blocks: [
+				{ id: 'gallery', type: 'gallery' },
+				{
+					id: 'main-copy',
+					type: 'text',
+					text: 'Main canvas copy',
+					layout: { x: 15, y: 30, w: 50 },
+				},
+				{
+					id: 'map',
+					type: 'embed',
+					kind: 'map',
+					url: 'https://www.google.com/maps/place/Space+Needle/',
+					layout: { x: 10, y: 2, w: 70, ar: 4 / 3 },
+				},
+				{
+					id: 'map-copy',
+					type: 'text',
+					text: 'Map section copy',
+					layout: { x: 20, y: 58, w: 50 },
+				},
+			],
+			sections: [
+				{
+					id: 'location',
+					name: 'Location',
+					blockIds: ['map', 'map-copy'],
+				},
+				{
+					id: 'main',
+					name: 'Main section',
+					blockIds: ['gallery', 'main-copy'],
+				},
+			],
+		};
+
+		const markup = renderToStaticMarkup(
+			createElement(PortfolioPage, {
+				page: 'home',
+				content,
+				galleries: { 'selected-works': [] },
+				base: '',
+				editorPreview: true,
+			}),
+		);
+
+		expect((markup.match(/portfolio-page-part/g) ?? [])).toHaveLength(2);
+		expect((markup.match(/class="canvas-gallery/g) ?? [])).toHaveLength(2);
+		expect(markup.indexOf('Map section copy')).toBeLessThan(
+			markup.indexOf('Main canvas copy'),
+		);
+	});
+});

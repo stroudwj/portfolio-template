@@ -46,6 +46,8 @@ function mimeFromName(name: string): string {
 		woff: 'font/woff',
 		ttf: 'font/ttf',
 		otf: 'font/otf',
+		mp4: 'video/mp4',
+		webm: 'video/webm',
 	};
 	return map[ext] ?? 'application/octet-stream';
 }
@@ -147,6 +149,21 @@ export async function loadDocFromRepo(
 	const resumePath = content.resume.url ? `public/${content.resume.url.replace(/^\//, '')}` : '';
 	const hasResumeFile = !!resumePath && shaByPath.has(resumePath);
 	if (hasResumeFile) imagePaths.push(resumePath);
+	const shotsPathByBlock = new Map<string, string>();
+	for (const [key, page] of Object.entries(content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (
+				block.type !== 'shots' ||
+				!block.src ||
+				block.src.startsWith('//') ||
+				/^[a-z][a-z\d+.-]*:/i.test(block.src)
+			) continue;
+			const path = `public/${block.src.replace(/^\/+/, '')}`;
+			if (!shaByPath.has(path)) continue;
+			shotsPathByBlock.set(`${key}:${block.id}`, path);
+			imagePaths.push(path);
+		}
+	}
 
 	// Download each blob and register it as an editor asset, reporting progress.
 	const downloadPaths = [...new Set(imagePaths)];
@@ -234,11 +251,21 @@ export async function loadDocFromRepo(
 				sampleAssetId: null,
 			};
 	}
+	for (const [key, page] of Object.entries(doc.content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type !== 'shots') continue;
+			const path = shotsPathByBlock.get(`${key}:${block.id}`);
+			if (!path) continue;
+			block.assetId = assetIdByPath.get(path) ?? null;
+			block.filename = path.slice(path.lastIndexOf('/') + 1);
+		}
+	}
 
 	const managedPaths = [
 		CONTENT_JSON_PATH,
 		...tree.map((t) => t.path).filter((p) => p.startsWith('src/assets/')),
 		...(hasResumeFile ? [resumePath] : []),
+		...shotsPathByBlock.values(),
 	];
 	const dataFileShas = Object.fromEntries(
 		tree.filter((item) => managedPaths.includes(item.path)).map((item) => [item.path, item.sha]),

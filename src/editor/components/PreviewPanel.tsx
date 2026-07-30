@@ -325,10 +325,22 @@ export default function PreviewPanel({
 			onEmbedLayout={
 				editable ? (pageKey, blockId, layout) => editor.setEmbedLayout(pageKey, blockId, layout) : undefined
 			}
+			onEmbedFlowLayout={
+				editable
+					? (pageKey, blockId, layout) =>
+							editor.setEmbedFlowLayout(pageKey, blockId, layout)
+					: undefined
+			}
 			onCanvasLayouts={
 				editable
 					? (pageKey, folder, updates) =>
 							editor.applyCanvasLayouts(pageKey, folder, updates)
+					: undefined
+			}
+			onDeleteCanvasItems={
+				editable
+					? (pageKey, folder, selection) =>
+							editor.deleteCanvasItems(pageKey, folder, selection)
 					: undefined
 			}
 			onCarouselFrame={
@@ -398,8 +410,8 @@ export default function PreviewPanel({
 				<span className="preview-hint">
 					{editable && hasFreeformCanvas
 						? gridPrefs.sectionEdges
-							? 'Drag items; drag blank canvas space to select several. Drag a section edge to resize.'
-							: 'Drag items; drag blank canvas space to select several.'
+							? 'Drag or resize items; press Backspace to delete the selection. Players and maps stay interactive.'
+							: 'Drag items or blank space to select several; Backspace deletes the selection.'
 						: editable
 							? gridPrefs.sectionEdges
 								? 'Automatic layout — drag a section edge to resize, or edit the blocks beside this preview.'

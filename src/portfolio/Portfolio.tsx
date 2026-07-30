@@ -4,8 +4,8 @@ import CreativeEffects from './CreativeEffects';
 import { useEffect, useRef, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
-import type { ImageLayout, PortfolioData, TextLayout } from './types';
-import type { CanvasLayoutUpdates } from './types';
+import type { ImageLayout, PortfolioData, TextFlowLayout, TextLayout } from './types';
+import type { CanvasLayoutUpdates, CanvasSelection } from './types';
 import type { SectionBreakpoint } from './SectionResizeHandle';
 import { transitionInDocument } from './pageTransitions';
 import Analytics from './Analytics';
@@ -20,7 +20,14 @@ export interface PortfolioProps extends PortfolioData {
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
 	/** Editor preview: reports a video embed placed/moved on the page canvas. */
 	onEmbedLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+	/** Editor preview: resizes or positions an embed that remains in normal flow. */
+	onEmbedFlowLayout?: (page: string, blockId: string, layout: TextFlowLayout) => void;
 	onCanvasLayouts?: (page: string, folder: string, updates: CanvasLayoutUpdates) => void;
+	onDeleteCanvasItems?: (
+		page: string,
+		folder: string,
+		selection: CanvasSelection,
+	) => void;
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onCarouselHost?: (
 		page: string,
@@ -48,7 +55,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onCanvasLayouts, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const headerMode =
 		content.site.headerMode ??
@@ -141,7 +148,9 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onImageLayout={onImageLayout}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
+					onEmbedFlowLayout={onEmbedFlowLayout}
 					onCanvasLayouts={onCanvasLayouts}
+					onDeleteCanvasItems={onDeleteCanvasItems}
 					onCarouselFrame={onCarouselFrame}
 					onCarouselHost={onCarouselHost}
 					onCarouselFocus={onCarouselFocus}

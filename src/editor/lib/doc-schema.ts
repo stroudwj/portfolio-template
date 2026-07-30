@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { contentSchema, parseAndMigrateContent } from '../../lib/content-schema';
 import { pageGalleryConfigs } from '../../lib/content';
+import { pageSections } from '../../lib/pageSections';
 import type { EditorDoc } from './types';
 
 export const EDITOR_DOC_VERSION = 4 as const;
@@ -106,9 +107,22 @@ export const editorDocSchema = passthrough({
 				ctx.addIssue({ code: 'custom', path: ['galleries', gallery.folder], message: `The image list used by “${pageKey}” is missing` });
 			if (gallery.mobile) {
 				const allowed = new Set((value.galleries[gallery.folder] ?? []).map((entry) => `image:${entry.id}`));
-				// Only the main freeform gallery owns text/video pinned to the page canvas.
-				if (galleryIndex === 0 && page.gallery && page.gallery.layout !== 'grid') {
+				const hostBlock =
+					galleryIndex === 0 && page.gallery?.folder === gallery.folder
+						? page.blocks?.find((block) => block.type === 'gallery')
+						: page.blocks?.find(
+								(block) =>
+									block.type === 'images' &&
+									block.gallery.folder === gallery.folder,
+							);
+				const sectionBlockIds = new Set(
+					pageSections(page).find((section) =>
+						section.blockIds.includes(hostBlock?.id ?? ''),
+					)?.blockIds ?? [],
+				);
+				if (gallery.layout !== 'grid') {
 					for (const block of page.blocks ?? []) {
+						if (!sectionBlockIds.has(block.id)) continue;
 						if (block.type === 'text' && block.layout) allowed.add(`text:${block.id}`);
 						if (block.type === 'embed' && block.layout) allowed.add(`video:${block.id}`);
 					}

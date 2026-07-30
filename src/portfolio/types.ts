@@ -50,6 +50,15 @@ export interface CanvasLayoutUpdates {
 	images?: Record<string, ImageLayout>;
 	texts?: Record<string, TextLayout>;
 	embeds?: Record<string, ImageLayout>;
+	widgets?: Record<string, ImageLayout>;
+}
+
+/** IDs selected on one freeform canvas, grouped by what owns their content. */
+export interface CanvasSelection {
+	images?: string[];
+	texts?: string[];
+	embeds?: string[];
+	widgets?: string[];
 }
 
 /** A text block placed on the freeform canvas (its `layout` is present). */
@@ -66,10 +75,11 @@ export interface CanvasText {
 	layout: TextLayout;
 }
 
-/** A video embed placed on the freeform canvas (its `layout` is present). */
+/** A hosted player or map placed on the freeform canvas (its `layout` is present). */
 export interface CanvasEmbed {
 	id: string;
 	url: string;
+	kind?: 'video' | 'audio' | 'map';
 	layout: ImageLayout;
 }
 

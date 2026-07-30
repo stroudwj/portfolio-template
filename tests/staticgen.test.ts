@@ -58,7 +58,13 @@ describe('staticgen', () => {
 
 	it('referencedAssetPaths mirrors the exporter contract', () => {
 		const content = testBundle().contentJson;
+		content.pages.home.blocks?.push({
+			id: 'shots',
+			type: 'shots',
+			src: 'media/home/clip.mp4',
+		});
 		expect(referencedAssetPaths(content)).toContain('src/assets/selected-works/01-blue.jpg');
+		expect(referencedAssetPaths(content)).toContain('public/media/home/clip.mp4');
 	});
 
 	it('escapes HTML and inline JSON safely', () => {
@@ -137,6 +143,24 @@ describe('staticgen', () => {
 					blocks: [
 						...(base.contentJson.pages.home.blocks ?? []),
 						{ id: 'youtube', type: 'embed', url: 'https://youtu.be/M7lc1UVf-VE' },
+						{
+							id: 'soundcloud',
+							type: 'embed',
+							kind: 'audio',
+							url: 'https://soundcloud.com/example-artist/example-track',
+						},
+						{
+							id: 'bandcamp',
+							type: 'embed',
+							kind: 'audio',
+							url: '<iframe style="width: 350px; height: 470px" src="https://bandcamp.com/EmbeddedPlayer/album=314386330/size=large/transparent=true/"></iframe>',
+						},
+						{
+							id: 'map',
+							type: 'embed',
+							kind: 'map',
+							url: 'https://www.google.com/maps/place/Space+Needle/',
+						},
 					],
 					sectionColors: { 'page:heading': '#e0685b' },
 					sectionHeights: {
@@ -163,6 +187,12 @@ describe('staticgen', () => {
 		expect(home).toContain('--page-heading-scale:1.45');
 		expect(home).toContain('heading-position-center');
 		expect(home).toContain('https://www.youtube.com/embed/M7lc1UVf-VE');
+		expect(home).toContain('https://w.soundcloud.com/player/');
+		expect(home).toContain('SoundCloud audio player');
+		expect(home).toContain('https://bandcamp.com/EmbeddedPlayer/album=314386330/');
+		expect(home).toContain('Bandcamp audio player');
+		expect(home).toContain('https://www.google.com/maps?q=Space+Needle');
+		expect(home).toContain('title="Google Map"');
 		expect(home).toContain('referrerPolicy="strict-origin-when-cross-origin"');
 
 		// Per-page background: the root carries the override + the flipped (light) text.

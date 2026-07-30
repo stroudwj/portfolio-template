@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import type {
 	CanvasEmbed,
 	CanvasLayoutUpdates,
+	CanvasSelection,
 	CanvasText,
 	GalleryConfig,
 	ImageLayout,
@@ -96,6 +97,8 @@ export interface GalleryProps {
 	texts?: CanvasText[];
 	/** Video embeds pinned to the freeform canvas. */
 	embeds?: CanvasEmbed[];
+	/** New/unplaced images begin below earlier freeform items in the section. */
+	autoFlowFloor?: number;
 	/** Editor preview: images become movable/resizable instead of zoomable. */
 	editable?: boolean;
 	/** Reports a finished move/resize per image (editor only). */
@@ -106,6 +109,8 @@ export interface GalleryProps {
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
 	/** Reports one atomic mixed-item canvas move (editor only). */
 	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
+	/** Deletes selected freeform items (editor only). */
+	onDeleteSelection?: (selection: CanvasSelection) => void;
 	/** Reports carousel frame movement/resizing (editor only). */
 	onCarouselFrameChange?: (layout: ImageLayout) => void;
 	/** Reports an explicit drop of a standalone carousel onto a freeform canvas. */
@@ -116,6 +121,8 @@ export interface GalleryProps {
 	carouselWidgets?: CarouselWidget[];
 	/** Reports movement/resizing for a carousel hosted by this freeform canvas. */
 	onCarouselWidgetLayout?: (id: string, layout: ImageLayout) => void;
+	/** Deletes this standalone carousel after its frame is selected. */
+	onDeleteCarousel?: () => void;
 	/** Render only the carousel itself; an outer CanvasGallery owns its frame. */
 	embeddedCarousel?: boolean;
 }
@@ -142,16 +149,19 @@ export default function Gallery({
 	settings,
 	texts,
 	embeds,
+	autoFlowFloor,
 	editable = false,
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
 	onBulkLayoutChange,
+	onDeleteSelection,
 	onCarouselFrameChange,
 	onCarouselHostChange,
 	onCarouselFocusChange,
 	carouselWidgets = [],
 	onCarouselWidgetLayout,
+	onDeleteCarousel,
 	embeddedCarousel = false,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -273,6 +283,7 @@ export default function Gallery({
 		event.preventDefault();
 		event.stopPropagation();
 		setCarouselSelected(true);
+		root.focus({ preventScroll: true });
 		const win = root.ownerDocument.defaultView ?? window;
 		const rootRect = root.getBoundingClientRect();
 		if (!rootRect.width) return;
@@ -472,6 +483,35 @@ export default function Gallery({
 	}, [carouselEntries.length]);
 
 	useEffect(() => {
+		if (!editable || !carouselSelected || !onDeleteCarousel) return;
+		const root = galleryRootRef.current;
+		const doc = root?.ownerDocument;
+		if (!root || !doc) return;
+		const onKey = (event: KeyboardEvent) => {
+			if (
+				(event.key !== 'Backspace' && event.key !== 'Delete') ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.altKey ||
+				(doc.activeElement !== root && !root.contains(doc.activeElement))
+			) return;
+			const target = event.target as HTMLElement | null;
+			if (
+				target &&
+				(target.matches('input, textarea, select') ||
+					target.isContentEditable ||
+					!!target.closest('[contenteditable="true"]'))
+			) return;
+			event.preventDefault();
+			event.stopPropagation();
+			setCarouselSelected(false);
+			onDeleteCarousel();
+		};
+		doc.addEventListener('keydown', onKey);
+		return () => doc.removeEventListener('keydown', onKey);
+	}, [carouselSelected, editable, onDeleteCarousel]);
+
+	useEffect(() => {
 		if (!isOpen || !host) return;
 		const doc = host.ownerDocument;
 		const dialog = dialogRef.current;
@@ -548,7 +588,7 @@ export default function Gallery({
 	) {
 		return (
 			<div className="gallery-empty">
-				<p>This page is empty… add some images, text, or videos.</p>
+				<p>This page is empty… add some images, text, or embeds.</p>
 			</div>
 		);
 	}
@@ -687,6 +727,7 @@ export default function Gallery({
 			} ${carouselMode && editable ? 'carousel-editable' : ''}`}
 			data-phone-ready={isPhone ? 'true' : undefined}
 			style={carouselRootStyle}
+			tabIndex={editable && carouselMode && !embeddedCarousel ? -1 : undefined}
 			onPointerDown={
 				carouselMode && editable && !embeddedCarousel
 					? (event) => {
@@ -880,12 +921,14 @@ export default function Gallery({
 					alt={alt}
 					mobile={settings?.mobile}
 					phoneActive={isPhone}
+					autoFlowFloor={autoFlowFloor}
 					editable={editable}
 					onLayoutChange={onLayoutChange}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
 					onWidgetLayout={onCarouselWidgetLayout}
 					onBulkLayoutChange={onBulkLayoutChange}
+					onDeleteSelection={onDeleteSelection}
 					onOpen={editable ? undefined : openLightbox}
 				/>
 			) : (

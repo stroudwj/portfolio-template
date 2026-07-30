@@ -31,6 +31,14 @@ describe('hasPublishableContent (the "built" half of publishing)', () => {
 		withEmbed.content.pages.home.blocks!.push({ id: 'v1', type: 'embed', url: 'https://youtu.be/x' });
 		expect(hasPublishableContent(withEmbed)).toBe(true);
 
+		const withShots = blankDoc();
+		withShots.content.pages.home.blocks!.push({
+			id: 'shots-1',
+			type: 'shots',
+			src: 'https://cdn.example.com/clip.mp4',
+		});
+		expect(hasPublishableContent(withShots)).toBe(true);
+
 		const withBio = blankDoc();
 		withBio.content.profile.bio = 'Painter in Marseille.';
 		expect(hasPublishableContent(withBio)).toBe(true);

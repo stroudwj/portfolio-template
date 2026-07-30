@@ -31,6 +31,8 @@ function mimeFromName(name: string): string {
 		ttf: 'font/ttf',
 		otf: 'font/otf',
 		pdf: 'application/pdf',
+		mp4: 'video/mp4',
+		webm: 'video/webm',
 	};
 	return map[ext] ?? 'application/octet-stream';
 }
@@ -120,6 +122,21 @@ export async function loadPublishedSite(
 	const resumePath = content.resume?.url ? content.resume.url.replace(/^\//, '') : '';
 	const hasResume = !!resumePath && has(resumePath);
 	if (hasResume) wanted.push(resumePath);
+	const shotsPathByBlock = new Map<string, string>();
+	for (const [key, page] of Object.entries(content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (
+				block.type !== 'shots' ||
+				!block.src ||
+				block.src.startsWith('//') ||
+				/^[a-z][a-z\d+.-]*:/i.test(block.src)
+			) continue;
+			const path = block.src.replace(/^\/+/, '');
+			if (!has(path)) continue;
+			shotsPathByBlock.set(`${key}:${block.id}`, path);
+			wanted.push(path);
+		}
+	}
 
 	const downloadPaths = [...new Set(wanted)];
 	const assetIdByPath = new Map<string, string>();
@@ -202,6 +219,15 @@ export async function loadPublishedSite(
 			assetId: assetIdByPath.get(resumePath) ?? null,
 			sampleAssetId: null,
 		};
+	}
+	for (const [key, page] of Object.entries(doc.content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type !== 'shots') continue;
+			const path = shotsPathByBlock.get(`${key}:${block.id}`);
+			if (!path) continue;
+			block.assetId = assetIdByPath.get(path) ?? null;
+			block.filename = path.slice(path.lastIndexOf('/') + 1);
+		}
 	}
 
 	// Remember the site so the next publish UPDATES it — the inventory seeds the local

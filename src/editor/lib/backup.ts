@@ -31,6 +31,16 @@ function assetSlots(doc: EditorDoc): Array<{ id: string; filename: string }> {
 	const slots: Array<{ id: string; filename: string }> = [];
 	for (const entries of Object.values(doc.galleries))
 		for (const entry of entries) if (entry.assetId) slots.push({ id: entry.assetId, filename: entry.filename });
+	for (const page of Object.values(doc.content.pages))
+		for (const block of page.blocks ?? [])
+			if (block.type === 'shots' && block.assetId)
+				slots.push({ id: block.assetId, filename: block.filename || 'scroll-video' });
+	for (const template of doc.content.sectionLibrary ?? [])
+		if (template.block.type === 'shots' && template.block.assetId)
+			slots.push({
+				id: template.block.assetId,
+				filename: template.block.filename || 'scroll-video',
+			});
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
@@ -149,6 +159,12 @@ function remapAssetIds(doc: EditorDoc, ids: ReadonlyMap<string, string>): Editor
 	const remap = (id: string | null): string | null => (id ? (ids.get(id) ?? id) : null);
 	for (const entries of Object.values(next.galleries))
 		for (const entry of entries) entry.assetId = remap(entry.assetId);
+	for (const page of Object.values(next.content.pages))
+		for (const block of page.blocks ?? [])
+			if (block.type === 'shots') block.assetId = remap(block.assetId ?? null);
+	for (const template of next.content.sectionLibrary ?? [])
+		if (template.block.type === 'shots')
+			template.block.assetId = remap(template.block.assetId ?? null);
 	for (const slot of [
 		next.profileImage,
 		next.logoImage,

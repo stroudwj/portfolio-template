@@ -139,6 +139,8 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	// Saved sections are private editing material. They stay in local drafts and
 	// backups, but never leak into the public content.json.
 	delete content.sectionLibrary;
+	for (const page of Object.values(content.pages))
+		for (const section of page.sections ?? []) delete section.editorColor;
 	const files: BundleFile[] = [];
 	const referencedFiles = new Set<string>();
 	const emittedImagePathByAssetId = new Map<string, string>();
@@ -165,6 +167,37 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		content.nav = content.nav.filter((item) => !draftKeys.has(item.path));
 		for (const page of Object.values(content.pages)) {
 			if (page.children) page.children = page.children.filter((key) => !draftKeys.has(key));
+		}
+	}
+
+	// Scroll-scrubbed clips live under public/media so the browser can seek them
+	// directly. Uploaded drafts emit bytes; repository-loaded clips preserve their
+	// existing relative path; direct https URLs remain remote.
+	for (const [key, page] of Object.entries(content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type !== 'shots') continue;
+			if (block.assetId) {
+				const blob = localAssetBlob(
+					block.assetId,
+					block.filename || 'Shots / scroll video',
+				);
+				if (blob) {
+					const blockPrefix = `${pageKeyToken(block.id)}-`;
+					const cleanName = sanitizeFilename(block.filename || 'scroll-video.mp4');
+					const finalName = `media/${pageKeyToken(key)}/${
+						cleanName.startsWith(blockPrefix) ? cleanName : `${blockPrefix}${cleanName}`
+					}`;
+					files.push({
+						path: `public/${finalName}`,
+						bytes: new Uint8Array(await blob.arrayBuffer()),
+					});
+					block.src = finalName;
+				}
+			} else if (block.src && !/^(?:https?:)?\/\//i.test(block.src)) {
+				referencedFiles.add(`public/${block.src.replace(/^\/+/, '')}`);
+			}
+			delete block.assetId;
+			delete block.filename;
 		}
 	}
 

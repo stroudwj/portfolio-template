@@ -266,7 +266,7 @@ const painterPages: Record<string, PageConfig> = {
 };
 
 const painterContent: Content = {
-	schemaVersion: 4,
+	schemaVersion: 5,
 	site: {
 		name: 'Your Name',
 		headerMode: 'name',
@@ -401,7 +401,7 @@ const photographerPages: Record<string, PageConfig> = {
 };
 
 const photographerContent: Content = {
-	schemaVersion: 4,
+	schemaVersion: 5,
 	site: {
 		name: 'Your Name',
 		headerMode: 'name',

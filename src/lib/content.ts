@@ -376,7 +376,7 @@ export interface TextFlowLayout {
 
 /**
  * One ordered piece of a page's body. 'text' is free text placeable anywhere;
- * 'embed' is a YouTube/Vimeo video (its optional `layout` pins the player onto
+ * 'embed' is a hosted video, audio player, or map (its optional `layout` pins it onto
  * the page's freeform canvas, like images); 'gallery' renders the page's
  * gallery; 'images' is an extra self-contained image group (its own folder +
  * layout settings), so one page can hold several canvases/grids; 'children'
@@ -404,7 +404,37 @@ export type PageBlock =
 			flowLayout?: TextFlowLayout;
 			layout?: TextLayout;
 		}
-	| { id: string; type: 'embed'; url: string; layout?: ImageLayout }
+	| {
+			id: string;
+			type: 'embed';
+			url: string;
+			/** Keeps an empty/new module labelled for its intended provider family. */
+			kind?: 'video' | 'audio' | 'map';
+			/** Width and horizontal position while the embed remains in normal flow. */
+			flowLayout?: TextFlowLayout;
+			layout?: ImageLayout;
+		}
+	| {
+			id: string;
+			/** A short clip whose playhead follows page scroll. */
+			type: 'shots';
+			/** Direct web URL or published path under public/. */
+			src: string;
+			/** Browser-draft upload bookkeeping; removed from published content. */
+			assetId?: string | null;
+			filename?: string;
+			/** Scroll scene length in viewport heights. */
+			scrollLength?: number;
+			/** Fade the clip away near the end so following page content takes over. */
+			fadeIntoPage?: boolean;
+			/** Scene progress, in percent, where the fade begins. */
+			fadeStart?: number;
+			/** Length of the fade, in percent of the scroll scene. */
+			fadeDuration?: number;
+			fit?: 'cover' | 'contain';
+			/** Motion stays off on phones unless explicitly enabled. */
+			phone?: boolean;
+		}
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'images'; gallery: GalleryConfig; /** Editor-only display name so groups are tellable apart. */ name?: string }
 	| { id: string; type: 'children'; /** Presentation of the sub-page cards; absent = 'cards'. */ style?: ChildrenStyle }
@@ -427,6 +457,18 @@ export type PageBlock =
 			fields: FormField[];
 		};
 
+/**
+ * One movable page region. Blocks belong to exactly one section and the section
+ * owns their shared background, motion, responsive height, and freeform canvas.
+ * `editorColor` is an organizational label used only in the editor.
+ */
+export interface PageSection {
+	id: string;
+	name: string;
+	blockIds: string[];
+	editorColor?: string;
+}
+
 export interface PageConfig {
 	/** Browser-tab title. "{name}" is replaced with site.name by pageTitle(). */
 	title: string;
@@ -444,6 +486,9 @@ export interface PageConfig {
 	gallery?: GalleryConfig;
 	/** Ordered body blocks. Filled by the versioned parser for pre-block content. */
 	blocks?: PageBlock[];
+	/** Ordered, named containers for page blocks. Reordering a section moves all
+	 * of its blocks together. Every current document has at least `main`. */
+	sections?: PageSection[];
 	/** Opt-in phone-only order/visibility for whole page sections. Absence keeps
 	 * following the desktop block order automatically. */
 	mobile?: MobileComposition;

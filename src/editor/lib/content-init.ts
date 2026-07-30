@@ -18,7 +18,7 @@ export function cloneContent(c: Content): Content {
 
 /** A valid, empty portfolio that keeps the site's page/nav structure intact. */
 export const blankContent: Content = {
-	schemaVersion: 4,
+	schemaVersion: 5,
 	site: { name: '', headerMode: 'name', description: 'Portfolio', favicon: 'favicon.svg', footer: DEFAULT_FOOTER },
 	theme: {
 		backgroundColor: '#fafafa',
@@ -43,18 +43,25 @@ export const blankContent: Content = {
 			heading: 'Selected Works',
 			gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
 		},
 		art: {
 			title: 'Art — {name}',
 			gallery: { folder: 'art', alt: 'Art piece', order: 'asc' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
 		},
 		photography: {
 			title: 'Photography — {name}',
 			gallery: { folder: 'photography', alt: 'Photograph', order: 'asc' },
 			blocks: [{ id: 'gallery', type: 'gallery' }],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
 		},
-		about: { title: 'About — {name}', blocks: [{ id: 'about', type: 'about' }] },
+		about: {
+			title: 'About — {name}',
+			blocks: [{ id: 'about', type: 'about' }],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['about'] }],
+		},
 	},
 	galleries: { 'selected-works': { items: {} }, art: { items: {} }, photography: { items: {} } },
 };
@@ -168,6 +175,13 @@ export function upgradeDoc(doc: EditorDoc): EditorDoc {
 
 /** Live document -> resolved data the shared portfolio components can render. */
 export function docToPortfolioData(doc: EditorDoc): PortfolioData {
+	const content = cloneContent(doc.content);
+	for (const page of Object.values(content.pages)) {
+		for (const block of page.blocks ?? []) {
+			if (block.type !== 'shots' || !block.assetId) continue;
+			block.src = getAssetUrl(block.assetId) ?? '';
+		}
+	}
 	const galleries: Record<string, ResolvedImage[]> = {};
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
 		galleries[folder] = entries.map((e) => ({
@@ -241,7 +255,7 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	const resumeHref = getAssetUrl(doc.resumeFile?.assetId);
 
 	return {
-		content: doc.content,
+		content,
 		galleries,
 		profileImageSrc,
 		logoImageSrc,

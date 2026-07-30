@@ -23,12 +23,70 @@ import {
 } from '../src/portfolio/canvasLayout';
 import { backgroundBlockVars } from '../src/portfolio/theme';
 import { videoEmbedSrc } from '../src/portfolio/videoEmbed';
+import { embedSpec, iframeSrcFromInput } from '../src/portfolio/mediaEmbed';
 
 function fixture(name: string): unknown {
 	return JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'));
 }
 
 describe('content compatibility', () => {
+	it('migrates legacy page parts into named section containers without separating pinned canvas content', () => {
+		const legacy = structuredClone(blankDoc().content) as unknown as {
+			schemaVersion: number;
+			pages: Record<string, Record<string, unknown>>;
+		};
+		legacy.schemaVersion = 4;
+		const home = legacy.pages.home;
+		delete home.sections;
+		home.blocks = [
+			{ id: 'gallery', type: 'gallery' },
+			{
+				id: 'map',
+				type: 'embed',
+				kind: 'map',
+				url: 'https://www.google.com/maps/place/Space+Needle/',
+				layout: { x: 10, y: 30, w: 70, ar: 4 / 3 },
+			},
+			{
+				id: 'copy',
+				type: 'text',
+				text: 'Visit the studio',
+				layout: { x: 20, y: 86, w: 55 },
+			},
+			{ id: 'divider', type: 'divider' },
+		];
+		home.sectionColors = {
+			'block:gallery': '#eeeeee',
+			'block:divider': '#111111',
+		};
+		home.mobile = {
+			mode: 'custom',
+			order: ['block:divider', 'block:gallery'],
+		};
+
+		const migrated = parseAndMigrateContent(legacy);
+		expect(migrated.pages.home.sections).toEqual([
+			{
+				id: 'main',
+				name: 'Main section',
+				blockIds: ['gallery', 'map', 'copy'],
+			},
+			{
+				id: 'section-divider',
+				name: 'Section 2',
+				blockIds: ['divider'],
+			},
+		]);
+		expect(migrated.pages.home.sectionColors).toEqual({
+			'section:main': '#eeeeee',
+			'section:section-divider': '#111111',
+		});
+		expect(migrated.pages.home.mobile?.order).toEqual([
+			'section:section-divider',
+			'section:main',
+		]);
+	});
+
 	it('keeps the editor and published canvas tie-break order identical', () => {
 		expect(
 			automaticPhoneOrder([
@@ -124,6 +182,49 @@ describe('content compatibility', () => {
 		});
 		expect(parsed.galleries.process.items['01-process.jpg']).toMatchObject({ focusX: 75, focusY: 25 });
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
+	it('validates and publishes an uploaded Shots / scroll video without leaking draft asset ids', async () => {
+		const doc = blankDoc();
+		const assetId = registerAsset(
+			new Blob(['short video bytes'], { type: 'video/mp4' }),
+			'studio-pass.mp4',
+		);
+		doc.content.pages.home.blocks!.push({
+			id: 'shots-one',
+			type: 'shots',
+			src: '',
+			assetId,
+			filename: 'studio-pass.mp4',
+			scrollLength: 320,
+			fadeIntoPage: true,
+			fadeStart: 42,
+			fadeDuration: 18,
+			fit: 'contain',
+		});
+
+		const parsed = parseAndMigrateContent(doc.content);
+		expect(parsed.pages.home.blocks?.find((block) => block.id === 'shots-one')).toMatchObject({
+			type: 'shots',
+			scrollLength: 320,
+			fadeIntoPage: true,
+			fadeStart: 42,
+			fadeDuration: 18,
+			fit: 'contain',
+		});
+
+		const bundle = await buildBundle(doc);
+		const published = bundle.contentJson.pages.home.blocks?.find(
+			(block) => block.id === 'shots-one',
+		);
+		expect(published?.type).toBe('shots');
+		if (published?.type !== 'shots') throw new Error('Shots block was not published');
+		expect(published.src).toMatch(/^media\/[a-f0-9]+\/[a-f0-9]+-studio-pass\.mp4$/);
+		expect(published.assetId).toBeUndefined();
+		expect(published.filename).toBeUndefined();
+		expect(published.fadeStart).toBe(42);
+		expect(published.fadeDuration).toBe(18);
+		expect(bundle.files.some((file) => file.path === `public/${published.src}`)).toBe(true);
 	});
 
 	it('preserves structured rich text and independent text-box fonts', () => {
@@ -283,6 +384,61 @@ describe('content compatibility', () => {
 		expect(videoEmbedSrc('https://www.youtube.com/watch?v=M7lc1UVf-VE')).toBe(
 			'https://www.youtube.com/embed/M7lc1UVf-VE',
 		);
+	});
+
+	it('safely resolves hosted audio players and Google Maps embeds', () => {
+		const soundcloud = embedSpec('https://soundcloud.com/example-artist/example-track');
+		expect(soundcloud).toMatchObject({
+			kind: 'audio',
+			provider: 'SoundCloud',
+			title: 'SoundCloud audio player',
+		});
+		expect(new URL(soundcloud!.src).searchParams.get('url')).toBe(
+			'https://soundcloud.com/example-artist/example-track',
+		);
+
+		const bandcampCode =
+			'<iframe style="border: 0; width: 350px; height: 470px;" src="https://bandcamp.com/EmbeddedPlayer/album=314386330/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/"></iframe>';
+		expect(embedSpec(bandcampCode)).toMatchObject({
+			kind: 'audio',
+			provider: 'Bandcamp',
+			aspectRatio: 350 / 470,
+		});
+
+		const mapCode =
+			'<iframe src="https://www.google.com/maps/embed?pb=!1m18&amp;example=true" width="600" height="450"></iframe>';
+		expect(iframeSrcFromInput(mapCode)).toBe(
+			'https://www.google.com/maps/embed?pb=!1m18&example=true',
+		);
+		expect(embedSpec(mapCode)).toMatchObject({
+			kind: 'map',
+			provider: 'Google Maps',
+			aspectRatio: 4 / 3,
+		});
+		expect(embedSpec('https://www.google.com/maps/place/Space+Needle/')).toMatchObject({
+			kind: 'map',
+			provider: 'Google Maps',
+		});
+		expect(embedSpec('<iframe src="https://example.com/not-allowed"></iframe>')).toBeNull();
+	});
+
+	it('preserves normal-flow sizing for hosted players and maps', () => {
+		const raw = structuredClone(blankDoc().content);
+		raw.pages.home.blocks!.push({
+			id: 'studio-map',
+			type: 'embed',
+			kind: 'map',
+			url: 'https://www.google.com/maps/place/Space+Needle/',
+			flowLayout: { x: 12, w: 76 },
+		});
+		const parsed = parseAndMigrateContent(raw);
+		expect(
+			parsed.pages.home.blocks?.find((block) => block.id === 'studio-map'),
+		).toMatchObject({
+			type: 'embed',
+			flowLayout: { x: 12, w: 76 },
+		});
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
 	});
 
 	it('can disable derived text colors while retaining a chosen background', () => {

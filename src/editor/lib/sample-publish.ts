@@ -1,4 +1,5 @@
 import { pageGalleryConfigs, type GalleryConfig, type MobileComposition, type PageBlock, type PageConfig } from '../../lib/content';
+import { MAIN_SECTION_ID, pageSections, sectionPartKey } from '../../lib/pageSections';
 import type { EditorDoc } from './types';
 
 export interface SampleAffectedPage {
@@ -43,18 +44,52 @@ function stripGalleryMobile(
 
 function removePageSections(page: PageConfig, blockIds: Set<string>): PageConfig {
 	if (!blockIds.size) return page;
-	const partKeys = new Set([...blockIds].map((id) => `block:${id}`));
+	const sections = pageSections(page)
+		.map((section) => ({
+			...section,
+			blockIds: section.blockIds.filter((id) => !blockIds.has(id)),
+		}))
+		.filter((section) => section.id === MAIN_SECTION_ID || section.blockIds.length > 0);
+	const keptSectionIds = new Set(sections.map((section) => section.id));
+	const originalSections = pageSections(page);
+	const emptiedSectionIds = new Set(
+		originalSections
+			.filter((section) => section.blockIds.every((id) => blockIds.has(id)))
+			.map((section) => section.id),
+	);
+	const legacyBlockKeys = [...blockIds]
+		.filter((id) =>
+			originalSections.some(
+				(section) =>
+					section.blockIds.includes(id) && emptiedSectionIds.has(section.id),
+			),
+		)
+		.map((id) => `block:${id}`);
+	const partKeys = new Set([
+		...legacyBlockKeys,
+		...originalSections
+			.filter(
+				(section) =>
+					!keptSectionIds.has(section.id) || emptiedSectionIds.has(section.id),
+			)
+			.map((section) => sectionPartKey(section.id)),
+	]);
 	const sectionColors = Object.fromEntries(
 		Object.entries(page.sectionColors ?? {}).filter(([key]) => !partKeys.has(key)),
 	);
 	const sectionHeights = Object.fromEntries(
 		Object.entries(page.sectionHeights ?? {}).filter(([key]) => !partKeys.has(key)),
 	);
+	const sectionMotion = Object.fromEntries(
+		Object.entries(page.sectionMotion ?? {}).filter(([key]) => !partKeys.has(key)),
+	);
 	return {
 		...page,
+		sections,
 		mobile: withoutItems(page.mobile, partKeys),
 		sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 		sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
+		sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
 	};
 }
 
@@ -160,7 +195,7 @@ function stripSamplesForPublishInternal(doc: EditorDoc): EditorDoc {
 			}
 			blocks.push(block);
 		}
-		page = removePageSections({ ...page, blocks }, removedBlocks);
+		page = { ...removePageSections(page, removedBlocks), blocks };
 		next.content.pages[key] = page;
 	}
 

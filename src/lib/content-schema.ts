@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Content } from './content';
 
-export const CONTENT_SCHEMA_VERSION = 4 as const;
+export const CONTENT_SCHEMA_VERSION = 5 as const;
 
 const passthrough = <T extends z.ZodRawShape>(shape: T) => z.looseObject(shape);
 
@@ -68,6 +68,13 @@ const projectDetailsSchema = passthrough({
 	dimensions: z.string().optional(),
 	collaborators: z.string().optional(),
 	exhibitionHistory: z.string().optional(),
+});
+
+const pageSectionSchema = passthrough({
+	id: z.string().min(1),
+	name: z.string().min(1),
+	blockIds: z.array(z.string().min(1)),
+	editorColor: z.string().optional(),
 });
 
 const galleryFolderSchema = z
@@ -180,7 +187,27 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		flowLayout: textFlowLayoutSchema.optional(),
 		layout: textLayoutSchema.optional(),
 	}),
-	passthrough({ id: z.string(), type: z.literal('embed'), url: z.string(), layout: imageLayoutSchema.optional() }),
+	passthrough({
+		id: z.string(),
+		type: z.literal('embed'),
+		url: z.string(),
+		kind: z.enum(['video', 'audio', 'map']).optional(),
+		flowLayout: textFlowLayoutSchema.optional(),
+		layout: imageLayoutSchema.optional(),
+	}),
+	passthrough({
+		id: z.string(),
+		type: z.literal('shots'),
+		src: z.string(),
+		assetId: z.string().min(1).nullable().optional(),
+		filename: z.string().optional(),
+		scrollLength: z.number().min(140).max(500).optional(),
+		fadeIntoPage: z.boolean().optional(),
+		fadeStart: z.number().min(0).max(95).optional(),
+		fadeDuration: z.number().min(5).max(100).optional(),
+		fit: z.enum(['cover', 'contain']).optional(),
+		phone: z.boolean().optional(),
+	}),
 	passthrough({ id: z.string(), type: z.literal('gallery') }),
 	passthrough({
 		id: z.string(),
@@ -338,6 +365,7 @@ export const contentSchema = passthrough({
 			heading: z.string().optional(),
 				gallery: galleryConfigSchema.optional(),
 				blocks: z.array(pageBlockSchema),
+				sections: z.array(pageSectionSchema).min(1),
 				mobile: mobileCompositionSchema.optional(),
 				children: z.array(z.string()).optional(),
 			thumbnail: z.string().optional(),
@@ -422,8 +450,41 @@ export const contentSchema = passthrough({
 				});
 			}
 		});
+		const sectionIds = new Set<string>();
+		const assignedBlockIds = new Set<string>();
+		page.sections.forEach((section, sectionIndex) => {
+			if (sectionIds.has(section.id))
+				ctx.addIssue({
+					code: 'custom',
+					path: ['pages', pageKey, 'sections', sectionIndex, 'id'],
+					message: 'Section id must be unique on its page',
+				});
+			sectionIds.add(section.id);
+			section.blockIds.forEach((blockId, blockIndex) => {
+				if (!blockIds.has(blockId))
+					ctx.addIssue({
+						code: 'custom',
+						path: ['pages', pageKey, 'sections', sectionIndex, 'blockIds', blockIndex],
+						message: 'Section points to a block that does not exist',
+					});
+				if (assignedBlockIds.has(blockId))
+					ctx.addIssue({
+						code: 'custom',
+						path: ['pages', pageKey, 'sections', sectionIndex, 'blockIds', blockIndex],
+						message: 'A block can belong to only one section',
+					});
+				assignedBlockIds.add(blockId);
+			});
+		});
+		for (const blockId of blockIds)
+			if (!assignedBlockIds.has(blockId))
+				ctx.addIssue({
+					code: 'custom',
+					path: ['pages', pageKey, 'sections'],
+					message: 'Every block must belong to a section',
+				});
 		if (page.mobile) {
-			const allowed = new Set((page.blocks ?? []).map((block) => `block:${block.id}`));
+			const allowed = new Set(page.sections.map((section) => `section:${section.id}`));
 			allowed.add('page:heading');
 			allowed.add('page:project');
 			if (new Set(page.mobile.order).size !== page.mobile.order.length)
@@ -659,11 +720,128 @@ export function migrateContentV3ToV4(raw: unknown): unknown {
 	return next;
 }
 
+function remapSectionRecord(
+	value: unknown,
+	sections: Array<{ id: string; blockIds: string[] }>,
+): unknown {
+	if (!isObject(value)) return value;
+	const next: MutableObject = {};
+	for (const [key, item] of Object.entries(value)) {
+		if (key === 'page:heading' || key === 'page:project') {
+			next[key] = item;
+			continue;
+		}
+		const section = sections.find((candidate) =>
+			candidate.blockIds.some((blockId) => key === `block:${blockId}`),
+		);
+		if (section && !(`section:${section.id}` in next))
+			next[`section:${section.id}`] = item;
+	}
+	return Object.keys(next).length ? next : undefined;
+}
+
+/** Schema 5 introduces explicit section containers. The primary freeform
+ * gallery keeps its already-pinned text/embeds; every other legacy page part
+ * becomes a movable section so published sites retain their prior boundaries. */
+export function migrateContentV4ToV5(raw: unknown): unknown {
+	const next = cloneUnknown(raw);
+	if (!isObject(next)) return next;
+	if (isObject(next.pages)) {
+		for (const page of Object.values(next.pages)) {
+			if (!isObject(page) || !Array.isArray(page.blocks)) continue;
+			const blocks = page.blocks.filter(isObject);
+			let sections: Array<{ id: string; name: string; blockIds: string[] }>;
+			if (Array.isArray(page.sections)) {
+				sections = page.sections.filter(isObject).map((section, index) => ({
+					id: typeof section.id === 'string' && section.id ? section.id : `section-${index + 1}`,
+					name: typeof section.name === 'string' && section.name ? section.name : `Section ${index + 1}`,
+					blockIds: Array.isArray(section.blockIds)
+						? section.blockIds.filter((id): id is string => typeof id === 'string')
+						: [],
+					...(typeof section.editorColor === 'string'
+						? { editorColor: section.editorColor }
+						: {}),
+				}));
+				const assigned = new Set(sections.flatMap((section) => section.blockIds));
+				const unassigned = blocks
+					.map((block) => block.id)
+					.filter((id): id is string => typeof id === 'string' && !assigned.has(id));
+				const main = sections.find((section) => section.id === 'main') ?? sections[0];
+				if (main) main.blockIds.push(...unassigned);
+				else sections = [{ id: 'main', name: 'Main section', blockIds: unassigned }];
+			} else {
+				const primary = blocks.find(
+					(block) =>
+						block.type === 'gallery' &&
+						isObject(page.gallery) &&
+						page.gallery.layout !== 'grid',
+				);
+				const mainIds = new Set<string>();
+				if (primary && typeof primary.id === 'string') {
+					mainIds.add(primary.id);
+					for (const block of blocks) {
+						if (
+							typeof block.id === 'string' &&
+							(block.type === 'text' || block.type === 'embed') &&
+							isObject(block.layout)
+						)
+							mainIds.add(block.id);
+						if (
+							typeof block.id === 'string' &&
+							block.type === 'images' &&
+							isObject(block.gallery) &&
+							block.gallery.carousel === true &&
+							block.gallery.carouselHost === primary.id
+						)
+							mainIds.add(block.id);
+					}
+				} else {
+					const first = blocks.find((block) => typeof block.id === 'string');
+					if (first && typeof first.id === 'string') mainIds.add(first.id);
+				}
+				sections = [{ id: 'main', name: 'Main section', blockIds: [...mainIds] }];
+				for (const block of blocks) {
+					if (typeof block.id !== 'string' || mainIds.has(block.id)) continue;
+					sections.push({
+						id: `section-${block.id}`,
+						name: `Section ${sections.length + 1}`,
+						blockIds: [block.id],
+					});
+				}
+				page.sectionColors = remapSectionRecord(page.sectionColors, sections);
+				page.sectionHeights = remapSectionRecord(page.sectionHeights, sections);
+				page.sectionMotion = remapSectionRecord(page.sectionMotion, sections);
+			}
+			page.sections = sections;
+			if (isObject(page.mobile) && Array.isArray(page.mobile.order)) {
+				const blockSection = new Map<string, string>();
+				for (const section of sections)
+					for (const blockId of section.blockIds)
+						blockSection.set(`block:${blockId}`, `section:${section.id}`);
+				const remapKey = (key: unknown): unknown =>
+					typeof key === 'string' ? blockSection.get(key) ?? key : key;
+				page.mobile.order = [...new Set(page.mobile.order.map(remapKey))];
+				if (isObject(page.mobile.items)) {
+					const items: MutableObject = {};
+					for (const [key, item] of Object.entries(page.mobile.items)) {
+						const mapped = remapKey(key);
+						if (typeof mapped === 'string' && !(mapped in items)) items[mapped] = item;
+					}
+					page.mobile.items = Object.keys(items).length ? items : undefined;
+				}
+			}
+		}
+	}
+	next.schemaVersion = 5;
+	return next;
+}
+
 const contentMigrations: Record<number, (raw: unknown) => unknown> = {
 	0: migrateContentV0ToV1,
 	1: migrateContentV1ToV2,
 	2: migrateContentV2ToV3,
 	3: migrateContentV3ToV4,
+	4: migrateContentV4ToV5,
 };
 
 function readVersion(raw: unknown): number {
@@ -692,6 +870,7 @@ export function parseAndMigrateContent(raw: unknown): Content {
 	// arrangements always have stable keys and pages cannot silently render blank.
 	migrated = ensureStableImageIds(migrated);
 	migrated = ensurePageBlocks(migrated);
+	migrated = migrateContentV4ToV5(migrated);
 
 	const parsed = contentSchema.safeParse(migrated);
 	if (!parsed.success) {

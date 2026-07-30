@@ -1,6 +1,6 @@
 // Small, dependency-free validators used for live inline feedback and the
 // pre-export summary.
-import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import { embedSpec } from '../../portfolio/mediaEmbed';
 import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
@@ -29,9 +29,18 @@ export const MAX_FONT_BYTES = 5 * 1024 * 1024; // 5 MB
 export const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
 export const MAX_PDF_MB = MAX_PDF_BYTES / (1024 * 1024);
 
+// Matches both publishing targets' per-file ceiling; videos cannot be recompressed
+// safely in-browser the way oversized still images can.
+export const MAX_VIDEO_BYTES = 18 * 1024 * 1024;
+export const MAX_VIDEO_MB = MAX_VIDEO_BYTES / (1024 * 1024);
+
 /** Résumé uploads: a PDF by MIME type or, failing that, by extension. */
 export const isPdfFile = (file: File): boolean =>
 	file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+/** Scroll clips use browser-native formats so the published site needs no player SDK. */
+export const isVideoFile = (file: File): boolean =>
+	/^video\/(?:mp4|webm)$/i.test(file.type) || /\.(?:mp4|webm)$/i.test(file.name);
 
 /** Font files often have an empty MIME type, so check the extension. */
 export const isFontFile = (file: File): boolean =>
@@ -66,6 +75,7 @@ export function hasPublishableContent(doc: EditorDoc): boolean {
 		for (const block of page.blocks ?? []) {
 			if (block.type === 'text' && block.text.trim()) return true;
 			if (block.type === 'embed' && block.url.trim()) return true;
+			if (block.type === 'shots' && (!!block.assetId || block.src.trim())) return true;
 		}
 	}
 	return Boolean(doc.content.profile.bio.trim());
@@ -96,8 +106,23 @@ export function collectIssues(doc: EditorDoc): string[] {
 		for (const block of page.blocks ?? []) {
 			if (block.type === 'embed') {
 				if (!block.url.trim()) issues.push(`An embed on “${page.label ?? key}” has no link yet.`);
-				else if (!videoEmbedSrc(block.url) && !stripePaymentLink(block.url))
-					issues.push(`An embed link on “${page.label ?? key}” isn’t a YouTube, Vimeo, or Stripe Payment Link.`);
+				else if (!embedSpec(block.url) && !stripePaymentLink(block.url))
+					issues.push(
+						`An embed on “${page.label ?? key}” needs a supported YouTube, Vimeo, SoundCloud, Bandcamp, Google Maps, or Stripe link.`,
+					);
+			}
+			if (block.type === 'shots') {
+				if (!block.assetId && !block.src.trim())
+					issues.push(`A Shots / scroll video block on “${page.label ?? key}” has no clip yet.`);
+				else if (
+					!block.assetId &&
+					!isUrl(block.src) &&
+					(block.src.startsWith('//') ||
+						/^[a-z][a-z\d+.-]*:/i.test(block.src) ||
+						block.src.includes('\\') ||
+						block.src.split('/').some((part) => part === '..'))
+				)
+					issues.push(`A Shots / scroll video block on “${page.label ?? key}” has an invalid video source.`);
 			}
 			if (
 				block.type === 'button' &&

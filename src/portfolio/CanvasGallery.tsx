@@ -1,8 +1,8 @@
 // Freeform canvas — the modern replacement for the span grid. Each image sits
 // at its stored {x, y, w} (percentages of the canvas width, y included, so the
 // whole composition scales proportionally) with height fixed by its aspect
-// ratio; text blocks and video embeds pinned to the canvas render the same way
-// (texts with automatic height, videos at 16:9). On the published site it
+// ratio; text blocks and hosted embeds pinned to the canvas render the same way
+// (texts with automatic height, embeds with provider-appropriate ratios). On the published site it
 // renders static; in the editor preview the same component turns interactive:
 // drag to move, drag the corner handle to resize, with an optional grid overlay
 // and snap-to-grid (both controlled from the editor panel via gridPrefs).
@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type {
 	CanvasEmbed,
 	CanvasLayoutUpdates,
+	CanvasSelection,
 	CanvasText,
 	ImageLayout,
 	ResolvedImage,
@@ -44,7 +45,7 @@ import {
 	textBottom,
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
-import { videoEmbedSrc } from './videoEmbed';
+import { embedKindForInput, embedKindLabel, embedSpec } from './mediaEmbed';
 import { stripePaymentLink } from './paymentEmbed';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
@@ -58,7 +59,7 @@ export interface CanvasGalleryProps {
 	images: ResolvedImage[];
 	/** Text blocks pinned to the canvas, rendered inside the composition. */
 	texts?: CanvasText[];
-	/** Video embeds pinned to the canvas, rendered inside the composition. */
+	/** Hosted players/maps pinned to the canvas, rendered inside the composition. */
 	embeds?: CanvasEmbed[];
 	/** Self-contained blocks, such as carousels, placed on this same canvas. */
 	widgets?: CanvasWidget[];
@@ -70,16 +71,20 @@ export interface CanvasGalleryProps {
 	mobile?: MobileComposition;
 	/** True when this hydrated gallery is currently inside the phone breakpoint. */
 	phoneActive?: boolean;
+	/** New/unplaced images begin below earlier freeform items in the section. */
+	autoFlowFloor?: number;
 	/** Reports a finished move/resize (and the initial auto-flow) per image. */
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
 	/** Reports a finished move/resize (and height re-measures) per pinned text. */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
-	/** Reports a finished move/resize per pinned video embed. */
+	/** Reports a finished move/resize per pinned hosted embed. */
 	onEmbedLayout?: (id: string, layout: ImageLayout) => void;
 	/** Reports a finished move/resize for a self-contained canvas widget. */
 	onWidgetLayout?: (id: string, layout: ImageLayout) => void;
 	/** Reports one finished mixed-item move so the editor can commit one undo step. */
 	onBulkLayoutChange?: (updates: CanvasLayoutUpdates) => void;
+	/** Deletes the current canvas selection as one undoable edit. */
+	onDeleteSelection?: (selection: CanvasSelection) => void;
 	/** Published site: open the lightbox for image i and restore focus to its trigger afterwards. */
 	onOpen?: (index: number, trigger?: HTMLElement) => void;
 }
@@ -102,11 +107,13 @@ export default function CanvasGallery({
 	editable = false,
 	mobile,
 	phoneActive = false,
+	autoFlowFloor = 0,
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
 	onWidgetLayout,
 	onBulkLayoutChange,
+	onDeleteSelection,
 	onOpen,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
@@ -124,6 +131,7 @@ export default function CanvasGallery({
 	/** Aspect ratios measured from the loaded pixels (editor only). */
 	const [measured, setMeasured] = useState<Record<string, number>>({});
 	const [dragId, setDragId] = useState<string | null>(null);
+	const [dragGesture, setDragGesture] = useState<'move' | 'resize' | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(() => new Set());
 	const [marquee, setMarquee] = useState<
 		{ x: number; y: number; w: number; h: number } | null
@@ -191,16 +199,17 @@ export default function CanvasGallery({
 	// Empty pinned texts stay draggable in the editor; on the site they render nothing.
 	const shownTexts = editable ? texts : texts.filter((t) => t.text.trim());
 
+	const textLayouts = shownTexts.map((t) => textDrafts[t.id] ?? t.layout);
+	const embedLayouts = embeds.map((v) => drafts[v.id] ?? v.layout);
+	const widgetLayouts = widgets.map((widget) => drafts[widget.id] ?? widget.layout);
 	// Effective layout per item: in-flight draft > stored > auto-flowed default.
 	const flowed = flowMissing(
 		images.map((img, i) => ({ layout: img.layout, ar: measured[keyOf(img, i)] ?? img.ar })),
+		autoFlowFloor,
 	);
 	const layouts = images.map(
 		(img, i) => drafts[keyOf(img, i)] ?? img.layout ?? flowed.get(i) ?? { x: 0, y: 0, w: 30, ar: DEFAULT_AR },
 	);
-	const textLayouts = shownTexts.map((t) => textDrafts[t.id] ?? t.layout);
-	const embedLayouts = embeds.map((v) => drafts[v.id] ?? v.layout);
-	const widgetLayouts = widgets.map((widget) => drafts[widget.id] ?? widget.layout);
 	const height = Math.max(
 		canvasHeight(layouts),
 		...textLayouts.map(textBottom),
@@ -241,6 +250,16 @@ export default function CanvasGallery({
 				height: textBottom(layout) - layout.y,
 			};
 		}),
+		...widgets.map((widget, index) => {
+			const layout = widgetLayouts[index];
+			return {
+				key: `widget:${widget.id}`,
+				id: widget.id,
+				kind: 'widget' as const,
+				layout,
+				height: layout.w / layout.ar,
+			};
+		}),
 	];
 
 	useEffect(() => {
@@ -248,11 +267,48 @@ export default function CanvasGallery({
 			setSelected(new Set());
 			return;
 		}
-		const doc = canvasRef.current?.ownerDocument;
-		if (!doc) return;
+		const canvas = canvasRef.current;
+		const doc = canvas?.ownerDocument;
+		if (!doc || !canvas) return;
 		const hostDoc = doc.defaultView?.frameElement?.ownerDocument;
 		const onKey = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') setSelected(new Set());
+			if (event.key === 'Escape') {
+				setSelected(new Set());
+				return;
+			}
+			if (
+				(event.key !== 'Backspace' && event.key !== 'Delete') ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.altKey ||
+				!onDeleteSelection ||
+				selected.size === 0
+			) return;
+			const target = event.target as HTMLElement | null;
+			if (
+				target &&
+				(target.matches('input, textarea, select') ||
+					target.isContentEditable ||
+					!!target.closest('[contenteditable="true"]'))
+			) return;
+			// Several canvases can coexist on a page. Only the one that last took
+			// pointer focus owns the shortcut, even if another retains stale selection.
+			if (doc.activeElement !== canvas && !canvas.contains(doc.activeElement)) return;
+			const selection: CanvasSelection = {};
+			for (const key of selected) {
+				const separator = key.indexOf(':');
+				const kind = key.slice(0, separator);
+				const id = key.slice(separator + 1);
+				if (!id) continue;
+				if (kind === 'image') (selection.images ??= []).push(id);
+				else if (kind === 'text') (selection.texts ??= []).push(id);
+				else if (kind === 'video') (selection.embeds ??= []).push(id);
+				else if (kind === 'widget') (selection.widgets ??= []).push(id);
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			onDeleteSelection(selection);
+			setSelected(new Set());
 		};
 		doc.addEventListener('keydown', onKey);
 		if (hostDoc && hostDoc !== doc) hostDoc.addEventListener('keydown', onKey);
@@ -260,7 +316,7 @@ export default function CanvasGallery({
 			doc.removeEventListener('keydown', onKey);
 			if (hostDoc && hostDoc !== doc) hostDoc.removeEventListener('keydown', onKey);
 		};
-	}, [editable]);
+	}, [editable, onDeleteSelection, selected]);
 
 	const centeredX = (x: number, w: number): number => {
 		if (!editable || !gridPrefs.centerSnap) {
@@ -272,7 +328,7 @@ export default function CanvasGallery({
 		return result.value;
 	};
 
-	// Phones stack the canvas as one column — interleave images, texts and videos
+	// Phones stack the canvas as one column — interleave images, texts and embeds
 	// by their vertical position so the stacking follows the composition, not the
 	// DOM order.
 	const automaticKeys = automaticPhoneOrder([
@@ -388,6 +444,14 @@ export default function CanvasGallery({
 		if (!canvas) return;
 		e.preventDefault();
 		e.stopPropagation();
+		const captureTarget = e.currentTarget as HTMLElement;
+		const pointerId = e.pointerId;
+		try {
+			captureTarget.setPointerCapture(pointerId);
+		} catch {
+			// The full-canvas shield below is the fallback for older WebViews.
+		}
+		canvas.focus({ preventScroll: true });
 		// Inside the phone-preview iframe the drag must listen on THAT window.
 		const win = canvas.ownerDocument.defaultView ?? window;
 		const origin = pointerInCanvas(e.clientX, e.clientY, canvas.getBoundingClientRect());
@@ -396,6 +460,7 @@ export default function CanvasGallery({
 		let finalDraft: ImageLayout | undefined;
 		draggedClickRef.current = null;
 		setDragId(id);
+		setDragGesture(mode);
 		const update = (clientX: number, clientY: number) => {
 			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
 			const dx = current.x - origin.x;
@@ -461,7 +526,14 @@ export default function CanvasGallery({
 			win.removeEventListener('pointerup', up);
 			win.removeEventListener('pointercancel', up);
 			win.removeEventListener('scroll', scroll, true);
+			try {
+				if (captureTarget.hasPointerCapture(pointerId))
+					captureTarget.releasePointerCapture(pointerId);
+			} catch {
+				// Pointer capture may already have been released on cancellation.
+			}
 			setDragId(null);
+			setDragGesture(null);
 			setCenterGuide(false);
 			const done = finalDraft ?? draftsRef.current[id];
 			if (done) commit(id, roundLayout(done));
@@ -481,10 +553,18 @@ export default function CanvasGallery({
 		if (!editable || e.button !== 0 || selected.size < 2) return;
 		const canvas = canvasRef.current;
 		if (!canvas) return;
+		canvas.focus({ preventScroll: true });
 		const chosen = selectionItems().filter((item) => selected.has(item.key));
 		if (chosen.length < 2) return;
 		e.preventDefault();
 		e.stopPropagation();
+		const captureTarget = e.currentTarget as HTMLElement;
+		const pointerId = e.pointerId;
+		try {
+			captureTarget.setPointerCapture(pointerId);
+		} catch {
+			// The drag shield keeps pointer events out of hosted iframes.
+		}
 		const win = canvas.ownerDocument.defaultView ?? window;
 		const origin = pointerInCanvas(e.clientX, e.clientY, canvas.getBoundingClientRect());
 		let lastPointer = { x: e.clientX, y: e.clientY };
@@ -500,6 +580,7 @@ export default function CanvasGallery({
 		let finalDrafts: Record<string, ImageLayout> = {};
 		let finalTextDrafts: Record<string, TextLayout> = {};
 		setDragId('__group__');
+		setDragGesture('move');
 
 		const update = (clientX: number, clientY: number) => {
 			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
@@ -551,7 +632,14 @@ export default function CanvasGallery({
 			win.removeEventListener('pointerup', up);
 			win.removeEventListener('pointercancel', up);
 			win.removeEventListener('scroll', scroll, true);
+			try {
+				if (captureTarget.hasPointerCapture(pointerId))
+					captureTarget.releasePointerCapture(pointerId);
+			} catch {
+				// Pointer capture may already have been released on cancellation.
+			}
 			setDragId(null);
+			setDragGesture(null);
 			setCenterGuide(false);
 			const updates: CanvasLayoutUpdates = {};
 			for (const item of chosen) {
@@ -566,10 +654,12 @@ export default function CanvasGallery({
 					if (!layout) continue;
 					if (item.kind === 'image')
 						(updates.images ??= {})[item.id] = roundLayout(layout);
-					else (updates.embeds ??= {})[item.id] = roundLayout(layout);
+					else if (item.kind === 'embed')
+						(updates.embeds ??= {})[item.id] = roundLayout(layout);
+					else (updates.widgets ??= {})[item.id] = roundLayout(layout);
 				}
 			}
-			if (updates.images || updates.texts || updates.embeds) {
+			if (updates.images || updates.texts || updates.embeds || updates.widgets) {
 				if (onBulkLayoutChange) onBulkLayoutChange(updates);
 				else {
 					for (const [id, layout] of Object.entries(updates.images ?? {}))
@@ -578,6 +668,8 @@ export default function CanvasGallery({
 						onTextLayout?.(id, layout);
 					for (const [id, layout] of Object.entries(updates.embeds ?? {}))
 						onEmbedLayout?.(id, layout);
+					for (const [id, layout] of Object.entries(updates.widgets ?? {}))
+						onWidgetLayout?.(id, layout);
 				}
 			}
 			setDrafts((current) => {
@@ -602,6 +694,7 @@ export default function CanvasGallery({
 		if (!editable || event.button !== 0 || event.target !== event.currentTarget) return;
 		event.preventDefault();
 		const canvas = event.currentTarget;
+		canvas.focus({ preventScroll: true });
 		const win = canvas.ownerDocument.defaultView ?? window;
 		const rect = canvas.getBoundingClientRect();
 		const scale = 100 / rect.width;
@@ -645,6 +738,7 @@ export default function CanvasGallery({
 
 	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize') => {
 		if (!editable || !img.id || e.button !== 0 || !onLayoutChange) return;
+		canvasRef.current?.focus({ preventScroll: true });
 		const key = imageSelectionKey(img, index);
 		if (e.shiftKey) {
 			e.preventDefault();
@@ -667,6 +761,7 @@ export default function CanvasGallery({
 
 	const startEmbedDrag = (e: React.PointerEvent, embed: CanvasEmbed, index: number, mode: 'move' | 'resize') => {
 		if (!editable || e.button !== 0 || !onEmbedLayout) return;
+		canvasRef.current?.focus({ preventScroll: true });
 		const key = `video:${embed.id}`;
 		if (e.shiftKey) {
 			e.preventDefault();
@@ -699,6 +794,22 @@ export default function CanvasGallery({
 			)
 		) return;
 		const key = `widget:${widget.id}`;
+		if (e.shiftKey) {
+			e.preventDefault();
+			e.stopPropagation();
+			canvasRef.current?.focus({ preventScroll: true });
+			setSelected((current) => {
+				const next = new Set(current);
+				if (next.has(key)) next.delete(key);
+				else next.add(key);
+				return next;
+			});
+			return;
+		}
+		if (mode === 'move' && selected.has(key) && selected.size > 1) {
+			startGroupDrag(e);
+			return;
+		}
 		setSelected(new Set([key]));
 		startItemDrag(
 			e,
@@ -716,6 +827,7 @@ export default function CanvasGallery({
 		if (!editable || e.button !== 0) return;
 		const canvas = canvasRef.current;
 		if (!canvas) return;
+		canvas.focus({ preventScroll: true });
 		e.preventDefault();
 		e.stopPropagation();
 		const id = text.id;
@@ -735,6 +847,13 @@ export default function CanvasGallery({
 			startGroupDrag(e);
 			return;
 		}
+		const captureTarget = e.currentTarget as HTMLElement;
+		const pointerId = e.pointerId;
+		try {
+			captureTarget.setPointerCapture(pointerId);
+		} catch {
+			// The drag shield keeps pointer events out of hosted iframes.
+		}
 		setSelected(new Set([selectionKey]));
 		const win = canvas.ownerDocument.defaultView ?? window;
 		const from = textLayouts[index];
@@ -744,6 +863,7 @@ export default function CanvasGallery({
 		const fromH = textBottom(from) - from.y;
 		let finalDraft: TextLayout | undefined;
 		setDragId(id);
+		setDragGesture(mode);
 		const update = (clientX: number, clientY: number) => {
 			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
 			const dx = current.x - origin.x;
@@ -776,7 +896,14 @@ export default function CanvasGallery({
 			win.removeEventListener('pointerup', up);
 			win.removeEventListener('pointercancel', up);
 			win.removeEventListener('scroll', scroll, true);
+			try {
+				if (captureTarget.hasPointerCapture(pointerId))
+					captureTarget.releasePointerCapture(pointerId);
+			} catch {
+				// Pointer capture may already have been released on cancellation.
+			}
 			setDragId(null);
+			setDragGesture(null);
 			setCenterGuide(false);
 			const done = finalDraft ?? textDraftsRef.current[id];
 			if (done && onTextLayout) {
@@ -800,6 +927,7 @@ export default function CanvasGallery({
 			ref={canvasRef}
 			className={`canvas-gallery ${editable ? 'editable' : ''}`}
 			style={{ '--ch': String(height) } as CSSProperties}
+			tabIndex={editable ? -1 : undefined}
 			onPointerDown={startMarquee}
 		>
 			{editable && centerGuide && (
@@ -837,6 +965,12 @@ export default function CanvasGallery({
 						<span key={i} style={{ left: `${x}%`, width: `${w}%` }} />
 					))}
 				</div>
+			)}
+			{editable && dragId && (
+				<div
+					className={`canvas-drag-shield ${dragGesture ?? 'move'}`}
+					aria-hidden="true"
+				/>
 			)}
 			{renderItems.map((item) => {
 				if (item.type === 'image') {
@@ -882,13 +1016,15 @@ export default function CanvasGallery({
 								? DRAG_Z
 								: embedZ(i),
 					} as CSSProperties;
-					const src = videoEmbedSrc(embed.url);
-					const buyHref = src ? null : stripePaymentLink(embed.url);
-					const href = src || buyHref ? null : safeHref(embed.url);
+					const spec = embedSpec(embed.url);
+					const buyHref = spec ? null : stripePaymentLink(embed.url);
+					const href = spec || buyHref ? null : safeHref(embed.url);
+					const kind = spec?.kind ?? embedKindForInput(embed.url) ?? embed.kind ?? 'video';
+					const label = spec?.provider ?? embedKindLabel(kind);
 					return (
 						<div
 							key={item.key}
-							className={`canvas-item canvas-embed-item ${
+							className={`canvas-item canvas-embed-item canvas-embed-${kind} ${
 								dragId === embed.id || (dragId === '__group__' && selected.has(item.key))
 									? 'dragging'
 									: ''
@@ -896,14 +1032,14 @@ export default function CanvasGallery({
 							style={vars}
 							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
 						>
-							{src ? (
+							{spec ? (
 								<iframe
-									src={src}
-									title="Embedded video"
+									src={spec.src}
+									title={spec.title}
 									loading="lazy"
-									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+									allow={spec.allow}
 									referrerPolicy="strict-origin-when-cross-origin"
-									allowFullScreen
+									allowFullScreen={spec.allowFullScreen}
 								/>
 							) : buyHref ? (
 								<div className="canvas-embed-fallback canvas-embed-buy">
@@ -925,14 +1061,24 @@ export default function CanvasGallery({
 								<div className="canvas-embed-fallback">
 									{href && /^https?:/.test(href) && !editable ? (
 										<a href={href} target="_blank" rel="noopener noreferrer">
-											Watch video ↗
+											{kind === 'audio' ? 'Listen' : kind === 'map' ? 'Open map' : 'Watch video'} ↗
 										</a>
 									) : (
-										<span>Video</span>
+										<span>{embedKindLabel(kind)}</span>
 									)}
 								</div>
 							)}
-							{editable && <span className="canvas-embed-shield" aria-hidden="true" />}
+							{editable && (
+								<button
+									type="button"
+									className="canvas-embed-drag-handle"
+									aria-label={`Drag ${label}`}
+									title={`Drag ${label}`}
+									onPointerDown={(event) => startEmbedDrag(event, embed, i, 'move')}
+								>
+									<span aria-hidden="true">⠿</span> {label}
+								</button>
+							)}
 							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}
 						</div>
 					);

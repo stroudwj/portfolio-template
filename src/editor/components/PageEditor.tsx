@@ -2,7 +2,7 @@
 // blocks — text anywhere, the image gallery, the About section, and sub-pages
 // (thumbnail cards). Sub-pages get their own nested PageEditor so their galleries
 // and text are edited in place; nesting is one level deep by design.
-import { useRef } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { useEditor } from '../store';
 import {
 	Field,
@@ -16,7 +16,12 @@ import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
-import { videoEmbedSrc } from '../../portfolio/videoEmbed';
+import {
+	embedKindForInput,
+	embedKindLabel,
+	embedSpec,
+	type EmbedKind,
+} from '../../portfolio/mediaEmbed';
 import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { DEFAULT_CAROUSEL_FRAME, parseAspect, uniformColumns } from '../../portfolio/Gallery';
 import {
@@ -31,7 +36,12 @@ import {
 	uniformGridLayouts,
 } from '../../portfolio/canvasLayout';
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
-import { isUrl } from '../lib/validation';
+import {
+	isUrl,
+	isVideoFile,
+	MAX_VIDEO_BYTES,
+	MAX_VIDEO_MB,
+} from '../lib/validation';
 import { fontOptionsForTheme } from '../lib/font-options';
 import type {
 	ChildrenStyle,
@@ -46,6 +56,13 @@ import type {
 import AboutContentEditor from './AboutContentEditor';
 import RichTextEditor from './RichTextEditor';
 import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
+import { Modal } from './ui/Modal';
+import {
+	MAIN_SECTION_ID,
+	pageSections,
+	sectionEditorColor,
+	sectionPartKey,
+} from '../../lib/pageSections';
 
 const CHILDREN_STYLES: Array<{ value: ChildrenStyle; label: string }> = [
 	{ value: 'cards', label: 'Thumbnail cards' },
@@ -103,6 +120,18 @@ const CAROUSEL_RATIOS = [
 
 const isPageOrWebLink = (value: string): boolean =>
 	!value.trim() || isUrl(value) || value.startsWith('/') || value.startsWith('#');
+
+const isShotsSource = (value: string): boolean => {
+	const source = value.trim();
+	return (
+		!source ||
+		isUrl(source) ||
+		(!source.startsWith('//') &&
+			!source.includes('\\') &&
+			!/^[a-z][a-z\d+.-]*:/i.test(source) &&
+			!source.split('/').some((part) => part === '..'))
+	);
+};
 
 type GalleryPatch = Partial<
 	Pick<
@@ -257,6 +286,10 @@ export default function PageEditor({
 	const addMenuRef = useRef<HTMLDetailsElement>(null);
 	const floatingAddMenuRef = useRef<HTMLDetailsElement>(null);
 	const pageContentRef = useRef<HTMLDivElement>(null);
+	const [pendingSectionAdd, setPendingSectionAdd] = useState<{
+		label: string;
+		action: (sectionId: string) => void;
+	} | null>(null);
 	const { doc } = editor;
 	if (!doc) return null;
 	const page = doc.content.pages[pageKey];
@@ -264,6 +297,10 @@ export default function PageEditor({
 	const isHome = pageKey === 'home';
 	const pageName = page.label || (isHome ? 'Home' : pageKey);
 	const blocks = page.blocks ?? [];
+	const sections = pageSections(page);
+	const blockById = new Map(blocks.map((block) => [block.id, block]));
+	const sectionForBlock = (blockId: string) =>
+		sections.find((section) => section.blockIds.includes(blockId));
 	const hasAboutBlock = blocks.some((block) => block.type === 'about');
 	// Offer the site's own palette first in every color-blocking picker.
 	const themeColors = [
@@ -273,8 +310,22 @@ export default function PageEditor({
 	].filter(Boolean);
 	const textFontOptions = fontOptionsForTheme(doc.content.theme);
 	const galleryMode = page.gallery?.layout === 'grid' ? 'grid' : 'freeform';
-	/** Text can be dragged onto the canvas only when the page shows a freeform gallery. */
-	const hasFreeCanvas = !!page.gallery && galleryMode === 'freeform' && blocks.some((b) => b.type === 'gallery');
+	const sectionHasFreeCanvas = (sectionId: string): boolean => {
+		const section = sections.find((candidate) => candidate.id === sectionId);
+		return !!section?.blockIds.some((id) => {
+			const block = blockById.get(id);
+			return (
+				(block?.type === 'gallery' && !!page.gallery && galleryMode === 'freeform') ||
+				(block?.type === 'images' &&
+					block.gallery.carousel !== true &&
+					block.gallery.layout !== 'grid')
+			);
+		});
+	};
+	const embedKindOf = (block: Extract<PageBlock, { type: 'embed' }>): EmbedKind =>
+		embedSpec(block.url)?.kind ?? embedKindForInput(block.url) ?? block.kind ?? 'video';
+	const embedLabelOf = (block: Extract<PageBlock, { type: 'embed' }>): string =>
+		embedSpec(block.url)?.provider ?? embedKindLabel(embedKindOf(block));
 	const phoneItemsFor = (config: GalleryConfig, includePinnedBlocks = false): MobileArrangementItem[] => {
 		const entries = doc.galleries[config.folder] ?? [];
 		const flowed = flowMissing(entries.map((entry) => ({ layout: entry.meta.layout, ar: entry.meta.layout?.ar ?? DEFAULT_AR })));
@@ -297,18 +348,32 @@ export default function PageEditor({
 					artwork.map(({ item, y }, index) => ({ key: item.key, y, kind: 'image', index })),
 				).map((key) => artwork.find((entry) => entry.item.key === key)!);
 		if (!includePinnedBlocks) return arrangedArtwork.map(({ item }) => item);
+		const hostBlock = blocks.find(
+			(block) =>
+				(block.type === 'gallery' && page.gallery?.folder === config.folder) ||
+				(block.type === 'images' && block.gallery.folder === config.folder),
+		);
+		const sectionBlockIds = new Set(
+			sectionForBlock(hostBlock?.id ?? '')?.blockIds ?? [],
+		);
 		const pinned = blocks.flatMap<{
 			item: MobileArrangementItem;
 			y: number;
 			kind: 'text' | 'video';
 			index: number;
 		}>((block, index) => {
+			if (!sectionBlockIds.has(block.id)) return [];
 			if (block.type === 'text' && block.layout) {
 				const words = block.text.trim().replace(/\s+/g, ' ');
 				return [{ item: { key: `text:${block.id}`, label: words ? words.slice(0, 45) : 'Text', kind: 'text' }, y: block.layout.y, kind: 'text', index }];
 			}
 			if (block.type === 'embed' && block.layout)
-				return [{ item: { key: `video:${block.id}`, label: 'Video', kind: 'video' }, y: block.layout.y, kind: 'video', index }];
+				return [{
+					item: { key: `video:${block.id}`, label: embedLabelOf(block), kind: 'video' },
+					y: block.layout.y,
+					kind: 'video',
+					index,
+				}];
 			return [];
 		});
 		const all = [
@@ -327,61 +392,21 @@ export default function PageEditor({
 		...(page.project
 			? [{ key: 'page:project', label: 'Project details', kind: 'section' as const }]
 			: []),
-		...blocks.flatMap((block, index) => {
-		if (hasFreeCanvas && (block.type === 'text' || block.type === 'embed') && block.layout) return [];
-		const label =
-			block.type === 'text'
-				? block.text.trim().replace(/\s+/g, ' ').slice(0, 45) || `Text ${index + 1}`
-				: block.type === 'gallery'
-					? 'Main images'
-					: block.type === 'images'
-						? block.name || `Image group ${index + 1}`
-						: block.type === 'embed'
-							? 'Video'
-							: block.type === 'button'
-								? `Button: ${block.label || 'Untitled'}`
-								: block.type === 'divider'
-									? 'Divider line'
-									: block.type === 'products'
-										? 'Products'
-									: block.type === 'form'
-										? block.heading || 'Contact form'
-										: block.type === 'about'
-											? 'About section'
-											: 'Sub-pages';
-		return [{ key: `block:${block.id}`, label, kind: 'section' as const }];
-		}),
+		...sections.map((section, index) => ({
+			key: sectionPartKey(section.id),
+			label: `Section ${index + 1}: ${section.name}`,
+			kind: 'section' as const,
+		})),
 	];
 	const motionSectionItems = [
 		...(page.heading?.trim()
 			? [{ key: 'page:heading', label: `Heading — ${page.heading.trim().slice(0, 38)}` }]
 			: []),
 		...(page.project ? [{ key: 'page:project', label: 'Project details' }] : []),
-		...blocks.flatMap((block, index) => {
-			if (hasFreeCanvas && (block.type === 'text' || block.type === 'embed') && block.layout) return [];
-			if (block.type === 'images' && block.gallery.carouselHost) return [];
-			const label =
-				block.type === 'text'
-					? block.text.trim().replace(/\s+/g, ' ').slice(0, 38) || `Text ${index + 1}`
-					: block.type === 'gallery'
-						? 'Main images'
-						: block.type === 'images'
-							? block.name || `Image group ${index + 1}`
-							: block.type === 'embed'
-								? 'Video'
-								: block.type === 'children'
-									? 'Sub-pages'
-									: block.type === 'about'
-										? 'About content'
-										: block.type === 'products'
-											? 'Products'
-											: block.type === 'form'
-												? block.heading || 'Contact form'
-												: block.type === 'button'
-													? `Button — ${block.label || 'Untitled'}`
-													: 'Divider';
-			return [{ key: `block:${block.id}`, label }];
-		}),
+		...sections.map((section, index) => ({
+			key: sectionPartKey(section.id),
+			label: `Section ${index + 1} — ${section.name}`,
+		})),
 	];
 
 	const addChild = () => {
@@ -397,32 +422,68 @@ export default function PageEditor({
 		requestAnimationFrame(() =>
 			requestAnimationFrame(() => {
 				const added = Array.from(
-					pageContentRef.current?.querySelectorAll<HTMLElement>(':scope > [data-editor-block]') ?? [],
+					pageContentRef.current?.querySelectorAll<HTMLElement>('[data-editor-block]') ?? [],
 				).find((element) => !before.has(element.dataset.editorBlock ?? ''));
 				added?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			}),
 		);
 	};
 
-	const addBlockMenuItems = () => (
+	const closeBlockMenus = () => {
+		addMenuRef.current?.removeAttribute('open');
+		floatingAddMenuRef.current?.removeAttribute('open');
+		pageContentRef.current
+			?.querySelectorAll<HTMLDetailsElement>('details.section-add-block[open]')
+			.forEach((menu) => menu.removeAttribute('open'));
+	};
+	const performSectionAdd = (
+		action: (sectionId: string) => void,
+		sectionId: string,
+	) => {
+		closeBlockMenus();
+		runAdd(() => action(sectionId));
+	};
+	const runSectionAdd = (
+		action: (sectionId: string) => void,
+		requestedSectionId?: string,
+		label = 'block',
+	) => {
+		const directSectionId =
+			requestedSectionId ?? (sections.length === 1 ? sections[0].id : undefined);
+		if (directSectionId) {
+			performSectionAdd(action, directSectionId);
+			return;
+		}
+		setPendingSectionAdd({ label, action });
+		closeBlockMenus();
+	};
+
+	const addBlockMenuItems = (sectionId?: string) => (
 		<>
-			<button type="button" onClick={() => runAdd(() => editor.addTextBlock(pageKey))}>Text</button>
-			<button type="button" onClick={() => runAdd(() => editor.addImagesBlock(pageKey))}>Image group</button>
-			<button type="button" onClick={() => runAdd(() => editor.addEmbedBlock(pageKey))}>Video</button>
-			<button type="button" onClick={() => runAdd(() => editor.addButtonBlock(pageKey))}>Button</button>
-			<button type="button" onClick={() => runAdd(() => editor.addDividerBlock(pageKey))}>Divider</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addTextBlock(pageKey, target), sectionId, 'text')}>Text</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addImagesBlock(pageKey, target), sectionId, 'image group')}>Image group</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'video', target), sectionId, 'video')}>Video</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addShotsBlock(pageKey, target), sectionId, 'Shots video')}>Shots / scroll video</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'audio', target), sectionId, 'music player')}>Music player</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'map', target), sectionId, 'Google Map')}>Google Map</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addButtonBlock(pageKey, target), sectionId, 'button')}>Button</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addDividerBlock(pageKey, target), sectionId, 'divider')}>Divider</button>
 			{!hasAboutBlock && (
-				<button type="button" onClick={() => runAdd(() => editor.addAboutBlock(pageKey))}>About content</button>
+				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}>About content</button>
 			)}
-			<button type="button" onClick={() => runAdd(() => editor.addFormBlock(pageKey))}>Contact form</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}>Contact form</button>
 			<button
 				type="button"
-				onClick={() =>
-					runAdd(() => {
-						if (doc.content.store) editor.addProductsBlock(pageKey);
-						else showEditorTab('store');
-					})
-				}
+				onClick={() => {
+					runSectionAdd(
+						(target) => {
+							if (doc.content.store) editor.addProductsBlock(pageKey, target);
+							else showEditorTab('store');
+						},
+						sectionId,
+						doc.content.store ? 'products' : 'products setup',
+					);
+				}}
 			>
 				{doc.content.store ? 'Products' : 'Set up products…'}
 			</button>
@@ -459,8 +520,25 @@ export default function PageEditor({
 	const textLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'text' }>) => {
 		const width = Math.min(block.flowLayout?.w ?? 50, 60);
 		let bottom = 18;
-		if (hasFreeCanvas && page.gallery) {
-			const entries = doc.galleries[page.gallery.folder] ?? [];
+		const owner = sectionForBlock(block.id);
+		const ownerBlocks = new Set(owner?.blockIds ?? []);
+		const host = owner?.blockIds
+			.map((id) => blockById.get(id))
+			.find(
+				(candidate) =>
+					(candidate?.type === 'gallery' && page.gallery?.layout !== 'grid') ||
+					(candidate?.type === 'images' &&
+						candidate.gallery.carousel !== true &&
+						candidate.gallery.layout !== 'grid'),
+			);
+		const config =
+			host?.type === 'gallery'
+				? page.gallery
+				: host?.type === 'images'
+					? host.gallery
+					: undefined;
+		if (config) {
+			const entries = doc.galleries[config.folder] ?? [];
 			const flowed = flowMissing(
 				entries.map((entry) => ({
 					layout: entry.meta.layout,
@@ -473,7 +551,7 @@ export default function PageEditor({
 			});
 			bottom = Math.max(bottom, canvasHeight(imageLayouts));
 			for (const candidate of blocks) {
-				if (candidate.id === block.id) continue;
+				if (candidate.id === block.id || !ownerBlocks.has(candidate.id)) continue;
 				if (candidate.type === 'text' && candidate.layout)
 					bottom = Math.max(bottom, textBottom(candidate.layout));
 				if (candidate.type === 'embed' && candidate.layout)
@@ -487,22 +565,73 @@ export default function PageEditor({
 		});
 	};
 
+	/** Place a player/map below existing canvas content, or centered in its own
+	 * canvas section when the page does not have a primary image canvas. */
+	const embedLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'embed' }>) => {
+		const spec = embedSpec(block.url);
+		const kind = spec?.kind ?? embedKindOf(block);
+		const width = kind === 'map' ? 72 : kind === 'audio' ? 68 : 60;
+		const owner = sectionForBlock(block.id);
+		const ownerBlocks = new Set(owner?.blockIds ?? []);
+		const host = owner?.blockIds
+			.map((id) => blockById.get(id))
+			.find(
+				(candidate) =>
+					(candidate?.type === 'gallery' && page.gallery?.layout !== 'grid') ||
+					(candidate?.type === 'images' &&
+						candidate.gallery.carousel !== true &&
+						candidate.gallery.layout !== 'grid'),
+			);
+		const config =
+			host?.type === 'gallery'
+				? page.gallery
+				: host?.type === 'images'
+					? host.gallery
+					: undefined;
+		let bottom = config ? 18 : -2;
+		if (config) {
+			const entries = doc.galleries[config.folder] ?? [];
+			const flowed = flowMissing(
+				entries.map((entry) => ({
+					layout: entry.meta.layout,
+					ar: entry.meta.layout?.ar ?? DEFAULT_AR,
+				})),
+			);
+			const imageLayouts = entries.flatMap((entry, entryIndex) => {
+				const layout = entry.meta.layout ?? flowed.get(entryIndex);
+				return layout ? [layout] : [];
+			});
+			bottom = Math.max(bottom, canvasHeight(imageLayouts));
+			for (const candidate of blocks) {
+				if (candidate.id === block.id || !ownerBlocks.has(candidate.id)) continue;
+				if (candidate.type === 'text' && candidate.layout)
+					bottom = Math.max(bottom, textBottom(candidate.layout));
+				if (candidate.type === 'embed' && candidate.layout)
+					bottom = Math.max(bottom, bottomOf(candidate.layout));
+			}
+		}
+		return roundLayout({
+			x: (100 - width) / 2,
+			y: bottom + 2,
+			w: width,
+			ar: spec?.aspectRatio ?? (kind === 'map' ? 4 / 3 : kind === 'audio' ? 5.4 : 16 / 9),
+		});
+	};
+
 	const controls = (index: number, block: PageBlock, removable: boolean) => {
 		const name =
 			block.type === 'images' ? block.name || 'image group' :
-			block.type === 'embed' ? 'video' :
+			block.type === 'embed' ? embedKindLabel(embedKindOf(block)).toLowerCase() :
+			block.type === 'shots' ? 'shots / scroll video' :
 			block.type === 'children' ? 'sub-pages' :
 			block.type === 'products' ? 'products' :
 			block.type === 'form' ? 'contact form' :
 			block.type === 'divider' ? 'divider' : block.type;
 		const blockLabel = `${name} block ${index + 1} on ${pageName}`;
+		const owner = sectionForBlock(block.id);
+		const position = owner?.blockIds.indexOf(block.id) ?? -1;
+		const dedicated = !!owner && owner.id !== MAIN_SECTION_ID && owner.blockIds.length === 1;
 		return <div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
-			<ColorSwatchPicker
-				label={`Background color for ${blockLabel}`}
-				value={page.sectionColors?.[`block:${block.id}`]}
-				themeColors={themeColors}
-				onChange={(color) => editor.setSectionColor(pageKey, `block:${block.id}`, color)}
-			/>
 			<button
 				type="button"
 				className="btn-icon"
@@ -518,9 +647,22 @@ export default function PageEditor({
 			</button>
 			<button
 				type="button"
+				className={`btn-icon block-section-toggle ${dedicated ? 'active' : ''}`}
+				title={dedicated ? 'Move this block back to the Main section' : 'Put this block in its own section'}
+				onClick={() => editor.toggleBlockSection(pageKey, block.id)}
+				aria-label={
+					dedicated
+						? `Move ${blockLabel} to the Main section`
+						: `Put ${blockLabel} in its own section`
+				}
+			>
+				{dedicated ? '↩' : '▣'}
+			</button>
+			<button
+				type="button"
 				className="btn-icon"
-				disabled={index === 0}
-				onClick={() => editor.moveBlock(pageKey, index, index - 1)}
+				disabled={!owner || position <= 0}
+				onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position - 1)}
 				aria-label={`Move ${blockLabel} earlier`}
 			>
 				↑
@@ -528,8 +670,8 @@ export default function PageEditor({
 			<button
 				type="button"
 				className="btn-icon"
-				disabled={index === blocks.length - 1}
-				onClick={() => editor.moveBlock(pageKey, index, index + 1)}
+				disabled={!owner || position < 0 || position === owner.blockIds.length - 1}
+				onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position + 1)}
 				aria-label={`Move ${blockLabel} later`}
 			>
 				↓
@@ -554,10 +696,15 @@ export default function PageEditor({
 	};
 
 	const renderBlock = (block: PageBlock, index: number) => {
+		const ownerSection = sectionForBlock(block.id);
+		const blockHasFreeCanvas = ownerSection
+			? sectionHasFreeCanvas(ownerSection.id)
+			: false;
 		switch (block.type) {
 			case 'text': {
 				const textLabel = `text block ${index + 1} on ${pageName}`;
 				const fontLinked = !block.fontFamily;
+				const isCanvasPlaced = !!block.layout;
 				const flowLayout = clampTextFlowLayout(block.flowLayout ?? { x: 0, w: 100 });
 				const setFlowLayout = (patch: Partial<typeof flowLayout>) =>
 					editor.setTextFlowLayout(
@@ -694,7 +841,7 @@ export default function PageEditor({
 							/>
 							{!isPageOrWebLink(block.link ?? '') && <span className="field-error">Use a full web address beginning with https://.</span>}
 						</details>
-						{!block.layout && (
+						{!isCanvasPlaced && (
 							<div className="text-flow-layout" role="group" aria-label={`Width and position for ${textLabel}`}>
 								<div className="text-flow-layout-head">
 									<span>
@@ -758,7 +905,7 @@ export default function PageEditor({
 								</div>
 							</div>
 						)}
-						{block.layout ? (
+						{isCanvasPlaced ? (
 							<div className="text-box-canvas-status">
 								<span>Placed on the canvas — drag the box to move it; drag its blue corner to resize.</span>
 								<button
@@ -773,17 +920,33 @@ export default function PageEditor({
 							!!block.text.trim() && (
 								<div className="text-box-canvas-status">
 									<span>
-										{hasFreeCanvas
+										{blockHasFreeCanvas
 											? 'Drag this text box in the preview to place it anywhere on the image canvas.'
-											: 'Place this text box in its own draggable canvas section.'}
+											: 'Create a freeform image group, then drag or place this text box anywhere.'}
 									</span>
-									<button
-										type="button"
-										className="btn-secondary text-placement-button"
-										onClick={() => editor.setTextLayout(pageKey, block.id, textLayoutAtCanvasBottom(block))}
-									>
-										Place on canvas
-									</button>
+									{blockHasFreeCanvas ? (
+										<button
+											type="button"
+											className="btn-secondary text-placement-button"
+											onClick={() => editor.setTextLayout(pageKey, block.id, textLayoutAtCanvasBottom(block))}
+										>
+											Place on canvas
+										</button>
+									) : (
+										<button
+											type="button"
+											className="btn-secondary text-placement-button"
+											onClick={() =>
+												editor.addFreeformGallery(
+													pageKey,
+													block.id,
+													ownerSection?.id,
+												)
+											}
+										>
+											Create freeform image group
+										</button>
+									)}
 								</div>
 							)
 						)}
@@ -792,39 +955,382 @@ export default function PageEditor({
 			}
 			case 'embed': {
 				const isBuy = !!stripePaymentLink(block.url);
-				const invalid = !!block.url.trim() && !videoEmbedSrc(block.url) && !isBuy;
-				const videoLabel = `video block ${index + 1} on ${pageName}`;
+				const spec = embedSpec(block.url);
+				const kind = spec?.kind ?? embedKindOf(block);
+				const moduleLabel = isBuy ? 'Buy button' : embedKindLabel(kind);
+				const blockLabel = `${moduleLabel.toLowerCase()} block ${index + 1} on ${pageName}`;
+				const invalid = !!block.url.trim() && !spec && !isBuy;
+				const isCanvasPlaced = !!block.layout;
+				const flowLayout = clampTextFlowLayout(
+					block.flowLayout ??
+						(kind === 'audio' ? { x: 15, w: 70 } : { x: 10, w: 80 }),
+				);
+				const setFlowLayout = (patch: Partial<typeof flowLayout>) =>
+					editor.setEmbedFlowLayout(
+						pageKey,
+						block.id,
+						clampTextFlowLayout({ ...flowLayout, ...patch }),
+					);
+				const placeholder =
+					kind === 'audio'
+						? 'SoundCloud link or Bandcamp Share / Embed code'
+						: kind === 'map'
+							? 'Google Maps place URL or Share → Embed a map code'
+							: 'YouTube, Vimeo or Stripe payment link';
+				const error =
+					kind === 'audio' && block.url.toLowerCase().includes('bandcamp.com')
+						? 'For Bandcamp, use Share / Embed on the track or album and paste the iframe code here.'
+						: kind === 'audio'
+							? 'Paste a SoundCloud track or playlist link, or Bandcamp’s Share / Embed iframe code.'
+							: kind === 'map'
+								? 'Paste a full Google Maps place/search URL or the iframe code from Share → Embed a map.'
+								: 'That doesn’t look like a YouTube, Vimeo, or Stripe payment link.';
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Video</span>
+							<span className="block-label">{moduleLabel}</span>
 							{controls(index, block, true)}
 						</div>
 						<input
 							className={`text-input ${invalid ? 'invalid' : ''}`}
-							aria-label={`YouTube, Vimeo or Stripe link for ${videoLabel}`}
-							placeholder="Paste a YouTube, Vimeo or Stripe payment link (https://…)"
+							aria-label={`${placeholder} for ${blockLabel}`}
+							placeholder={placeholder}
 							value={block.url}
 							onChange={(e) => editor.updateEmbedBlock(pageKey, block.id, e.target.value)}
 						/>
+						{!isCanvasPlaced && (
+							<div
+								className="text-flow-layout embed-flow-layout-controls"
+								role="group"
+								aria-label={`Width and position for ${blockLabel}`}
+							>
+								<div className="text-flow-layout-head">
+									<span>
+										<strong>Widget width &amp; position</strong>
+										<small>
+											Resize from here or drag the blue corner in the preview.
+										</small>
+									</span>
+									{block.flowLayout && (
+										<button
+											type="button"
+											className="btn-link"
+											onClick={() =>
+												editor.setEmbedFlowLayout(pageKey, block.id, undefined)
+											}
+										>
+											Reset
+										</button>
+									)}
+								</div>
+								<label className="text-flow-slider">
+									<span>
+										Width <output>{Math.round(flowLayout.w)}%</output>
+									</span>
+									<input
+										type="range"
+										min={20}
+										max={100}
+										step={1}
+										value={flowLayout.w}
+										aria-label={`Width for ${blockLabel}`}
+										onChange={(event) => {
+											const w = Number(event.target.value);
+											setFlowLayout({
+												w,
+												x: Math.min(flowLayout.x, 100 - w),
+											});
+										}}
+									/>
+								</label>
+								<label className="text-flow-slider">
+									<span>
+										Position <output>{Math.round(flowLayout.x)}%</output>
+									</span>
+									<input
+										type="range"
+										min={0}
+										max={100 - flowLayout.w}
+										step={1}
+										value={flowLayout.x}
+										disabled={flowLayout.w === 100}
+										aria-label={`Horizontal position for ${blockLabel}`}
+										onChange={(event) =>
+											setFlowLayout({ x: Number(event.target.value) })
+										}
+									/>
+								</label>
+								<div
+									className="text-flow-presets"
+									role="group"
+									aria-label={`Position presets for ${blockLabel}`}
+								>
+									<button
+										type="button"
+										className="btn-chip"
+										onClick={() => setFlowLayout({ x: 0 })}
+									>
+										Left
+									</button>
+									<button
+										type="button"
+										className="btn-chip"
+										onClick={() =>
+											setFlowLayout({ x: (100 - flowLayout.w) / 2 })
+										}
+									>
+										Center
+									</button>
+									<button
+										type="button"
+										className="btn-chip"
+										onClick={() => setFlowLayout({ x: 100 - flowLayout.w })}
+									>
+										Right
+									</button>
+								</div>
+							</div>
+						)}
 						{invalid ? (
-							<span className="field-error">That doesn’t look like a YouTube, Vimeo or Stripe payment link.</span>
-						) : block.layout ? (
-							<p className="muted">
-								Placed on the canvas — drag it to move, drag its corner handle to resize.{' '}
+							<span className="field-error">{error}</span>
+						) : isCanvasPlaced ? (
+							<div className="text-box-canvas-status embed-canvas-status">
+								<span>
+									Placed on the canvas — use its blue drag grip to move it and its corner handle
+									to resize. The player or map stays interactive.
+								</span>
 								<button
 									type="button"
-									className="btn-link"
+									className="btn-secondary text-placement-button"
 									onClick={() => editor.setEmbedLayout(pageKey, block.id, undefined)}
 								>
 									Back to normal flow
 								</button>
-							</p>
-						) : hasFreeCanvas && !!block.url.trim() ? (
-							<p className="muted">Drag this video in the preview to place it anywhere on the canvas.</p>
+							</div>
+						) : (spec || isBuy) && !!block.url.trim() ? (
+							<div className="text-box-canvas-status embed-canvas-status">
+								<span>
+									{blockHasFreeCanvas
+										? `${spec?.provider ?? moduleLabel} is live in the preview. Place it on the image canvas whenever you want.`
+										: `${spec?.provider ?? moduleLabel} is live and resizable in normal flow. Create a freeform image group to place it anywhere.`}
+								</span>
+								{blockHasFreeCanvas ? (
+									<button
+										type="button"
+										className="btn-secondary text-placement-button"
+										onClick={() =>
+											editor.setEmbedLayout(pageKey, block.id, embedLayoutAtCanvasBottom(block))
+										}
+									>
+										Place on canvas
+									</button>
+								) : (
+									<button
+										type="button"
+										className="btn-secondary text-placement-button"
+										onClick={() =>
+											editor.addFreeformGallery(
+												pageKey,
+												block.id,
+												ownerSection?.id,
+											)
+										}
+									>
+										Create freeform image group
+									</button>
+								)}
+							</div>
 						) : (
-							<p className="muted">The video plays right on your page.</p>
+							<p className="muted">
+								{kind === 'audio'
+									? 'Visitors can play SoundCloud or Bandcamp without leaving your site.'
+									: kind === 'map'
+										? 'Visitors can pan, zoom, and open directions from the map.'
+										: 'The video plays right on your page.'}
+							</p>
 						)}
+					</div>
+				);
+			}
+			case 'shots': {
+				const sourceInvalid = !block.assetId && !isShotsSource(block.src);
+				const sourceLabel = block.filename || (block.src.trim() ? 'Direct video link' : 'No clip selected');
+				const fadeStart = Math.min(Math.max(block.fadeStart ?? 70, 0), 95);
+				const fadeDuration = Math.min(
+					Math.max(block.fadeDuration ?? 30, 5),
+					100 - fadeStart,
+				);
+				return (
+					<div className="block shots-editor-block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label">Shots / scroll video</span>
+							{controls(index, block, true)}
+						</div>
+						<p className="muted shots-editor-intro">
+							A short, muted clip whose playhead follows the visitor’s scroll.
+						</p>
+						<div className="shots-source-actions">
+							<label className="btn-secondary shots-upload-button">
+								Upload MP4 or WebM
+								<input
+									type="file"
+									accept="video/mp4,video/webm,.mp4,.webm"
+									hidden
+									onChange={(event) => {
+										const file = event.target.files?.[0];
+										event.target.value = '';
+										if (!file) return;
+										if (!isVideoFile(file)) {
+											alert('Choose an MP4 or WebM video.');
+											return;
+										}
+										if (file.size > MAX_VIDEO_BYTES) {
+											alert(`Keep scroll videos under ${MAX_VIDEO_MB} MB.`);
+											return;
+										}
+										editor.setShotsFile(pageKey, block.id, file);
+									}}
+								/>
+							</label>
+							<span className="shots-source-name" title={sourceLabel}>{sourceLabel}</span>
+							{(block.assetId || block.src.trim()) && (
+								<button
+									type="button"
+									className="btn-link"
+									onClick={() =>
+										editor.updateShotsBlock(pageKey, block.id, { src: '' })
+									}
+								>
+									Remove
+								</button>
+							)}
+						</div>
+						<Field
+							label="Or paste a direct video URL"
+							hint="Use a direct https:// link to an MP4 or WebM file. Pasting here replaces an uploaded clip."
+							error={sourceInvalid ? 'Use a direct web video URL.' : undefined}
+						>
+							<TextInput
+								className={`text-input${sourceInvalid ? ' invalid' : ''}`}
+								value={block.assetId ? '' : block.src}
+								placeholder="https://cdn.example.com/short-film.mp4"
+								onChange={(event) =>
+									editor.updateShotsBlock(pageKey, block.id, {
+										src: event.target.value,
+									})
+								}
+							/>
+						</Field>
+						<div className="shots-options-grid">
+							<label className="motion-range">
+								<span>
+									Scroll length <output>{block.scrollLength ?? 260}vh</output>
+								</span>
+								<input
+									type="range"
+									min={140}
+									max={500}
+									step={10}
+									value={block.scrollLength ?? 260}
+									onChange={(event) =>
+										editor.updateShotsBlock(pageKey, block.id, {
+											scrollLength: Number(event.target.value),
+										})
+									}
+								/>
+							</label>
+							<label>
+								<span className="field-label">Video fit</span>
+								<select
+									className="select-input"
+									value={block.fit ?? 'cover'}
+									onChange={(event) =>
+										editor.updateShotsBlock(pageKey, block.id, {
+											fit: event.target.value as 'cover' | 'contain',
+										})
+									}
+								>
+									<option value="cover">Fill the screen</option>
+									<option value="contain">Show the whole frame</option>
+								</select>
+							</label>
+						</div>
+						<div className="shots-checks">
+							<label className="compact-check">
+								<input
+									type="checkbox"
+									checked={block.fadeIntoPage !== false}
+									onChange={(event) =>
+										editor.updateShotsBlock(pageKey, block.id, {
+											fadeIntoPage: event.target.checked,
+										})
+									}
+								/>
+								Fade into following page content
+							</label>
+							<label className="compact-check">
+								<input
+									type="checkbox"
+									checked={block.phone ?? false}
+									onChange={(event) =>
+										editor.updateShotsBlock(pageKey, block.id, {
+											phone: event.target.checked || undefined,
+										})
+									}
+								/>
+								Scrub on phones
+							</label>
+						</div>
+						{block.fadeIntoPage !== false && (
+							<div
+								className="shots-fade-options"
+								role="group"
+								aria-label="Scroll video fade timing"
+							>
+								<label className="motion-range">
+									<span>
+										Fade starts <output>{fadeStart}%</output>
+									</span>
+									<input
+										type="range"
+										min={0}
+										max={95}
+										step={1}
+										value={fadeStart}
+										onChange={(event) => {
+											const nextStart = Number(event.target.value);
+											editor.updateShotsBlock(pageKey, block.id, {
+												fadeStart: nextStart,
+												fadeDuration: Math.min(fadeDuration, 100 - nextStart),
+											});
+										}}
+									/>
+								</label>
+								<label className="motion-range">
+									<span>
+										Fade length <output>{fadeDuration}%</output>
+									</span>
+									<input
+										type="range"
+										min={5}
+										max={100 - fadeStart}
+										step={1}
+										value={fadeDuration}
+										onChange={(event) =>
+											editor.updateShotsBlock(pageKey, block.id, {
+												fadeDuration: Number(event.target.value),
+											})
+										}
+									/>
+								</label>
+								<small>
+									The timing is measured across the full scroll scene.
+								</small>
+							</div>
+						)}
+						<p className="muted">
+							On reduced-motion devices—and on phones unless enabled—the clip becomes a normal video with controls.
+						</p>
 					</div>
 				);
 			}
@@ -845,16 +1351,16 @@ export default function PageEditor({
 									{galleryMode === 'grid' && (
 										<GridOptions
 											config={page.gallery}
-											label={`${hasFreeCanvas ? 'main canvas' : 'main images'} on ${pageName}`}
+											label={`${blockHasFreeCanvas ? 'main canvas' : 'main images'} on ${pageName}`}
 											onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)}
 											onAdopt={() =>
 												void adoptGridAsFreeform(page.gallery!, (patch) => editor.setGalleryConfig(pageKey, patch))
 											}
 										/>
 									)}
-									{(phoneItemsFor(page.gallery, hasFreeCanvas).length > 0 || page.gallery.mobile) && (
+									{(phoneItemsFor(page.gallery, blockHasFreeCanvas).length > 0 || page.gallery.mobile) && (
 										<MobileArrangementEditor
-											items={phoneItemsFor(page.gallery, hasFreeCanvas)}
+											items={phoneItemsFor(page.gallery, blockHasFreeCanvas)}
 											mobile={page.gallery.mobile}
 											gridMode={galleryMode === 'grid'}
 											label={`main images on ${pageName}`}
@@ -1669,11 +2175,130 @@ export default function PageEditor({
 						</div>
 					</details>
 				)}
-				{blocks.map((block, index) => (
-					<div key={block.id} data-editor-block={block.id}>
-						{renderBlock(block, index)}
-					</div>
-				))}
+				<div className="page-section-list">
+					{sections.map((section, sectionIndex) => {
+						const accent = sectionEditorColor(section, sectionIndex);
+						const partKey = sectionPartKey(section.id);
+						return (
+							<section
+								className="page-section-editor"
+								key={section.id}
+								data-editor-section={section.id}
+								style={{ '--section-editor-color': accent } as CSSProperties}
+							>
+									<div className="page-section-editor-head">
+										<span className="page-section-number" aria-hidden="true">
+											{sectionIndex + 1}
+										</span>
+										<span className="page-section-title">
+											<small>Section {sectionIndex + 1}</small>
+											<input
+												key={`${section.id}:${section.name}`}
+												className="section-name-input"
+												aria-label={`Name for Section ${sectionIndex + 1}`}
+												defaultValue={section.name}
+												onBlur={(event) => {
+													const name = event.target.value.trim();
+													if (name && name !== section.name)
+														editor.renameSection(pageKey, section.id, name);
+													else event.target.value = section.name;
+												}}
+												onKeyDown={(event) => {
+													if (event.key === 'Enter') event.currentTarget.blur();
+													if (event.key === 'Escape') {
+														event.currentTarget.value = section.name;
+														event.currentTarget.blur();
+													}
+												}}
+											/>
+											<small>
+												{section.blockIds.length} block{section.blockIds.length === 1 ? '' : 's'}
+											</small>
+										</span>
+										<div className="page-section-actions">
+											<label
+												className="section-label-color"
+												title={`Editor label color for ${section.name}`}
+											>
+												<span className="sr-only">Editor label color for {section.name}</span>
+												<input
+													type="color"
+													value={accent}
+													onChange={(event) =>
+														editor.setSectionEditorColor(
+															pageKey,
+															section.id,
+															event.target.value,
+														)
+													}
+												/>
+											</label>
+											<ColorSwatchPicker
+												label={`Published background color for Section ${sectionIndex + 1}, ${section.name}`}
+												value={page.sectionColors?.[partKey]}
+												themeColors={themeColors}
+												onChange={(color) =>
+													editor.setSectionColor(pageKey, partKey, color)
+												}
+											/>
+											<button
+												type="button"
+												className="btn-icon"
+												disabled={sectionIndex === 0}
+												onClick={() =>
+													editor.moveSection(pageKey, sectionIndex, sectionIndex - 1)
+												}
+												aria-label={`Move Section ${sectionIndex + 1} earlier`}
+											>
+												↑
+											</button>
+											<button
+												type="button"
+												className="btn-icon"
+												disabled={sectionIndex === sections.length - 1}
+												onClick={() =>
+													editor.moveSection(pageKey, sectionIndex, sectionIndex + 1)
+												}
+												aria-label={`Move Section ${sectionIndex + 1} later`}
+											>
+												↓
+											</button>
+											<details className="page-add-block section-add-block">
+												<summary
+													className="btn-secondary"
+													aria-label={`Add a block to Section ${sectionIndex + 1}, ${section.name}`}
+												>
+													＋ Block
+												</summary>
+												<div className="page-add-block-menu">
+													{addBlockMenuItems(section.id)}
+												</div>
+											</details>
+										</div>
+									</div>
+								<div className="page-section-editor-blocks">
+									{section.blockIds.map((blockId) => {
+										const block = blockById.get(blockId);
+										if (!block) return null;
+										const index = blocks.findIndex(
+											(candidate) => candidate.id === blockId,
+										);
+										return (
+											<div key={block.id} data-editor-block={block.id}>
+												{renderBlock(block, index)}
+											</div>
+										);
+									})}
+									{section.blockIds.length === 0 && (
+										<p className="empty-section-note">
+											This is your Main section. Add any block here to start.
+										</p>
+									)}
+								</div>
+							</section>
+						);
+					})}
+				</div>
 			</div>
 			{!nested && (
 				<details className="page-add-block floating-add-block" ref={floatingAddMenuRef}>
@@ -1799,7 +2424,7 @@ export default function PageEditor({
 
 					<Field
 						label="Background colors"
-						hint="Color the whole page, or give only the heading its own band. Text contrast adjusts automatically."
+						hint="Color the whole page or the heading band here. Each numbered section has its own background picker in Content."
 					>
 						<div className="color-surface-controls">
 							<div className="color-surface-control">
@@ -1849,6 +2474,48 @@ export default function PageEditor({
 					)}
 				</div>
 			</details>
+
+			{pendingSectionAdd && (
+				<Modal
+					title={`Add ${pendingSectionAdd.label}`}
+					onClose={() => setPendingSectionAdd(null)}
+				>
+					<p className="section-destination-intro">
+						Choose the section where this block should appear.
+					</p>
+					<div className="section-destination-list">
+						{sections.map((section, sectionIndex) => {
+							const accent = sectionEditorColor(section, sectionIndex);
+							return (
+								<button
+									type="button"
+									className="section-destination-option"
+									key={section.id}
+									style={{ '--section-editor-color': accent } as CSSProperties}
+									aria-label={`Add ${pendingSectionAdd.label} to Section ${sectionIndex + 1}, ${section.name}`}
+									onClick={() => {
+										const action = pendingSectionAdd.action;
+										setPendingSectionAdd(null);
+										performSectionAdd(action, section.id);
+									}}
+								>
+									<span className="page-section-number" aria-hidden="true">
+										{sectionIndex + 1}
+									</span>
+									<span>
+										<strong>{section.name}</strong>
+										<small>
+											{section.blockIds.length} block
+											{section.blockIds.length === 1 ? '' : 's'}
+										</small>
+									</span>
+									<span aria-hidden="true">→</span>
+								</button>
+							);
+						})}
+					</div>
+				</Modal>
+			)}
 
 			{includeChildren && !nested && (page.children?.length ?? 0) > 0 && (
 				<div className="nested-pages">
