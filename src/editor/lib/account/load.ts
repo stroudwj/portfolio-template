@@ -170,6 +170,7 @@ export async function loadPublishedSite(
 					alt: meta.alt ?? '',
 					description: meta.description ?? '',
 					link: meta.link ?? '',
+					clickAction: meta.clickAction,
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,

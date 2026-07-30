@@ -765,7 +765,7 @@ describe('browser draft compatibility', () => {
 		]);
 	});
 
-	it('round-trips artwork descriptions and opt-in phone arrangements', async () => {
+	it('round-trips artwork sizing, click actions, and opt-in phone arrangements', async () => {
 		const doc = blankDoc();
 		const folder = doc.content.pages.home.gallery!.folder;
 		doc.galleries[folder] = [
@@ -773,7 +773,14 @@ describe('browser draft compatibility', () => {
 				id: 'artwork-one',
 				filename: 'work.jpg',
 				assetId: registerAsset(new Blob(['work'], { type: 'image/jpeg' }), 'work.jpg'),
-				meta: { title: 'Work', alt: 'A red painting on a white wall', description: '', link: '' },
+				meta: {
+					title: 'Work',
+					alt: 'A red painting on a white wall',
+					description: '',
+					link: '/art',
+					clickAction: 'link',
+					layout: { x: 12, y: 4, w: 28, ar: 1.5 },
+				},
 			},
 		];
 		doc.content.pages.home.gallery!.mobile = {
@@ -784,7 +791,13 @@ describe('browser draft compatibility', () => {
 
 		const bundle = await buildBundle(doc);
 		const exported = bundle.contentJson.galleries[folder].items['01-work.jpg'];
-		expect(exported).toMatchObject({ id: 'artwork-one', alt: 'A red painting on a white wall' });
+		expect(exported).toMatchObject({
+			id: 'artwork-one',
+			alt: 'A red painting on a white wall',
+			link: '/art',
+			clickAction: 'link',
+			layout: { x: 12, y: 4, w: 28, ar: 1.5 },
+		});
 		expect(bundle.contentJson.pages.home.gallery?.mobile).toEqual(doc.content.pages.home.gallery!.mobile);
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
 	});

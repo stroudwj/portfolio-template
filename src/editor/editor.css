@@ -196,15 +196,21 @@
 
 .artwork-effects-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.55rem;
 }
 
 .artwork-effects-grid label {
+	min-width: 0;
 	display: grid;
 	gap: 0.3rem;
 	color: var(--editor-muted, #656565);
 	font-size: 0.74rem;
+}
+
+.artwork-effects-grid .select-input {
+	width: 100%;
+	min-width: 0;
 }
 
 .artwork-effects-editor small {
@@ -1085,6 +1091,27 @@ select.select-input {
 }
 .image-card-list-compact {
 	gap: 5px;
+}
+.image-card-detailed {
+	display: grid;
+	grid-template-columns: 32px minmax(0, 1fr) auto;
+}
+.image-card-detailed > .drag-handle {
+	grid-column: 1;
+	grid-row: 1;
+}
+.image-card-detailed > .card-media {
+	grid-column: 2;
+	grid-row: 1;
+}
+.image-card-detailed > .card-fields {
+	grid-column: 1 / -1;
+	grid-row: 2;
+	width: 100%;
+}
+.image-card-detailed > .card-actions {
+	grid-column: 3;
+	grid-row: 1;
 }
 .image-card-compact {
 	align-items: center;

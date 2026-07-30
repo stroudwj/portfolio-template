@@ -135,6 +135,7 @@ function resolveGalleries(content: Content, assetPaths: Set<string>, ratios: Map
 					title: meta.title,
 					description: meta.description,
 					link: meta.link,
+					clickAction: meta.clickAction,
 					w: meta.w,
 					h: meta.h,
 					layout: meta.layout,

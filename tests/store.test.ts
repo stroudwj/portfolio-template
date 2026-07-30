@@ -25,6 +25,7 @@ import {
 } from '../src/lib/stripe-payment-link';
 import { parseAndMigrateContent } from '../src/lib/content-schema';
 import PortfolioPage from '../src/portfolio/PortfolioPage';
+import Gallery from '../src/portfolio/Gallery';
 import Products, { formatProductPrice } from '../src/portfolio/Products';
 
 const LIVE_LINK = 'https://buy.stripe.com/liveAbc123';
@@ -799,6 +800,59 @@ describe('legacy Stripe embeds', () => {
 			expect(markup).not.toContain('Watch video');
 		},
 	);
+});
+
+describe('linked portfolio images', () => {
+	it.each([
+		['freeform', undefined, { x: 10, y: 4, w: 30, ar: 1.5 }],
+		['grid', 'grid', undefined],
+		['legacy gallery', undefined, undefined],
+	] as const)('renders a direct, accessible link in the %s layout', (_label, layoutMode, layout) => {
+		const markup = renderToStaticMarkup(
+			createElement(Gallery, {
+				images: [
+					{
+						id: 'linked-work',
+						src: '/work.jpg',
+						alt: 'Blue painting',
+						title: 'Blue painting',
+						link: '/art',
+						clickAction: 'link',
+						layout,
+					},
+				],
+				settings: {
+					folder: 'works',
+					alt: 'Works',
+					order: 'asc',
+					layout: layoutMode,
+				},
+			}),
+		);
+
+		expect(markup).toContain('href="/art"');
+		expect(markup).toContain('aria-label="Go to Blue painting"');
+		expect(markup).not.toContain('aria-haspopup="dialog"');
+	});
+
+	it('keeps the lightbox as the default for older image links', () => {
+		const markup = renderToStaticMarkup(
+			createElement(Gallery, {
+				images: [
+					{
+						id: 'legacy-work',
+						src: '/work.jpg',
+						alt: 'Legacy work',
+						link: 'https://example.com/project',
+					},
+				],
+				settings: { folder: 'works', alt: 'Works', order: 'asc', layout: 'grid' },
+			}),
+		);
+
+		expect(markup).toContain('aria-haspopup="dialog"');
+		expect(markup).not.toContain('artwork-link-overlay');
+	});
 });
 
 describe('canvas placement without an image group', () => {

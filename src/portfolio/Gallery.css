@@ -17,6 +17,7 @@
 }
 
 .masonry-item {
+	position: relative;
 	width: 100%;
 	grid-column: span var(--w, 1);
 	grid-row: span var(--h, 1);
@@ -261,6 +262,23 @@
 	grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
 	gap: 1.25rem;
 	align-items: start;
+}
+
+.uniform-item {
+	position: relative;
+}
+
+.artwork-link-overlay {
+	position: absolute;
+	z-index: 1;
+	inset: 0;
+	display: block;
+	cursor: pointer;
+}
+
+.artwork-link-overlay:focus-visible {
+	outline: 3px solid var(--color-accent);
+	outline-offset: 4px;
 }
 
 .uniform-item img {
@@ -598,7 +616,9 @@
 		flex-direction: column;
 	}
 	.canvas-gallery:not(.editable) .canvas-item {
-		position: static;
+		position: relative;
+		left: auto;
+		top: auto;
 		display: block;
 		width: 100%;
 		margin-left: 0;

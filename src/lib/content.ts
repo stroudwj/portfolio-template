@@ -557,6 +557,8 @@ export interface ImageMeta {
 	decorative?: true;
 	description?: string;
 	link?: string;
+	/** What selecting the image does. Absent preserves the legacy lightbox behavior. */
+	clickAction?: 'lightbox' | 'link';
 	/** Legacy grid width in columns (1–4); ignored once `layout` exists. */
 	w?: number;
 	/** Legacy grid height in row units (1–4); ignored once `layout` exists. */

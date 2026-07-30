@@ -2473,6 +2473,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 								decorative,
 								description: '',
 								link: '',
+								clickAction: undefined,
 								layout: entry.meta.layout,
 							}
 						: { ...entry.meta, alt, decorative };

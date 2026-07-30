@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type MouseEvent as ReactMouseEvent,
+} from 'react';
 import Hero from './Hero';
 import Gallery, { type CarouselWidget } from './Gallery';
 import About from './About';
@@ -291,7 +298,20 @@ export default function PortfolioPage({
 	const config = content.pages[page];
 	if (!config) return null;
 	const gallery = config.gallery;
-	const images = gallery ? (galleries[gallery.folder] ?? []) : [];
+	const imagesFor = (folder: string) =>
+		(galleries[folder] ?? []).map((image) => {
+			const link = siteHref(image.link, base);
+			return link === image.link ? image : { ...image, link };
+		});
+	const images = gallery ? imagesFor(gallery.folder) : [];
+	const imageLinkNavigate = onNavigate
+		? (url: string, event: ReactMouseEvent<HTMLElement>) => {
+				const target = previewPageKey(url, base, content.pages);
+				if (!target) return;
+				event.preventDefault();
+				onNavigate(target === 'home' ? '' : target);
+			}
+		: undefined;
 	const onLayoutChange =
 		onImageLayout && gallery ? (id: string, layout: ImageLayout) => onImageLayout(gallery.folder, id, layout) : undefined;
 	const textLayoutChange = onTextLayout ? (id: string, layout: TextLayout) => onTextLayout(page, id, layout) : undefined;
@@ -322,7 +342,7 @@ export default function PortfolioPage({
 		carouselHostById.set(block.id, host.id);
 		const widget: CarouselWidget = {
 			id: block.id,
-			images: galleries[block.gallery.folder] ?? [],
+			images: imagesFor(block.gallery.folder),
 			settings: block.gallery,
 			alt: block.gallery.alt,
 			onFocusChange: onCarouselFocus
@@ -665,6 +685,7 @@ export default function PortfolioPage({
 								: undefined
 						}
 						onDeleteSelection={gallery ? deleteFromCanvas(gallery.folder) : undefined}
+						onImageLink={imageLinkNavigate}
 					/>
 				);
 				// Home keeps its collage layout; other pages the standard wrapper (the
@@ -697,7 +718,7 @@ export default function PortfolioPage({
 				// An extra self-contained image group: its own folder, layout mode and
 				// (in the editor) its own drag-anywhere canvas. Pinned text/video stays
 				// with the primary gallery above, so this block passes none.
-				const groupImages = galleries[block.gallery.folder] ?? [];
+				const groupImages = imagesFor(block.gallery.folder);
 				if (carouselHostById.has(block.id)) return null;
 				return (
 					<div
@@ -756,6 +777,7 @@ export default function PortfolioPage({
 											})
 									: undefined
 							}
+							onImageLink={imageLinkNavigate}
 						/>
 					</div>
 				);

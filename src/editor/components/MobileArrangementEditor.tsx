@@ -52,8 +52,8 @@ export default function MobileArrangementEditor({
 			<details className="phone-layout-disclosure" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
 				<summary>
 					<span className="phone-layout-summary-copy">
-						<strong>Phone layout</strong>
-						<span>Automatic</span>
+						<strong>Phone size &amp; order</strong>
+						<span>{pageScope ? 'Automatic' : 'Automatic — full width'}</span>
 					</span>
 					<span className="phone-layout-chevron" aria-hidden="true">⌄</span>
 				</summary>
@@ -62,8 +62,8 @@ export default function MobileArrangementEditor({
 						{pageScope
 							? 'Already optimized for phones using the same order as desktop.'
 							: mixedCanvas
-								? 'Images, text, and videos already stack neatly on phones.'
-								: 'Images already resize and stack neatly on phones.'}
+								? 'Images, text, and videos stack at full width on phones unless you customize them here.'
+								: 'Images stack at full width on phones unless you customize their size here.'}
 					</p>
 					<button
 						type="button"
@@ -104,8 +104,8 @@ export default function MobileArrangementEditor({
 	return (
 		<details className="phone-layout-disclosure is-custom" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
 			<summary>
-				<span className="phone-layout-summary-copy">
-					<strong>Phone layout</strong>
+					<span className="phone-layout-summary-copy">
+						<strong>Phone size &amp; order</strong>
 					<span>Customized</span>
 				</span>
 				<span className="phone-layout-chevron" aria-hidden="true">⌄</span>

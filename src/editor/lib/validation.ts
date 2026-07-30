@@ -97,8 +97,16 @@ export function collectIssues(doc: EditorDoc): string[] {
 	for (const [folder, entries] of Object.entries(doc.galleries)) {
 		if (!publishedFolders.has(folder)) continue;
 		entries.forEach((e) => {
-			if (e.meta.link && !isUrl(e.meta.link))
-				issues.push(`A ${folder} item link (“${e.meta.title || e.filename}”) is not a valid URL.`);
+			const imageLabel = e.meta.title || e.filename;
+			if (
+				e.meta.link &&
+				!isUrl(e.meta.link) &&
+				!e.meta.link.startsWith('/') &&
+				!e.meta.link.startsWith('#')
+			)
+				issues.push(`The image link for “${imageLabel}” is not a valid destination.`);
+			if (e.meta.clickAction === 'link' && !e.meta.link.trim())
+				issues.push(`The linked image “${imageLabel}” needs a destination.`);
 		});
 	}
 	for (const [key, page] of publishedPages) {

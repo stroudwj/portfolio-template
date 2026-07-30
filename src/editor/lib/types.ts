@@ -16,6 +16,8 @@ export interface ImageMeta {
 	decorative?: true;
 	description: string;
 	link: string;
+	/** What selecting the image does. Absent keeps the full-size lightbox. */
+	clickAction?: 'lightbox' | 'link';
 	/** Legacy grid width in columns (1–4; unset = 1). Ignored once `layout` exists. */
 	w?: number;
 	/** Legacy grid height in row units (1–4; unset = 1). Ignored once `layout` exists. */

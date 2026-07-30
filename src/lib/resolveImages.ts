@@ -50,6 +50,7 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 				title: entry.title,
 				description: entry.description,
 				link: entry.link,
+				clickAction: entry.clickAction,
 				w: entry.w,
 				h: entry.h,
 				layout: entry.layout,

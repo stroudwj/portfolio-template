@@ -24,6 +24,7 @@ const imageMetaSchema = passthrough({
 	decorative: z.literal(true).optional(),
 	description: z.string(),
 	link: z.string(),
+	clickAction: z.enum(['lightbox', 'link']).optional(),
 	w: z.number().optional(),
 	h: z.number().optional(),
 	layout: imageLayoutSchema.optional(),

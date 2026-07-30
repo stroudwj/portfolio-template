@@ -10,7 +10,14 @@
 // onEmbedLayout. Images without a stored layout yet are auto-flowed into rows
 // (flowMissing) and, in the editor, committed once their real aspect ratio is
 // measured.
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type MouseEvent as ReactMouseEvent,
+	type ReactNode,
+} from 'react';
 import type {
 	CanvasEmbed,
 	CanvasLayoutUpdates,
@@ -55,6 +62,11 @@ import { artworkEffectClass } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
+const imageClickHref = (image: ResolvedImage): string | undefined =>
+	image.clickAction === 'link' ? safeHref(image.link) : undefined;
+
+const externalImageLink = (href: string): boolean => /^https?:/i.test(href);
+
 export interface CanvasGalleryProps {
 	images: ResolvedImage[];
 	/** Text blocks pinned to the canvas, rendered inside the composition. */
@@ -87,6 +99,8 @@ export interface CanvasGalleryProps {
 	onDeleteSelection?: (selection: CanvasSelection) => void;
 	/** Published site: open the lightbox for image i and restore focus to its trigger afterwards. */
 	onOpen?: (index: number, trigger?: HTMLElement) => void;
+	/** Editor preview: keep internal image links inside the preview router. */
+	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
 }
 
 export interface CanvasWidget {
@@ -115,6 +129,7 @@ export default function CanvasGallery({
 	onBulkLayoutChange,
 	onDeleteSelection,
 	onOpen,
+	onImageLink,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	/** Live position of the item being dragged, keyed by id (committed on release). */
@@ -988,18 +1003,29 @@ export default function CanvasGallery({
 					} as CSSProperties;
 					const dragging =
 						dragId === img.id || (dragId === '__group__' && selected.has(item.key));
+					const href = editable ? undefined : imageClickHref(img);
 					return (
 						<div key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
-							role={!editable && onOpen ? 'button' : undefined} tabIndex={!editable && onOpen ? 0 : undefined}
-							aria-haspopup={!editable && onOpen ? 'dialog' : undefined}
-							aria-label={!editable && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
-							onClick={!editable && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
-							onKeyDown={!editable && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
+							role={!editable && !href && onOpen ? 'button' : undefined} tabIndex={!editable && !href && onOpen ? 0 : undefined}
+							aria-haspopup={!editable && !href && onOpen ? 'dialog' : undefined}
+							aria-label={!editable && !href && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
+							onClick={!editable && !href && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
+							onKeyDown={!editable && !href && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
 							<img src={img.src} srcSet={img.srcSet} alt={img.decorative ? '' : img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
 								onError={img.sample ? (event) => showSampleUnavailable(event.currentTarget) : undefined}
 								onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
 								ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
+							{href && (
+								<a
+									className="artwork-link-overlay"
+									href={href}
+									target={externalImageLink(href) ? '_blank' : undefined}
+									rel={externalImageLink(href) ? 'noopener noreferrer' : undefined}
+									aria-label={`Go to ${img.title || img.alt || 'linked image'}`}
+									onClick={(event) => onImageLink?.(href, event)}
+								/>
+							)}
 							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}
 						</div>
 					);

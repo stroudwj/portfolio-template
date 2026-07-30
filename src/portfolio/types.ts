@@ -99,6 +99,8 @@ export interface ResolvedImage {
 	title?: string;
 	description?: string;
 	link?: string;
+	/** Direct navigation is opt-in; absent means the image opens in the lightbox. */
+	clickAction?: 'lightbox' | 'link';
 	/** Legacy grid width in columns (1–4, default 1). */
 	w?: number;
 	/** Legacy grid height in row units (1–4, default 1). */

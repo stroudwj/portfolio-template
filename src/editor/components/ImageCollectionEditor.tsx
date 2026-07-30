@@ -143,7 +143,13 @@ export default function ImageCollectionEditor({
 												getAssetPreviewUrl(entry.assetId) ??
 												sampleArtworkUrl(entry.sampleAssetId) ??
 												PLACEHOLDER_IMAGE;
-											const linkInvalid = entry.meta.link && !isUrl(entry.meta.link);
+											const linkInvalid =
+												!!entry.meta.link &&
+												!isUrl(entry.meta.link) &&
+												!entry.meta.link.startsWith('/') &&
+												!entry.meta.link.startsWith('#');
+											const linkRequired =
+												entry.meta.clickAction === 'link' && !entry.meta.link.trim();
 											const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
 											const successor = sampleReplacement(entry.sampleAssetId);
 											const artworkEffects = entry.meta.effects;
@@ -160,7 +166,11 @@ export default function ImageCollectionEditor({
 											return (
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
-													<div className={`card ${compact ? 'image-card-compact' : ''}`}>
+													<div
+														className={`card ${
+															compact ? 'image-card-compact' : 'image-card-detailed'
+														}`}
+													>
 														<button
 															type="button"
 															className="drag-handle"
@@ -353,7 +363,6 @@ export default function ImageCollectionEditor({
 																		<small>Reduced-motion visitors automatically see a still version.</small>
 																	</div>
 																{variant === 'projects' && (
-																	<>
 																		<label className="image-description-field">
 																			<span>Caption (optional)</span>
 																			<textarea
@@ -367,21 +376,53 @@ export default function ImageCollectionEditor({
 																				}
 																			/>
 																		</label>
+																)}
+																<div className="image-click-editor">
+																	<label className="image-description-field">
+																		<span>When the image is clicked</span>
+																		<select
+																			className="select-input"
+																			value={entry.meta.clickAction ?? 'lightbox'}
+																			onChange={(event) =>
+																				updateGalleryMeta(folder, entry.id, {
+																					clickAction:
+																						event.target.value === 'link'
+																							? 'link'
+																							: undefined,
+																				})
+																			}
+																		>
+																			<option value="lightbox">Open the full-size image</option>
+																			<option value="link">Go to a link</option>
+																		</select>
+																	</label>
+																	{(entry.meta.clickAction === 'link' || variant === 'projects') && (
 																		<label className="image-description-field">
-																			<span>Project link</span>
+																			<span>
+																				{entry.meta.clickAction === 'link'
+																					? 'Where it goes'
+																					: 'Project link in the full-size view (optional)'}
+																			</span>
 																			<input
-																				className={`text-input ${linkInvalid ? 'invalid' : ''}`}
-																				placeholder="example.com/project"
+																				className={`text-input ${
+																					linkInvalid || linkRequired ? 'invalid' : ''
+																				}`}
+																				placeholder="https://… or /art"
 																				value={entry.meta.link}
-																				onChange={(e) =>
+																				onChange={(event) =>
 																					updateGalleryMeta(folder, entry.id, {
-																						link: e.target.value,
+																						link: event.target.value,
 																					})
 																				}
 																			/>
+																			{(linkInvalid || linkRequired) && (
+																				<span className="field-error">
+																					Add a full web address, a site page such as /art, or a section such as #work.
+																				</span>
+																			)}
 																		</label>
-																	</>
-																)}
+																	)}
+																</div>
 															</div>
 														)}
 														<div className="card-actions">

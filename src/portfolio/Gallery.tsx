@@ -7,6 +7,7 @@ import {
 	useState,
 	type CSSProperties,
 	type KeyboardEvent as ReactKeyboardEvent,
+	type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
 import type {
@@ -73,6 +74,12 @@ function phoneItemVars(settings: GalleryConfig | undefined, key: string, fallbac
 const imagePhoneKey = (img: ResolvedImage, index: number): string =>
 	`image:${img.id ?? `${img.src}-${index}`}`;
 
+/** A link only replaces the lightbox when the artist explicitly chose that action. */
+const imageClickHref = (img: ResolvedImage | undefined): string | undefined =>
+	img?.clickAction === 'link' ? safeHref(img.link) : undefined;
+
+const externalImageLink = (href: string): boolean => /^https?:/i.test(href);
+
 /** Uniform grid: images per row, clamped to something sane. */
 export const uniformColumns = (value: number | undefined): number =>
 	Math.min(Math.max(Math.round(value ?? 3), 1), 6);
@@ -125,6 +132,8 @@ export interface GalleryProps {
 	onDeleteCarousel?: () => void;
 	/** Render only the carousel itself; an outer CanvasGallery owns its frame. */
 	embeddedCarousel?: boolean;
+	/** Editor preview: keep internal image links inside the preview router. */
+	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
 }
 
 export interface CarouselWidget {
@@ -163,6 +172,7 @@ export default function Gallery({
 	onCarouselWidgetLayout,
 	onDeleteCarousel,
 	embeddedCarousel = false,
+	onImageLink,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const [carouselPosition, setCarouselPosition] = useState(0);
@@ -205,7 +215,7 @@ export default function Gallery({
 		() =>
 			renderedImages.flatMap(({ img, i }) => {
 				const hidden = settings?.mobile?.items?.[imagePhoneKey(img, i)]?.hidden;
-				return isPhone && hidden ? [] : [i];
+				return (isPhone && hidden) || imageClickHref(img) ? [] : [i];
 			}),
 		[isPhone, renderedImages, settings?.mobile?.items],
 	);
@@ -218,6 +228,7 @@ export default function Gallery({
 		[isPhone, renderedImages, settings?.mobile?.items],
 	);
 	const activeCarouselEntry = carouselEntries[carouselPosition] ?? carouselEntries[0];
+	const activeCarouselHref = editable ? undefined : imageClickHref(activeCarouselEntry?.img);
 	const moveCarousel = useCallback(
 		(direction: -1 | 1) => {
 			if (carouselEntries.length < 2) return;
@@ -630,6 +641,7 @@ export default function Gallery({
 				editable={editable}
 				embeddedCarousel
 				onCarouselFocusChange={widget.onFocusChange}
+				onImageLink={onImageLink}
 			/>
 		),
 	}));
@@ -793,10 +805,14 @@ export default function Gallery({
 							className="inline-carousel-image lightbox-trigger"
 							decoding="async"
 							draggable={false}
-							role="button"
-							tabIndex={0}
-							aria-haspopup="dialog"
-							aria-label={`Open ${activeCarouselEntry.img.title || activeCarouselEntry.img.alt || alt} in image viewer`}
+							role={activeCarouselHref ? undefined : 'button'}
+							tabIndex={activeCarouselHref ? undefined : 0}
+							aria-haspopup={activeCarouselHref ? undefined : 'dialog'}
+							aria-label={
+								activeCarouselHref
+									? undefined
+									: `Open ${activeCarouselEntry.img.title || activeCarouselEntry.img.alt || alt} in image viewer`
+							}
 							style={{
 								objectPosition: `${
 									carouselFocusDraft?.id === activeCarouselEntry.img.id
@@ -822,6 +838,7 @@ export default function Gallery({
 								)
 							}
 							onClick={(event) => {
+								if (activeCarouselHref) return;
 								if (cropDraggedRef.current || frameDraggedRef.current) {
 									cropDraggedRef.current = false;
 									frameDraggedRef.current = false;
@@ -829,8 +846,22 @@ export default function Gallery({
 								}
 								openLightbox(activeCarouselEntry.i, event.currentTarget);
 							}}
-							onKeyDown={(event) => openFromKeyboard(event, activeCarouselEntry.i)}
+							onKeyDown={
+								activeCarouselHref
+									? undefined
+									: (event) => openFromKeyboard(event, activeCarouselEntry.i)
+							}
 						/>
+						{activeCarouselHref && (
+							<a
+								className="artwork-link-overlay"
+								href={activeCarouselHref}
+								target={externalImageLink(activeCarouselHref) ? '_blank' : undefined}
+								rel={externalImageLink(activeCarouselHref) ? 'noopener noreferrer' : undefined}
+								aria-label={`Go to ${activeCarouselEntry.img.title || activeCarouselEntry.img.alt || 'linked image'}`}
+								onClick={(event) => onImageLink?.(activeCarouselHref, event)}
+							/>
+						)}
 						{carouselEntries.length > 1 && (
 							<>
 								<button
@@ -884,33 +915,50 @@ export default function Gallery({
 						'--mobile-cols': String(settings?.mobile?.columns ?? 1),
 					} as CSSProperties}
 				>
-					{renderedImages.map(({ img, i }) => (
-						<div
-							className={`uniform-item ${artworkEffectClass(img)}`}
-							style={phoneItemVars(settings, imagePhoneKey(img, i), i)}
-							key={img.id ?? `${img.src}-${i}`}
-						>
-							<img
-								src={img.src}
-								srcSet={img.srcSet}
+					{renderedImages.map(({ img, i }) => {
+						const href = editable ? undefined : imageClickHref(img);
+						return (
+							<div
+								className={`uniform-item ${artworkEffectClass(img)}`}
+								style={phoneItemVars(settings, imagePhoneKey(img, i), i)}
+								key={img.id ?? `${img.src}-${i}`}
+							>
+								<img
+									src={img.src}
+									srcSet={img.srcSet}
 									alt={img.decorative ? '' : img.alt || img.title || alt}
-								className={editable ? undefined : 'lightbox-trigger'}
-								loading="lazy"
-								decoding="async"
-								role={editable ? undefined : 'button'}
-								tabIndex={editable ? undefined : 0}
-								aria-haspopup={editable ? undefined : 'dialog'}
-								aria-label={editable ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
-								onError={
-									img.sample
-										? (event) => showSampleUnavailable(event.currentTarget)
-										: undefined
-								}
-								onClick={editable ? undefined : (e) => openLightbox(i, e.currentTarget)}
-								onKeyDown={editable ? undefined : (e) => openFromKeyboard(e, i)}
-							/>
-						</div>
-					))}
+									className={!editable && !href ? 'lightbox-trigger' : undefined}
+									loading="lazy"
+									decoding="async"
+									role={!editable && !href ? 'button' : undefined}
+									tabIndex={!editable && !href ? 0 : undefined}
+									aria-haspopup={!editable && !href ? 'dialog' : undefined}
+									aria-label={
+										!editable && !href
+											? `Open ${img.title || img.alt || alt} in image viewer`
+											: undefined
+									}
+									onError={
+										img.sample
+											? (event) => showSampleUnavailable(event.currentTarget)
+											: undefined
+									}
+									onClick={!editable && !href ? (e) => openLightbox(i, e.currentTarget) : undefined}
+									onKeyDown={!editable && !href ? (e) => openFromKeyboard(e, i) : undefined}
+								/>
+								{href && (
+									<a
+										className="artwork-link-overlay"
+										href={href}
+										target={externalImageLink(href) ? '_blank' : undefined}
+										rel={externalImageLink(href) ? 'noopener noreferrer' : undefined}
+										aria-label={`Go to ${img.title || img.alt || 'linked image'}`}
+										onClick={(event) => onImageLink?.(href, event)}
+									/>
+								)}
+							</div>
+						);
+					})}
 				</div>
 			) : canvasMode ? (
 				<CanvasGallery
@@ -930,36 +978,50 @@ export default function Gallery({
 					onBulkLayoutChange={onBulkLayoutChange}
 					onDeleteSelection={onDeleteSelection}
 					onOpen={editable ? undefined : openLightbox}
+					onImageLink={onImageLink}
 				/>
 			) : (
 				<div className="masonry-grid">
-					{renderedImages.map(({ img, i }) => (
-						<div
-							className={`masonry-item ${artworkEffectClass(img)}`}
-							style={{ ...spanVars(img), ...phoneItemVars(settings, imagePhoneKey(img, i), i) }}
-							key={img.id ?? `${img.src}-${i}`}
-						>
-							<img
-								src={img.src}
-								srcSet={img.srcSet}
+					{renderedImages.map(({ img, i }) => {
+						const href = imageClickHref(img);
+						return (
+							<div
+								className={`masonry-item ${artworkEffectClass(img)}`}
+								style={{ ...spanVars(img), ...phoneItemVars(settings, imagePhoneKey(img, i), i) }}
+								key={img.id ?? `${img.src}-${i}`}
+							>
+								<img
+									src={img.src}
+									srcSet={img.srcSet}
 									alt={img.decorative ? '' : img.alt || img.title || alt}
-								className="lightbox-trigger"
-								loading="lazy"
-								decoding="async"
-								role="button"
-								tabIndex={0}
-								aria-haspopup="dialog"
-								aria-label={`Open ${img.title || img.alt || alt} in image viewer`}
-								onError={
-									img.sample
-										? (event) => showSampleUnavailable(event.currentTarget)
-										: undefined
-								}
-								onClick={(e) => openLightbox(i, e.currentTarget)}
-								onKeyDown={(e) => openFromKeyboard(e, i)}
-							/>
-						</div>
-					))}
+									className={href ? undefined : 'lightbox-trigger'}
+									loading="lazy"
+									decoding="async"
+									role={href ? undefined : 'button'}
+									tabIndex={href ? undefined : 0}
+									aria-haspopup={href ? undefined : 'dialog'}
+									aria-label={href ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
+									onError={
+										img.sample
+											? (event) => showSampleUnavailable(event.currentTarget)
+											: undefined
+									}
+									onClick={href ? undefined : (e) => openLightbox(i, e.currentTarget)}
+									onKeyDown={href ? undefined : (e) => openFromKeyboard(e, i)}
+								/>
+								{href && (
+									<a
+										className="artwork-link-overlay"
+										href={href}
+										target={externalImageLink(href) ? '_blank' : undefined}
+										rel={externalImageLink(href) ? 'noopener noreferrer' : undefined}
+										aria-label={`Go to ${img.title || img.alt || 'linked image'}`}
+										onClick={(event) => onImageLink?.(href, event)}
+									/>
+								)}
+							</div>
+						);
+					})}
 				</div>
 			)}
 
