@@ -64,9 +64,7 @@ export default function CheckoutIntent() {
 	return (
 		<LicenseGateModal
 			context="unlock"
-			redeemTestAccess={account.redeemTestAccess}
 			onClose={clearIntent}
-			onUnlocked={clearIntent}
 		/>
 	);
 }

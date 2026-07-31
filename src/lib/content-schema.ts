@@ -58,6 +58,9 @@ const sectionMotionSchema = passthrough({
 const artworkEffectSchema = passthrough({
 	hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
 	reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
+	hang: z.boolean().optional(),
+	skew: z.number().min(-6).max(6).optional(),
+	mount: z.enum(['tape', 'nail', 'hook', 'frame']).optional(),
 	phone: z.boolean().optional(),
 });
 
@@ -107,6 +110,9 @@ const galleryConfigSchema = passthrough({
 	carouselShowCount: z.boolean().optional(),
 	carouselShowTitle: z.boolean().optional(),
 	carouselRequireAlt: z.boolean().optional(),
+	carouselArrowStyle: z.enum(['chevron', 'arrow', 'circle', 'tab']).optional(),
+	carouselFrameStyle: z.enum(['none', 'line', 'shadow', 'mat']).optional(),
+	carouselChromeColor: z.string().optional(),
 	mobile: mobileCompositionSchema.optional(),
 });
 
@@ -169,6 +175,7 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 					runs: z.array(
 						passthrough({
 							text: z.string(),
+							link: z.string().optional(),
 							size: z.enum(['body', 'subheading', 'heading']).optional(),
 							bold: z.literal(true).optional(),
 							italic: z.literal(true).optional(),
@@ -219,6 +226,7 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		id: z.string(),
 		type: z.literal('children'),
 		style: z.enum(['cards', 'large', 'list', 'index']).optional(),
+		canvasLayout: imageLayoutSchema.optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('about') }),
 	passthrough({
@@ -229,12 +237,19 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		align: z.enum(['left', 'center', 'right']).optional(),
 		appearance: z.enum(['solid', 'outline']).optional(),
 	}),
-	passthrough({ id: z.string(), type: z.literal('divider') }),
+	passthrough({
+		id: z.string(),
+		type: z.literal('divider'),
+		style: z.enum(['line', 'double', 'dotted', 'ornament']).optional(),
+		width: z.enum(['short', 'medium', 'full']).optional(),
+		color: z.string().optional(),
+	}),
 	passthrough({
 		id: z.string(),
 		type: z.literal('products'),
 		productIds: z.array(z.string()).optional(),
 		layout: z.enum(['grid', 'featured']).optional(),
+		canvasLayout: imageLayoutSchema.optional(),
 	}),
 	passthrough({
 		id: z.string(),
@@ -267,6 +282,7 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	workbenchFolder: z.string().max(80).optional(),
 	effects: artworkEffectSchema.optional(),
 });
 
@@ -288,15 +304,18 @@ export const contentSchema = passthrough({
 		ogImage: z.string().optional(),
 		creative: passthrough({
 			cursor: z.string().optional(),
+			cursorImage: z.string().optional(),
 			trail: z.enum(['sparkles', 'hearts', 'bubbles']).optional(),
 			grain: z.number().optional(),
 			clickMark: z.enum(['nail', 'cross', 'star']).optional(),
 			looseHang: z.boolean().optional(),
+			hangStrength: z.number().min(0.25).max(5).optional(),
 			slowReveal: z.boolean().optional(),
 			artworkWobble: z.boolean().optional(),
 			colorSpin: z.boolean().optional(),
 			film: passthrough({
 				preset: z.enum(['fine-grain', 'dust', 'projector']),
+				layer: z.literal('over').optional(),
 				intensity: z.number().min(1).max(30).optional(),
 				size: z.number().min(50).max(200).optional(),
 				speed: z.number().min(25).max(200).optional(),
@@ -337,6 +356,7 @@ export const contentSchema = passthrough({
 		fullscreenMobileMenu: z.boolean().optional(),
 		automaticTextContrast: z.boolean().optional(),
 		stabilizeNavigation: z.boolean().optional(),
+		backgroundTexture: z.enum(['corkboard', 'blackboard', 'wood', 'fence', 'concrete']).optional(),
 		customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 	}),
 	nav: z.array(passthrough({ path: z.string(), label: z.string(), hidden: z.boolean().optional() })),
@@ -364,11 +384,12 @@ export const contentSchema = passthrough({
 			draft: z.boolean().optional(),
 			noindex: z.boolean().optional(),
 			heading: z.string().optional(),
-				gallery: galleryConfigSchema.optional(),
-				blocks: z.array(pageBlockSchema),
-				sections: z.array(pageSectionSchema).min(1),
-				mobile: mobileCompositionSchema.optional(),
-				children: z.array(z.string()).optional(),
+			hanging: z.boolean().optional(),
+			gallery: galleryConfigSchema.optional(),
+			blocks: z.array(pageBlockSchema),
+			sections: z.array(pageSectionSchema).min(1),
+			mobile: mobileCompositionSchema.optional(),
+			children: z.array(z.string()).optional(),
 			thumbnail: z.string().optional(),
 			background: z.string().optional(),
 			sectionColors: z.record(z.string(), z.string()).optional(),

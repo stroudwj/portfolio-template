@@ -35,8 +35,12 @@ describe('motion and reusable project tools', () => {
 		const doc = blankDoc();
 		doc.content.site.creative = {
 			pageTransition: 'gallery',
+			looseHang: true,
+			hangStrength: 2.25,
 			phone: { pageTransition: false, film: false },
 		};
+		doc.content.theme.backgroundTexture = 'concrete';
+		doc.content.pages.art.hanging = false;
 		doc.content.pages.art.project = {
 			template: 'exhibition',
 			year: '2026',
@@ -49,7 +53,14 @@ describe('motion and reusable project tools', () => {
 		doc.content.galleries.art.items['work.jpg'] = {
 			id: 'work-1',
 			alt: 'Blue abstract painting',
-			effects: { hover: 'lift', reveal: 'wipe', phone: false },
+			effects: {
+				hover: 'lift',
+				reveal: 'wipe',
+				hang: true,
+				skew: -2.5,
+				mount: 'tape',
+				phone: false,
+			},
 		};
 		doc.content.sectionLibrary = [{
 			id: 'section-1',

@@ -116,6 +116,7 @@ export function Section({
 	action,
 	sectionKey,
 	defaultCollapsed = false,
+	onCollapsedChange,
 }: {
 	title: string;
 	children: ReactNode;
@@ -127,9 +128,10 @@ export function Section({
 	 */
 	sectionKey?: string;
 	defaultCollapsed?: boolean;
+	onCollapsedChange?: (collapsed: boolean) => void;
 }) {
 	const [collapsed, setCollapsed] = useState(
-		() => (sectionKey ? (loadCollapsed()[sectionKey] ?? defaultCollapsed) : false),
+		() => (sectionKey ? (loadCollapsed()[sectionKey] ?? defaultCollapsed) : defaultCollapsed),
 	);
 
 	useEffect(() => {
@@ -142,28 +144,26 @@ export function Section({
 		window.addEventListener(EXPAND_EVENT, onExpand);
 		return () => window.removeEventListener(EXPAND_EVENT, onExpand);
 	}, [sectionKey]);
+	useEffect(() => {
+		onCollapsedChange?.(collapsed);
+	}, [collapsed, onCollapsedChange]);
 
 	const toggle = () => {
-		if (!sectionKey) return;
 		setCollapsed(!collapsed);
-		storeCollapsed(sectionKey, !collapsed);
+		if (sectionKey) storeCollapsed(sectionKey, !collapsed);
 	};
 
 	return (
 		<section className={`editor-section ${collapsed ? 'collapsed' : ''}`} data-section={sectionKey}>
 			<header className="editor-section-head">
-				{sectionKey ? (
-					<h2>
-						<button type="button" className="section-toggle" onClick={toggle} aria-expanded={!collapsed}>
-							<span className="section-chevron" aria-hidden="true">
-								{collapsed ? '▸' : '▾'}
-							</span>
-							{title}
-						</button>
-					</h2>
-				) : (
-					<h2>{title}</h2>
-				)}
+				<h2>
+					<button type="button" className="section-toggle" onClick={toggle} aria-expanded={!collapsed}>
+						<span className="section-chevron" aria-hidden="true">
+							{collapsed ? '▸' : '▾'}
+						</span>
+						{title}
+					</button>
+				</h2>
 				{action}
 			</header>
 			{!collapsed && children}

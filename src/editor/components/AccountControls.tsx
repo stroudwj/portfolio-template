@@ -81,12 +81,7 @@ export default function AccountControls() {
 			)}
 			{showLicense && (
 				<LicenseGateModal
-					redeemTestAccess={account.redeemTestAccess}
 					onClose={() => setShowLicense(false)}
-					onUnlocked={() => {
-						setShowLicense(false);
-						if (built) setShowPublish(true);
-					}}
 				/>
 			)}
 			{showPublish && <PublishModal account={account} onClose={() => setShowPublish(false)} />}

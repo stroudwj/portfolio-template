@@ -52,13 +52,64 @@
 }
 
 .portfolio-divider {
+	--divider-color: var(--color-text-muted);
+	position: relative;
 	width: calc(100% - 80px);
-	max-width: 640px;
 	box-sizing: border-box;
 	margin: 3rem auto;
+	color: var(--divider-color);
+	opacity: 0.72;
+}
+
+.portfolio-divider.width-short {
+	max-width: 220px;
+}
+
+.portfolio-divider.width-medium {
+	max-width: 640px;
+}
+
+.portfolio-divider.width-full {
+	max-width: none;
+}
+
+.portfolio-divider hr {
+	width: 100%;
+	margin: 0;
 	border: 0;
-	border-top: 1px solid var(--color-text-muted);
-	opacity: 0.55;
+	border-top: 1px solid currentColor;
+}
+
+.portfolio-divider.style-double hr {
+	border-top-width: 3px;
+	border-top-style: double;
+}
+
+.portfolio-divider.style-dotted hr {
+	border-top-style: dotted;
+	border-top-width: 2px;
+}
+
+.portfolio-divider.style-ornament {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: 14px;
+}
+
+.portfolio-divider.style-ornament::before,
+.portfolio-divider.style-ornament::after {
+	content: '';
+	height: 1px;
+	background: currentColor;
+}
+
+.portfolio-divider.style-ornament hr {
+	display: none;
+}
+
+.portfolio-divider.style-ornament span {
+	font-size: 0.8rem;
 }
 
 @media (max-width: 768px) {

@@ -1,6 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { compressImage } from '../../lib/compressImage';
 import { isImageFile, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from '../../lib/validation';
+import {
+	readImageTransfer,
+	type ImageTransferPayload,
+} from '../../lib/image-transfer';
 
 /** Natural-order name sort so "img2" comes before "img10" — matches folder view order. */
 const byName = (a: File, b: File) => a.name.localeCompare(b.name, undefined, { numeric: true });
@@ -41,8 +45,11 @@ export function ImageDrop({
 	multiple = false,
 	children,
 	ariaLabel,
+	onImageTransfer,
 }: {
 	onFiles: (files: File[]) => void;
+	/** Accept an image dragged from the private workbench or another image group. */
+	onImageTransfer?: (payload: ImageTransferPayload) => void;
 	multiple?: boolean;
 	children?: ReactNode;
 	ariaLabel?: string;
@@ -99,6 +106,11 @@ export function ImageDrop({
 				onDrop={(e) => {
 					e.preventDefault();
 					setOver(false);
+					const transferred = readImageTransfer(e.dataTransfer);
+					if (transferred && onImageTransfer) {
+						onImageTransfer(transferred);
+						return;
+					}
 					void filesFromDrop(e.dataTransfer).then(handle, () =>
 						setError('That folder could not be read. Try choosing the images with the upload button instead.'),
 					);
@@ -133,7 +145,12 @@ export function ImageDrop({
 							e.target.value = '';
 						}}
 					/>
-					<button type="button" className="btn-link imagedrop-folder" onClick={() => folderInputRef.current?.click()}>
+					<button
+						type="button"
+						className="btn-link imagedrop-folder"
+						aria-label="Upload a whole folder"
+						onClick={() => folderInputRef.current?.click()}
+					>
 						…or upload a whole folder
 					</button>
 				</>

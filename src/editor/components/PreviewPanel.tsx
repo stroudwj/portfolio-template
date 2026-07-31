@@ -106,12 +106,18 @@ function DeviceFrame({
 	title,
 	className = '',
 	onEscape,
+	onUndo,
+	onRedo,
+	openTextLinksInNewTab = false,
 	typeMotionPreview,
 }: {
 	children: React.ReactElement;
 	title: string;
 	className?: string;
 	onEscape?: () => void;
+	onUndo?: () => void;
+	onRedo?: () => void;
+	openTextLinksInNewTab?: boolean;
 	typeMotionPreview?: TypeMotionPreviewRequest;
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -120,6 +126,12 @@ function DeviceFrame({
 	const [ready, setReady] = useState(false);
 	const onEscapeRef = useRef(onEscape);
 	onEscapeRef.current = onEscape;
+	const onUndoRef = useRef(onUndo);
+	const onRedoRef = useRef(onRedo);
+	const openTextLinksRef = useRef(openTextLinksInNewTab);
+	onUndoRef.current = onUndo;
+	onRedoRef.current = onRedo;
+	openTextLinksRef.current = openTextLinksInNewTab;
 
 	useEffect(() => {
 		if (!frameLoaded) return;
@@ -140,12 +152,43 @@ function DeviceFrame({
 		const root = createRoot(mount);
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Escape' && !event.defaultPrevented) onEscapeRef.current?.();
+			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+			const target = event.target as HTMLElement | null;
+			if (
+				target &&
+				(target.tagName === 'INPUT' ||
+					target.tagName === 'TEXTAREA' ||
+					target.tagName === 'SELECT' ||
+					target.isContentEditable)
+			)
+				return;
+			const key = event.key.toLowerCase();
+			if (key === 'z') {
+				event.preventDefault();
+				if (event.shiftKey) onRedoRef.current?.();
+				else onUndoRef.current?.();
+			} else if (key === 'y') {
+				event.preventDefault();
+				onRedoRef.current?.();
+			}
+		};
+		const onClick = (event: MouseEvent) => {
+			if (!openTextLinksRef.current) return;
+			const target = event.target as Element | null;
+			const anchor = target?.closest<HTMLAnchorElement>('.text-block-content a[href]');
+			if (!anchor) return;
+			event.preventDefault();
+			event.stopPropagation();
+			const opened = doc.defaultView?.open(anchor.href, '_blank', 'noopener,noreferrer');
+			if (opened) opened.opener = null;
 		};
 		doc.addEventListener('keydown', onKeyDown);
+		doc.addEventListener('click', onClick, true);
 		rootRef.current = root;
 		setReady(true);
 		return () => {
 			doc.removeEventListener('keydown', onKeyDown);
+			doc.removeEventListener('click', onClick, true);
 			rootRef.current = null;
 			// Unmount async — React disallows synchronous root unmounts from cleanup.
 			setTimeout(() => root.unmount(), 0);
@@ -198,10 +241,16 @@ function DeviceFrame({
 function DesktopDeviceFrame({
 	children,
 	onEscape,
+	onUndo,
+	onRedo,
+	openTextLinksInNewTab,
 	typeMotionPreview,
 }: {
 	children: React.ReactElement;
 	onEscape?: () => void;
+	onUndo?: () => void;
+	onRedo?: () => void;
+	openTextLinksInNewTab?: boolean;
 	typeMotionPreview?: TypeMotionPreviewRequest;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
@@ -231,6 +280,9 @@ function DesktopDeviceFrame({
 					title="Desktop preview"
 					className="desktop-device-frame"
 					onEscape={onEscape}
+					onUndo={onUndo}
+					onRedo={onRedo}
+					openTextLinksInNewTab={openTextLinksInNewTab}
 					typeMotionPreview={typeMotionPreview}
 				>
 					{children}
@@ -349,6 +401,12 @@ export default function PreviewPanel({
 							editor.updateImagesBlock(pageKey, blockId, { carouselFrame: layout })
 					: undefined
 			}
+			onWidgetLayout={
+				editable
+					? (pageKey, blockId, layout) =>
+							editor.setWidgetLayout(pageKey, blockId, layout)
+					: undefined
+			}
 			onCarouselHost={
 				editable
 					? (pageKey, blockId, hostId, layout) =>
@@ -410,8 +468,8 @@ export default function PreviewPanel({
 				<span className="preview-hint">
 					{editable && hasFreeformCanvas
 						? gridPrefs.sectionEdges
-							? 'Drag or resize items; press Backspace to delete the selection. Players and maps stay interactive.'
-							: 'Drag items or blank space to select several; Backspace deletes the selection.'
+							? 'Drag or resize items; press Delete or Backspace to remove the selection. Players and maps stay interactive.'
+							: 'Drag items or blank space to select several; Delete or Backspace removes the selection.'
 						: editable
 							? gridPrefs.sectionEdges
 								? 'Automatic layout — drag a section edge to resize, or edit the blocks beside this preview.'
@@ -437,6 +495,9 @@ export default function PreviewPanel({
 						<DeviceFrame
 							title="Phone preview"
 							onEscape={fullscreen ? () => setFullscreen(false) : undefined}
+							onUndo={editor.undo}
+							onRedo={editor.redo}
+							openTextLinksInNewTab={!fullscreen}
 							typeMotionPreview={typeMotionPreview}
 						>
 							{portfolio}
@@ -447,6 +508,9 @@ export default function PreviewPanel({
 				<div className="preview-surface desktop-surface">
 					<DesktopDeviceFrame
 						onEscape={fullscreen ? () => setFullscreen(false) : undefined}
+						onUndo={editor.undo}
+						onRedo={editor.redo}
+						openTextLinksInNewTab={!fullscreen}
 						typeMotionPreview={typeMotionPreview}
 					>
 						{portfolio}

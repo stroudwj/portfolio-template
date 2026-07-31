@@ -111,6 +111,9 @@ export async function loadPublishedSite(
 	if (profilePath && has(profilePath)) wanted.push(profilePath);
 	const logoPath = content.site.logoImage ? `assets/${content.site.logoImage}` : '';
 	if (logoPath && has(logoPath)) wanted.push(logoPath);
+	const cursorName = content.site.creative?.cursorImage ?? '';
+	const cursorPath = cursorName ? `assets/${cursorName}` : '';
+	if (cursorPath && has(cursorPath)) wanted.push(cursorPath);
 	const fontPathByName = new Map<string, string>();
 	for (const font of content.theme.customFonts ?? []) {
 		const path = `assets/${font.file}`;
@@ -189,6 +192,11 @@ export async function loadPublishedSite(
 	doc.logoImage = {
 		filename: content.site.logoImage || '',
 		assetId: assetIdByPath.get(logoPath) ?? null,
+		sampleAssetId: null,
+	};
+	doc.cursorImage = {
+		filename: cursorName.slice(cursorName.lastIndexOf('/') + 1),
+		assetId: assetIdByPath.get(cursorPath) ?? null,
 		sampleAssetId: null,
 	};
 	for (const [key, path] of thumbPathByPage) {

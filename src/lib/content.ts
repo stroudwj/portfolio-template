@@ -71,6 +71,8 @@ export type CreativeEffectKey =
 
 export interface FilmTextureConfig {
 	preset: FilmTexturePreset;
+	/** Under the artwork by default; "over" recreates an optical film overlay. */
+	layer?: 'over';
 	/** Overall opacity, 1–30. */
 	intensity?: number;
 	/** Texture scale, 50–200. */
@@ -90,6 +92,8 @@ export interface FilmTextureConfig {
 export interface CreativeConfig {
 	/** Emoji drawn as the visitor's cursor (empty/absent = the normal cursor). */
 	cursor?: string;
+	/** Uploaded cursor image path under src/assets/. Takes priority over the emoji cursor. */
+	cursorImage?: string;
 	/** Little shapes trailing the pointer as it moves. */
 	trail?: CreativeTrail;
 	/** Paper-grain texture overlay opacity, 1–30 (%). Absent/0 = off. */
@@ -98,6 +102,8 @@ export interface CreativeConfig {
 	clickMark?: CreativeClickMark;
 	/** Give artwork a very slight, deterministic rotation, like a hand-hung salon wall. */
 	looseHang?: boolean;
+	/** Maximum site-wide hand-hung tilt in degrees, 0.25–5. */
+	hangStrength?: number;
 	/** Fade artwork into place when a page opens. */
 	slowReveal?: boolean;
 	/** Give artwork a quick shake when a visitor hovers over it. */
@@ -139,6 +145,12 @@ export interface KineticTextConfig {
 export interface ArtworkEffectConfig {
 	hover?: 'lift' | 'tilt' | 'zoom' | 'mono';
 	reveal?: 'fade' | 'rise' | 'wipe';
+	/** Override the site/page hanging choice for this artwork. */
+	hang?: boolean;
+	/** Signed artwork rotation in degrees, -6–6. */
+	skew?: number;
+	/** A physical mounting treatment drawn around this artwork. */
+	mount?: 'tape' | 'nail' | 'hook' | 'frame';
 	/** Set false to keep this artwork still on phones. */
 	phone?: boolean;
 }
@@ -194,6 +206,8 @@ export interface Theme {
 	automaticTextContrast?: boolean;
 	/** Pin the logo and chosen navigation layout while scrolling. Absent = enabled. */
 	stabilizeNavigation?: boolean;
+	/** A site-wide physical wall surface behind the portfolio. */
+	backgroundTexture?: 'corkboard' | 'blackboard' | 'wood' | 'fence' | 'concrete';
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
 }
@@ -320,6 +334,12 @@ export interface GalleryConfig {
 	carouselShowTitle?: boolean;
 	/** Require alt text or a decorative choice when uploading to this carousel. */
 	carouselRequireAlt?: boolean;
+	/** Visual treatment for the previous/next controls. */
+	carouselArrowStyle?: 'chevron' | 'arrow' | 'circle' | 'tab';
+	/** Visual treatment around the carousel stage. */
+	carouselFrameStyle?: 'none' | 'line' | 'shadow' | 'mat';
+	/** Optional color for carousel arrows and frames. */
+	carouselChromeColor?: string;
 	/** Opt-in independent phone arrangement. Absent = a complete automatic layout. */
 	mobile?: MobileComposition;
 }
@@ -331,6 +351,8 @@ export type RichTextSize = 'body' | 'subheading' | 'heading';
 /** One safely-rendered inline run inside a rich text box. */
 export interface RichTextRun {
 	text: string;
+	/** Link applied only to this run of selected words. */
+	link?: string;
 	size?: RichTextSize;
 	bold?: true;
 	italic?: true;
@@ -437,16 +459,31 @@ export type PageBlock =
 		}
 	| { id: string; type: 'gallery' }
 	| { id: string; type: 'images'; gallery: GalleryConfig; /** Editor-only display name so groups are tellable apart. */ name?: string }
-	| { id: string; type: 'children'; /** Presentation of the sub-page cards; absent = 'cards'. */ style?: ChildrenStyle }
+	| {
+			id: string;
+			type: 'children';
+			/** Presentation of the sub-page cards; absent = 'cards'. */
+			style?: ChildrenStyle;
+			/** Optional placement of the complete sub-page collection on its section canvas. */
+			canvasLayout?: ImageLayout;
+		}
 	| { id: string; type: 'about' }
 	| { id: string; type: 'button'; label: string; url: string; align?: TextAlign; appearance?: 'solid' | 'outline' }
-	| { id: string; type: 'divider' }
+	| {
+			id: string;
+			type: 'divider';
+			style?: 'line' | 'double' | 'dotted' | 'ornament';
+			width?: 'short' | 'medium' | 'full';
+			color?: string;
+		}
 	| {
 			id: string;
 			type: 'products';
 			/** Omitted means every non-draft catalog product in catalog order. */
 			productIds?: string[];
 			layout?: 'grid' | 'featured';
+			/** Optional placement of the complete product collection on its section canvas. */
+			canvasLayout?: ImageLayout;
 		}
 	| {
 			id: string;
@@ -482,6 +519,8 @@ export interface PageConfig {
 	noindex?: boolean;
 	/** Optional on-page heading shown above the body. */
 	heading?: string;
+	/** Override the site-wide hanging choice for this page. */
+	hanging?: boolean;
 	/** Present on gallery pages; absent on text-only pages like About. */
 	gallery?: GalleryConfig;
 	/** Ordered body blocks. Filled by the versioned parser for pre-block content. */
@@ -568,6 +607,8 @@ export interface ImageMeta {
 	/** Carousel fill-mode focal point, as percentages of the source image. */
 	focusX?: number;
 	focusY?: number;
+	/** Editor-only workbench organization; stripped from published gallery items. */
+	workbenchFolder?: string;
 	/** Per-artwork reveal/hover treatment. */
 	effects?: ArtworkEffectConfig;
 }

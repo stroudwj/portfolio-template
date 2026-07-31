@@ -55,10 +55,12 @@ import type {
 } from '../../lib/content';
 import AboutContentEditor from './AboutContentEditor';
 import RichTextEditor from './RichTextEditor';
+import { PortfolioDivider } from '../../portfolio/PageBlocks';
 import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
+import { collectionLayoutAtCanvasBottom } from '../lib/canvas-placement';
 import { Modal } from './ui/Modal';
 import {
-	MAIN_SECTION_ID,
+	NEW_SECTION_ID,
 	pageSections,
 	sectionEditorColor,
 	sectionPartKey,
@@ -77,6 +79,31 @@ const FORM_FIELD_TYPES: Array<{ value: FormField['type']; label: string }> = [
 	{ value: 'text', label: 'Short answer' },
 	{ value: 'textarea', label: 'Long answer' },
 ];
+
+const PAGE_ITEM_COLLAPSE_STORE = 'portfolio-editor-page-items-collapsed-v1';
+
+function loadPageItemCollapse(): Record<string, boolean> {
+	if (typeof localStorage === 'undefined') return {};
+	try {
+		return JSON.parse(
+			localStorage.getItem(PAGE_ITEM_COLLAPSE_STORE) ?? '{}',
+		) as Record<string, boolean>;
+	} catch {
+		return {};
+	}
+}
+
+function storePageItemCollapse(key: string, collapsed: boolean) {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		localStorage.setItem(
+			PAGE_ITEM_COLLAPSE_STORE,
+			JSON.stringify({ ...loadPageItemCollapse(), [key]: collapsed }),
+		);
+	} catch {
+		/* The disclosure still works for this session when storage is unavailable. */
+	}
+}
 
 const KINETIC_TEXT_EFFECTS: Array<{ value: KineticTextEffect | ''; label: string }> = [
 	{ value: '', label: 'Still' },
@@ -148,6 +175,9 @@ type GalleryPatch = Partial<
 		| 'carouselShowCount'
 		| 'carouselShowTitle'
 		| 'carouselRequireAlt'
+		| 'carouselArrowStyle'
+		| 'carouselFrameStyle'
+		| 'carouselChromeColor'
 		| 'mobile'
 	>
 >;
@@ -290,6 +320,33 @@ export default function PageEditor({
 		label: string;
 		action: (sectionId: string) => void;
 	} | null>(null);
+	const [pendingSectionMove, setPendingSectionMove] = useState<{
+		blockId: string;
+		label: string;
+		sourceSectionId: string;
+	} | null>(null);
+	const [collapsedEditorItems, setCollapsedEditorItems] = useState<
+		Record<string, boolean>
+	>(loadPageItemCollapse);
+	const collapseItemKey = (
+		kind: 'saved-blocks' | 'section' | 'block',
+		id: string,
+	) => `${pageKey}:${kind}:${id}`;
+	const itemIsCollapsed = (
+		kind: 'saved-blocks' | 'section' | 'block',
+		id: string,
+	) => collapsedEditorItems[collapseItemKey(kind, id)] === true;
+	const toggleEditorItem = (
+		kind: 'saved-blocks' | 'section' | 'block',
+		id: string,
+	) => {
+		const key = collapseItemKey(kind, id);
+		setCollapsedEditorItems((current) => {
+			const collapsed = current[key] !== true;
+			storePageItemCollapse(key, collapsed);
+			return { ...current, [key]: collapsed };
+		});
+	};
 	const { doc } = editor;
 	if (!doc) return null;
 	const page = doc.content.pages[pageKey];
@@ -448,15 +505,57 @@ export default function PageEditor({
 		requestedSectionId?: string,
 		label = 'block',
 	) => {
-		const directSectionId =
-			requestedSectionId ?? (sections.length === 1 ? sections[0].id : undefined);
-		if (directSectionId) {
-			performSectionAdd(action, directSectionId);
+		if (requestedSectionId) {
+			performSectionAdd(action, requestedSectionId);
 			return;
 		}
 		setPendingSectionAdd({ label, action });
 		closeBlockMenus();
 	};
+
+	const setCollectionCanvasPlacement = (
+		block: Extract<PageBlock, { type: 'children' | 'products' }>,
+	) => {
+		if (block.canvasLayout) {
+			editor.setWidgetLayout(pageKey, block.id, undefined);
+			return;
+		}
+		const owner = sectionForBlock(block.id);
+		if (!owner) return;
+		if (!sectionHasFreeCanvas(owner.id))
+			editor.addFreeformGallery(pageKey, block.id, owner.id);
+		editor.setWidgetLayout(
+			pageKey,
+			block.id,
+			collectionLayoutAtCanvasBottom(
+				block.type,
+				canvasBottomForBlock(block.id),
+			),
+		);
+	};
+
+	const collectionCanvasControl = (
+		block: Extract<PageBlock, { type: 'children' | 'products' }>,
+		label: string,
+	) => (
+		<div className={`collection-canvas-control${block.canvasLayout ? ' active' : ''}`}>
+			<span>
+				<strong>{block.canvasLayout ? 'Freeform canvas placement' : 'Page flow placement'}</strong>
+				<small>
+					{block.canvasLayout
+						? `Drag or resize the complete ${label} block in the preview.`
+						: `Place the complete ${label} block anywhere, like text or images.`}
+				</small>
+			</span>
+			<button
+				type="button"
+				className={block.canvasLayout ? 'btn-secondary' : 'btn-primary'}
+				onClick={() => setCollectionCanvasPlacement(block)}
+			>
+				{block.canvasLayout ? 'Return to page flow' : 'Freeform'}
+			</button>
+		</div>
+	);
 
 	const addBlockMenuItems = (sectionId?: string) => (
 		<>
@@ -488,6 +587,28 @@ export default function PageEditor({
 				{doc.content.store ? 'Products' : 'Set up products…'}
 			</button>
 			{!nested && <button type="button" onClick={() => runAdd(addChild, false)}>Sub-page</button>}
+			{(doc.content.sectionLibrary?.length ?? 0) > 0 && (
+				<>
+					<span className="add-menu-heading">Reuse a saved block</span>
+					{doc.content.sectionLibrary!.map((template) => (
+						<button
+							type="button"
+							className="saved-section-menu-item"
+							key={template.id}
+							onClick={() =>
+								runSectionAdd(
+									(target) =>
+										editor.insertSectionTemplate(pageKey, template.id, target),
+									sectionId,
+									template.name,
+								)
+							}
+						>
+							↙ {template.name}
+						</button>
+					))}
+				</>
+			)}
 		</>
 	);
 
@@ -515,12 +636,11 @@ export default function PageEditor({
 		onPatch({ layout: undefined });
 	};
 
-	/** Put a newly pinned text box after the lowest existing canvas item and
-	 * center it horizontally, so it is immediately visible without covering art. */
-	const textLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'text' }>) => {
-		const width = Math.min(block.flowLayout?.w ?? 50, 60);
+	/** Lowest occupied edge in this block's section. Every freeform widget uses
+	 * this shared placement rule, so adding one never covers work at the top. */
+	function canvasBottomForBlock(blockId: string): number {
 		let bottom = 18;
-		const owner = sectionForBlock(block.id);
+		const owner = sectionForBlock(blockId);
 		const ownerBlocks = new Set(owner?.blockIds ?? []);
 		const host = owner?.blockIds
 			.map((id) => blockById.get(id))
@@ -538,7 +658,7 @@ export default function PageEditor({
 					? host.gallery
 					: undefined;
 		if (config) {
-			const entries = doc.galleries[config.folder] ?? [];
+			const entries = doc!.galleries[config.folder] ?? [];
 			const flowed = flowMissing(
 				entries.map((entry) => ({
 					layout: entry.meta.layout,
@@ -551,16 +671,34 @@ export default function PageEditor({
 			});
 			bottom = Math.max(bottom, canvasHeight(imageLayouts));
 			for (const candidate of blocks) {
-				if (candidate.id === block.id || !ownerBlocks.has(candidate.id)) continue;
+				if (candidate.id === blockId || !ownerBlocks.has(candidate.id)) continue;
 				if (candidate.type === 'text' && candidate.layout)
 					bottom = Math.max(bottom, textBottom(candidate.layout));
 				if (candidate.type === 'embed' && candidate.layout)
 					bottom = Math.max(bottom, bottomOf(candidate.layout));
+				if (
+					(candidate.type === 'children' || candidate.type === 'products') &&
+					candidate.canvasLayout
+				)
+					bottom = Math.max(bottom, bottomOf(candidate.canvasLayout));
+				if (
+					candidate.type === 'images' &&
+					candidate.gallery.carousel &&
+					candidate.gallery.carouselFrame
+				)
+					bottom = Math.max(bottom, bottomOf(candidate.gallery.carouselFrame));
 			}
 		}
+		return bottom;
+	}
+
+	/** Put a newly pinned text box after the lowest existing canvas item and
+	 * center it horizontally, so it is immediately visible without covering art. */
+	const textLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'text' }>) => {
+		const width = Math.min(block.flowLayout?.w ?? 50, 60);
 		return roundTextLayout({
 			x: (100 - width) / 2,
-			y: bottom + 2,
+			y: canvasBottomForBlock(block.id) + 2,
 			w: width,
 		});
 	};
@@ -571,48 +709,9 @@ export default function PageEditor({
 		const spec = embedSpec(block.url);
 		const kind = spec?.kind ?? embedKindOf(block);
 		const width = kind === 'map' ? 72 : kind === 'audio' ? 68 : 60;
-		const owner = sectionForBlock(block.id);
-		const ownerBlocks = new Set(owner?.blockIds ?? []);
-		const host = owner?.blockIds
-			.map((id) => blockById.get(id))
-			.find(
-				(candidate) =>
-					(candidate?.type === 'gallery' && page.gallery?.layout !== 'grid') ||
-					(candidate?.type === 'images' &&
-						candidate.gallery.carousel !== true &&
-						candidate.gallery.layout !== 'grid'),
-			);
-		const config =
-			host?.type === 'gallery'
-				? page.gallery
-				: host?.type === 'images'
-					? host.gallery
-					: undefined;
-		let bottom = config ? 18 : -2;
-		if (config) {
-			const entries = doc.galleries[config.folder] ?? [];
-			const flowed = flowMissing(
-				entries.map((entry) => ({
-					layout: entry.meta.layout,
-					ar: entry.meta.layout?.ar ?? DEFAULT_AR,
-				})),
-			);
-			const imageLayouts = entries.flatMap((entry, entryIndex) => {
-				const layout = entry.meta.layout ?? flowed.get(entryIndex);
-				return layout ? [layout] : [];
-			});
-			bottom = Math.max(bottom, canvasHeight(imageLayouts));
-			for (const candidate of blocks) {
-				if (candidate.id === block.id || !ownerBlocks.has(candidate.id)) continue;
-				if (candidate.type === 'text' && candidate.layout)
-					bottom = Math.max(bottom, textBottom(candidate.layout));
-				if (candidate.type === 'embed' && candidate.layout)
-					bottom = Math.max(bottom, bottomOf(candidate.layout));
-			}
-		}
 		return roundLayout({
 			x: (100 - width) / 2,
-			y: bottom + 2,
+			y: canvasBottomForBlock(block.id) + 2,
 			w: width,
 			ar: spec?.aspectRatio ?? (kind === 'map' ? 4 / 3 : kind === 'audio' ? 5.4 : 16 / 9),
 		});
@@ -630,33 +729,48 @@ export default function PageEditor({
 		const blockLabel = `${name} block ${index + 1} on ${pageName}`;
 		const owner = sectionForBlock(block.id);
 		const position = owner?.blockIds.indexOf(block.id) ?? -1;
-		const dedicated = !!owner && owner.id !== MAIN_SECTION_ID && owner.blockIds.length === 1;
+		const collapsed = itemIsCollapsed('block', block.id);
 		return <div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
 			<button
 				type="button"
-				className="btn-icon"
-				title="Save this section with its motion and color"
+				className="btn-icon block-collapse-toggle"
+				aria-expanded={!collapsed}
+				title={collapsed ? `Expand ${name} block` : `Collapse ${name} block`}
+				onClick={() => toggleEditorItem('block', block.id)}
+				aria-label={collapsed ? `Expand ${blockLabel}` : `Collapse ${blockLabel}`}
+			>
+				<span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
+			</button>
+			<button
+				type="button"
+				className="btn-secondary save-section-button"
+				title="Save this block so you can reuse it on any page"
 				onClick={() => {
-					const savedName = prompt('Name this reusable section:', `${name} section`);
+					const savedName = prompt('Name this reusable block:', `${name} block`);
 					if (savedName?.trim())
 						editor.saveSectionTemplate(pageKey, block.id, savedName.trim());
 				}}
 				aria-label={`Save ${blockLabel} for reuse`}
 			>
-				☆
+				☆ Save block
 			</button>
 			<button
 				type="button"
-				className={`btn-icon block-section-toggle ${dedicated ? 'active' : ''}`}
-				title={dedicated ? 'Move this block back to the Main section' : 'Put this block in its own section'}
-				onClick={() => editor.toggleBlockSection(pageKey, block.id)}
-				aria-label={
-					dedicated
-						? `Move ${blockLabel} to the Main section`
-						: `Put ${blockLabel} in its own section`
-				}
+				className="btn-secondary block-section-toggle"
+				data-tour="section-control"
+				title="Move this block to another section or a new section"
+				onClick={() => {
+					if (!owner) return;
+					setPendingSectionMove({
+						blockId: block.id,
+						label: name,
+						sourceSectionId: owner.id,
+					});
+					closeBlockMenus();
+				}}
+				aria-label={`Move ${blockLabel} to another section`}
 			>
-				{dedicated ? '↩' : '▣'}
+				▣ Move section…
 			</button>
 			<button
 				type="button"
@@ -831,7 +945,8 @@ export default function PageEditor({
 							)}
 						</div>
 						<details className="block-options">
-							<summary aria-label={`Add a link to ${textLabel}`}>Add a link to this text</summary>
+							<summary aria-label={`Link all of ${textLabel}`}>Link the entire text box</summary>
+							<p className="muted">For individual words, select them above and press Link in the toolbar.</p>
 							<input
 								className={`text-input ${!isPageOrWebLink(block.link ?? '') ? 'invalid' : ''}`}
 								value={block.link ?? ''}
@@ -922,31 +1037,27 @@ export default function PageEditor({
 									<span>
 										{blockHasFreeCanvas
 											? 'Drag this text box in the preview to place it anywhere on the image canvas.'
-											: 'Create a freeform image group, then drag or place this text box anywhere.'}
+											: 'Choose Freeform to create a canvas and place this text box at its bottom.'}
 									</span>
-									{blockHasFreeCanvas ? (
 										<button
 											type="button"
 											className="btn-secondary text-placement-button"
-											onClick={() => editor.setTextLayout(pageKey, block.id, textLayoutAtCanvasBottom(block))}
-										>
-											Place on canvas
-										</button>
-									) : (
-										<button
-											type="button"
-											className="btn-secondary text-placement-button"
-											onClick={() =>
-												editor.addFreeformGallery(
+											onClick={() => {
+												if (!blockHasFreeCanvas)
+													editor.addFreeformGallery(
+														pageKey,
+														block.id,
+														ownerSection?.id,
+													);
+												editor.setTextLayout(
 													pageKey,
 													block.id,
-													ownerSection?.id,
-												)
-											}
+													textLayoutAtCanvasBottom(block),
+												);
+											}}
 										>
-											Create freeform image group
+											Freeform
 										</button>
-									)}
 								</div>
 							)
 						)}
@@ -1112,33 +1223,27 @@ export default function PageEditor({
 								<span>
 									{blockHasFreeCanvas
 										? `${spec?.provider ?? moduleLabel} is live in the preview. Place it on the image canvas whenever you want.`
-										: `${spec?.provider ?? moduleLabel} is live and resizable in normal flow. Create a freeform image group to place it anywhere.`}
+										: `${spec?.provider ?? moduleLabel} is live and resizable in normal flow. Choose Freeform to place it anywhere.`}
 								</span>
-								{blockHasFreeCanvas ? (
-									<button
-										type="button"
-										className="btn-secondary text-placement-button"
-										onClick={() =>
-											editor.setEmbedLayout(pageKey, block.id, embedLayoutAtCanvasBottom(block))
-										}
-									>
-										Place on canvas
-									</button>
-								) : (
-									<button
-										type="button"
-										className="btn-secondary text-placement-button"
-										onClick={() =>
+								<button
+									type="button"
+									className="btn-secondary text-placement-button"
+									onClick={() => {
+										if (!blockHasFreeCanvas)
 											editor.addFreeformGallery(
 												pageKey,
 												block.id,
 												ownerSection?.id,
-											)
-										}
-									>
-										Create freeform image group
-									</button>
-								)}
+											);
+										editor.setEmbedLayout(
+											pageKey,
+											block.id,
+											embedLayoutAtCanvasBottom(block),
+										);
+									}}
+								>
+									Freeform
+								</button>
 							</div>
 						) : (
 							<p className="muted">
@@ -1542,6 +1647,72 @@ export default function PageEditor({
 										)}
 										<div className="carousel-display-options">
 											<label>
+												Arrow style
+												<select
+													className="select-input"
+													value={block.gallery.carouselArrowStyle ?? 'chevron'}
+													onChange={(event) =>
+														patchGroup({
+															carouselArrowStyle:
+																event.target.value === 'chevron'
+																	? undefined
+																	: event.target.value as NonNullable<GalleryConfig['carouselArrowStyle']>,
+														})
+													}
+												>
+													<option value="chevron">Slim chevrons</option>
+													<option value="arrow">Long arrows</option>
+													<option value="circle">Circles</option>
+													<option value="tab">Edge tabs</option>
+												</select>
+											</label>
+											<label>
+												Frame style
+												<select
+													className="select-input"
+													value={block.gallery.carouselFrameStyle ?? 'none'}
+													onChange={(event) =>
+														patchGroup({
+															carouselFrameStyle:
+																event.target.value === 'none'
+																	? undefined
+																	: event.target.value as NonNullable<GalleryConfig['carouselFrameStyle']>,
+														})
+													}
+												>
+													<option value="none">No frame</option>
+													<option value="line">Fine line</option>
+													<option value="shadow">Floating shadow</option>
+													<option value="mat">Gallery mat</option>
+												</select>
+											</label>
+											<label className="carousel-chrome-color">
+												Chrome color
+												<span className="color-field">
+													<input
+														type="color"
+														value={
+															/^#[\da-f]{6}$/i.test(block.gallery.carouselChromeColor ?? '')
+																? block.gallery.carouselChromeColor
+																: /^#[\da-f]{6}$/i.test(doc.content.theme.accentColor)
+																	? doc.content.theme.accentColor
+																	: '#111111'
+														}
+														onChange={(event) =>
+															patchGroup({ carouselChromeColor: event.target.value })
+														}
+														aria-label={`Carousel arrow and frame color for ${groupLabel}`}
+													/>
+													<button
+														type="button"
+														className="btn-link"
+														onClick={() => patchGroup({ carouselChromeColor: undefined })}
+													>
+														Theme
+													</button>
+												</span>
+											</label>
+											<label>
 												<input
 													type="checkbox"
 													checked={block.gallery.carouselShowCount !== false}
@@ -1654,10 +1825,87 @@ export default function PageEditor({
 				return (
 					<div className="block divider-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Divider line</span>
+							<span className="block-label">Divider</span>
 							{controls(index, block, true)}
 						</div>
-						<hr />
+						<div className="block-choice-row">
+							<label>
+								Style
+								<select
+									className="select-input"
+									value={block.style ?? 'line'}
+									onChange={(event) =>
+										editor.updateDividerBlock(pageKey, block.id, {
+											style:
+												event.target.value === 'line'
+													? undefined
+													: event.target.value as NonNullable<typeof block.style>,
+										})
+									}
+								>
+									<option value="line">Single line</option>
+									<option value="double">Double line</option>
+									<option value="dotted">Dotted</option>
+									<option value="ornament">Line + ornament</option>
+								</select>
+							</label>
+							<label>
+								Width
+								<select
+									className="select-input"
+									value={block.width ?? 'medium'}
+									onChange={(event) =>
+										editor.updateDividerBlock(pageKey, block.id, {
+											width:
+												event.target.value === 'medium'
+													? undefined
+													: event.target.value as NonNullable<typeof block.width>,
+										})
+									}
+								>
+									<option value="short">Short</option>
+									<option value="medium">Medium</option>
+									<option value="full">Full width</option>
+								</select>
+							</label>
+							<label>
+								Color
+								<span className="color-field">
+									<input
+										type="color"
+										value={
+											/^#[\da-f]{6}$/i.test(block.color ?? '')
+												? block.color
+												: /^#[\da-f]{6}$/i.test(doc.content.theme.mutedTextColor)
+													? doc.content.theme.mutedTextColor
+													: '#777777'
+										}
+										onChange={(event) =>
+											editor.updateDividerBlock(pageKey, block.id, {
+												color: event.target.value,
+											})
+										}
+										aria-label={`Divider color on ${pageName}`}
+									/>
+									<button
+										type="button"
+										className="btn-link"
+										onClick={() =>
+											editor.updateDividerBlock(pageKey, block.id, {
+												color: undefined,
+											})
+										}
+									>
+										Theme
+									</button>
+								</span>
+							</label>
+						</div>
+						<PortfolioDivider
+							style={block.style}
+							width={block.width}
+							color={block.color}
+						/>
 					</div>
 				);
 			case 'products': {
@@ -1695,7 +1943,7 @@ export default function PageEditor({
 				return (
 					<div className="block products-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Products</span>
+							<span className="block-label">Products shown on this page</span>
 							<select
 								className="select-input products-layout-select"
 								value={block.layout ?? 'grid'}
@@ -1711,6 +1959,7 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, true)}
 						</div>
+						{collectionCanvasControl(block, 'products')}
 						{doc.content.store ? (
 							<>
 								<div className="block-choice-row products-source-choice" role="group" aria-label={`Products shown by ${productBlockLabel}`}>
@@ -1744,7 +1993,7 @@ export default function PageEditor({
 								<p className="muted">
 									{selected === undefined
 										? 'Shows every non-draft product in Store order, including products you add later.'
-										: 'Choose and order the products shown in this block. Draft products stay hidden when published.'}
+										: `Only the ${selected.length} selected product${selected.length === 1 ? '' : 's'} appear on this page. Choose and order them below; drafts stay hidden when published.`}
 								</p>
 								{selected !== undefined && (
 									<div className="products-selection-list">
@@ -1898,6 +2147,7 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, false)}
 						</div>
+						{collectionCanvasControl(block, 'sub-pages')}
 						{(page.children ?? []).map((childKey, childIndex, childList) => {
 							const child = doc.content.pages[childKey];
 							const childName = child?.label || childKey;
@@ -1969,6 +2219,34 @@ export default function PageEditor({
 					placeholder="Shown at the top of the page"
 					onChange={(event) => editor.setPageHeading(pageKey, event.target.value)}
 				/>
+			</Field>
+			<Field
+				label="Artwork hanging on this page"
+				hint="Inherit the site wall setting, or make just this page hung or perfectly straight."
+			>
+				<div className="chip-row" role="group" aria-label={`Artwork hanging on ${pageName}`}>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${page.hanging === undefined ? 'active' : ''}`}
+						onClick={() => editor.setPageHanging(pageKey, undefined)}
+					>
+						Use site setting
+					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${page.hanging === true ? 'active' : ''}`}
+						onClick={() => editor.setPageHanging(pageKey, true)}
+					>
+						Hang this page
+					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${page.hanging === false ? 'active' : ''}`}
+						onClick={() => editor.setPageHanging(pageKey, false)}
+					>
+						Keep straight
+					</button>
+				</div>
 			</Field>
 			{page.heading?.trim() && (
 				<Field
@@ -2133,10 +2411,14 @@ export default function PageEditor({
 				</div>
 			)}
 
-			<div className="page-editor-group page-content-group" ref={pageContentRef}>
+			<div
+				className="page-editor-group page-content-group"
+				ref={pageContentRef}
+				data-tour="page-sections"
+			>
 				<div className="page-content-heading">
 					<h3>Content</h3>
-					<details className="page-add-block" ref={addMenuRef}>
+					<details className="page-add-block" ref={addMenuRef} data-tour="add-block">
 						<summary className="btn-primary" aria-label={`Add a block to ${pageName}`}>
 							＋ Add block
 						</summary>
@@ -2146,50 +2428,88 @@ export default function PageEditor({
 					</details>
 				</div>
 				{(doc.content.sectionLibrary?.length ?? 0) > 0 && (
-					<details className="section-library">
-						<summary>Saved sections <span>{doc.content.sectionLibrary?.length}</span></summary>
-						<div className="section-library-list">
+					<section
+						className={`section-library${itemIsCollapsed('saved-blocks', 'library') ? ' is-collapsed' : ''}`}
+						aria-labelledby={`saved-sections-${pageKey.replace(/\W/g, '-')}`}
+					>
+						<header>
+							<button
+								type="button"
+								className="section-library-toggle"
+								aria-expanded={!itemIsCollapsed('saved-blocks', 'library')}
+								onClick={() => toggleEditorItem('saved-blocks', 'library')}
+							>
+								<span className="editor-collapse-chevron" aria-hidden="true">
+									{itemIsCollapsed('saved-blocks', 'library') ? '▸' : '▾'}
+								</span>
+								<span>
+									<strong id={`saved-sections-${pageKey.replace(/\W/g, '-')}`}>Saved blocks</strong>
+									<small>Recall a block into any existing section or start a new section with it.</small>
+								</span>
+							</button>
+							<span className="count">{doc.content.sectionLibrary?.length}</span>
+						</header>
+						{!itemIsCollapsed('saved-blocks', 'library') && <div className="section-library-list">
 							{doc.content.sectionLibrary!.map((template) => (
 								<div className="section-library-row" key={template.id}>
 									<span>
 										<strong>{template.name}</strong>
-										<small>{template.motion ? `${template.motion.effect} motion included` : 'Still section'}</small>
+										<small>{template.motion ? `${template.motion.effect} motion available for a new section` : 'Reusable block'}</small>
 									</span>
 									<button
 										type="button"
-										className="btn-secondary"
-										onClick={() => editor.insertSectionTemplate(pageKey, template.id)}
+										className="btn-primary"
+										onClick={() =>
+											runSectionAdd(
+												(target) =>
+													editor.insertSectionTemplate(pageKey, template.id, target),
+												undefined,
+												template.name,
+											)
+										}
 									>
-										Insert
+										Add block…
 									</button>
 									<button
 										type="button"
 										className="btn-icon danger"
-										aria-label={`Delete saved section ${template.name}`}
+										aria-label={`Delete saved block ${template.name}`}
 										onClick={() => editor.removeSectionTemplate(template.id)}
 									>
 										✕
 									</button>
 								</div>
 							))}
-						</div>
-					</details>
+						</div>}
+					</section>
 				)}
 				<div className="page-section-list">
 					{sections.map((section, sectionIndex) => {
 						const accent = sectionEditorColor(section, sectionIndex);
 						const partKey = sectionPartKey(section.id);
+						const sectionCollapsed = itemIsCollapsed('section', section.id);
 						return (
 							<section
-								className="page-section-editor"
+								className={`page-section-editor${sectionCollapsed ? ' is-collapsed' : ''}`}
 								key={section.id}
 								data-editor-section={section.id}
 								style={{ '--section-editor-color': accent } as CSSProperties}
 							>
 									<div className="page-section-editor-head">
-										<span className="page-section-number" aria-hidden="true">
-											{sectionIndex + 1}
-										</span>
+										<button
+											type="button"
+											className="page-section-collapse-toggle"
+											aria-expanded={!sectionCollapsed}
+											onClick={() => toggleEditorItem('section', section.id)}
+											aria-label={`${sectionCollapsed ? 'Expand' : 'Collapse'} Section ${sectionIndex + 1}, ${section.name}`}
+										>
+											<span className="page-section-number" aria-hidden="true">
+												{sectionIndex + 1}
+											</span>
+											<span className="page-section-collapse-chevron" aria-hidden="true">
+												{sectionCollapsed ? '▸' : '▾'}
+											</span>
+										</button>
 										<span className="page-section-title">
 											<small>Section {sectionIndex + 1}</small>
 											<input
@@ -2268,7 +2588,7 @@ export default function PageEditor({
 													className="btn-secondary"
 													aria-label={`Add a block to Section ${sectionIndex + 1}, ${section.name}`}
 												>
-													＋ Block
+													＋ Add block
 												</summary>
 												<div className="page-add-block-menu">
 													{addBlockMenuItems(section.id)}
@@ -2276,7 +2596,7 @@ export default function PageEditor({
 											</details>
 										</div>
 									</div>
-								<div className="page-section-editor-blocks">
+								{!sectionCollapsed && <div className="page-section-editor-blocks">
 									{section.blockIds.map((blockId) => {
 										const block = blockById.get(blockId);
 										if (!block) return null;
@@ -2284,7 +2604,11 @@ export default function PageEditor({
 											(candidate) => candidate.id === blockId,
 										);
 										return (
-											<div key={block.id} data-editor-block={block.id}>
+											<div
+												key={block.id}
+												data-editor-block={block.id}
+												className={itemIsCollapsed('block', block.id) ? 'is-collapsed' : undefined}
+											>
 												{renderBlock(block, index)}
 											</div>
 										);
@@ -2294,7 +2618,7 @@ export default function PageEditor({
 											This is your Main section. Add any block here to start.
 										</p>
 									)}
-								</div>
+								</div>}
 							</section>
 						);
 					})}
@@ -2303,7 +2627,8 @@ export default function PageEditor({
 			{!nested && (
 				<details className="page-add-block floating-add-block" ref={floatingAddMenuRef}>
 					<summary className="floating-add-button" aria-label={`Add a block to ${pageName}`} title="Add block">
-						＋
+						<span aria-hidden="true">＋</span>
+						<strong>Add block</strong>
 					</summary>
 					<div className="page-add-block-menu">
 						{addBlockMenuItems()}
@@ -2484,6 +2809,23 @@ export default function PageEditor({
 						Choose the section where this block should appear.
 					</p>
 					<div className="section-destination-list">
+						<button
+							type="button"
+							className="section-destination-option section-destination-new"
+							aria-label={`Add ${pendingSectionAdd.label} to a new section`}
+							onClick={() => {
+								const action = pendingSectionAdd.action;
+								setPendingSectionAdd(null);
+								performSectionAdd(action, NEW_SECTION_ID);
+							}}
+						>
+							<span className="page-section-number" aria-hidden="true">＋</span>
+							<span>
+								<strong>New section</strong>
+								<small>Create it at the bottom of this page</small>
+							</span>
+							<span aria-hidden="true">→</span>
+						</button>
 						{sections.map((section, sectionIndex) => {
 							const accent = sectionEditorColor(section, sectionIndex);
 							return (
@@ -2513,6 +2855,78 @@ export default function PageEditor({
 								</button>
 							);
 						})}
+					</div>
+				</Modal>
+			)}
+
+			{pendingSectionMove && (
+				<Modal
+					title={`Move ${pendingSectionMove.label}`}
+					onClose={() => setPendingSectionMove(null)}
+				>
+					<p className="section-destination-intro">
+						Choose where this block should live.
+					</p>
+					<div className="section-destination-list">
+						<button
+							type="button"
+							className="section-destination-option section-destination-new"
+							aria-label={`Move ${pendingSectionMove.label} to a new section`}
+							onClick={() => {
+								editor.moveBlockToSection(
+									pageKey,
+									pendingSectionMove.blockId,
+									NEW_SECTION_ID,
+								);
+								setPendingSectionMove(null);
+							}}
+						>
+							<span className="page-section-number" aria-hidden="true">＋</span>
+							<span>
+								<strong>New section</strong>
+								<small>Place it directly after its current section</small>
+							</span>
+							<span aria-hidden="true">→</span>
+						</button>
+						{sections
+							.filter(
+								(section) => section.id !== pendingSectionMove.sourceSectionId,
+							)
+							.map((section) => {
+								const sectionIndex = sections.findIndex(
+									(candidate) => candidate.id === section.id,
+								);
+								const accent = sectionEditorColor(section, sectionIndex);
+								return (
+									<button
+										type="button"
+										className="section-destination-option"
+										key={section.id}
+										style={{ '--section-editor-color': accent } as CSSProperties}
+										aria-label={`Move ${pendingSectionMove.label} to Section ${sectionIndex + 1}, ${section.name}`}
+										onClick={() => {
+											editor.moveBlockToSection(
+												pageKey,
+												pendingSectionMove.blockId,
+												section.id,
+											);
+											setPendingSectionMove(null);
+										}}
+									>
+										<span className="page-section-number" aria-hidden="true">
+											{sectionIndex + 1}
+										</span>
+										<span>
+											<strong>{section.name}</strong>
+											<small>
+												{section.blockIds.length} block
+												{section.blockIds.length === 1 ? '' : 's'}
+											</small>
+										</span>
+										<span aria-hidden="true">→</span>
+									</button>
+								);
+							})}
 					</div>
 				</Modal>
 			)}

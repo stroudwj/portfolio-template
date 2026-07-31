@@ -28,6 +28,8 @@ export interface ImageMeta {
 	focusX?: number;
 	focusY?: number;
 	effects?: ArtworkEffectConfig;
+	/** Private organizer used only by the editor's image workbench. */
+	workbenchFolder?: string;
 }
 
 /** One image in a gallery (or the profile image), in the editor's working state. */
@@ -64,6 +66,8 @@ export interface EditorDoc {
 	profileImage: SingleImage;
 	/** The header logo image (empty filename = the text logo renders). */
 	logoImage: SingleImage;
+	/** Optional uploaded pointer image used by the site-wide custom cursor effect. */
+	cursorImage: SingleImage;
 	/** page key -> its sub-page card thumbnail. */
 	pageThumbs: Record<string, SingleImage>;
 	/** product id -> its editable image slot (uploaded or shared with gallery artwork). */

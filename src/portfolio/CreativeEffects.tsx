@@ -1,7 +1,7 @@
 // Playful site-wide flourishes (all opt-in from the editor's Design area):
 //   - an emoji cursor,
 //   - a little trail of shapes following the pointer,
-//   - a paper-grain texture laid over the whole page,
+//   - a paper-grain texture behind the artwork,
 //   - temporary click marks, loose-hung artwork, a slow reveal,
 //   - artwork wobble and a hover-driven color spin.
 // Rendered in BOTH the editor preview and the published site. Effects scope
@@ -44,9 +44,16 @@ function emojiCursorUrl(emoji: string): string {
 const GRAIN_TILE =
 	"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-export default function CreativeEffects({ creative }: { creative?: CreativeConfig }) {
+export default function CreativeEffects({
+	creative,
+	cursorImageSrc,
+}: {
+	creative?: CreativeConfig;
+	cursorImageSrc?: string;
+}) {
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const filmRef = useRef<HTMLCanvasElement>(null);
+	const customCursorRef = useRef<HTMLImageElement>(null);
 	const [isPhone, setIsPhone] = useState(false);
 	const cursor = creative?.cursor?.trim() || '';
 	const effectOnPhone = (key: keyof NonNullable<CreativeConfig['phone']>) =>
@@ -55,6 +62,7 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 	const grain = Math.min(Math.max(creative?.grain ?? 0, 0), 30);
 	const clickMark = effectOnPhone('clickMark') ? creative?.clickMark : undefined;
 	const film = effectOnPhone('film') ? creative?.film : undefined;
+	const filmOver = film?.layer === 'over';
 	const pageTransition = creative?.pageTransition;
 
 	/** The element the effects attach to: preview pane root, else the page body. */
@@ -74,13 +82,41 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 	// Emoji cursor.
 	useEffect(() => {
 		const el = overlayRef.current;
-		if (!el || !cursor) return;
+		if (!el || !cursor || cursorImageSrc) return;
 		const host = hostOf(el);
 		host.style.cursor = emojiCursorUrl(cursor);
 		return () => {
 			host.style.cursor = '';
 		};
-	}, [cursor]);
+	}, [cursor, cursorImageSrc]);
+
+	// Uploaded cursor art follows the pointer as a consistently sized overlay.
+	// This avoids browsers rejecting large source images as native CSS cursors.
+	useEffect(() => {
+		const el = overlayRef.current;
+		const image = customCursorRef.current;
+		const win = el?.ownerDocument.defaultView;
+		if (!el || !image || !cursorImageSrc || !win?.matchMedia('(pointer: fine)').matches) return;
+		const host = hostOf(el);
+		const previousCursor = host.style.cursor;
+		const showAtPointer = (event: PointerEvent) => {
+			const rect = el.getBoundingClientRect();
+			image.style.left = `${event.clientX - rect.left}px`;
+			image.style.top = `${event.clientY - rect.top}px`;
+			image.style.opacity = '1';
+		};
+		const hide = () => {
+			image.style.opacity = '0';
+		};
+		host.style.cursor = 'none';
+		host.addEventListener('pointermove', showAtPointer);
+		host.addEventListener('pointerleave', hide);
+		return () => {
+			host.style.cursor = previousCursor;
+			host.removeEventListener('pointermove', showAtPointer);
+			host.removeEventListener('pointerleave', hide);
+		};
+	}, [cursorImageSrc]);
 
 	// Pointer trail: spawn short-lived, self-removing spans directly in the DOM —
 	// running this through React state would re-render the whole portfolio per bit.
@@ -231,6 +267,7 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 
 	const hasOverlay = !!(
 		cursor ||
+		cursorImageSrc ||
 		creative?.trail ||
 		grain ||
 		creative?.clickMark ||
@@ -241,22 +278,43 @@ export default function CreativeEffects({ creative }: { creative?: CreativeConfi
 		<>
 			{pageTransition && <style>{'@view-transition { navigation: auto; }'}</style>}
 			{hasOverlay && (
-				<div ref={overlayRef} className="creative-effects">
-					{grain > 0 && (
-						<div
-							className="creative-grain"
-							style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }}
-							aria-hidden="true"
-						/>
+				<>
+					{(grain > 0 || (film && !filmOver)) && (
+						<div className="creative-background-effects" aria-hidden="true">
+							{grain > 0 && (
+								<div
+									className="creative-grain"
+									style={{ opacity: grain / 100, backgroundImage: GRAIN_TILE }}
+								/>
+							)}
+							{film && !filmOver && (
+								<canvas
+									ref={filmRef}
+									className={`creative-film creative-film-${film.preset}`}
+									aria-hidden="true"
+								/>
+							)}
+						</div>
 					)}
-					{film && (
-						<canvas
-							ref={filmRef}
-							className={`creative-film creative-film-${film.preset}`}
-							aria-hidden="true"
-						/>
-					)}
-				</div>
+					<div ref={overlayRef} className="creative-effects">
+						{cursorImageSrc && (
+							<img
+								ref={customCursorRef}
+								className="creative-custom-cursor"
+								src={cursorImageSrc}
+								alt=""
+								aria-hidden="true"
+							/>
+						)}
+						{film && filmOver && (
+							<canvas
+								ref={filmRef}
+								className={`creative-film creative-film-${film.preset}`}
+								aria-hidden="true"
+							/>
+						)}
+					</div>
+				</>
 			)}
 		</>
 	);

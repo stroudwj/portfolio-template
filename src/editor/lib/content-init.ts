@@ -121,6 +121,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 		};
 	}
 	const resumeUrl = cloned.resume?.url ?? '';
+	const cursorImagePath = cloned.site.creative?.cursorImage ?? '';
 	const profileSampleAssetId = sampleArtworkIdForUrl(cloned.profile.image);
 	const galleries = entriesFromContent(cloned);
 	const productImages: EditorDoc['productImages'] = {};
@@ -154,6 +155,11 @@ export function initDocFromContent(content: Content): EditorDoc {
 			sampleAssetId: profileSampleAssetId,
 		},
 		logoImage: { filename: cloned.site.logoImage || '', assetId: null, sampleAssetId: null },
+		cursorImage: {
+			filename: cursorImagePath.slice(cursorImagePath.lastIndexOf('/') + 1),
+			assetId: null,
+			sampleAssetId: null,
+		},
 		pageThumbs,
 		productImages,
 		fonts,
@@ -177,6 +183,14 @@ export function upgradeDoc(doc: EditorDoc): EditorDoc {
 /** Live document -> resolved data the shared portfolio components can render. */
 export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	const content = cloneContent(doc.content);
+	const cursorImageSrc = getAssetPreviewUrl(doc.cursorImage?.assetId);
+	if (cursorImageSrc) {
+		content.site.creative = {
+			...content.site.creative,
+			cursor: undefined,
+			cursorImage: cursorImageSrc,
+		};
+	}
 	for (const page of Object.values(content.pages)) {
 		for (const block of page.blocks ?? []) {
 			if (block.type !== 'shots' || !block.assetId) continue;

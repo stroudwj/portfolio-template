@@ -89,8 +89,10 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<title>{title}</title>
 	</head>
 	<body
+		style={`--hang-strength:${site.creative?.hangStrength ?? 0.7}`}
 		class:list={{
-			'creative-loose-hang': site.creative?.looseHang,
+			'creative-loose-hang': pageConfig?.hanging ?? site.creative?.looseHang,
+			[`texture-${theme.backgroundTexture}`]: theme.backgroundTexture,
 			'creative-slow-reveal': site.creative?.slowReveal,
 			'creative-artwork-wobble': site.creative?.artworkWobble,
 			'creative-color-spin': site.creative?.colorSpin,

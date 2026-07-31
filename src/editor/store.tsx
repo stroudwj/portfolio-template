@@ -30,6 +30,7 @@ import type {
 } from '../lib/content';
 import {
 	MAIN_SECTION_ID,
+	NEW_SECTION_ID,
 	pageSections,
 	sectionPartKey,
 } from '../lib/pageSections';
@@ -85,14 +86,24 @@ function appendBlockToSection(
 	requestedSectionId?: string,
 ): PageConfig {
 	const sections = pageSections(page);
+	const newSection =
+		requestedSectionId === NEW_SECTION_ID
+			? {
+					id: uid('section'),
+					name: `Section ${sections.length + 1}`,
+					blockIds: [] as string[],
+				}
+			: undefined;
+	const availableSections = newSection ? [...sections, newSection] : sections;
 	const target =
-		sections.find((section) => section.id === requestedSectionId) ??
-		sections.find((section) => section.id === MAIN_SECTION_ID) ??
-		sections[0];
+		newSection ??
+		availableSections.find((section) => section.id === requestedSectionId) ??
+		availableSections.find((section) => section.id === MAIN_SECTION_ID) ??
+		availableSections[0];
 	return {
 		...page,
 		blocks: [...(page.blocks ?? []), block],
-		sections: sections.map((section) =>
+		sections: availableSections.map((section) =>
 			section.id === target.id
 				? { ...section, blockIds: [...section.blockIds, block.id] }
 				: section,
@@ -101,6 +112,7 @@ function appendBlockToSection(
 }
 
 function targetSectionId(page: PageConfig, requestedSectionId?: string): string {
+	if (requestedSectionId === NEW_SECTION_ID) return NEW_SECTION_ID;
 	const sections = pageSections(page);
 	return (
 		sections.find((section) => section.id === requestedSectionId)?.id ??
@@ -184,6 +196,11 @@ function sectionCanvasBottom(doc: EditorDoc, page: PageConfig, sectionId: string
 			bottom = Math.max(bottom, bottomOf(block.layout));
 		if (block?.type === 'images' && block.gallery.carouselFrame)
 			bottom = Math.max(bottom, bottomOf(block.gallery.carouselFrame));
+		if (
+			(block?.type === 'children' || block?.type === 'products') &&
+			block.canvasLayout
+		)
+			bottom = Math.max(bottom, bottomOf(block.canvasLayout));
 	}
 	return bottom;
 }
@@ -280,6 +297,7 @@ function referencedAssetIds(doc: EditorDoc): Set<string> {
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
+		doc.cursorImage,
 		doc.resumeFile,
 		...Object.values(doc.pageThumbs),
 		...Object.values(doc.productImages),
@@ -422,6 +440,8 @@ export interface EditorContextValue {
 	moveChildPage(parentKey: string, from: number, to: number): void;
 	renamePage(key: string, label: string): void;
 	setPageHeading(key: string, heading: string): void;
+	/** Override site-wide hanging for this page; undefined inherits the site choice. */
+	setPageHanging(key: string, hanging: boolean | undefined): void;
 	setHeadingKinetic(key: string, kinetic: KineticTextConfig | undefined): void;
 	setProjectDetails(key: string, project: ProjectDetails | undefined): void;
 	setPageThumb(key: string, file: File): void;
@@ -469,6 +489,9 @@ export interface EditorContextValue {
 				| 'carouselShowCount'
 				| 'carouselShowTitle'
 				| 'carouselRequireAlt'
+				| 'carouselArrowStyle'
+				| 'carouselFrameStyle'
+				| 'carouselChromeColor'
 				| 'mobile'
 			>
 		>,
@@ -477,6 +500,8 @@ export interface EditorContextValue {
 	renameImagesBlock(key: string, blockId: string, name: string): void;
 	/** Choose how a page's sub-pages are presented (cards, big covers, list, text index). */
 	setChildrenStyle(key: string, blockId: string, style: ChildrenStyle): void;
+	/** Place a sub-page or product collection on its section canvas, or return it to flow. */
+	setWidgetLayout(key: string, blockId: string, layout: ImageLayout | undefined): void;
 	/** Store the hand-drawn signature (undefined clears it off the site). */
 	setSignature(data: SignatureData | undefined): void;
 	/** Footer text shown at the bottom of every page (empty removes the footer). */
@@ -506,6 +531,11 @@ export interface EditorContextValue {
 		patch: Partial<{ label: string; url: string; align: TextAlign; appearance: 'solid' | 'outline' }>,
 	): void;
 	addDividerBlock(key: string, sectionId?: string): void;
+	updateDividerBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Extract<PageBlock, { type: 'divider' }>>,
+	): void;
 	/** Add the shared About content to a page; no-op when that page already has it. */
 	addAboutBlock(key: string, sectionId?: string): void;
 	addFormBlock(key: string, sectionId?: string): void;
@@ -532,14 +562,21 @@ export interface EditorContextValue {
 	toggleBlockSection(key: string, blockId: string): void;
 	/** Move a block to an existing section, appending it at that section's bottom. */
 	moveBlockToSection(key: string, blockId: string, sectionId: string): void;
-	/** Save a block and its section motion/color/height to the reusable library. */
+	/** Save a reusable block; legacy section styling is retained for new-section recall. */
 	saveSectionTemplate(key: string, blockId: string, name: string): void;
-	insertSectionTemplate(key: string, templateId: string): void;
+	insertSectionTemplate(key: string, templateId: string, sectionId?: string): void;
 	removeSectionTemplate(templateId: string): void;
 	// galleries
 	addGalleryImages(
 		folder: string,
 		images: Array<{ file: File; alt: string; decorative?: true }>,
+	): void;
+	/** Copy or move an existing image between the workbench and any image group. */
+	transferGalleryImage(
+		sourceFolder: string,
+		entryId: string,
+		targetFolder: string,
+		move?: boolean,
 	): void;
 	/** Swap an uploaded image while preserving its caption, placement and stable id. */
 	replaceGalleryImage(
@@ -571,6 +608,9 @@ export interface EditorContextValue {
 	// creative extras
 	/** Optional site-wide flourishes configured in the Design area. */
 	setCreative(patch: Partial<CreativeConfig>): void;
+	/** Upload or replace the image that follows the visitor's pointer. */
+	setCursorImage(file: File): void;
+	removeCursorImage(): void;
 	// color blocking
 	/** Whole-page background color (undefined = the site background). */
 	setPageBackground(key: string, color: string | undefined): void;
@@ -1524,7 +1564,20 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						children: page.children?.map((child) => mapping.get(child) ?? child),
 						blocks: page.blocks?.map((block) => {
 							if (block.type === 'button') return { ...block, url: rewriteInternalLink(block.url) ?? block.url };
-							if (block.type === 'text' && block.link) return { ...block, link: rewriteInternalLink(block.link) };
+							if (block.type === 'text') {
+								const richText = block.richText?.map((paragraph) => ({
+									...paragraph,
+									runs: paragraph.runs.map((run) => ({
+										...run,
+										link: rewriteInternalLink(run.link),
+									})),
+								}));
+								return {
+									...block,
+									link: rewriteInternalLink(block.link),
+									richText,
+								};
+							}
 							return block;
 						}),
 					};
@@ -1564,6 +1617,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
 		setPageHeading: (key, heading) =>
 			patchPage(key, (page) => ({ ...page, heading: heading || undefined }), true, `page:${key}:heading`),
+		setPageHanging: (key, hanging) =>
+			patchPage(
+				key,
+				(page) => ({ ...page, hanging }),
+				true,
+				`page:${key}:hanging`,
+			),
 		setHeadingKinetic: (key, headingKinetic) =>
 			patchPage(
 				key,
@@ -1858,6 +1918,15 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						: b,
 				),
 			),
+		setWidgetLayout: (key, blockId, canvasLayout) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId &&
+					(block.type === 'children' || block.type === 'products')
+						? { ...block, canvasLayout }
+						: block,
+				),
+			),
 		setSignature: (data) => patchContent((c) => ({ ...c, site: { ...c.site, signature: data } })),
 		setFooter: (value) =>
 			patchContent((c) => ({ ...c, site: { ...c.site, footer: value || undefined } }), true, 'site:footer'),
@@ -1997,6 +2066,18 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		addDividerBlock: (key, sectionId) =>
 			patchPage(key, (page) =>
 				appendBlockToSection(page, { id: uid('divider'), type: 'divider' }, sectionId),
+			),
+		updateDividerBlock: (key, blockId, patch) =>
+			patchBlocks(
+				key,
+				(blocks) =>
+					blocks.map((block) =>
+						block.id === blockId && block.type === 'divider'
+							? { ...block, ...patch }
+							: block,
+					),
+				true,
+				`page:${key}:divider:${blockId}:${Object.keys(patch).sort().join(',')}`,
 			),
 		addAboutBlock: (key, sectionId) =>
 			patchPage(key, (page) =>
@@ -2174,12 +2255,25 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
 				if (!page) return prev;
-				const source = blockSection(page, blockId);
-				const destination = pageSections(page).find((section) => section.id === sectionId);
+				const currentSections = pageSections(page);
+				const sourceIndex = currentSections.findIndex((section) =>
+					section.blockIds.includes(blockId),
+				);
+				const source = currentSections[sourceIndex];
+				const creatingSection = sectionId === NEW_SECTION_ID;
+				const destination = creatingSection
+					? {
+							id: uid('section'),
+							name: `Section ${currentSections.length + 1}`,
+							blockIds: [] as string[],
+						}
+					: currentSections.find((section) => section.id === sectionId);
 				if (!source || !destination || source.id === destination.id) return prev;
 				const bottom = sectionCanvasBottom(prev, page, destination.id);
 				const removedSource = source.id !== MAIN_SECTION_ID && source.blockIds.length === 1;
-				const sections = pageSections(page)
+				const workingSections = [...currentSections];
+				if (creatingSection) workingSections.splice(sourceIndex + 1, 0, destination);
+				const sections = workingSections
 					.map((section) => {
 						if (section.id === source.id)
 							return {
@@ -2200,9 +2294,18 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					return block;
 				});
 				const sourceKey = sectionPartKey(source.id);
+				const destinationKey = sectionPartKey(destination.id);
 				const sectionColors = { ...(page.sectionColors ?? {}) };
 				const sectionHeights = { ...(page.sectionHeights ?? {}) };
 				const sectionMotion = { ...(page.sectionMotion ?? {}) };
+				if (creatingSection) {
+					if (page.sectionColors?.[sourceKey])
+						sectionColors[destinationKey] = page.sectionColors[sourceKey];
+					if (page.sectionHeights?.[sourceKey])
+						sectionHeights[destinationKey] = { ...page.sectionHeights[sourceKey] };
+					if (page.sectionMotion?.[sourceKey])
+						sectionMotion[destinationKey] = { ...page.sectionMotion[sourceKey] };
+				}
 				if (removedSource) {
 					delete sectionColors[sourceKey];
 					delete sectionHeights[sourceKey];
@@ -2400,7 +2503,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					sectionLibrary: [...(content.sectionLibrary ?? []), template],
 				};
 			}),
-		insertSectionTemplate: (key, templateId) =>
+		insertSectionTemplate: (key, templateId, requestedSectionId) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
 				const template = prev.content.sectionLibrary?.find((item) => item.id === templateId);
@@ -2410,8 +2513,22 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					(page.blocks ?? []).some((block) => block.type === 'about')
 				) return prev;
 				const block = cloneReusableBlock(template.block);
-				const sectionId = uid('section');
+				const existingSection =
+					requestedSectionId && requestedSectionId !== NEW_SECTION_ID
+						? pageSections(page).find((section) => section.id === requestedSectionId)
+						: undefined;
+				const sectionId = existingSection?.id ?? uid('section');
 				const partKey = sectionPartKey(sectionId);
+				const sections = existingSection
+					? pageSections(page).map((section) =>
+							section.id === existingSection.id
+								? { ...section, blockIds: [...section.blockIds, block.id] }
+								: section,
+						)
+					: [
+							...pageSections(page),
+							{ id: sectionId, name: template.name, blockIds: [block.id] },
+						];
 				return {
 					...prev,
 					content: {
@@ -2421,17 +2538,14 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 							[key]: {
 								...page,
 								blocks: [...(page.blocks ?? []), block],
-								sections: [
-									...pageSections(page),
-									{ id: sectionId, name: template.name, blockIds: [block.id] },
-								],
-								sectionMotion: template.motion
+								sections,
+								sectionMotion: !existingSection && template.motion
 									? { ...(page.sectionMotion ?? {}), [partKey]: { ...template.motion } }
 									: page.sectionMotion,
-								sectionColors: template.color
+								sectionColors: !existingSection && template.color
 									? { ...(page.sectionColors ?? {}), [partKey]: template.color }
 									: page.sectionColors,
-								sectionHeights: template.heights
+								sectionHeights: !existingSection && template.heights
 									? { ...(page.sectionHeights ?? {}), [partKey]: { ...template.heights } }
 									: page.sectionHeights,
 							},
@@ -2461,6 +2575,70 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					sampleAssetId: null,
 				})),
 			]),
+		transferGalleryImage: (sourceFolder, entryId, targetFolder, move = false) =>
+			commitDoc((prev) => {
+				if (sourceFolder === targetFolder) return prev;
+				const source = prev.galleries[sourceFolder]?.find((entry) => entry.id === entryId);
+				if (!source) return prev;
+				const clone: ImageEntry = {
+					...source,
+					id: uid('e'),
+					meta: {
+						...source.meta,
+						workbenchFolder:
+							targetFolder === '__hangwork_workbench__'
+								? source.meta.workbenchFolder
+								: undefined,
+						layout: source.meta.layout ? { ...source.meta.layout } : undefined,
+						effects: source.meta.effects ? { ...source.meta.effects } : undefined,
+					},
+				};
+				const galleries = {
+					...prev.galleries,
+					[targetFolder]: [...(prev.galleries[targetFolder] ?? []), clone],
+				};
+				if (move)
+					galleries[sourceFolder] = (prev.galleries[sourceFolder] ?? []).filter(
+						(entry) => entry.id !== entryId,
+					);
+				const pages = move
+					? Object.fromEntries(
+							Object.entries(prev.content.pages).map(([pageKey, page]) => [
+								pageKey,
+								{
+									...page,
+									gallery:
+										page.gallery?.folder === sourceFolder
+											? withoutPhoneItem(page.gallery, `image:${entryId}`)
+											: page.gallery,
+									blocks: page.blocks?.map((block) =>
+										block.type === 'images' &&
+										block.gallery.folder === sourceFolder
+											? {
+													...block,
+													gallery: withoutPhoneItem(
+														block.gallery,
+														`image:${entryId}`,
+													),
+												}
+											: block,
+									),
+								},
+							]),
+						)
+					: prev.content.pages;
+				return {
+					...prev,
+					galleries,
+					content: { ...prev.content, pages },
+					ogImage:
+						move &&
+						prev.ogImage?.folder === sourceFolder &&
+						prev.ogImage.entryId === entryId
+							? undefined
+							: prev.ogImage,
+				};
+			}),
 		replaceGalleryImage: (folder, id, { file, alt, decorative }) => {
 			const assetId = registerAsset(file, file.name);
 			patchGallery(folder, (entries) =>
@@ -2560,6 +2738,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 							...block,
 							gallery: { ...block.gallery, carouselFrame: widgetUpdates[block.id] },
 						};
+					if (
+						(block.type === 'children' || block.type === 'products') &&
+						widgetUpdates[block.id]
+					)
+						return { ...block, canvasLayout: widgetUpdates[block.id] };
 					return block;
 				});
 				if (entries === currentEntries && blocks === currentBlocks) return prev;
@@ -2688,15 +2871,52 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				};
 			}),
 
+		setCursorImage: (file) => {
+			const assetId = registerAsset(file, file.name);
+			commitDoc((prev) => ({
+				...prev,
+				cursorImage: { filename: file.name, assetId, sampleAssetId: null },
+				content: {
+					...prev.content,
+					site: {
+						...prev.content.site,
+						creative: {
+							...prev.content.site.creative,
+							cursor: undefined,
+							cursorImage: file.name,
+						},
+					},
+				},
+			}));
+		},
+		removeCursorImage: () =>
+			commitDoc((prev) => {
+				const creative = { ...prev.content.site.creative };
+				delete creative.cursorImage;
+				return {
+					...prev,
+					cursorImage: { filename: '', assetId: null, sampleAssetId: null },
+					content: {
+						...prev.content,
+						site: {
+							...prev.content.site,
+							creative: Object.keys(creative).length ? creative : undefined,
+						},
+					},
+				};
+			}),
+
 		setCreative: (patch) =>
 			patchContent((c) => {
 				const merged: CreativeConfig = { ...c.site.creative, ...patch };
 				// Keep content.json clean: strip switched-off effects, drop the object when empty.
 				if (!merged.cursor) delete merged.cursor;
+				if (!merged.cursorImage) delete merged.cursorImage;
 				if (!merged.trail) delete merged.trail;
 				if (!merged.grain) delete merged.grain;
 				if (!merged.clickMark) delete merged.clickMark;
 				if (!merged.looseHang) delete merged.looseHang;
+				if (!merged.looseHang || !merged.hangStrength) delete merged.hangStrength;
 				if (!merged.slowReveal) delete merged.slowReveal;
 				if (!merged.artworkWobble) delete merged.artworkWobble;
 				if (!merged.colorSpin) delete merged.colorSpin;

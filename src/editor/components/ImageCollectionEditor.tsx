@@ -2,7 +2,7 @@
 // images with upload, delete, drag-reorder, and per-image metadata. `variant`
 // controls how much metadata is shown. The list collapses to a one-line summary
 // so pages with many images stay scannable in the panel.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
@@ -20,6 +20,11 @@ import type { AccessibleImageUpload } from '../lib/image-accessibility';
 import ImageAccessibilityModal from './ImageAccessibilityModal';
 import { showSampleUnavailable } from '../../portfolio/sampleFallback';
 import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
+import {
+	imageGroupTargets,
+	WORKBENCH_FOLDER,
+	writeImageTransfer,
+} from '../lib/image-transfer';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -33,6 +38,93 @@ export interface ImageCollectionEditorProps {
 	hint?: string;
 	/** Whether uploads must supply alt text or an explicit decorative choice. */
 	requireAltText?: boolean;
+}
+
+/** Pull reusable photos into the current group without leaving the block editor. */
+function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
+	const { doc, transferGalleryImage } = useEditor();
+	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const detailsRef = useRef<HTMLDetailsElement>(null);
+	if (!doc) return null;
+	const entries = doc.galleries[WORKBENCH_FOLDER] ?? [];
+	const folders = [
+		...new Set(
+			entries
+				.map((entry) => entry.meta.workbenchFolder?.trim())
+				.filter((value): value is string => !!value),
+		),
+	].sort((a, b) => a.localeCompare(b));
+	return (
+		<details className="workbench-picker" ref={detailsRef}>
+			<summary>
+				<span>From workbench…</span>
+				<small>{entries.length} reusable</small>
+			</summary>
+			{entries.length === 0 ? (
+				<p className="muted">
+					Upload reusable photos in the Image workbench at the top of Pages.
+				</p>
+			) : (
+				<>
+					{folders.length > 0 && (
+						<div className="workbench-picker-folders" aria-label="Workbench folders">
+							{folders.map((folder) => (
+								<span key={folder}>▰ {folder}</span>
+							))}
+						</div>
+					)}
+					<div className="workbench-picker-grid">
+						{entries.map((entry, index) => {
+							const name = entry.meta.title || entry.filename || `Image ${index + 1}`;
+							return (
+								<label
+									key={entry.id}
+									className={selected.has(entry.id) ? 'selected' : ''}
+								>
+									<input
+										type="checkbox"
+										checked={selected.has(entry.id)}
+										onChange={() =>
+											setSelected((current) => {
+												const next = new Set(current);
+												if (next.has(entry.id)) next.delete(entry.id);
+												else next.add(entry.id);
+												return next;
+											})
+										}
+										aria-label={`Select ${name} from workbench`}
+									/>
+									<img src={getAssetPreviewUrl(entry.assetId) ?? ''} alt="" />
+									<span title={name}>{name}</span>
+								</label>
+							);
+						})}
+					</div>
+					<div className="workbench-picker-actions">
+						<button
+							type="button"
+							className="btn-primary"
+							disabled={!selected.size}
+							onClick={() => {
+								for (const entry of entries)
+									if (selected.has(entry.id))
+										transferGalleryImage(
+											WORKBENCH_FOLDER,
+											entry.id,
+											targetFolder,
+											false,
+										);
+								setSelected(new Set());
+								detailsRef.current?.removeAttribute('open');
+							}}
+						>
+							Copy {selected.size || ''} to this image group
+						</button>
+					</div>
+				</>
+			)}
+		</details>
+	);
 }
 
 export default function ImageCollectionEditor({
@@ -53,6 +145,7 @@ export default function ImageCollectionEditor({
 		removeGalleryImage,
 		moveGalleryImage,
 		updateGalleryMeta,
+		transferGalleryImage,
 	} = useEditor();
 	const [collapsed, setCollapsed] = useState(false);
 	const [compact, setCompact] = useState(true);
@@ -63,6 +156,7 @@ export default function ImageCollectionEditor({
 	} | null>(null);
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
+	const moveTargets = imageGroupTargets(doc).filter((target) => target.folder !== folder);
 	const accessibilityReviewCount = requireAltText
 		? entries.filter((entry) => !entry.sampleAssetId && !entry.meta.alt.trim() && !entry.meta.decorative).length
 		: 0;
@@ -108,9 +202,21 @@ export default function ImageCollectionEditor({
 
 			{(!collapsed || entries.length === 0) && (
 				<>
-						<ImageDrop multiple onFiles={(files) => beginUpload(files)}>
+						<ImageDrop
+							multiple
+							onFiles={(files) => beginUpload(files)}
+							onImageTransfer={(payload) =>
+								transferGalleryImage(
+									payload.sourceFolder,
+									payload.entryId,
+									folder,
+									payload.sourceFolder === WORKBENCH_FOLDER ? false : payload.move,
+								)
+							}
+						>
 							<span>{addLabel}</span>
 						</ImageDrop>
+						<WorkbenchPicker targetFolder={folder} />
 						{accessibilityReviewCount > 0 && (
 							<p className="accessibility-review-warning" role="status">
 								Accessibility review: {accessibilityReviewCount} older image{accessibilityReviewCount === 1 ? '' : 's'} need alt text or an explicit decorative choice. Open Details to review.
@@ -186,6 +292,22 @@ export default function ImageCollectionEditor({
 												className="card-thumb"
 												src={url}
 												alt=""
+												draggable={!entry.sampleAssetId}
+												title={
+													entry.sampleAssetId
+														? undefined
+														: 'Drag into another image group to move it'
+												}
+												onDragStart={
+													entry.sampleAssetId
+														? undefined
+														: (event) =>
+																writeImageTransfer(event.dataTransfer, {
+																	sourceFolder: folder,
+																	entryId: entry.id,
+																	move: true,
+																})
+												}
 												onError={
 													sample
 														? (event) => showSampleUnavailable(event.currentTarget)
@@ -307,6 +429,53 @@ export default function ImageCollectionEditor({
 																		</div>
 																		<div className="artwork-effects-grid">
 																			<label>
+																				<span>Hanging</span>
+																				<select
+																					className="select-input"
+																					value={
+																						artworkEffects?.hang === true
+																							? 'on'
+																							: artworkEffects?.hang === false
+																								? 'off'
+																								: ''
+																					}
+																					onChange={(event) =>
+																						patchEffects({
+																							hang:
+																								event.target.value === 'on'
+																									? true
+																									: event.target.value === 'off'
+																										? false
+																										: undefined,
+																						})
+																					}
+																				>
+																					<option value="">Use site/page setting</option>
+																					<option value="on">Hang this artwork</option>
+																					<option value="off">Keep this artwork straight</option>
+																				</select>
+																			</label>
+																			<label>
+																				<span>Mount</span>
+																				<select
+																					className="select-input"
+																					value={artworkEffects?.mount ?? ''}
+																					onChange={(event) =>
+																						patchEffects({
+																							mount: (event.target.value || undefined) as NonNullable<
+																								typeof artworkEffects
+																							>['mount'],
+																						})
+																					}
+																				>
+																					<option value="">None</option>
+																					<option value="tape">Permanent tape</option>
+																					<option value="nail">Nail</option>
+																					<option value="hook">Picture hook</option>
+																					<option value="frame">Physical frame</option>
+																				</select>
+																			</label>
+																			<label>
 																				<span>On hover</span>
 																				<select
 																					className="select-input"
@@ -346,6 +515,24 @@ export default function ImageCollectionEditor({
 																				</select>
 																			</label>
 																		</div>
+																		<label className="motion-range compact artwork-skew-control">
+																			<span>
+																				Tilt
+																				<output>{artworkEffects?.skew ?? 0}°</output>
+																			</span>
+																			<input
+																				type="range"
+																				min={-6}
+																				max={6}
+																				step={0.25}
+																				value={artworkEffects?.skew ?? 0}
+																				aria-label={`Hanging tilt for ${artworkName}`}
+																				onChange={(event) => {
+																					const skew = Number(event.target.value);
+																					patchEffects({ skew: skew === 0 ? undefined : skew });
+																				}}
+																			/>
+																		</label>
 																		{(artworkEffects?.hover || artworkEffects?.reveal) && (
 																			<label className="effect-phone-control">
 																				<input
@@ -426,32 +613,123 @@ export default function ImageCollectionEditor({
 															</div>
 														)}
 														<div className="card-actions">
-															<button
-																type="button"
-																className="btn-icon"
-																disabled={idx === 0}
-																onClick={() => moveGalleryImage(folder, idx, idx - 1)}
-																aria-label={`Move ${artworkName} up`}
-															>
-																↑
-															</button>
-															<button
-																type="button"
-																className="btn-icon"
-																disabled={idx === entries.length - 1}
-																onClick={() => moveGalleryImage(folder, idx, idx + 1)}
-																aria-label={`Move ${artworkName} down`}
-															>
-																↓
-															</button>
-															<button
-																type="button"
-																className="btn-icon danger"
-																onClick={() => removeGalleryImage(folder, entry.id)}
-																aria-label={`Delete ${artworkName}`}
-															>
-																✕
-															</button>
+															<details className="image-card-actions-menu">
+																<summary
+																	aria-label={`More actions for ${artworkName}`}
+																	title={`More actions for ${artworkName}`}
+																>
+																	•••
+																</summary>
+																<div className="image-card-actions-popover">
+																	<label>
+																		<span>Hanging</span>
+																		<select
+																			className="select-input"
+																			aria-label={`Hanging for ${artworkName}`}
+																			value={
+																				artworkEffects?.hang === true
+																					? 'on'
+																					: artworkEffects?.hang === false
+																						? 'off'
+																						: ''
+																			}
+																			onChange={(event) =>
+																				patchEffects({
+																					hang:
+																						event.target.value === 'on'
+																							? true
+																							: event.target.value === 'off'
+																								? false
+																								: undefined,
+																				})
+																			}
+																		>
+																			<option value="">Use site/page setting</option>
+																			<option value="on">Hang this image</option>
+																			<option value="off">Do not hang</option>
+																		</select>
+																	</label>
+																	<label>
+																		<span>Copy</span>
+																		<select
+																			className="select-input"
+																			aria-label={`Copy ${artworkName} to another image group`}
+																			defaultValue=""
+																			onChange={(event) => {
+																				const destination = event.target.value;
+																				if (destination)
+																					transferGalleryImage(
+																						folder,
+																						entry.id,
+																						destination,
+																						false,
+																					);
+																				event.target.value = '';
+																			}}
+																		>
+																			<option value="">Copy to…</option>
+																			<option value={WORKBENCH_FOLDER}>Image workbench</option>
+																			{moveTargets.map((target) => (
+																				<option key={target.folder} value={target.folder}>
+																					{target.label}
+																				</option>
+																			))}
+																		</select>
+																	</label>
+																	<label>
+																		<span>Move</span>
+																		<select
+																			className="select-input"
+																			aria-label={`Move ${artworkName} to another image group`}
+																			defaultValue=""
+																			onChange={(event) => {
+																				const destination = event.target.value;
+																				if (destination)
+																					transferGalleryImage(
+																						folder,
+																						entry.id,
+																						destination,
+																						true,
+																					);
+																				event.target.value = '';
+																			}}
+																		>
+																			<option value="">Move to…</option>
+																			<option value={WORKBENCH_FOLDER}>Image workbench</option>
+																			{moveTargets.map((target) => (
+																				<option key={target.folder} value={target.folder}>
+																					{target.label}
+																				</option>
+																			))}
+																		</select>
+																	</label>
+																	<div className="image-card-order-actions">
+																		<button
+																			type="button"
+																			className="btn-secondary"
+																			disabled={idx === 0}
+																			onClick={() => moveGalleryImage(folder, idx, idx - 1)}
+																		>
+																			↑ Earlier
+																		</button>
+																		<button
+																			type="button"
+																			className="btn-secondary"
+																			disabled={idx === entries.length - 1}
+																			onClick={() => moveGalleryImage(folder, idx, idx + 1)}
+																		>
+																			↓ Later
+																		</button>
+																	</div>
+																	<button
+																		type="button"
+																		className="btn-ghost danger image-card-delete"
+																		onClick={() => removeGalleryImage(folder, entry.id)}
+																	>
+																		Delete image
+																	</button>
+																</div>
+															</details>
 														</div>
 													</div>
 												)}

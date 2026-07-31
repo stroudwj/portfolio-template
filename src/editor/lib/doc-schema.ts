@@ -30,9 +30,13 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	workbenchFolder: z.string().max(80).optional(),
 	effects: passthrough({
 		hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
 		reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
+		hang: z.boolean().optional(),
+		skew: z.number().min(-6).max(6).optional(),
+		mount: z.enum(['tape', 'nail', 'hook', 'frame']).optional(),
 		phone: z.boolean().optional(),
 	}).optional(),
 });
@@ -54,6 +58,7 @@ export const editorDocSchema = passthrough({
 	),
 	profileImage: singleImageSchema,
 	logoImage: singleImageSchema,
+	cursorImage: singleImageSchema.default({ filename: '', assetId: null, sampleAssetId: null }),
 	pageThumbs: z.record(z.string(), singleImageSchema),
 	productImages: z.record(z.string(), singleImageSchema),
 	fonts: z.record(z.string(), singleImageSchema),
@@ -73,6 +78,7 @@ export const editorDocSchema = passthrough({
 	for (const [slotName, slot] of [
 		['profileImage', value.profileImage],
 		['logoImage', value.logoImage],
+		['cursorImage', value.cursorImage],
 		['resumeFile', value.resumeFile],
 		...Object.entries(value.pageThumbs).map(([key, item]) => [`pageThumbs.${key}`, item] as const),
 		...Object.entries(value.productImages).map(([key, item]) => [`productImages.${key}`, item] as const),
@@ -192,6 +198,14 @@ export function migrateEditorDocV0ToV1(raw: unknown): unknown {
 
 	if (!isObject(next.logoImage))
 		next.logoImage = { filename: typeof site.logoImage === 'string' ? site.logoImage : '', assetId: null };
+	if (!isObject(next.cursorImage)) {
+		const creative = isObject(site.creative) ? site.creative : {};
+		const cursorImage = typeof creative.cursorImage === 'string' ? creative.cursorImage : '';
+		next.cursorImage = {
+			filename: cursorImage.slice(cursorImage.lastIndexOf('/') + 1),
+			assetId: null,
+		};
+	}
 	if (!isObject(next.pageThumbs)) next.pageThumbs = {};
 	if (!isObject(next.fonts)) next.fonts = {};
 	if (!isObject(next.resumeFile)) {
@@ -288,6 +302,7 @@ export function migrateEditorDocV3ToV4(raw: unknown): unknown {
 	for (const value of [
 		next.profileImage,
 		next.logoImage,
+		next.cursorImage,
 		next.resumeFile,
 		...(isObject(next.pageThumbs) ? Object.values(next.pageThumbs) : []),
 		...(isObject(next.productImages) ? Object.values(next.productImages) : []),

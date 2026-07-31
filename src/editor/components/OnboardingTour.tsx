@@ -20,6 +20,7 @@ interface TourStep {
 	target: string;
 	title: string;
 	body: string;
+	openPageBuilder?: boolean;
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -29,6 +30,30 @@ const TOUR_STEPS: TourStep[] = [
 		target: '[data-tour="tab-pages"]',
 		title: 'Build your site page by page',
 		body: 'Choose Pages to replace images, edit text, add video, and organize what visitors can explore.',
+	},
+	{
+		tab: 'pages',
+		view: 'edit',
+		target: '[data-tour="page-sections"]',
+		title: 'Sections organize the page',
+		body: 'Each colored frame is a section: a movable region with its own blocks, background, height, and motion. Rename sections so their purpose stays clear.',
+		openPageBuilder: true,
+	},
+	{
+		tab: 'pages',
+		view: 'edit',
+		target: '[data-tour="add-block"]',
+		title: 'Add content with a labeled button',
+		body: 'Choose Add block for text, images, video, products, sub-pages, or a saved block. Then choose an existing section or create a new one.',
+		openPageBuilder: true,
+	},
+	{
+		tab: 'pages',
+		view: 'edit',
+		target: '[data-tour="section-control"]',
+		title: 'The square creates a section',
+		body: 'Move section lets you send a block to any existing section or give it a new section of its own. The destination picker always shows what will happen.',
+		openPageBuilder: true,
 	},
 	{
 		tab: 'pages',
@@ -127,12 +152,14 @@ export default function OnboardingTour({
 	replayToken,
 	onSelectTab,
 	onSetView,
+	onOpenPageBuilder,
 	onExit,
 	onFinish,
 }: {
 	replayToken: number;
 	onSelectTab: (tab: TourTab) => void;
 	onSetView: (view: EditorView) => void;
+	onOpenPageBuilder: () => void;
 	onExit: () => void;
 	onFinish: () => void;
 }) {
@@ -143,10 +170,10 @@ export default function OnboardingTour({
 	const bubbleRef = useRef<HTMLDivElement>(null);
 	const previousFocusRef = useRef<HTMLElement | null>(null);
 	const replaySeenRef = useRef(replayToken);
-	const navigationRef = useRef({ onSelectTab, onSetView });
+	const navigationRef = useRef({ onSelectTab, onSetView, onOpenPageBuilder });
 	const titleId = useId();
 	const bodyId = useId();
-	navigationRef.current = { onSelectTab, onSetView };
+	navigationRef.current = { onSelectTab, onSetView, onOpenPageBuilder };
 
 	const begin = () => {
 		setStepIndex(0);
@@ -170,6 +197,7 @@ export default function OnboardingTour({
 		if (!open) return;
 		navigationRef.current.onSelectTab(step.tab);
 		navigationRef.current.onSetView(step.view);
+		if (step.openPageBuilder) navigationRef.current.onOpenPageBuilder();
 	}, [open, stepIndex, step.tab, step.view]);
 
 	// Targets can move when a tab opens, the left pane scrolls, or the layout

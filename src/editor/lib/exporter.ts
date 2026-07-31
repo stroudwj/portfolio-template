@@ -62,6 +62,9 @@ function metaObject(meta: ImageMeta): Partial<ImageMeta> | null {
 	if (!meta.alt) delete out.alt;
 	if (!meta.description) delete out.description;
 	if (!meta.link) delete out.link;
+	// Workbench folders organize the private editor bucket and are never part of
+	// a published artwork record.
+	delete out.workbenchFolder;
 	// Canvas placement supersedes the legacy grid spans, so write one or the other.
 	if (meta.layout) {
 		out.layout = meta.layout;
@@ -377,6 +380,31 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	} else {
 		content.site.logoImage = doc.logoImage?.filename || undefined;
 		if (content.site.logoImage) referencedFiles.add(`src/assets/${content.site.logoImage}`);
+	}
+
+	// Custom pointer image. The editor keeps its Blob separately so preview URLs
+	// never leak into content.json; published cursors live in a dedicated folder.
+	const cursorBlob = localAssetBlob(
+		doc.cursorImage?.assetId,
+		doc.cursorImage?.filename || 'Custom cursor',
+	);
+	if (cursorBlob) {
+		const finalName = `cursors/${sanitizeFilename(doc.cursorImage.filename || 'cursor')}`;
+		files.push({
+			path: `src/assets/${finalName}`,
+			bytes: new Uint8Array(await cursorBlob.arrayBuffer()),
+		});
+		content.site.creative = {
+			...content.site.creative,
+			cursor: undefined,
+			cursorImage: finalName,
+		};
+	} else if (doc.cursorImage?.filename && content.site.creative?.cursorImage) {
+		referencedFiles.add(`src/assets/${content.site.creative.cursorImage}`);
+	} else if (content.site.creative?.cursorImage) {
+		const creative = { ...content.site.creative };
+		delete creative.cursorImage;
+		content.site.creative = Object.keys(creative).length ? creative : undefined;
 	}
 
 	// Page thumbnails (sub-page cards). Written under src/assets/thumbs/, name-prefixed

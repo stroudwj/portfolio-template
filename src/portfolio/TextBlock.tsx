@@ -54,6 +54,8 @@ function RichRun({ run, kinetic }: { run: RichTextRun; kinetic?: KineticTextConf
 	if (run.italic) content = <em>{content}</em>;
 	if (run.underline) content = <u>{content}</u>;
 	if (run.strike) content = <s>{content}</s>;
+	const href = safeHref(run.link);
+	if (href) content = <a href={href}>{content}</a>;
 	return <span className={`rich-text-run text-size-${run.size ?? 'body'}`}>{content}</span>;
 }
 
@@ -71,7 +73,8 @@ function RichParagraph({
 	const runs = paragraph.runs.map((run, runIndex) => (
 		<RichRun key={runIndex} run={run} kinetic={kinetic} />
 	));
-	let content: ReactNode = link ? <a href={link}>{runs}</a> : runs;
+	const hasInlineLink = paragraph.runs.some((run) => !!safeHref(run.link));
+	let content: ReactNode = link && !hasInlineLink ? <a href={link}>{runs}</a> : runs;
 	if (kinetic?.effect === 'lines') {
 		content = (
 			<span
@@ -111,13 +114,21 @@ export function TextContent({
 		const classes = ['text-block-content', 'rich-text-content', motionClass, className].filter(Boolean).join(' ');
 		if (kinetic?.effect === 'marquee') {
 			const plainText = richTextPlainText(richText);
+			const formattedText = richText.map((paragraph, paragraphIndex) => (
+				<Fragment key={paragraphIndex}>
+					{paragraphIndex > 0 && ' '}
+					{paragraph.runs.map((run, runIndex) => (
+						<RichRun key={runIndex} run={run} />
+					))}
+				</Fragment>
+			));
 			return (
 				<div
 					className={classes}
 					style={{ ...(fontFamily ? { fontFamily } : {}), ...motionStyle }}
 					data-kinetic-target={kineticTarget}
 				>
-					<KineticMarquee duplicateText={plainText}>{plainText}</KineticMarquee>
+					<KineticMarquee duplicateText={plainText}>{formattedText}</KineticMarquee>
 				</div>
 			);
 		}

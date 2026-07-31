@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
-import type { PageHeadingPosition } from '../../lib/content';
+import type { PageHeadingPosition, Theme } from '../../lib/content';
 import { compatibleThemePresets } from '../lib/templates';
 import { customFontValue, fontOptionsForTheme } from '../lib/font-options';
 
@@ -18,6 +18,18 @@ const COLOR_FIELDS: Array<{ key: ColorKey; label: string }> = [
 ];
 
 const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
+
+const BACKGROUND_TEXTURES: Array<{
+	value: NonNullable<Theme['backgroundTexture']> | '';
+	label: string;
+}> = [
+	{ value: '', label: 'Color only' },
+	{ value: 'corkboard', label: 'Corkboard' },
+	{ value: 'blackboard', label: 'Blackboard' },
+	{ value: 'wood', label: 'Wood grain' },
+	{ value: 'fence', label: 'Fence' },
+	{ value: 'concrete', label: 'Concrete' },
+];
 
 export default function ThemeEditor() {
 	const { doc, setTheme, applyThemePreset, addCustomFont, removeCustomFont } = useEditor();
@@ -70,10 +82,10 @@ export default function ThemeEditor() {
 	};
 
 	return (
-		<Section title="Fonts & colors" sectionKey="_theme">
+		<Section title="Site style" sectionKey="_theme">
 			<div className="theme-preset-section">
 				<div className="theme-preset-heading">
-					<strong>Compatible themes</strong>
+					<strong>1. Choose a starting theme</strong>
 					<span>Only themes that support this site’s page and gallery features appear.</span>
 				</div>
 				<div className="theme-preset-grid">
@@ -115,6 +127,56 @@ export default function ThemeEditor() {
 					Applying a theme changes only its design tokens. Your pages, words, images, uploads, and custom font files stay put.
 				</p>
 			</div>
+			<div className="design-control-heading">
+				<span>2</span>
+				<div>
+					<strong>Surface & color</strong>
+					<small>Set the wall first, then tune the palette and contrast.</small>
+				</div>
+			</div>
+			<Field
+				label="Wall material"
+				hint="Puts a physical studio surface behind your work. Page and section colors still layer above it."
+			>
+				<div className="chip-row wall-material-options" role="group" aria-label="Site wall material">
+					{BACKGROUND_TEXTURES.map((texture) => (
+						<button
+							key={texture.value || 'none'}
+							type="button"
+							className={`btn-icon btn-chip texture-chip texture-${texture.value || 'none'} ${
+								(theme.backgroundTexture ?? '') === texture.value ? 'active' : ''
+							}`}
+							aria-pressed={(theme.backgroundTexture ?? '') === texture.value}
+							onClick={() =>
+								setTheme({
+									backgroundTexture:
+										(texture.value || undefined) as Theme['backgroundTexture'],
+								})
+							}
+						>
+							{texture.label}
+						</button>
+					))}
+				</div>
+			</Field>
+			{COLOR_FIELDS.map(({ key, label }) => (
+				<Field key={key} label={label}>
+					<div className="color-field">
+						<input
+							type="color"
+							value={isHex(theme[key]) ? theme[key] : '#000000'}
+							onChange={(e) => setTheme({ [key]: e.target.value })}
+							aria-label={`${label} color`}
+						/>
+						<input
+							className="text-input"
+							value={theme[key]}
+							onChange={(e) => setTheme({ [key]: e.target.value })}
+							placeholder="#111111"
+						/>
+					</div>
+				</Field>
+			))}
 			<Field
 				label="Automatic readable text"
 				hint="Adjust text, your logo/name, and navigation over colored page sections. Turn this off to keep your exact theme colors everywhere."
@@ -136,6 +198,13 @@ export default function ThemeEditor() {
 					</button>
 				</div>
 			</Field>
+			<div className="design-control-heading">
+				<span>3</span>
+				<div>
+					<strong>Typography & page titles</strong>
+					<small>Choose the type system, then size and place recurring headings.</small>
+				</div>
+			</div>
 			<Field label="Body font">
 				<select
 					className="text-input"
@@ -313,24 +382,6 @@ export default function ThemeEditor() {
 						✕
 					</button>
 				</div>
-			))}
-			{COLOR_FIELDS.map(({ key, label }) => (
-				<Field key={key} label={label}>
-					<div className="color-field">
-						<input
-							type="color"
-							value={isHex(theme[key]) ? theme[key] : '#000000'}
-							onChange={(e) => setTheme({ [key]: e.target.value })}
-							aria-label={`${label} color`}
-						/>
-						<input
-							className="text-input"
-							value={theme[key]}
-							onChange={(e) => setTheme({ [key]: e.target.value })}
-							placeholder="#111111"
-						/>
-					</div>
-				</Field>
 			))}
 		</Section>
 	);

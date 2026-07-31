@@ -29,7 +29,7 @@ export default function LayoutEditor() {
 	};
 
 	return (
-		<Section title="Layout" sectionKey="_layout">
+		<Section title="Navigation & page spacing" sectionKey="_layout">
 			<Field label="Navigation menu" hint={NAV_STYLES.find((s) => s.value === navStyle)?.hint}>
 				<div className="chip-row" role="group" aria-label="Navigation menu style">
 					{NAV_STYLES.map((style) => (

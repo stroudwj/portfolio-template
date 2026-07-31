@@ -46,6 +46,7 @@ export function performanceAudit(doc: EditorDoc): PerformanceAudit {
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
+		doc.cursorImage,
 		doc.resumeFile,
 		...Object.values(doc.pageThumbs),
 		...Object.values(doc.productImages),

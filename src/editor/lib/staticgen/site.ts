@@ -58,6 +58,8 @@ export function referencedAssetPaths(content: Content): string[] {
 	const paths: string[] = [];
 	if (content.profile.image) paths.push(`src/assets/${content.profile.image}`);
 	if (content.site.logoImage) paths.push(`src/assets/${content.site.logoImage}`);
+	if (content.site.creative?.cursorImage)
+		paths.push(`src/assets/${content.site.creative.cursorImage}`);
 	for (const page of Object.values(content.pages)) if (page.thumbnail) paths.push(`src/assets/${page.thumbnail}`);
 	for (const font of content.theme.customFonts ?? []) paths.push(`src/assets/${font.file}`);
 	for (const [folder, gallery] of Object.entries(content.galleries))

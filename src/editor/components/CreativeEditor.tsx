@@ -2,7 +2,9 @@
 // writes content.site.creative, rendered by portfolio/CreativeEffects in the
 // preview and on the published site.
 import { useEditor } from '../store';
+import { getAssetPreviewUrl } from '../lib/assets';
 import { Field, Section } from './ui/controls';
+import { ImageDrop } from './ui/ImageDrop';
 import type {
 	CreativeClickMark,
 	CreativeEffectKey,
@@ -73,11 +75,14 @@ function OnOff({
 }
 
 export default function CreativeEditor() {
-	const { doc, setCreative } = useEditor();
+	const { doc, setCreative, setCursorImage, removeCursorImage } = useEditor();
 	if (!doc) return null;
 	const creative = doc.content.site.creative ?? {};
 	const cursor = creative.cursor ?? '';
+	const cursorImageUrl = getAssetPreviewUrl(doc.cursorImage?.assetId);
+	const hasCursorImage = Boolean(doc.cursorImage?.filename || creative.cursorImage);
 	const grain = creative.grain ?? 0;
+	const hangStrength = creative.hangStrength ?? 0.7;
 	const film = creative.film;
 	const setPhone = (key: CreativeEffectKey, enabled: boolean) => {
 		const phone = { ...(creative.phone ?? {}) };
@@ -111,10 +116,45 @@ export default function CreativeEditor() {
 	};
 
 	return (
-		<Section title="Motion & texture" sectionKey="_creative">
+		<Section title="Motion & interaction" sectionKey="_creative">
 			<p className="muted" style={{ marginTop: 0 }}>
 				Give the published site a point of view. Everything is opt-in and previews live.
 			</p>
+
+			<Field
+				label="Hang artwork on the wall"
+				hint="Site-wide hanging control. Every page and individual image can override it."
+			>
+				<div className="motion-control-stack prominent-hanging-control">
+					<OnOff
+						label="Hang artwork site-wide"
+						value={creative.looseHang ?? false}
+						onChange={(value) => setCreative({ looseHang: value || undefined })}
+					/>
+					{creative.looseHang && (
+						<>
+							<label className="motion-range">
+								<span>
+									Hand-hung tilt <output>{hangStrength.toFixed(2)}°</output>
+								</span>
+								<input
+									type="range"
+									min={0.25}
+									max={5}
+									step={0.25}
+									value={hangStrength}
+									aria-label="Site-wide artwork hanging tilt"
+									onChange={(event) =>
+										setCreative({ hangStrength: Number(event.target.value) })
+									}
+								/>
+							</label>
+							{phoneControl('looseHang')}
+						</>
+					)}
+					<small>Use Page details for a page-only choice, or each image’s Hang control for one piece.</small>
+				</div>
+			</Field>
 
 			<Field
 				label="Living film texture"
@@ -139,6 +179,28 @@ export default function CreativeEditor() {
 				{film && (
 					<div className="motion-control-stack">
 						{phoneControl('film')}
+						<div className="film-layer-control">
+							<span>Layer</span>
+							<div className="chip-row" role="group" aria-label="Living texture layer">
+								<button
+									type="button"
+									className={`btn-icon btn-chip ${film.layer !== 'over' ? 'active' : ''}`}
+									aria-pressed={film.layer !== 'over'}
+									onClick={() => patchFilm({ layer: undefined })}
+								>
+									Under artwork
+								</button>
+								<button
+									type="button"
+									className={`btn-icon btn-chip ${film.layer === 'over' ? 'active' : ''}`}
+									aria-pressed={film.layer === 'over'}
+									onClick={() => patchFilm({ layer: 'over' })}
+								>
+									Over artwork
+								</button>
+							</div>
+							<small>Under keeps the living surface behind your work by default.</small>
+						</div>
 						<label className="motion-range">
 							<span>Intensity <output>{film.intensity ?? 12}%</output></span>
 							<input
@@ -222,8 +284,11 @@ export default function CreativeEditor() {
 				<div className="chip-row">
 					<button
 						type="button"
-						className={`btn-icon btn-chip ${cursor === '' ? 'active' : ''}`}
-						onClick={() => setCreative({ cursor: undefined })}
+						className={`btn-icon btn-chip ${cursor === '' && !hasCursorImage ? 'active' : ''}`}
+						onClick={() => {
+							removeCursorImage();
+							setCreative({ cursor: undefined });
+						}}
 					>
 						Off
 					</button>
@@ -231,8 +296,11 @@ export default function CreativeEditor() {
 						<button
 							key={c}
 							type="button"
-							className={`btn-icon btn-chip cursor-chip ${cursor === c ? 'active' : ''}`}
-							onClick={() => setCreative({ cursor: c })}
+							className={`btn-icon btn-chip cursor-chip ${cursor === c && !hasCursorImage ? 'active' : ''}`}
+							onClick={() => {
+								removeCursorImage();
+								setCreative({ cursor: c });
+							}}
 							aria-label={`Use ${c} as the cursor`}
 						>
 							{c}
@@ -240,11 +308,35 @@ export default function CreativeEditor() {
 					))}
 					<input
 						className="text-input emoji-input"
-						value={CURSORS.includes(cursor) ? '' : cursor}
-						onChange={(e) => setCreative({ cursor: [...e.target.value].slice(0, 2).join('') || undefined })}
+						value={hasCursorImage || CURSORS.includes(cursor) ? '' : cursor}
+						onChange={(e) => {
+							removeCursorImage();
+							setCreative({ cursor: [...e.target.value].slice(0, 2).join('') || undefined });
+						}}
 						placeholder="any emoji…"
 						aria-label="Custom cursor emoji"
 					/>
+				</div>
+				<div className={`cursor-upload ${hasCursorImage ? 'has-image' : ''}`}>
+					{cursorImageUrl && <img src={cursorImageUrl} alt="" />}
+					<div>
+						<strong>{hasCursorImage ? doc.cursorImage.filename || 'Uploaded cursor' : 'Upload cursor art'}</strong>
+						<small>PNG, WebP, GIF, or SVG works best with a transparent background.</small>
+					</div>
+					<ImageDrop
+						ariaLabel={hasCursorImage ? 'Replace custom cursor image' : 'Upload a custom cursor image'}
+						onFiles={(files) => {
+							const file = files[0];
+							if (file) setCursorImage(file);
+						}}
+					>
+						<span>{hasCursorImage ? 'Replace' : 'Upload image'}</span>
+					</ImageDrop>
+					{hasCursorImage && (
+						<button type="button" className="btn-ghost danger" onClick={removeCursorImage}>
+							Remove
+						</button>
+					)}
 				</div>
 			</Field>
 
@@ -266,7 +358,7 @@ export default function CreativeEditor() {
 
 			<Field
 				label="Paper grain"
-				hint="A subtle paper texture over the whole site — like work pinned on real paper."
+				hint="A subtle paper texture behind the artwork, like work pinned to a real surface."
 			>
 				<div className="gap-row">
 					<input
@@ -298,15 +390,6 @@ export default function CreativeEditor() {
 					))}
 				</div>
 				{creative.clickMark && phoneControl('clickMark')}
-			</Field>
-
-			<Field label="Loose hang" hint="Tilts each piece by a fraction, like a wall hung by hand.">
-				<OnOff
-					label="Loose hang"
-					value={creative.looseHang ?? false}
-					onChange={(value) => setCreative({ looseHang: value || undefined })}
-				/>
-				{creative.looseHang && phoneControl('looseHang')}
 			</Field>
 
 			<Field label="Slow reveal" hint="Artwork fades in gently when each page opens.">

@@ -807,6 +807,7 @@ describe('browser draft compatibility', () => {
 		doc.content.site.creative = {
 			film: {
 				preset: 'projector',
+				layer: 'over',
 				intensity: 14,
 				size: 120,
 				speed: 85,
@@ -840,6 +841,29 @@ describe('browser draft compatibility', () => {
 				id: 'kinetic-copy',
 				kinetic: { effect: 'letters', speed: 110 },
 			}),
+		);
+		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
+	});
+
+	it('publishes an uploaded cursor image into its own asset folder', async () => {
+		const doc = blankDoc();
+		doc.cursorImage = {
+			filename: 'paint brush.png',
+			assetId: registerAsset(
+				new Blob(['cursor pixels'], { type: 'image/png' }),
+				'paint brush.png',
+			),
+			sampleAssetId: null,
+		};
+		doc.content.site.creative = { cursorImage: 'paint brush.png' };
+
+		const bundle = await buildBundle(doc);
+
+		expect(bundle.contentJson.site.creative).toEqual({
+			cursorImage: 'cursors/paint-brush.png',
+		});
+		expect(bundle.files.map((file) => file.path)).toContain(
+			'src/assets/cursors/paint-brush.png',
 		);
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
 	});

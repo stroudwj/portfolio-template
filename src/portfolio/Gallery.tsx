@@ -22,7 +22,7 @@ import type {
 } from './types';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
-import CanvasGallery from './CanvasGallery';
+import CanvasGallery, { type CanvasWidget } from './CanvasGallery';
 import {
 	bottomOf,
 	clampLayout,
@@ -38,7 +38,7 @@ import {
 	snapToEdges,
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
-import { artworkEffectClass } from './artworkEffects';
+import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
@@ -126,7 +126,9 @@ export interface GalleryProps {
 	onCarouselFocusChange?: (id: string, focusX: number, focusY: number) => void;
 	/** Carousels owned by other image-group blocks but hosted on this freeform canvas. */
 	carouselWidgets?: CarouselWidget[];
-	/** Reports movement/resizing for a carousel hosted by this freeform canvas. */
+	/** Other complete blocks (sub-pages/products) hosted on this freeform canvas. */
+	canvasWidgets?: CanvasWidget[];
+	/** Reports movement/resizing for a widget hosted by this freeform canvas. */
 	onCarouselWidgetLayout?: (id: string, layout: ImageLayout) => void;
 	/** Deletes this standalone carousel after its frame is selected. */
 	onDeleteCarousel?: () => void;
@@ -169,6 +171,7 @@ export default function Gallery({
 	onCarouselHostChange,
 	onCarouselFocusChange,
 	carouselWidgets = [],
+	canvasWidgets = [],
 	onCarouselWidgetLayout,
 	onDeleteCarousel,
 	embeddedCarousel = false,
@@ -595,6 +598,7 @@ export default function Gallery({
 		!texts?.length &&
 		!embeds?.length &&
 		carouselWidgets.length === 0 &&
+		canvasWidgets.length === 0 &&
 		!editableEmptyCanvas
 	) {
 		return (
@@ -609,7 +613,12 @@ export default function Gallery({
 	const canvasMode =
 		!carouselMode &&
 		!uniformMode &&
-		(editable || images.some((img) => img.layout) || !!texts?.length || !!embeds?.length || carouselWidgets.length > 0);
+		(editable ||
+			images.some((img) => img.layout) ||
+			!!texts?.length ||
+			!!embeds?.length ||
+			carouselWidgets.length > 0 ||
+			canvasWidgets.length > 0);
 	const cols = uniformColumns(settings?.columns);
 	const cellAr = parseAspect(settings?.aspect);
 	const carouselRootStyle = carouselMode
@@ -619,15 +628,18 @@ export default function Gallery({
 			} as CSSProperties)
 		: undefined;
 	const carouselItemStyle = carouselMode
-		&& !embeddedCarousel
 		? ({
+				...(activeCarouselEntry ? artworkEffectStyle(activeCarouselEntry.img) : {}),
+				'--carousel-chrome': settings?.carouselChromeColor || 'var(--color-accent)',
+				...(!embeddedCarousel ? {
 				'--carousel-x': String(carouselFrame.x),
 				'--carousel-y': String((carouselFrame.y / carouselCanvasHeight) * 100),
 				'--carousel-w': String(carouselFrame.w),
 				'--carousel-ar': String(carouselFrame.ar),
+				} : {}),
 			} as CSSProperties)
 		: undefined;
-	const canvasCarouselWidgets = carouselWidgets.map((widget) => ({
+	const canvasCarouselWidgets: CanvasWidget[] = carouselWidgets.map((widget) => ({
 		id: widget.id,
 		layout: widget.settings.carouselFrame ?? DEFAULT_CAROUSEL_FRAME,
 		freeResize: widget.settings.carouselFreeResize === true,
@@ -773,7 +785,7 @@ export default function Gallery({
 						</div>
 					)}
 					<section
-						className={`inline-carousel ${embeddedCarousel ? '' : 'carousel-canvas-item'} ${carouselSelected ? 'selected' : ''} ${artworkEffectClass(activeCarouselEntry.img)}`}
+						className={`inline-carousel carousel-arrows-${settings?.carouselArrowStyle ?? 'chevron'} carousel-frame-${settings?.carouselFrameStyle ?? 'none'} ${embeddedCarousel ? '' : 'carousel-canvas-item'} ${carouselSelected ? 'selected' : ''} ${artworkEffectClass(activeCarouselEntry.img)}`}
 						role="region"
 						aria-roledescription="carousel"
 						aria-label={`${settings?.alt || alt} carousel`}
@@ -870,7 +882,9 @@ export default function Gallery({
 									aria-label="Show previous image"
 									onClick={() => moveCarousel(-1)}
 								>
-									◀
+									<span aria-hidden="true">
+										{settings?.carouselArrowStyle === 'arrow' ? '←' : '‹'}
+									</span>
 								</button>
 								<button
 									type="button"
@@ -878,7 +892,9 @@ export default function Gallery({
 									aria-label="Show next image"
 									onClick={() => moveCarousel(1)}
 								>
-									▶
+									<span aria-hidden="true">
+										{settings?.carouselArrowStyle === 'arrow' ? '→' : '›'}
+									</span>
 								</button>
 							</>
 						)}
@@ -920,7 +936,10 @@ export default function Gallery({
 						return (
 							<div
 								className={`uniform-item ${artworkEffectClass(img)}`}
-								style={phoneItemVars(settings, imagePhoneKey(img, i), i)}
+								style={{
+									...phoneItemVars(settings, imagePhoneKey(img, i), i),
+									...artworkEffectStyle(img),
+								}}
 								key={img.id ?? `${img.src}-${i}`}
 							>
 								<img
@@ -965,7 +984,7 @@ export default function Gallery({
 					images={images}
 					texts={texts}
 					embeds={embeds}
-					widgets={canvasCarouselWidgets}
+					widgets={[...canvasWidgets, ...canvasCarouselWidgets]}
 					alt={alt}
 					mobile={settings?.mobile}
 					phoneActive={isPhone}
@@ -987,7 +1006,11 @@ export default function Gallery({
 						return (
 							<div
 								className={`masonry-item ${artworkEffectClass(img)}`}
-								style={{ ...spanVars(img), ...phoneItemVars(settings, imagePhoneKey(img, i), i) }}
+								style={{
+									...spanVars(img),
+									...phoneItemVars(settings, imagePhoneKey(img, i), i),
+									...artworkEffectStyle(img),
+								}}
 								key={img.id ?? `${img.src}-${i}`}
 							>
 								<img

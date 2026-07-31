@@ -27,6 +27,7 @@ interface ToolbarState {
 	strike: boolean;
 	size: RichTextSize;
 	align: TextAlign;
+	link?: string;
 }
 
 /** Browser editing commands remain the interoperable way to preserve a live
@@ -48,6 +49,7 @@ const DEFAULT_TOOLBAR: ToolbarState = {
 	strike: false,
 	size: 'body',
 	align: 'left',
+	link: undefined,
 };
 
 const TEXT_SIZES: Array<{ value: RichTextSize; label: string; commandSize: string }> = [
@@ -91,6 +93,10 @@ const selectedAlign = (root: HTMLElement): TextAlign => {
 	return 'left';
 };
 
+const selectedLink = (root: HTMLElement): string | undefined =>
+	selectionElement(root)?.closest<HTMLAnchorElement>('a[href]')?.getAttribute('href')?.trim() ||
+	undefined;
+
 export default function RichTextEditor({
 	value,
 	legacyText,
@@ -109,6 +115,7 @@ export default function RichTextEditor({
 	onChange: (plainText: string, richText: RichTextParagraph[]) => void;
 }) {
 	const editorRef = useRef<HTMLDivElement>(null);
+	const selectionRef = useRef<Range | null>(null);
 	const lastEmittedRef = useRef<string | undefined>(undefined);
 	const [toolbar, setToolbar] = useState<ToolbarState>(DEFAULT_TOOLBAR);
 	const documentValue = useMemo(
@@ -137,7 +144,10 @@ export default function RichTextEditor({
 			strike: commands.queryCommandState('strikeThrough'),
 			size: selectedSize(editor),
 			align: selectedAlign(editor),
+			link: selectedLink(editor),
 		});
+		const selection = editor.ownerDocument.getSelection();
+		if (selection?.rangeCount) selectionRef.current = selection.getRangeAt(0).cloneRange();
 	}, []);
 
 	useEffect(() => {
@@ -162,6 +172,39 @@ export default function RichTextEditor({
 		if (!editor) return;
 		editor.focus();
 		editingDocument(editor.ownerDocument).execCommand(command, false, argument);
+		emit();
+	};
+
+	const restoreSelection = () => {
+		const editor = editorRef.current;
+		const range = selectionRef.current;
+		if (!editor || !range) return;
+		const selection = editor.ownerDocument.getSelection();
+		selection?.removeAllRanges();
+		selection?.addRange(range);
+	};
+
+	const editLink = () => {
+		const editor = editorRef.current;
+		if (!editor) return;
+		const value = prompt(
+			'Link for the selected words (leave empty to remove):',
+			toolbar.link ?? 'https://',
+		);
+		if (value === null) return;
+		const link = value.trim();
+		if (
+			link &&
+			/^[a-z][a-z\d+.-]*:/i.test(link) &&
+			!/^(?:https?:|mailto:)/i.test(link)
+		) {
+			alert('Use a web address, an email link, or a site path such as /work.');
+			return;
+		}
+		editor.focus();
+		restoreSelection();
+		const command = link ? 'createLink' : 'unlink';
+		editingDocument(editor.ownerDocument).execCommand(command, false, link);
 		emit();
 	};
 
@@ -244,6 +287,17 @@ export default function RichTextEditor({
 					>
 						<s>S</s>
 					</button>
+					<button
+						type="button"
+						className={toolbar.link ? 'active' : ''}
+						title={toolbar.link ? 'Edit or remove this link' : 'Link the selected words'}
+						aria-label={`Link selected words in ${label}`}
+						aria-pressed={!!toolbar.link}
+						onMouseDown={keepSelection}
+						onClick={editLink}
+					>
+						Link
+					</button>
 				</div>
 				<div className="rich-text-tool-group alignment-tools" role="group" aria-label={`Alignment within ${label}`}>
 					{ALIGNMENTS.map((alignment) => (
@@ -287,7 +341,7 @@ export default function RichTextEditor({
 				}}
 			/>
 			<p className="rich-text-shortcuts">
-				Select words to format them. Each paragraph can have its own alignment.
+				Select words to format or link them. Each paragraph can have its own alignment.
 			</p>
 		</div>
 	);

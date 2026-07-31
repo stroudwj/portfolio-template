@@ -27,6 +27,16 @@ const escapeHtml = (value: string): string =>
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;');
 
+const EXPLICIT_LINK_SCHEME = /^[a-z][a-z\d+.-]*:/i;
+const SAFE_LINK_SCHEME = /^(?:https?:|mailto:)/i;
+const safeEditorLink = (value: string | undefined): string | undefined => {
+	const trimmed = value?.trim();
+	if (!trimmed) return undefined;
+	return EXPLICIT_LINK_SCHEME.test(trimmed) && !SAFE_LINK_SCHEME.test(trimmed)
+		? undefined
+		: trimmed;
+};
+
 const cleanAlign = (value: string | null | undefined): TextAlign | undefined => {
 	const normalized = value?.toLowerCase();
 	return normalized === 'center' || normalized === 'right' ? normalized : undefined;
@@ -39,6 +49,7 @@ const cleanSize = (value: string | null | undefined): RichTextSize | undefined =
 
 const sameFormat = (a: RichTextRun, b: RichTextRun): boolean =>
 	a.size === b.size &&
+	a.link === b.link &&
 	a.bold === b.bold &&
 	a.italic === b.italic &&
 	a.underline === b.underline &&
@@ -51,6 +62,7 @@ export function normalizeRichText(paragraphs: RichTextParagraph[]): RichTextPara
 		for (const candidate of paragraph.runs) {
 			const run: RichTextRun = {
 				text: candidate.text.replace(/\u00a0/g, ' '),
+				link: candidate.link?.trim() || undefined,
 				size: cleanSize(candidate.size),
 				bold: candidate.bold ? true : undefined,
 				italic: candidate.italic ? true : undefined,
@@ -110,6 +122,8 @@ export function richTextToEditorHtml(paragraphs: RichTextParagraph[]): string {
 						if (run.italic) value = `<em>${value}</em>`;
 						if (run.underline) value = `<u>${value}</u>`;
 						if (run.strike) value = `<s>${value}</s>`;
+						const link = safeEditorLink(run.link);
+						if (link) value = `<a href="${escapeHtml(link)}">${value}</a>`;
 						return `<span data-text-size="${run.size ?? 'body'}">${value}</span>`;
 					})
 					.join('') || '<br>';
@@ -120,6 +134,7 @@ export function richTextToEditorHtml(paragraphs: RichTextParagraph[]): string {
 
 interface InlineFormat {
 	size?: RichTextSize;
+	link?: string;
 	bold?: true;
 	italic?: true;
 	underline?: true;
@@ -177,6 +192,10 @@ const parseInlineNode = (node: Node, inherited: InlineFormat, runs: RichTextRun[
 	const weight = node.style.fontWeight;
 	const format: InlineFormat = {
 		size: elementSize(node, inherited.size),
+		link:
+			node.tagName === 'A'
+				? node.getAttribute('href')?.trim() || inherited.link
+				: inherited.link,
 		bold:
 			inherited.bold ||
 			node.tagName === 'B' ||

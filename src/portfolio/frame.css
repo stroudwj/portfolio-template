@@ -5,15 +5,57 @@
    (Production uses <body>.) A transform here contains the fixed sidebar within
    the preview pane instead of the browser viewport. */
 .portfolio-root {
+	position: relative;
+	isolation: isolate;
 	min-height: 100%;
 	background-color: var(--color-bg);
 	font-family: var(--font-family);
 }
 
 .portfolio-container {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	width: 100%;
 	min-height: 100vh;
+}
+
+/* Physical studio surfaces sit behind every transparent content region. The
+   chosen theme color remains the base, so existing palettes still belong to
+   the artist. */
+.portfolio-root.texture-corkboard,
+body.texture-corkboard {
+	background-image: url('../assets/wall-materials/corkboard.webp');
+	background-size: 720px 720px;
+	background-blend-mode: multiply;
+}
+
+.portfolio-root.texture-blackboard,
+body.texture-blackboard {
+	background-image: url('../assets/wall-materials/blackboard.webp');
+	background-size: 720px 720px;
+	background-blend-mode: luminosity;
+}
+
+.portfolio-root.texture-wood,
+body.texture-wood {
+	background-image: url('../assets/wall-materials/wood.webp');
+	background-size: 720px 720px;
+	background-blend-mode: multiply;
+}
+
+.portfolio-root.texture-fence,
+body.texture-fence {
+	background-image: url('../assets/wall-materials/fence.webp');
+	background-size: 720px 720px;
+	background-blend-mode: multiply;
+}
+
+.portfolio-root.texture-concrete,
+body.texture-concrete {
+	background-image: url('../assets/wall-materials/concrete.webp');
+	background-size: 720px 720px;
+	background-blend-mode: multiply;
 }
 
 .sidebar {
@@ -50,6 +92,10 @@
 	position: relative;
 	box-sizing: border-box;
 	min-height: var(--section-min-desktop, 0px);
+}
+.portfolio-page-heading.is-empty-page-heading .motion-section-inner,
+.empty-page-heading-band {
+	min-height: 32px;
 }
 
 /* Color blocking: a section that carries its own background reads as a full-width

@@ -23,6 +23,7 @@ type ThemeVarKey = Exclude<
 	| 'fullscreenMobileMenu'
 	| 'automaticTextContrast'
 	| 'stabilizeNavigation'
+	| 'backgroundTexture'
 >;
 
 const VARS: Array<[string, ThemeVarKey]> = [

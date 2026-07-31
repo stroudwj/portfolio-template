@@ -380,15 +380,8 @@ export default function PublishPanel() {
 			)}
 			{showLicense && (
 				<LicenseGateModal
-					redeemTestAccess={account.redeemTestAccess}
 					context={showLicense}
 					onClose={() => setShowLicense(null)}
-					onUnlocked={() => {
-						setShowLicense(null);
-						// Unlocking is an account property, not a publish step: only continue
-						// into Publish when there's actually something to publish.
-						if (built && signedIn) setShowPublish(true);
-					}}
 				/>
 			)}
 			{showPublish && (

@@ -6,6 +6,7 @@ import { flushSync } from 'react-dom';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
 import type { ImageLayout, PortfolioData, TextFlowLayout, TextLayout } from './types';
 import type { CanvasLayoutUpdates, CanvasSelection } from './types';
+import { withBase } from './types';
 import type { SectionBreakpoint } from './SectionResizeHandle';
 import { transitionInDocument } from './pageTransitions';
 import Analytics from './Analytics';
@@ -29,6 +30,8 @@ export interface PortfolioProps extends PortfolioData {
 		selection: CanvasSelection,
 	) => void;
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
+	/** Editor preview: reports a complete sub-page/product block moved on a canvas. */
+	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -55,20 +58,23 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	const headerMode =
 		content.site.headerMode ??
 		(logoImageSrc ? 'image' : content.site.logo ? 'text' : 'name');
 	const headerText = headerMode === 'text' ? (content.site.logo || content.site.name) : content.site.name;
 	const pageBackground = content.pages[page]?.background;
+	const pageHanging = content.pages[page]?.hanging;
 	const automaticContrast = content.theme.automaticTextContrast !== false;
-	const rootStyle: CSSProperties = {
+	const rootStyle = {
 		...themeToVars(content.theme),
 		...backgroundBlockVars(pageBackground, automaticContrast),
-	};
+		'--hang-strength': String(content.site.creative?.hangStrength ?? 0.7),
+	} as CSSProperties;
 	const creativeClasses = [
-		content.site.creative?.looseHang && 'creative-loose-hang',
+		(pageHanging ?? content.site.creative?.looseHang) && 'creative-loose-hang',
+		content.theme.backgroundTexture && `texture-${content.theme.backgroundTexture}`,
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
 		content.site.creative?.artworkWobble && 'creative-artwork-wobble',
 		content.site.creative?.colorSpin && 'creative-color-spin',
@@ -81,6 +87,12 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 		.filter(Boolean)
 		.join(' ');
 	const transition = content.site.creative?.pageTransition;
+	const cursorImage = content.site.creative?.cursorImage;
+	const cursorImageSrc = cursorImage
+		? /^(?:blob:|data:|https?:|\/)/i.test(cursorImage)
+			? cursorImage
+			: withBase(base, `assets/${cursorImage}`)
+		: undefined;
 	const transitionOnPhone = content.site.creative?.phone?.pageTransition !== false;
 	const portfolioRootRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -117,7 +129,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 		<div ref={portfolioRootRef} className={`portfolio-root${creativeClasses ? ` ${creativeClasses}` : ''}`} style={rootStyle}>
 			{analytics && <Analytics page={page} />}
 			{!!fontFaces?.length && <style>{fontFacesCss(fontFaces)}</style>}
-			<CreativeEffects creative={content.site.creative} />
+			<CreativeEffects creative={content.site.creative} cursorImageSrc={cursorImageSrc} />
 			<PortfolioFrame
 				nav={content.nav}
 				logo={headerText}
@@ -152,6 +164,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onCanvasLayouts={onCanvasLayouts}
 					onDeleteCanvasItems={onDeleteCanvasItems}
 					onCarouselFrame={onCarouselFrame}
+					onWidgetLayout={onWidgetLayout}
 					onCarouselHost={onCarouselHost}
 					onCarouselFocus={onCarouselFocus}
 					resizeBreakpoint={resizeBreakpoint}

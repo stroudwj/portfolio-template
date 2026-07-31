@@ -1,5 +1,5 @@
 .page-header {
-	padding: 56px;
+	padding: 44px 56px 24px;
 	margin-bottom: 0;
 	box-sizing: border-box;
 	position: relative;
@@ -25,7 +25,7 @@
 }
 
 .page-header.heading-position-freeform {
-	min-height: calc(var(--page-heading-y, 56px) + 96px);
+	min-height: calc(var(--page-heading-y, 56px) + 56px);
 }
 
 .page-header.heading-position-freeform .page-title {
@@ -40,10 +40,10 @@
 
 @media (max-width: 768px) {
 	.page-header {
-		padding: 48px 20px;
+		padding: 34px 20px 18px;
 	}
 
 	.page-header.heading-position-freeform {
-		min-height: calc(var(--page-heading-y, 48px) + 72px);
+		min-height: calc(var(--page-heading-y, 48px) + 48px);
 	}
 }

@@ -1,6 +1,8 @@
 import type { PageConfig, PageSection } from './content';
 
 export const MAIN_SECTION_ID = 'main';
+/** UI-only destination understood by block insertion/move commands. */
+export const NEW_SECTION_ID = '__new-section__';
 
 export const SECTION_EDITOR_COLORS = [
 	'#3157c8',

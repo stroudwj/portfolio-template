@@ -84,6 +84,7 @@
 }
 
 .inline-carousel {
+	position: relative;
 	width: 100%;
 	font-family: var(--font-family);
 }
@@ -103,6 +104,22 @@
 	height: 100%;
 	overflow: hidden;
 	background: rgba(127, 127, 127, 0.06);
+	box-sizing: border-box;
+}
+
+.carousel-frame-line .inline-carousel-stage {
+	border: 2px solid var(--carousel-chrome, var(--color-accent));
+}
+
+.carousel-frame-shadow .inline-carousel-stage {
+	box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+.carousel-frame-mat .inline-carousel-stage {
+	border: clamp(8px, 1.8vw, 22px) solid
+		color-mix(in srgb, var(--carousel-chrome, var(--color-accent)) 18%, var(--color-bg));
+	outline: 1px solid var(--carousel-chrome, var(--color-accent));
+	outline-offset: -1px;
 }
 
 .inline-carousel-image {
@@ -160,15 +177,15 @@
 	z-index: 2;
 	display: grid;
 	place-items: center;
-	width: 15.333px;
-	height: 19.333px;
+	width: 34px;
+	height: 42px;
 	padding: 0;
 	border: 0;
-	border-radius: 1.333px;
-	background: rgba(0, 0, 0, 0.42);
-	color: #fff;
+	border-radius: 0;
+	background: transparent;
+	color: var(--carousel-chrome, var(--color-accent));
 	font-family: var(--font-family);
-	font-size: 6px;
+	font-size: 32px;
 	font-weight: 500;
 	line-height: 1;
 	cursor: pointer;
@@ -178,7 +195,7 @@
 
 .inline-carousel-nav:hover,
 .inline-carousel-nav:focus-visible {
-	background: rgba(0, 0, 0, 0.7);
+	background: color-mix(in srgb, var(--carousel-chrome, var(--color-accent)) 14%, transparent);
 }
 
 .inline-carousel-nav:focus-visible {
@@ -187,11 +204,51 @@
 }
 
 .inline-carousel-nav.previous {
-	left: 4px;
+	left: 10px;
 }
 
 .inline-carousel-nav.next {
-	right: 4px;
+	right: 10px;
+}
+
+.carousel-arrows-arrow .inline-carousel-nav {
+	width: 46px;
+	font-size: 26px;
+}
+
+.carousel-arrows-circle .inline-carousel-nav {
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	background: var(--carousel-chrome, var(--color-accent));
+	color: var(--color-bg);
+	font-size: 28px;
+	box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-arrows-circle .inline-carousel-nav:hover,
+.carousel-arrows-circle .inline-carousel-nav:focus-visible,
+.carousel-arrows-tab .inline-carousel-nav:hover,
+.carousel-arrows-tab .inline-carousel-nav:focus-visible {
+	filter: brightness(0.84);
+}
+
+.carousel-arrows-tab .inline-carousel-nav {
+	width: 32px;
+	height: 56px;
+	background: var(--carousel-chrome, var(--color-accent));
+	color: var(--color-bg);
+	font-size: 28px;
+}
+
+.carousel-arrows-tab .inline-carousel-nav.previous {
+	left: 0;
+	border-radius: 0 5px 5px 0;
+}
+
+.carousel-arrows-tab .inline-carousel-nav.next {
+	right: 0;
+	border-radius: 5px 0 0 5px;
 }
 
 .inline-carousel-count {
@@ -243,14 +300,14 @@
 		width: 100%;
 	}
 	.inline-carousel-nav {
-		width: 13.333px;
-		height: 16.667px;
+		width: 34px;
+		height: 40px;
 	}
 	.inline-carousel-nav.previous {
-		left: 2.667px;
+		left: 6px;
 	}
 	.inline-carousel-nav.next {
-		right: 2.667px;
+		right: 6px;
 	}
 }
 
@@ -357,6 +414,8 @@
 .canvas-widget-content {
 	width: 100%;
 	height: 100%;
+	overflow: auto;
+	container-type: inline-size;
 }
 
 .canvas-widget-content > .gallery-root,
@@ -369,6 +428,22 @@
 .canvas-widget-item .inline-carousel-stage {
 	height: 100%;
 	aspect-ratio: auto;
+}
+
+/* Whole-block widgets use the frame itself as their layout boundary. Remove
+   page-flow gutters so sub-pages/products scale with the box the artist sees. */
+.canvas-widget-content > .child-pages {
+	max-width: none;
+	min-height: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: clamp(8px, 3cqw, 24px);
+}
+.canvas-widget-content > .products-block,
+.portfolio-page-part:first-child .canvas-widget-content > .products-block {
+	min-height: 100%;
+	box-sizing: border-box;
+	padding: clamp(8px, 3cqw, 24px);
 }
 
 .canvas-text {

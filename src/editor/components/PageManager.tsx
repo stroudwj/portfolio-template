@@ -22,6 +22,7 @@ function PageActionsMenu({
 		bottom?: number;
 		right: number;
 		maxHeight: number;
+		maxWidth: number;
 	} | null>(null);
 	const page = editor.doc?.content.pages[pageKey];
 
@@ -59,16 +60,19 @@ function PageActionsMenu({
 		const toggle = menu.querySelector(':scope > summary');
 		if (!(toggle instanceof HTMLElement)) return;
 		const rect = toggle.getBoundingClientRect();
+		const controlsRect = toggle.closest('.editor-controls')?.getBoundingClientRect();
 		const gap = 6;
 		const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
 		const spaceAbove = rect.top - gap - 8;
 		const openAbove = spaceBelow < 420 && spaceAbove > spaceBelow;
+		const menuRightEdge = controlsRect ? controlsRect.right - 8 : rect.right;
 		setMenuPosition({
 			...(openAbove
 				? { bottom: window.innerHeight - rect.top + gap }
 				: { top: rect.bottom + gap }),
-			right: Math.max(8, window.innerWidth - rect.right),
+			right: Math.max(8, window.innerWidth - menuRightEdge),
 			maxHeight: Math.max(220, openAbove ? spaceAbove : spaceBelow),
+			maxWidth: Math.max(220, Math.min(300, (controlsRect?.width ?? window.innerWidth) - 16)),
 		});
 	};
 	const deletePage = () => {
@@ -107,6 +111,7 @@ function PageActionsMenu({
 								bottom: menuPosition.bottom,
 								right: menuPosition.right,
 								maxHeight: menuPosition.maxHeight,
+								maxWidth: menuPosition.maxWidth,
 							}
 						: undefined
 				}

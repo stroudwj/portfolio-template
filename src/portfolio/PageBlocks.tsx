@@ -1,5 +1,5 @@
-import type { TextAlign } from '../lib/content';
-import type { MouseEventHandler } from 'react';
+import type { PageBlock, TextAlign } from '../lib/content';
+import type { CSSProperties, MouseEventHandler } from 'react';
 import { safeHref } from './safeHref';
 import './PageBlocks.css';
 
@@ -29,6 +29,19 @@ export function PortfolioButton({
 }
 
 /** A visible pause between groups of work, announced by assistive technology. */
-export function PortfolioDivider() {
-	return <hr className="portfolio-divider" />;
+export function PortfolioDivider({
+	style = 'line',
+	width = 'medium',
+	color,
+}: Pick<Extract<PageBlock, { type: 'divider' }>, 'style' | 'width' | 'color'>) {
+	return (
+		<div
+			className={`portfolio-divider style-${style} width-${width}`}
+			style={color ? ({ '--divider-color': color } as CSSProperties) : undefined}
+			role="separator"
+		>
+			<hr aria-hidden="true" />
+			{style === 'ornament' && <span aria-hidden="true">✦</span>}
+		</div>
+	);
 }

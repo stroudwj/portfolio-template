@@ -58,7 +58,7 @@ import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
 import { automaticPhoneOrder } from './mobileOrder';
-import { artworkEffectClass } from './artworkEffects';
+import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
@@ -292,7 +292,7 @@ export default function CanvasGallery({
 				return;
 			}
 			if (
-				(event.key !== 'Backspace' && event.key !== 'Delete') ||
+				(event.key !== 'Backspace' && event.key !== 'Delete' && event.key !== 'Del') ||
 				event.metaKey ||
 				event.ctrlKey ||
 				event.altKey ||
@@ -994,7 +994,7 @@ export default function CanvasGallery({
 					const key = keyOf(img, i);
 					const l = layouts[i];
 					const vars = {
-						...phoneVars(item.key), '--x': String(l.x), '--y': String((l.y / height) * 100),
+						...phoneVars(item.key), ...artworkEffectStyle(img), '--x': String(l.x), '--y': String((l.y / height) * 100),
 						'--w': String(l.w), '--ar': String(l.ar),
 						zIndex:
 							dragId === img.id || (dragId === '__group__' && selected.has(item.key))

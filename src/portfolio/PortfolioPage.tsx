@@ -47,6 +47,7 @@ import {
 	textBottom,
 } from './canvasLayout';
 import type { ImageLayout, PageBlock } from '../lib/content';
+import type { CanvasWidget } from './CanvasGallery';
 import { pageSections, sectionPartKey } from '../lib/pageSections';
 import { sharedPageTransitionName } from './pageTransitions';
 import ProjectDetails from './ProjectDetails';
@@ -79,6 +80,7 @@ export interface PortfolioPageProps extends PortfolioData {
 		selection: CanvasSelection,
 	) => void;
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -272,6 +274,7 @@ export default function PortfolioPage({
 	onCanvasLayouts,
 	onDeleteCanvasItems,
 	onCarouselFrame,
+	onWidgetLayout,
 	onCarouselHost,
 	onCarouselFocus,
 	resizeBreakpoint,
@@ -352,15 +355,20 @@ export default function PortfolioPage({
 		};
 		hostedCarousels.set(host.id, [...(hostedCarousels.get(host.id) ?? []), widget]);
 	});
-	const carouselLayoutChange = onCarouselFrame
-		? (blockId: string, layout: ImageLayout) => onCarouselFrame(page, blockId, layout)
-		: undefined;
 	const carouselHostChange = onCarouselHost
 		? (blockId: string, hostId: string, layout: ImageLayout) =>
 				onCarouselHost(page, blockId, hostId, layout)
 		: undefined;
 	const sections = pageSections(config);
 	const blockById = new Map(blocks.map((block) => [block.id, block]));
+	const canvasWidgetLayoutChange =
+		onWidgetLayout || onCarouselFrame
+			? (blockId: string, layout: ImageLayout) => {
+					if (blockById.get(blockId)?.type === 'images')
+						onCarouselFrame?.(page, blockId, layout);
+					else onWidgetLayout?.(page, blockId, layout);
+				}
+			: undefined;
 	const sectionIdByBlock = new Map<string, string>();
 	for (const section of sections)
 		for (const blockId of section.blockIds)
@@ -380,6 +388,13 @@ export default function PortfolioPage({
 	}
 	const canvasTextsBySection = new Map<string, CanvasText[]>();
 	const canvasEmbedsBySection = new Map<string, CanvasEmbed[]>();
+	const canvasWidgetsBySection = new Map<string, CanvasWidget[]>();
+	const childItems = (config.children ?? []).map((key) => ({
+		key,
+		label: content.pages[key]?.label ?? key,
+		href: withBase(base, `${key}/`),
+		thumbSrc: pageThumbs?.[key],
+	}));
 	for (const section of sections) {
 		const sectionBlocks = section.blockIds
 			.map((id) => blockById.get(id))
@@ -410,6 +425,41 @@ export default function PortfolioPage({
 					? [{ id: block.id, url: block.url, kind: block.kind, layout: block.layout }]
 					: [],
 			),
+		);
+		canvasWidgetsBySection.set(
+			section.id,
+			sectionBlocks.flatMap((block) => {
+				if (block.type === 'children' && block.canvasLayout)
+					return [{
+						id: block.id,
+						layout: block.canvasLayout,
+						freeResize: true,
+						content: (
+							<ChildPages
+								items={childItems}
+								style={block.style}
+								onNavigate={onNavigate}
+								pageTransition={content.site.creative?.pageTransition}
+							/>
+						),
+					}];
+				if (block.type === 'products' && block.canvasLayout && content.store)
+					return [{
+						id: block.id,
+						layout: block.canvasLayout,
+						freeResize: true,
+						content: (
+							<Products
+								store={content.store}
+								productImageSrcs={productImageSrcs}
+								productIds={block.productIds}
+								layout={block.layout}
+								locale={content.site.language}
+							/>
+						),
+					}];
+				return [];
+			}),
 		);
 	}
 	const standaloneCanvasAnchor = new Map<string, string>();
@@ -456,6 +506,7 @@ export default function PortfolioPage({
 		const hasCanvas = !!canvasHostId;
 		const canvasTexts = canvasTextsBySection.get(sectionId) ?? [];
 		const canvasEmbeds = canvasEmbedsBySection.get(sectionId) ?? [];
+		const canvasWidgets = canvasWidgetsBySection.get(sectionId) ?? [];
 		switch (block.type) {
 			case 'text':
 				// Pinned texts render inside the canvas instead of the page flow.
@@ -632,16 +683,11 @@ export default function PortfolioPage({
 				);
 			}
 			case 'children': {
-				const items = (config.children ?? []).map((key) => ({
-					key,
-					label: content.pages[key]?.label ?? key,
-					href: withBase(base, `${key}/`),
-					thumbSrc: pageThumbs?.[key],
-				}));
+				if (hasCanvas && block.canvasLayout) return null;
 				return (
 					<ChildPages
 						key={block.id}
-						items={items}
+						items={childItems}
 						style={block.style}
 						onNavigate={onNavigate}
 						pageTransition={content.site.creative?.pageTransition}
@@ -650,6 +696,7 @@ export default function PortfolioPage({
 			}
 			case 'products':
 				if (!content.store) return null;
+				if (hasCanvas && block.canvasLayout) return null;
 				return (
 					<Products
 						key={block.id}
@@ -674,11 +721,12 @@ export default function PortfolioPage({
 						texts={canvasHostId === block.id ? canvasTexts : undefined}
 						embeds={canvasHostId === block.id ? canvasEmbeds : undefined}
 						carouselWidgets={hostedCarousels.get(block.id)}
+						canvasWidgets={canvasHostId === block.id ? canvasWidgets : undefined}
 						editable={!!onLayoutChange}
 						onLayoutChange={onLayoutChange}
 						onTextLayout={textLayoutChange}
 						onEmbedLayout={embedLayoutChange}
-						onCarouselWidgetLayout={carouselLayoutChange}
+						onCarouselWidgetLayout={canvasWidgetLayoutChange}
 						onBulkLayoutChange={
 							onCanvasLayouts && gallery
 								? (updates) => onCanvasLayouts(page, gallery.folder, updates)
@@ -739,6 +787,7 @@ export default function PortfolioPage({
 							texts={canvasHostId === block.id ? canvasTexts : undefined}
 							embeds={canvasHostId === block.id ? canvasEmbeds : undefined}
 							carouselWidgets={hostedCarousels.get(block.id)}
+							canvasWidgets={canvasHostId === block.id ? canvasWidgets : undefined}
 							editable={!!onImageLayout}
 							onLayoutChange={
 								onImageLayout ? (id, layout) => onImageLayout(block.gallery.folder, id, layout) : undefined
@@ -755,7 +804,7 @@ export default function PortfolioPage({
 									: undefined
 							}
 							onDeleteSelection={deleteFromCanvas(block.gallery.folder)}
-							onCarouselWidgetLayout={carouselLayoutChange}
+							onCarouselWidgetLayout={canvasWidgetLayoutChange}
 							onCarouselFrameChange={
 								onCarouselFrame ? (layout) => onCarouselFrame(page, block.id, layout) : undefined
 							}
@@ -803,7 +852,14 @@ export default function PortfolioPage({
 				);
 			}
 			case 'divider':
-				return <PortfolioDivider key={block.id} />;
+				return (
+					<PortfolioDivider
+						key={block.id}
+						style={block.style}
+						width={block.width}
+						color={block.color}
+					/>
+				);
 			case 'form':
 				return (
 					<ContactForm
@@ -822,21 +878,25 @@ export default function PortfolioPage({
 				);
 		}
 	};
+	const hasPageHeading = !!config.heading?.trim();
+	const keepsEmptyHeadingBand =
+		!!config.sectionHeights?.['page:heading'] ||
+		!!(resizeBreakpoint && onSectionHeight);
 	const pageParts = [
-		...(config.heading?.trim()
+		...(hasPageHeading || keepsEmptyHeadingBand
 			? [{
 					key: 'page:heading',
-					className: 'portfolio-page-heading',
+					className: `portfolio-page-heading${hasPageHeading ? '' : ' is-empty-page-heading'}`,
 					shotsLength: undefined,
 					shotsFadeStart: undefined,
 					locksSectionEdge: false,
-					rendered: (
+					rendered: hasPageHeading ? (
 						<Hero
 							heading={config.heading}
 							position={content.theme.pageHeadingPosition}
 							kinetic={config.headingKinetic}
 						/>
-					),
+					) : <div className="empty-page-heading-band" aria-hidden="true" />,
 				}]
 			: []),
 		...(config.project
@@ -896,7 +956,7 @@ export default function PortfolioPage({
 			/>
 			<div
 				ref={setPageRoot}
-				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${config.heading?.trim() ? 'has-page-heading' : 'without-page-heading'}`}
+				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${hasPageHeading ? 'has-page-heading' : 'without-page-heading'}`}
 				data-phone-ready={isPhone ? 'true' : undefined}
 			>
 				{pageParts.map((part) => {

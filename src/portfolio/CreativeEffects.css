@@ -10,6 +10,27 @@
 	overflow: hidden;
 }
 
+.creative-background-effects {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.creative-custom-cursor {
+	position: absolute;
+	z-index: 5;
+	width: 36px;
+	height: 36px;
+	opacity: 0;
+	object-fit: contain;
+	transform: translate(-5px, -5px);
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+	transition: opacity 80ms linear;
+	user-select: none;
+}
+
 .creative-grain {
 	position: absolute;
 	inset: 0;
@@ -107,29 +128,22 @@ html[data-page-transition]::view-transition-group(*) {
 	user-select: none;
 }
 
-/* "Loose hang" never changes the canvas geometry: freeform pieces rotate only
-   inside their positioned boxes, while grid wrappers take the tiny tilt. */
-.creative-loose-hang .masonry-item:nth-child(4n + 1),
-.creative-loose-hang .uniform-item:nth-child(4n + 1) {
-	transform: rotate(-0.6deg);
+/* "Loose hang" uses the independent rotate property, so hover transforms and
+   freeform canvas geometry continue to work. Per-artwork controls can override it. */
+.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 1) > img {
+	rotate: calc(var(--hang-strength, 0.7) * -1deg);
 }
-.creative-loose-hang .masonry-item:nth-child(4n + 2),
-.creative-loose-hang .uniform-item:nth-child(4n + 2) {
-	transform: rotate(0.45deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 2) > img {
+	rotate: calc(var(--hang-strength, 0.7) * 0.72deg);
 }
-.creative-loose-hang .masonry-item:nth-child(4n + 3),
-.creative-loose-hang .uniform-item:nth-child(4n + 3) {
-	transform: rotate(-0.25deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 3) > img {
+	rotate: calc(var(--hang-strength, 0.7) * -0.42deg);
 }
-.creative-loose-hang .masonry-item:nth-child(4n),
-.creative-loose-hang .uniform-item:nth-child(4n) {
-	transform: rotate(0.7deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n) > img {
+	rotate: calc(var(--hang-strength, 0.7) * 1.08deg);
 }
-.creative-loose-hang .canvas-item:nth-child(odd) > img {
-	transform: rotate(-0.45deg);
-}
-.creative-loose-hang .canvas-item:nth-child(even) > img {
-	transform: rotate(0.55deg);
+.creative-loose-hang .inline-carousel:not(.artwork-hang-off) .inline-carousel-image {
+	rotate: calc(var(--hang-strength, 0.7) * -0.65deg);
 }
 
 .creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)) {
@@ -304,9 +318,9 @@ html[data-page-transition]::view-transition-group(*) {
 	html[data-page-transition-phone='off']::view-transition-group(*) {
 		animation-duration: 1ms;
 	}
-	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item),
-	.creative-phone-off-loose-hang .canvas-item > img {
-		transform: none;
+	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item, .canvas-item) > img,
+	.creative-phone-off-loose-hang .inline-carousel .inline-carousel-image {
+		rotate: 0deg;
 	}
 	.creative-phone-off-slow-reveal
 		:is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)),

@@ -18,7 +18,7 @@ export default function HeaderLayoutEditor() {
 	};
 
 	return (
-		<Section title="Header layout" sectionKey="_header-layout">
+		<Section title="Header placement" sectionKey="_header-layout">
 			<p className="muted header-layout-intro">Sizes and positions the site name, custom text, or image logo chosen in Site.</p>
 			<Field label="Header size">
 				<div className="gap-row">

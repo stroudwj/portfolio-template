@@ -2,15 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorProvider, useEditor } from './store';
 import StartScreen from './components/StartScreen';
 import SiteIdentityEditor from './components/SiteIdentityEditor';
-import HeaderLayoutEditor from './components/HeaderLayoutEditor';
-import ThemeEditor from './components/ThemeEditor';
-import LayoutEditor from './components/LayoutEditor';
 import PageEditor from './components/PageEditor';
 import PageManager from './components/PageManager';
 import StoreEditor from './components/StoreEditor';
-import SignatureEditor from './components/SignatureEditor';
 import FooterEditor from './components/FooterEditor';
-import CreativeEditor from './components/CreativeEditor';
+import DesignEditor from './components/DesignEditor';
 import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
@@ -18,6 +14,7 @@ import AccountControls from './components/AccountControls';
 import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
 import OnboardingTour from './components/OnboardingTour';
+import AssetWorkbench from './components/AssetWorkbench';
 import {
 	expandSection,
 	onPreviewTypeMotion,
@@ -44,6 +41,24 @@ const EDITOR_TABS = [
 type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 
 const TAB_STORE = 'portfolio-editor.tab';
+const SIDEBAR_WIDTH_STORE = 'portfolio-editor.sidebar-width';
+const UI_THEME_STORE = 'portfolio-editor.ui-theme';
+const DEFAULT_SIDEBAR_WIDTH = 440;
+const MIN_SIDEBAR_WIDTH = 320;
+const MIN_PREVIEW_WIDTH = 360;
+const MAX_SIDEBAR_WIDTH = 720;
+type UiTheme = 'warm' | 'light' | 'dark' | 'contrast';
+
+const UI_THEMES: Array<{ value: UiTheme; label: string }> = [
+	{ value: 'warm', label: 'Warm' },
+	{ value: 'light', label: 'Light' },
+	{ value: 'dark', label: 'Dark' },
+	{ value: 'contrast', label: 'High contrast' },
+];
+
+function normalizeUiTheme(value: string | null): UiTheme {
+	return UI_THEMES.some((theme) => theme.value === value) ? (value as UiTheme) : 'warm';
+}
 
 /** Preserve the last-open category across the five-tab information-architecture
  * update. Old tab ids map to the closest new home instead of dropping the user
@@ -61,6 +76,7 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: '⌘/Ctrl ⇧ Z', label: 'Redo' },
 	{ keys: '⌘/Ctrl Y', label: 'Redo' },
 	{ keys: '⇧ S', label: 'Toggle edge snap' },
+	{ keys: 'Delete / Backspace', label: 'Remove selected canvas items' },
 	{ keys: 'Esc', label: 'Leave fullscreen preview' },
 ];
 
@@ -68,9 +84,13 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 function TopbarMoreMenu({
 	onReset,
 	onShowTour,
+	uiTheme,
+	onUiTheme,
 }: {
 	onReset: () => void;
 	onShowTour: () => void;
+	uiTheme: UiTheme;
+	onUiTheme: (theme: UiTheme) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
@@ -133,6 +153,22 @@ function TopbarMoreMenu({
 							))}
 						</ul>
 					</details>
+					<div className="topbar-ui-theme">
+						<span>Editor appearance</span>
+						<div role="group" aria-label="Editor appearance">
+							{UI_THEMES.map((theme) => (
+								<button
+									type="button"
+									key={theme.value}
+									className={uiTheme === theme.value ? 'active' : ''}
+									aria-pressed={uiTheme === theme.value}
+									onClick={() => onUiTheme(theme.value)}
+								>
+									{theme.label}
+								</button>
+							))}
+						</div>
+					</div>
 					<button
 						type="button"
 						className="topbar-more-action danger"
@@ -190,6 +226,21 @@ function Shell({ base }: { base: string }) {
 	const [selectedPage, setSelectedPage] = useState<string | null>(null);
 	const [lastSelectedPage, setLastSelectedPage] = useState<string | null>(null);
 	const [tourReplayToken, setTourReplayToken] = useState(0);
+	const [uiTheme, setUiTheme] = useState<UiTheme>(() =>
+		typeof window === 'undefined'
+			? 'warm'
+			: normalizeUiTheme(window.localStorage.getItem(UI_THEME_STORE)),
+	);
+	const [sidebarWidth, setSidebarWidth] = useState(() => {
+		if (typeof window === 'undefined') return DEFAULT_SIDEBAR_WIDTH;
+		const saved = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORE));
+		const preferred = Number.isFinite(saved) ? saved : DEFAULT_SIDEBAR_WIDTH;
+		return Math.min(
+			Math.max(preferred, MIN_SIDEBAR_WIDTH),
+			MAX_SIDEBAR_WIDTH,
+			Math.max(MIN_SIDEBAR_WIDTH, window.innerWidth - MIN_PREVIEW_WIDTH),
+		);
+	});
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
 		return normalizeEditorTab(saved);
@@ -216,6 +267,66 @@ function Shell({ base }: { base: string }) {
 	// preview request should reveal it automatically instead of animating offscreen.
 	useEffect(() => onPreviewTypeMotion(() => setMobileView('preview')), []);
 	const phone = usePhoneContext();
+
+	const pickUiTheme = (next: UiTheme) => {
+		setUiTheme(next);
+		try {
+			window.localStorage.setItem(UI_THEME_STORE, next);
+		} catch {
+			/* storage blocked — the appearance still holds this session */
+		}
+	};
+	useEffect(() => {
+		document.documentElement.dataset.editorUiTheme = uiTheme;
+		return () => {
+			delete document.documentElement.dataset.editorUiTheme;
+		};
+	}, [uiTheme]);
+
+	const clampSidebarWidth = (width: number) =>
+		Math.round(
+			Math.min(
+				Math.max(width, MIN_SIDEBAR_WIDTH),
+				MAX_SIDEBAR_WIDTH,
+				Math.max(MIN_SIDEBAR_WIDTH, window.innerWidth - MIN_PREVIEW_WIDTH),
+			),
+		);
+
+	const saveSidebarWidth = (width: number) => {
+		const next = clampSidebarWidth(width);
+		setSidebarWidth(next);
+		try {
+			window.localStorage.setItem(SIDEBAR_WIDTH_STORE, String(next));
+		} catch {
+			/* storage blocked — the width still holds this session */
+		}
+	};
+
+	const startSidebarResize = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		const divider = event.currentTarget;
+		const pointerId = event.pointerId;
+		let latestWidth = sidebarWidth;
+		try {
+			divider.setPointerCapture(pointerId);
+		} catch {
+			/* Pointer listeners below still provide the resize fallback. */
+		}
+		const move = (next: PointerEvent) => {
+			latestWidth = clampSidebarWidth(next.clientX);
+			setSidebarWidth(latestWidth);
+		};
+		const finish = () => {
+			divider.removeEventListener('pointermove', move);
+			divider.removeEventListener('pointerup', finish);
+			divider.removeEventListener('pointercancel', finish);
+			saveSidebarWidth(latestWidth);
+		};
+		divider.addEventListener('pointermove', move);
+		divider.addEventListener('pointerup', finish);
+		divider.addEventListener('pointercancel', finish);
+	};
 
 	useUndoShortcuts(undo, redo);
 
@@ -284,7 +395,7 @@ function Shell({ base }: { base: string }) {
 	const selectedChoice = pageChoices.find((choice) => choice.key === selectedPage);
 
 	return (
-		<div className="editor">
+		<div className={`editor ui-theme-${uiTheme}`}>
 			<header className="editor-topbar">
 				<a className="editor-brand" href={withBase(base)} aria-label="Hangwork home">
 					<picture>
@@ -340,10 +451,15 @@ function Shell({ base }: { base: string }) {
 				<TopbarMoreMenu
 					onReset={resetAll}
 					onShowTour={() => setTourReplayToken((token) => token + 1)}
+					uiTheme={uiTheme}
+					onUiTheme={pickUiTheme}
 				/>
 			</header>
 
-			<div className={`editor-body view-${mobileView}`}>
+			<div
+				className={`editor-body view-${mobileView}`}
+				style={{ '--editor-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+			>
 				<div className="editor-controls" ref={controlsRef}>
 					<nav className="editor-tabs" aria-label="Editor categories">
 						{EDITOR_TABS.map((t) => (
@@ -376,6 +492,7 @@ function Shell({ base }: { base: string }) {
 						</details>
 					)}
 					<div className={`editor-tab-pane ${tab === 'pages' ? 'active' : ''}`}>
+						<AssetWorkbench />
 						{selectedPage && selectedChoice ? (
 							<div className="page-workspace">
 								<div className="page-workspace-nav" aria-label="Current page workspace">
@@ -413,14 +530,10 @@ function Shell({ base }: { base: string }) {
 						<StoreEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'design' ? 'active' : ''}`}>
-						<LayoutEditor />
-						<HeaderLayoutEditor />
-						<ThemeEditor />
-						<CreativeEditor />
+						<DesignEditor />
 					</div>
 					<div className={`editor-tab-pane ${tab === 'site' ? 'active' : ''}`}>
 						<SiteIdentityEditor />
-						<SignatureEditor />
 						<FooterEditor />
 						<SharingEditor />
 					</div>
@@ -428,6 +541,30 @@ function Shell({ base }: { base: string }) {
 						<PublishPanel />
 					</div>
 				</div>
+				<div
+					className="editor-sidebar-resizer"
+					role="separator"
+					aria-label="Resize editing sidebar"
+					aria-orientation="vertical"
+					aria-valuemin={MIN_SIDEBAR_WIDTH}
+					aria-valuemax={MAX_SIDEBAR_WIDTH}
+					aria-valuenow={sidebarWidth}
+					tabIndex={0}
+					onPointerDown={startSidebarResize}
+					onDoubleClick={() => saveSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+					onKeyDown={(event) => {
+						if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+							event.preventDefault();
+							saveSidebarWidth(sidebarWidth + (event.key === 'ArrowLeft' ? -20 : 20));
+						} else if (event.key === 'Home') {
+							event.preventDefault();
+							saveSidebarWidth(MIN_SIDEBAR_WIDTH);
+						} else if (event.key === 'End') {
+							event.preventDefault();
+							saveSidebarWidth(MAX_SIDEBAR_WIDTH);
+						}
+					}}
+				/>
 				<div className="editor-preview">
 					<PreviewPanel
 						base={base}
@@ -440,6 +577,10 @@ function Shell({ base }: { base: string }) {
 				replayToken={tourReplayToken}
 				onSelectTab={pickTab}
 				onSetView={setMobileView}
+				onOpenPageBuilder={() => {
+					const firstPage = doc.content.pages.home ? 'home' : pageChoices[0]?.key;
+					if (firstPage) openPageWorkspace(firstPage);
+				}}
 				onExit={() => {
 					setMobileView('edit');
 					pickTab('pages');

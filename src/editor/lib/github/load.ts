@@ -137,6 +137,10 @@ export async function loadDocFromRepo(
 	const logoPath = logoName ? `src/assets/${logoName}` : '';
 	const hasLogoFile = !!logoPath && shaByPath.has(logoPath);
 	if (hasLogoFile) imagePaths.push(logoPath);
+	const cursorName = content.site.creative?.cursorImage ?? '';
+	const cursorPath = cursorName ? `src/assets/${cursorName}` : '';
+	const hasCursorFile = !!cursorPath && shaByPath.has(cursorPath);
+	if (hasCursorFile) imagePaths.push(cursorPath);
 	// Custom font files ride along so a later publish can re-write them.
 	const fontPathByName = new Map<string, string>();
 	for (const font of content.theme.customFonts ?? []) {
@@ -222,6 +226,17 @@ export async function loadDocFromRepo(
 				sampleAssetId: null,
 			}
 		: { filename: logoName, assetId: null, sampleAssetId: null };
+	doc.cursorImage = hasCursorFile
+		? {
+				filename: cursorName.slice(cursorName.lastIndexOf('/') + 1),
+				assetId: assetIdByPath.get(cursorPath) ?? null,
+				sampleAssetId: null,
+			}
+		: {
+				filename: cursorName.slice(cursorName.lastIndexOf('/') + 1),
+				assetId: null,
+				sampleAssetId: null,
+			};
 	for (const [key, path] of thumbPathByPage) {
 		doc.pageThumbs[key] = {
 				filename: path.slice(path.lastIndexOf('/') + 1),
