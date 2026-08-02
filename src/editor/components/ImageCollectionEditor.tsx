@@ -2,7 +2,11 @@
 // images with upload, delete, drag-reorder, and per-image metadata. `variant`
 // controls how much metadata is shown. The list collapses to a one-line summary
 // so pages with many images stay scannable in the panel.
-import { useRef, useState } from 'react';
+import {
+	useRef,
+	useState,
+	type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
@@ -26,6 +30,10 @@ import {
 	writeImageTransfer,
 } from '../lib/image-transfer';
 import ImageCropDialog, { type ImageCropSettings } from './ImageCropDialog';
+import {
+	selectWorkbenchItem,
+	workbenchMarqueeBase,
+} from '../lib/workbench-selection';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -43,11 +51,22 @@ export interface ImageCollectionEditorProps {
 	focusedUi?: boolean;
 }
 
+type WorkbenchPickerMarquee = {
+	startX: number;
+	startY: number;
+	currentX: number;
+	currentY: number;
+};
+
 /** Pull reusable photos into the current group without leaving the block editor. */
 function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 	const { doc, transferGalleryImage } = useEditor();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [marquee, setMarquee] = useState<WorkbenchPickerMarquee | null>(null);
 	const detailsRef = useRef<HTMLDetailsElement>(null);
+	const gridRef = useRef<HTMLDivElement>(null);
+	const marqueeBase = useRef<Set<string>>(new Set());
+	const marqueeRef = useRef<WorkbenchPickerMarquee | null>(null);
 	if (!doc) return null;
 	const entries = doc.galleries[WORKBENCH_FOLDER] ?? [];
 	const folders = [
@@ -57,6 +76,65 @@ function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 				.filter((value): value is string => !!value),
 		),
 	].sort((a, b) => a.localeCompare(b));
+	const gridPoint = (clientX: number, clientY: number) => {
+		const grid = gridRef.current;
+		if (!grid) return { x: 0, y: 0 };
+		const bounds = grid.getBoundingClientRect();
+		return {
+			x: clientX - bounds.left + grid.scrollLeft,
+			y: clientY - bounds.top + grid.scrollTop,
+		};
+	};
+	const selectInsideMarquee = (next: WorkbenchPickerMarquee) => {
+		const grid = gridRef.current;
+		if (!grid) return;
+		const left = Math.min(next.startX, next.currentX);
+		const right = Math.max(next.startX, next.currentX);
+		const top = Math.min(next.startY, next.currentY);
+		const bottom = Math.max(next.startY, next.currentY);
+		const selection = new Set(marqueeBase.current);
+		grid.querySelectorAll<HTMLElement>('[data-workbench-picker-id]').forEach((card) => {
+			const intersects =
+				card.offsetLeft + card.offsetWidth >= left &&
+				card.offsetLeft <= right &&
+				card.offsetTop + card.offsetHeight >= top &&
+				card.offsetTop <= bottom;
+			if (intersects) selection.add(card.dataset.workbenchPickerId ?? '');
+		});
+		selection.delete('');
+		setSelected(selection);
+	};
+	const beginMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0 || event.target !== event.currentTarget) return;
+		event.preventDefault();
+		const point = gridPoint(event.clientX, event.clientY);
+		marqueeBase.current = workbenchMarqueeBase(selected, event);
+		const next = {
+			startX: point.x,
+			startY: point.y,
+			currentX: point.x,
+			currentY: point.y,
+		};
+		event.currentTarget.setPointerCapture(event.pointerId);
+		marqueeRef.current = next;
+		setMarquee(next);
+		selectInsideMarquee(next);
+	};
+	const moveMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+		const current = marqueeRef.current;
+		if (!current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+		const point = gridPoint(event.clientX, event.clientY);
+		const next = { ...current, currentX: point.x, currentY: point.y };
+		marqueeRef.current = next;
+		setMarquee(next);
+		selectInsideMarquee(next);
+	};
+	const endMarquee = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.currentTarget.hasPointerCapture(event.pointerId))
+			event.currentTarget.releasePointerCapture(event.pointerId);
+		marqueeRef.current = null;
+		setMarquee(null);
+	};
 	return (
 		<details className="workbench-picker" ref={detailsRef}>
 			<summary>
@@ -76,25 +154,35 @@ function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 							))}
 						</div>
 					)}
-					<div className="workbench-picker-grid">
+					<small className="workbench-selection-hint">
+						Shift-click or Shift-drag to add to your selection.
+					</small>
+					<div
+						className="workbench-picker-grid"
+						ref={gridRef}
+						onPointerDown={beginMarquee}
+						onPointerMove={moveMarquee}
+						onPointerUp={endMarquee}
+						onPointerCancel={endMarquee}
+					>
 						{entries.map((entry, index) => {
 							const name = entry.meta.title || entry.filename || `Image ${index + 1}`;
 							return (
 								<label
 									key={entry.id}
 									className={selected.has(entry.id) ? 'selected' : ''}
+									data-workbench-picker-id={entry.id}
+									onClick={(event) => {
+										event.preventDefault();
+										setSelected((current) =>
+											selectWorkbenchItem(current, entry.id, event),
+										);
+									}}
 								>
 									<input
 										type="checkbox"
 										checked={selected.has(entry.id)}
-										onChange={() =>
-											setSelected((current) => {
-												const next = new Set(current);
-												if (next.has(entry.id)) next.delete(entry.id);
-												else next.add(entry.id);
-												return next;
-											})
-										}
+										readOnly
 										aria-label={`Select ${name} from workbench`}
 									/>
 									<img src={getAssetPreviewUrl(entry.assetId) ?? ''} alt="" />
@@ -102,6 +190,18 @@ function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 								</label>
 							);
 						})}
+						{marquee && (
+							<div
+								className="workbench-marquee"
+								aria-hidden="true"
+								style={{
+									left: Math.min(marquee.startX, marquee.currentX),
+									top: Math.min(marquee.startY, marquee.currentY),
+									width: Math.abs(marquee.currentX - marquee.startX),
+									height: Math.abs(marquee.currentY - marquee.startY),
+								}}
+							/>
+						)}
 					</div>
 					<div className="workbench-picker-actions">
 						<button

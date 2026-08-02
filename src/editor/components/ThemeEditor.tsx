@@ -288,7 +288,7 @@ export default function ThemeEditor() {
 			</Field>
 			<Field
 				label="Page heading position"
-				hint="Places page titles such as “Selected Works”. Freeform adds precise controls."
+				hint="Places page titles such as “Selected Works”. Freeform lets you drag the heading box in the desktop preview or use precise controls."
 			>
 				<div className="chip-row" role="group" aria-label="Page heading position">
 					{(['left', 'center', 'right', 'freeform'] as PageHeadingPosition[]).map((position) => (

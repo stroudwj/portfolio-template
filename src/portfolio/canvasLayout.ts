@@ -52,6 +52,28 @@ export function clampTextFlowLayout(layout: TextFlowLayout): TextFlowLayout {
 	return { w, x: Math.min(Math.max(layout.x, 0), 100 - w) };
 }
 
+/** Move one or more canvas items by the same amount while keeping the complete
+ * selection inside the left, right, and top edges. The bottom stays open so a
+ * composition can grow downward. Keeping the delta shared preserves spacing
+ * when several selected images are nudged together. */
+export function nudgeCanvasLayouts<T extends { x: number; y: number; w: number }>(
+	layouts: readonly T[],
+	dx: number,
+	dy: number,
+): T[] {
+	if (layouts.length === 0) return [];
+	const left = Math.min(...layouts.map((layout) => layout.x));
+	const top = Math.min(...layouts.map((layout) => layout.y));
+	const right = Math.max(...layouts.map((layout) => layout.x + layout.w));
+	const boundedDx = Math.min(Math.max(dx, -left), 100 - right);
+	const boundedDy = Math.max(dy, -top);
+	return layouts.map((layout) => ({
+		...layout,
+		x: layout.x + boundedDx,
+		y: layout.y + boundedDy,
+	}));
+}
+
 /** Pointer location in canvas-width units. Re-reading the live rectangle makes
  * dragging stay attached to the cursor when the page scrolls beneath it. */
 export function pointerInCanvas(

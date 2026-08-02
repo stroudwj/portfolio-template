@@ -111,13 +111,19 @@
 
 .section-mixed-composition > .section-flow-layer {
 	position: relative;
-	z-index: 1;
+	/* Keep this parent out of its own stacking context. Its individual block
+	   boundaries participate beside the canvas layer, so editor order can decide
+	   which block is in front. */
 }
 
 .section-mixed-composition > .section-canvas-layer {
 	position: relative;
-	z-index: 2;
+	z-index: 1;
 	pointer-events: none;
+}
+
+.section-mixed-composition > .section-flow-layer > .preview-block-boundary {
+	position: relative;
 }
 
 .section-mixed-composition > .section-canvas-layer .canvas-item,

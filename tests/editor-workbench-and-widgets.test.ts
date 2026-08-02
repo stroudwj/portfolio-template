@@ -64,6 +64,39 @@ describe('image workbench destinations', () => {
 });
 
 describe('freeform collection blocks', () => {
+	it('keeps earlier editor blocks above later freeform image blocks', () => {
+		const content = structuredClone(blankContent);
+		content.galleries.front = { items: {} };
+		content.galleries.back = { items: {} };
+		content.pages.home.blocks = [
+			{
+				id: 'front',
+				type: 'images',
+				gallery: { folder: 'front', alt: 'Front', order: 'asc', layout: 'grid' },
+			},
+			{
+				id: 'back',
+				type: 'images',
+				gallery: { folder: 'back', alt: 'Back', order: 'asc', layout: 'freeform' },
+			},
+		];
+		content.pages.home.sections = [{ id: 'main', name: 'Main', blockIds: ['front', 'back'] }];
+		const markup = renderToStaticMarkup(
+			createElement(PortfolioPage, {
+				page: 'home',
+				content,
+				galleries: {
+					front: [{ id: 'front-image', src: '/front.jpg', alt: 'Front' }],
+					back: [{ id: 'back-image', src: '/back.jpg', alt: 'Back', layout: { x: 0, y: 0, w: 80, ar: 1 } }],
+				},
+				base: '',
+			}),
+		);
+
+		expect(markup).toMatch(/data-preview-block="front" style="z-index:2"/);
+		expect(markup).toContain('class="section-canvas-layer" style="z-index:1"');
+	});
+
 	it('places collection widgets below occupied artwork with a compact, scalable first frame', () => {
 		expect(collectionLayoutAtCanvasBottom('children', 74)).toEqual({
 			x: 21,

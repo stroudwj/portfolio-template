@@ -17,6 +17,7 @@ import { collectIssues } from '../src/editor/lib/validation';
 import { automaticPhoneOrder } from '../src/portfolio/mobileOrder';
 import {
 	clampTextFlowLayout,
+	nudgeCanvasLayouts,
 	pointerInCanvas,
 	roundLayout,
 	snapSpanToCenter,
@@ -119,6 +120,21 @@ describe('content compatibility', () => {
 		expect(snapSpanToCenter(37.9, 24)).toEqual({ value: 38, snapped: true });
 		expect(snapSpanToCenter(30, 24)).toEqual({ value: 30, snapped: false });
 		expect(snapSpanToEdges(20.8, 30, [20, 70])).toBe(20);
+	});
+
+	it('nudges multiple canvas items together and keeps the group inside its edges', () => {
+		const layouts = nudgeCanvasLayouts(
+			[
+				{ x: 1, y: 2, w: 30, ar: 1 },
+				{ x: 40, y: 8, w: 50, ar: 2 },
+			],
+			20,
+			-5,
+		);
+		expect(layouts).toEqual([
+			{ x: 11, y: 0, w: 30, ar: 1 },
+			{ x: 50, y: 6, w: 50, ar: 2 },
+		]);
 	});
 
 	it('keeps a dragged item under the pointer when its canvas scrolls', () => {

@@ -38,6 +38,24 @@
 	text-align: center;
 }
 
+.page-header.heading-position-freeform .page-title.is-position-editable {
+	cursor: grab;
+	outline: 1px dashed color-mix(in srgb, var(--color-heading-text, var(--color-text)) 58%, transparent);
+	outline-offset: 8px;
+	touch-action: none;
+	user-select: none;
+}
+
+.page-header.heading-position-freeform .page-title.is-position-editable:hover,
+.page-header.heading-position-freeform .page-title.is-position-editable:focus-visible {
+	outline-style: solid;
+	outline-width: 2px;
+}
+
+.page-header.heading-position-freeform .page-title.is-position-editable:active {
+	cursor: grabbing;
+}
+
 @media (max-width: 768px) {
 	.page-header {
 		padding: 34px 20px 18px;

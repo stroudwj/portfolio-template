@@ -42,6 +42,7 @@ import {
 	MIN_TEXT_W,
 	MIN_W,
 	nearestEdge,
+	nudgeCanvasLayouts,
 	pointerInCanvas,
 	roundLayout,
 	roundTextLayout,
@@ -346,6 +347,47 @@ export default function CanvasGallery({
 		);
 	};
 
+	const nudgeSelection = (dx: number, dy: number) => {
+		const chosen = selectionItems().filter(
+			(item) =>
+				selected.has(item.key) &&
+				!(item.kind === 'image' && (item.layout as ImageLayout).locked),
+		);
+		if (chosen.length === 0) return;
+		const nudged = nudgeCanvasLayouts(
+			chosen.map((item) => item.layout),
+			dx,
+			dy,
+		);
+		const updates: CanvasLayoutUpdates = {};
+		chosen.forEach((item, index) => {
+			const next = nudged[index];
+			if (item.kind === 'image')
+				(updates.images ??= {})[item.id] = roundLayout(next as ImageLayout);
+			else if (item.kind === 'embed')
+				(updates.embeds ??= {})[item.id] = roundLayout(next as ImageLayout);
+			else if (item.kind === 'widget')
+				(updates.widgets ??= {})[item.id] = roundLayout(next as ImageLayout);
+			else {
+				const layout = roundTextLayout(next as TextLayout);
+				committedTextLayouts.current[item.id] = layout;
+				(updates.texts ??= {})[item.id] = layout;
+			}
+		});
+		if (onBulkLayoutChange) {
+			onBulkLayoutChange(updates);
+			return;
+		}
+		for (const [id, layout] of Object.entries(updates.images ?? {}))
+			onLayoutChange?.(id, layout);
+		for (const [id, layout] of Object.entries(updates.texts ?? {}))
+			onTextLayout?.(id, layout);
+		for (const [id, layout] of Object.entries(updates.embeds ?? {}))
+			onEmbedLayout?.(id, layout);
+		for (const [id, layout] of Object.entries(updates.widgets ?? {}))
+			onWidgetLayout?.(id, layout);
+	};
+
 	useEffect(() => {
 		if (!editable) {
 			// Keep the same empty Set identity once selection is already clear. A new
@@ -371,15 +413,23 @@ export default function CanvasGallery({
 					!!target.closest('[contenteditable="true"]'))
 			) return;
 			if (doc.activeElement !== canvas && !canvas.contains(doc.activeElement)) return;
-			if (!event.metaKey && !event.ctrlKey && !event.altKey && selected.size === 1) {
-				if (event.key === '[' || event.key === ']') {
+			if (!event.metaKey && !event.ctrlKey && !event.altKey && selected.size > 0) {
+				if (selected.size === 1 && (event.key === '[' || event.key === ']')) {
 					event.preventDefault();
 					moveSelectionLayer(event.key === ']' ? 'front' : 'back');
 					return;
 				}
-				if (event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+				if (selected.size === 1 && event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
 					event.preventDefault();
 					resizeSelectionWithKeys(event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : -1);
+					return;
+				}
+				if (!event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+					event.preventDefault();
+					nudgeSelection(
+						event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
+						event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0,
+					);
 					return;
 				}
 			}
@@ -827,17 +877,35 @@ export default function CanvasGallery({
 		const canvas = event.currentTarget;
 		canvas.focus({ preventScroll: true });
 		const win = canvas.ownerDocument.defaultView ?? window;
-		const rect = canvas.getBoundingClientRect();
-		const scale = 100 / rect.width;
-		const originX = Math.min(Math.max((event.clientX - rect.left) * scale, 0), 100);
-		const originY = Math.max((event.clientY - rect.top) * scale, 0);
+		const origin = pointerInCanvas(
+			event.clientX,
+			event.clientY,
+			canvas.getBoundingClientRect(),
+		);
+		const originX = Math.min(Math.max(origin.x, 0), 100);
+		const originY = Math.max(origin.y, 0);
 		const candidates = selectionItems();
 		const base = event.shiftKey ? new Set(selected) : new Set<string>();
+		const captureTarget = event.currentTarget;
+		const pointerId = event.pointerId;
+		let lastPointer = { x: event.clientX, y: event.clientY };
 		let moved = false;
+		try {
+			captureTarget.setPointerCapture(pointerId);
+		} catch {
+			// Window listeners below still keep the gesture alive in older WebViews.
+		}
 
-		const move = (next: PointerEvent) => {
-			const x2 = Math.min(Math.max((next.clientX - rect.left) * scale, 0), 100);
-			const y2 = Math.max((next.clientY - rect.top) * scale, 0);
+		const update = (clientX: number, clientY: number) => {
+			// The preview can scroll while the pointer stays still. Read the live
+			// canvas rectangle so the marquee remains anchored to its start point.
+			const current = pointerInCanvas(
+				clientX,
+				clientY,
+				canvas.getBoundingClientRect(),
+			);
+			const x2 = Math.min(Math.max(current.x, 0), 100);
+			const y2 = Math.max(current.y, 0);
 			const box = {
 				x: Math.min(originX, x2),
 				y: Math.min(originY, y2),
@@ -857,14 +925,29 @@ export default function CanvasGallery({
 			}
 			setSelected(nextSelection);
 		};
+		const move = (next: PointerEvent) => {
+			lastPointer = { x: next.clientX, y: next.clientY };
+			update(next.clientX, next.clientY);
+		};
+		const scroll = () => update(lastPointer.x, lastPointer.y);
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
+			try {
+				if (captureTarget.hasPointerCapture(pointerId))
+					captureTarget.releasePointerCapture(pointerId);
+			} catch {
+				// Pointer capture may already have been released on cancellation.
+			}
 			setMarquee(null);
 			if (!moved && !event.shiftKey) setSelected(new Set());
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
@@ -1089,35 +1172,62 @@ export default function CanvasGallery({
 					aria-hidden="true"
 				/>
 			)}
-			{editable && selected.size === 1 && (
+			{editable && selected.size > 0 && (
 				<div className="canvas-layer-toolbar" onPointerDown={(event) => event.stopPropagation()}>
-					<button
-						type="button"
-						onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('front'))}
-						onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('front'))}
-						title="Bring to front (])"
-					>Bring to front</button>
-					<button
-						type="button"
-						onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('back'))}
-						onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('back'))}
-						title="Send to back ([)"
-					>Send to back</button>
-					{singleSelectedItem?.kind === 'image' && (
-						<button
-							type="button"
-							className="canvas-lock-button"
-							onPointerDown={(event) => runToolbarPointerAction(event, toggleSelectedImageLock)}
-							onKeyDown={(event) => runToolbarKeyAction(event, toggleSelectedImageLock)}
-							title={(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image position and size'}
-						>
-							{(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image'}
-						</button>
+					<div className="canvas-nudge-controls" role="group" aria-label="Nudge selected canvas items">
+						{([
+							['left', '←', -1, 0],
+							['up', '↑', 0, -1],
+							['down', '↓', 0, 1],
+							['right', '→', 1, 0],
+						] as const).map(([direction, label, dx, dy]) => (
+							<button
+								key={direction}
+								type="button"
+								className="canvas-nudge-button"
+								data-canvas-nudge={direction}
+								aria-label={`Nudge selected ${direction}`}
+								onClick={(event) => {
+									event.stopPropagation();
+									nudgeSelection(dx, dy);
+								}}
+								title={`Nudge ${direction} (Arrow ${direction[0].toUpperCase()}${direction.slice(1)})`}
+							>{label}</button>
+						))}
+					</div>
+					{selected.size === 1 && (
+						<>
+							<button
+								type="button"
+								onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('front'))}
+								onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('front'))}
+								title="Bring to front (])"
+							>Bring to front</button>
+							<button
+								type="button"
+								onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('back'))}
+								onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('back'))}
+								title="Send to back ([)"
+							>Send to back</button>
+							{singleSelectedItem?.kind === 'image' && (
+								<button
+									type="button"
+									className="canvas-lock-button"
+									onPointerDown={(event) => runToolbarPointerAction(event, toggleSelectedImageLock)}
+									onKeyDown={(event) => runToolbarKeyAction(event, toggleSelectedImageLock)}
+									title={(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image position and size'}
+								>
+									{(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image'}
+								</button>
+							)}
+						</>
 					)}
 					<span title="Resize selected item with Shift + arrow keys">
-						{singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
+						{selected.size > 1
+							? `${selected.size} selected · arrows nudge`
+							: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
 							? 'Position & size locked'
-							: '⇧ + arrows resize'}
+							: 'Arrows nudge · ⇧ arrows resize'}
 					</span>
 				</div>
 			)}

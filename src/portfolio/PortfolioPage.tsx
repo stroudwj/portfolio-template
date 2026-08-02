@@ -104,6 +104,8 @@ export interface PortfolioPageProps extends PortfolioData {
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 	onFooterImageLayout?: (layout: ImageLayout) => void;
+	/** Editor preview: directly moves the optional page heading in freeform mode. */
+	onPageHeadingPosition?: (x: number, y: number) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
 	onSelectBlock?: (pageKey: string, blockId: string) => void;
@@ -293,6 +295,7 @@ export default function PortfolioPage({
 	onSectionHeight,
 	onFooterHeight,
 	onFooterImageLayout,
+	onPageHeadingPosition,
 	editorPreview = false,
 	onSelectBlock,
 }: PortfolioPageProps) {
@@ -1041,6 +1044,9 @@ export default function PortfolioPage({
 						<Hero
 							heading={config.heading}
 							position={content.theme.pageHeadingPosition}
+							freeformX={content.theme.pageHeadingX}
+							freeformY={content.theme.pageHeadingY}
+							onPositionChange={onPageHeadingPosition}
 							kinetic={config.headingKinetic}
 						/>
 					) : <div className="empty-page-heading-band" aria-hidden="true" />,
@@ -1061,13 +1067,14 @@ export default function PortfolioPage({
 				.map((id) => blockById.get(id))
 				.filter((block): block is PageBlock => !!block);
 			const renderedByBlock = sectionBlocks
-				.map((block) => {
+				.map((block, blockIndex) => {
 					const renderedBlock = renderBlock(block);
 					return renderedBlock ? (
 						<div
 							className="preview-block-boundary"
 							data-preview-page={page}
 							data-preview-block={block.id}
+							style={{ zIndex: sectionBlocks.length - blockIndex }}
 							key={block.id}
 						>
 							{renderedBlock}
@@ -1087,7 +1094,10 @@ export default function PortfolioPage({
 			const rendered = canvasRendered && flowRendered.length ? (
 				<div className="section-mixed-composition">
 					<div className="section-flow-layer">{flowRendered}</div>
-					<div className="section-canvas-layer">{canvasRendered}</div>
+					<div
+						className="section-canvas-layer"
+						style={{ zIndex: sectionBlocks.length - canvasHostIndex }}
+					>{canvasRendered}</div>
 				</div>
 			) : <>{renderedByBlock}</>;
 			const shots = sectionBlocks.find(

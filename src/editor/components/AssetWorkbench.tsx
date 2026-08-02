@@ -15,6 +15,10 @@ import {
 } from '../lib/image-transfer';
 import { ImageDrop } from './ui/ImageDrop';
 import { Section } from './ui/controls';
+import {
+	selectWorkbenchItem,
+	workbenchMarqueeBase,
+} from '../lib/workbench-selection';
 
 type WorkbenchView = 'grid' | 'list';
 type Marquee = {
@@ -88,13 +92,6 @@ export default function AssetWorkbench() {
 	if (!doc) return null;
 	const targets = imageGroupTargets(doc);
 
-	const toggle = (id: string) =>
-		setSelected((current) => {
-			const next = new Set(current);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
 	const allVisibleSelected =
 		visible.length > 0 && visible.every((entry) => selected.has(entry.id));
 	const selectedEntries = entries.filter((entry) => selected.has(entry.id));
@@ -149,8 +146,7 @@ export default function AssetWorkbench() {
 		if (event.button !== 0 || event.target !== event.currentTarget) return;
 		event.preventDefault();
 		const point = gridPoint(event.clientX, event.clientY);
-		marqueeBase.current =
-			event.metaKey || event.ctrlKey || event.shiftKey ? new Set(selected) : new Set();
+		marqueeBase.current = workbenchMarqueeBase(selected, event);
 		const next = {
 			startX: point.x,
 			startY: point.y,
@@ -186,8 +182,7 @@ export default function AssetWorkbench() {
 			return;
 		event.preventDefault();
 		const point = gridPoint(event.clientX, event.clientY);
-		marqueeBase.current =
-			event.metaKey || event.ctrlKey || event.shiftKey ? new Set(selected) : new Set();
+		marqueeBase.current = workbenchMarqueeBase(selected, event);
 		const next = {
 			startX: point.x,
 			startY: point.y,
@@ -393,6 +388,9 @@ export default function AssetWorkbench() {
 								</label>
 								<span>{selected.size ? `${selected.size} selected` : `${visible.length} items`}</span>
 							</div>
+							<small className="workbench-selection-hint">
+								Shift-click or Shift-drag to add to your selection.
+							</small>
 							<div
 								ref={gridRef}
 								className={`workbench-grid workbench-${view}`}
@@ -413,11 +411,17 @@ export default function AssetWorkbench() {
 											className={`workbench-card ${selected.has(entry.id) ? 'selected' : ''}`}
 											key={entry.id}
 											data-workbench-id={entry.id}
+											onClick={(event) => {
+												event.preventDefault();
+												setSelected((current) =>
+													selectWorkbenchItem(current, entry.id, event),
+												);
+											}}
 										>
 											<input
 												type="checkbox"
 												checked={selected.has(entry.id)}
-												onChange={() => toggle(entry.id)}
+												readOnly
 												aria-label={`Select ${name}`}
 											/>
 											<img

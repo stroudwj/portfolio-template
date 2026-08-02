@@ -600,6 +600,13 @@ body.workbench-window-open .floating-add-block {
 .workbench-select-row input {
 	margin: 0;
 }
+.workbench-selection-hint {
+	display: block;
+	margin: -1px 0 7px;
+	color: var(--ink-soft);
+	font-size: 9px;
+	line-height: 1.35;
+}
 .workbench-grid {
 	position: relative;
 	display: grid;
@@ -793,15 +800,18 @@ body.workbench-window-open .floating-add-block {
 	font-size: 9px;
 }
 .workbench-picker-grid {
+	position: relative;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
 	gap: 6px;
 	max-height: 240px;
 	overflow: auto;
 	padding: 8px;
+	user-select: none;
 }
 .workbench-picker-grid label {
 	position: relative;
+	z-index: 1;
 	display: grid;
 	gap: 3px;
 	min-width: 0;
@@ -840,6 +850,9 @@ body.workbench-window-open .floating-add-block {
 }
 .workbench-picker-actions .btn-primary {
 	font-size: 11px;
+}
+.workbench-picker > .workbench-selection-hint {
+	margin: 6px 8px 0;
 }
 
 .copy-effects-panel {
@@ -3926,8 +3939,6 @@ a.resume-name:hover {
 }
 .crop-viewport {
 	position: relative;
-	width: min(100%, 560px);
-	max-height: 52vh;
 	overflow: hidden;
 	border: 1px solid rgba(255, 255, 255, 0.9);
 	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
@@ -5176,9 +5187,6 @@ a.live-url:hover {
 	box-shadow: 0 0 0 4px color-mix(in srgb, var(--klein) 12%, transparent);
 }
 
-.preview-block-boundary {
-	display: contents;
-}
 [data-editor-block].is-collapsed > .block > .block-head {
 	margin-bottom: 0;
 }

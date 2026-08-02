@@ -485,6 +485,11 @@ export default function PreviewPanel({
 					: undefined
 			}
 			onFooterImageLayout={editable ? (layout) => editor.setFooterImageLayout(layout) : undefined}
+			onPageHeadingPosition={
+				editable
+					? (x, y) => editor.setTheme({ pageHeadingX: x, pageHeadingY: y })
+					: undefined
+			}
 			editorPreview={!fullscreen}
 			onSelectBlock={(pageKey, blockId) => selectPreviewBlock(pageKey, blockId)}
 		/>

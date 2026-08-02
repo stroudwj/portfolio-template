@@ -26,6 +26,15 @@ const ratioOf = (value: string | undefined): number | undefined => {
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(Math.max(value, min), max);
 
+const MAX_VIEWPORT_WIDTH_PX = 560;
+const MAX_VIEWPORT_HEIGHT_VH = 52;
+
+/** Keep the crop frame inside the dialog without letting either axis distort its ratio. */
+const cropViewportWidth = (aspect: number): string => {
+	const heightLimitedWidth = Math.round(aspect * MAX_VIEWPORT_HEIGHT_VH * 100) / 100;
+	return `min(100%, ${MAX_VIEWPORT_WIDTH_PX}px, ${heightLimitedWidth}vh)`;
+};
+
 export default function ImageCropDialog({
 	src,
 	name,
@@ -143,7 +152,10 @@ export default function ImageCropDialog({
 					<div
 						ref={viewportRef}
 						className="crop-viewport"
-						style={{ aspectRatio: String(viewportAspect) }}
+						style={{
+							width: cropViewportWidth(viewportAspect),
+							aspectRatio: String(viewportAspect),
+						}}
 						onPointerDown={startPan}
 					>
 						<img

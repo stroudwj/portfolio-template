@@ -52,6 +52,7 @@ export interface PortfolioProps extends PortfolioData {
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 	onFooterImageLayout?: (layout: ImageLayout) => void;
+	onPageHeadingPosition?: (x: number, y: number) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
 	/** Published static runtime only: record privacy-light page totals. */
@@ -64,7 +65,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	// `text` is retained in the schema for older sites, but the editor now has one
 	// canonical header text value: the site name.
@@ -186,6 +187,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onSectionHeight={onSectionHeight}
 					onFooterHeight={onFooterHeight}
 					onFooterImageLayout={onFooterImageLayout}
+					onPageHeadingPosition={onPageHeadingPosition}
 					editorPreview={editorPreview}
 					onSelectBlock={onSelectBlock}
 				/>
