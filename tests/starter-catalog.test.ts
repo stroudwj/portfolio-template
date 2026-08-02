@@ -88,6 +88,20 @@ describe('discipline-led starter catalog', () => {
 		).toBe(true);
 	});
 
+	it('uses the current standalone image-block model in every ready starter', () => {
+		for (const starter of AVAILABLE_STARTERS) {
+			for (const page of Object.values(starter.content.pages)) {
+				expect(page.gallery, `${starter.name} still has a legacy page gallery`).toBeUndefined();
+				for (const block of page.blocks ?? [])
+					expect(block.type, `${starter.name} still has a legacy gallery block`).not.toBe('gallery');
+			}
+			const folders = Object.values(starter.content.pages).flatMap((page) =>
+				(page.blocks ?? []).flatMap((block) => block.type === 'images' ? [block.gallery.folder] : []),
+			);
+			expect(new Set(folders)).toEqual(new Set(Object.keys(starter.content.galleries)));
+		}
+	});
+
 	it('keeps local painter copies byte-for-byte tied to the rights manifest', () => {
 		const painter = AVAILABLE_STARTERS[0];
 		const sampleIds = painter.gallerySpecs.flatMap((spec) =>
@@ -473,11 +487,11 @@ describe('discipline-led starter catalog', () => {
 	it('reports the exact stripped result and blocks an empty public home page', () => {
 		const doc = initDocFromContent(AVAILABLE_STARTERS[0].content);
 		doc.content.pages.home.sectionHeights = {
-			'block:gallery': { desktop: 900, phone: 500 },
+			'block:selected-work-images': { desktop: 900, phone: 500 },
 		};
 		doc.content.pages.home.mobile = {
 			mode: 'custom',
-			order: ['page:heading', 'block:gallery'],
+			order: ['page:heading', 'block:selected-work-images'],
 		};
 		const impact = samplePublishImpact(doc);
 		expect(impact.sampleCount).toBe(10);

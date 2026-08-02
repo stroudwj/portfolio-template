@@ -60,7 +60,7 @@ body.texture-concrete {
 }
 
 .sidebar {
-	position: sticky;
+	position: absolute;
 	top: 0;
 	left: 0;
 	z-index: 1000;
@@ -121,6 +121,7 @@ body.texture-concrete {
 .portfolio-container.nav-style-topbar > .sidebar {
 	left: 0;
 	right: 0;
+	box-sizing: border-box;
 	padding: 28px 36px;
 }
 .portfolio-container.nav-style-topbar > .sidebar:not(.is-stabilized),
@@ -135,17 +136,34 @@ body.texture-concrete {
 	width: 100%;
 	align-items: flex-end;
 }
+.portfolio-container.nav-style-topbar > .sidebar .nav-links-row {
+	justify-content: flex-end;
+	max-width: min(70%, 820px);
+}
+.portfolio-container.nav-style-topbar > .content-view {
+	padding-top: 72px;
+}
+.portfolio-container.nav-style-topbar.logo-position-center > .sidebar .nav-links-row {
+	max-width: calc(50% - 76px);
+}
+.portfolio-container.nav-style-topbar.logo-position-freeform > .sidebar .nav-links-row {
+	max-width: 55%;
+}
 
 /* Centered: links centered just beneath the centered logo. */
 .portfolio-container.nav-style-centered > .sidebar {
 	left: 0;
 	right: 0;
-	top: 88px;
+	top: calc(72px + (56px * var(--logo-scale, 1)));
+	box-sizing: border-box;
 	padding: 0 24px;
 }
 .portfolio-container.nav-style-centered > .sidebar .navigation-shell {
 	width: 100%;
 	align-items: center;
+}
+.portfolio-container.nav-style-centered > .content-view {
+	padding-top: calc(76px + (56px * var(--logo-scale, 1)));
 }
 
 /* Pill: a floating capsule centered along the bottom edge. */
@@ -154,20 +172,37 @@ body.texture-concrete {
 	right: 0;
 	top: auto;
 	bottom: 28px;
+	height: auto;
 	padding: 0;
 }
 .portfolio-container.nav-style-pill > .sidebar:not(.is-stabilized) {
-	top: calc(100vh - 72px);
-	bottom: auto;
+	/* Anchor the menu to the first viewport even when it scrolls with a page whose
+	   content is taller than the viewport. This also keeps wrapped pills clear of
+	   the lower edge without relying on a one-line magic height. */
+	top: auto;
+	bottom: calc(100% - 100vh + 28px);
 }
 .portfolio-container.nav-style-pill > .sidebar .navigation-shell {
 	width: 100%;
 	align-items: center;
 }
 
+/* Fixed horizontal menus must escape the dock's intentionally zero-sized
+   sidebar box. Left + right define the viewport width without fighting a
+   leftover width: 0 declaration. */
+.portfolio-container.nav-style-topbar > .sidebar.is-stabilized,
+.portfolio-container.nav-style-centered > .sidebar.is-stabilized,
+.portfolio-container.nav-style-pill > .sidebar.is-stabilized {
+	width: auto;
+	box-sizing: border-box;
+}
+
 /* Minimal: only the fixed hamburger + overlay live here (positioned in Nav.css). */
 .portfolio-container.nav-style-minimal > .sidebar {
 	padding: 0;
+}
+.portfolio-container.nav-style-minimal > .sidebar .navigation-shell {
+	width: 100%;
 }
 
 /* A left-aligned header shares the dock's column, so begin the links beneath it
@@ -235,6 +270,16 @@ body.texture-concrete {
 }
 
 @media (max-width: 768px) {
+	/* Every desktop navigation style collapses to the same hamburger on phones,
+	   so they must reserve the same header space. Scale the clearance with image
+	   logos, which are taller than the text treatment. */
+	.portfolio-container.nav-style-dock > .content-view,
+	.portfolio-container.nav-style-topbar > .content-view,
+	.portfolio-container.nav-style-centered > .content-view,
+	.portfolio-container.nav-style-pill > .content-view,
+	.portfolio-container.nav-style-minimal > .content-view {
+		padding-top: calc(22px + (34px * var(--logo-scale, 1)));
+	}
 	.collage-container {
 		padding: 16px 20px 40px;
 	}

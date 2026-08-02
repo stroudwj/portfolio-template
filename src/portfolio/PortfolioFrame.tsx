@@ -38,7 +38,7 @@ export default function PortfolioFrame({
 	automaticContrast = true,
 	fallbackBackground = '#ffffff',
 	stabilized = true,
-	logoStabilized = stabilized,
+	logoStabilized = true,
 	logoPosition = 'center',
 	logoX,
 	logoY,

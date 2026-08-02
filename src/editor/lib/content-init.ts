@@ -41,21 +41,33 @@ export const blankContent: Content = {
 		home: {
 			title: '{name} — Selected Works',
 			heading: 'Selected Works',
-			gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc' },
-			blocks: [{ id: 'gallery', type: 'gallery' }],
-			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
+			blocks: [{
+				id: 'selected-works-images',
+				type: 'images',
+				name: 'Selected Works',
+				gallery: { folder: 'selected-works', alt: 'Selected work', order: 'asc', layout: 'freeform' },
+			}],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['selected-works-images'] }],
 		},
 		art: {
 			title: 'Art — {name}',
-			gallery: { folder: 'art', alt: 'Art piece', order: 'asc' },
-			blocks: [{ id: 'gallery', type: 'gallery' }],
-			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
+			blocks: [{
+				id: 'art-images',
+				type: 'images',
+				name: 'Art',
+				gallery: { folder: 'art', alt: 'Art piece', order: 'asc', layout: 'freeform' },
+			}],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['art-images'] }],
 		},
 		photography: {
 			title: 'Photography — {name}',
-			gallery: { folder: 'photography', alt: 'Photograph', order: 'asc' },
-			blocks: [{ id: 'gallery', type: 'gallery' }],
-			sections: [{ id: 'main', name: 'Main section', blockIds: ['gallery'] }],
+			blocks: [{
+				id: 'photography-images',
+				type: 'images',
+				name: 'Photography',
+				gallery: { folder: 'photography', alt: 'Photograph', order: 'asc', layout: 'freeform' },
+			}],
+			sections: [{ id: 'main', name: 'Main section', blockIds: ['photography-images'] }],
 		},
 		about: {
 			title: 'About — {name}',
@@ -254,8 +266,9 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			getAssetPreviewUrl(thumb?.assetId ?? null) ??
 			sampleArtworkUrl(thumb?.sampleAssetId) ??
 			(thumb?.filename ? PLACEHOLDER_IMAGE : undefined);
-		if (!src && page.gallery) {
-			const first = doc.galleries[page.gallery.folder]?.[0];
+		const firstGallery = pageGalleryConfigs(page)[0];
+		if (!src && firstGallery) {
+			const first = doc.galleries[firstGallery.folder]?.[0];
 			if (first)
 				src =
 					getAssetPreviewUrl(first.assetId) ??

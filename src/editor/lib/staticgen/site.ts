@@ -160,8 +160,9 @@ function resolvePageThumbs(content: Content, galleries: Record<string, ResolvedI
 	const thumbs: Record<string, string> = {};
 	for (const [key, page] of Object.entries(content.pages)) {
 		if (page.thumbnail) thumbs[key] = `/assets/${page.thumbnail}`;
-		else if (page.gallery) {
-			const first = galleries[page.gallery.folder]?.[0];
+		else {
+			const firstGallery = pageGalleryConfigs(page)[0];
+			const first = firstGallery ? galleries[firstGallery.folder]?.[0] : undefined;
 			if (first) thumbs[key] = first.src;
 		}
 	}
@@ -182,7 +183,7 @@ function resolveProductImageSrcs(content: Content): Record<string, string> {
 function resolveOgImage(content: Content, galleries: Record<string, ResolvedImage[]>, siteUrl: string): string | undefined {
 	if (content.site.ogImage) return `${siteUrl}/assets/${content.site.ogImage}`;
 	if (content.profile.image) return `${siteUrl}/assets/${content.profile.image}`;
-	const home = content.pages.home?.gallery;
+	const home = content.pages.home ? pageGalleryConfigs(content.pages.home)[0] : undefined;
 	const first = home ? galleries[home.folder]?.[0] : undefined;
 	return first ? `${siteUrl}${first.src}` : undefined;
 }

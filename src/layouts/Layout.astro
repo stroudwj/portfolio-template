@@ -39,7 +39,7 @@ const navStyle = theme.navStyle ?? 'dock';
 const pageConfig = content.pages[current || 'home'];
 const automaticContrast = theme.automaticTextContrast !== false;
 const stabilized = theme.stabilizeNavigation !== false;
-const logoStabilized = theme.stabilizeLogo ?? stabilized;
+const logoStabilized = theme.stabilizeLogo !== false;
 const pageBackground = pageConfig?.background || theme.backgroundColor;
 const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background, automaticContrast))
 	.map(([prop, value]) => `${prop}:${value}`)
@@ -92,7 +92,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<title>{title}</title>
 	</head>
 	<body
-		style={`--hang-strength:${site.creative?.hangStrength ?? 0.7}`}
+		style={`--hang-strength:${pageConfig?.hangingStrength ?? site.creative?.hangStrength ?? 0.75}`}
 		class:list={{
 			'creative-loose-hang': pageConfig?.hanging ?? site.creative?.looseHang,
 			[`texture-${theme.backgroundTexture}`]: theme.backgroundTexture,

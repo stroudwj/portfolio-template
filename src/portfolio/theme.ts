@@ -23,6 +23,8 @@ type ThemeVarKey = Exclude<
 	| 'logoX'
 	| 'logoY'
 	| 'navStyle'
+	| 'navOffsetX'
+	| 'navOffsetY'
 	| 'fullscreenMobileMenu'
 	| 'automaticTextContrast'
 	| 'stabilizeNavigation'
@@ -63,6 +65,10 @@ const pageHeadingXCss = (theme: Theme): string =>
 const pageHeadingYCss = (theme: Theme): string =>
 	`${Math.min(Math.max(theme.pageHeadingY ?? 56, 0), 240)}px`;
 
+/** Fine navigation offsets, deliberately bounded so the menu remains recoverable. */
+const navOffsetCss = (value: number | undefined): string =>
+	`${Math.min(Math.max(value ?? 0, -64), 64)}px`;
+
 /** Theme → a React inline-style object of CSS variables. */
 export function themeToVars(theme: Theme): CSSProperties {
 	const style: Record<string, string> = {};
@@ -77,13 +83,15 @@ export function themeToVars(theme: Theme): CSSProperties {
 	style['--page-heading-scale'] = pageHeadingScaleCss(theme);
 	style['--page-heading-x'] = pageHeadingXCss(theme);
 	style['--page-heading-y'] = pageHeadingYCss(theme);
+	style['--nav-offset-x'] = navOffsetCss(theme.navOffsetX);
+	style['--nav-offset-y'] = navOffsetCss(theme.navOffsetY);
 	return style as CSSProperties;
 }
 
 /** Theme → a `:root { … }` CSS string for the Astro Layout's global injection. */
 export function themeToRootCss(theme: Theme): string {
 	const body = VARS.map(([cssVar, key]) => `${cssVar}:${theme[key]};`).join('');
-	return `:root{${body}--color-body-text:${theme.bodyTextColor || theme.textColor};--color-heading-text:${theme.headingTextColor || theme.textColor};--color-subheading-text:${theme.subheadingTextColor || theme.textColor};--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};--page-heading-scale:${pageHeadingScaleCss(theme)};--page-heading-x:${pageHeadingXCss(theme)};--page-heading-y:${pageHeadingYCss(theme)};}`;
+	return `:root{${body}--color-body-text:${theme.bodyTextColor || theme.textColor};--color-heading-text:${theme.headingTextColor || theme.textColor};--color-subheading-text:${theme.subheadingTextColor || theme.textColor};--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};--page-heading-scale:${pageHeadingScaleCss(theme)};--page-heading-x:${pageHeadingXCss(theme)};--page-heading-y:${pageHeadingYCss(theme)};--nav-offset-x:${navOffsetCss(theme.navOffsetX)};--nav-offset-y:${navOffsetCss(theme.navOffsetY)};}`;
 }
 
 /** Parse a #rgb / #rrggbb hex string to [r,g,b] in 0–255, or null if not hex. */

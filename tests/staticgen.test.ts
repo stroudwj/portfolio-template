@@ -99,6 +99,7 @@ describe('staticgen', () => {
 		expect(home).toContain('<title>Jane Doe — Selected Works</title>');
 		expect(home).toContain('<link rel="canonical" href="https://jane.hangwork.art/" />');
 		expect(home).toContain('property="og:site_name" content="Jane Doe"');
+		expect(home).toContain('property="og:image" content="https://jane.hangwork.art/assets/selected-works/01-blue.jpg"');
 		// Both gallery files render — including the caption-less one.
 		expect(home).toContain('/assets/selected-works/01-blue.jpg');
 		expect(home).toContain('/assets/selected-works/02-red.jpg');
@@ -125,9 +126,15 @@ describe('staticgen', () => {
 		const base = testBundle();
 		const content = parseAndMigrateContent({
 			...base.contentJson,
+			site: {
+				...base.contentJson.site,
+				creative: { looseHang: true, hangStrength: 2.5 },
+			},
 			theme: {
 				...base.contentJson.theme,
 				navStyle: 'topbar',
+				navOffsetX: -5,
+				navOffsetY: 8,
 				fullscreenMobileMenu: true,
 				stabilizeNavigation: false,
 				subheadingScale: 130,
@@ -139,6 +146,8 @@ describe('staticgen', () => {
 				...base.contentJson.pages,
 				home: {
 					...base.contentJson.pages.home,
+					hanging: true,
+					hangingStrength: 3.25,
 					background: '#101014', // dark page → auto-contrast should flip text to light
 					blocks: [
 						...(base.contentJson.pages.home.blocks ?? []),
@@ -179,10 +188,15 @@ describe('staticgen', () => {
 		// Nav style: the wrapper class + horizontal row links, plus the full-screen
 		// mobile overlay markup (opt-in via fullscreenMobileMenu) and its trigger.
 		expect(home).toContain('nav-style-topbar');
+		expect(home).toContain('--nav-offset-x:-5px');
+		expect(home).toContain('--nav-offset-y:8px');
 		expect(home).toContain('row-link');
 		expect(home).toContain('nav-menu-trigger');
 		expect(home).toContain('nav-menu-overlay');
 		expect(home).toContain('logo-position-left');
+		expect(home).toContain('header-logo-container logo-position-left is-stabilized');
+		expect(home).toContain('creative-loose-hang');
+		expect(home).toContain('--hang-strength:3.25');
 		expect(home).toContain('--subheading-scale:1.3');
 		expect(home).toContain('--page-heading-scale:1.45');
 		expect(home).toContain('heading-position-center');

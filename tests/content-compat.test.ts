@@ -30,7 +30,23 @@ function fixture(name: string): unknown {
 	return JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'));
 }
 
+function firstImagesBlock(page: ReturnType<typeof blankDoc>['content']['pages'][string]) {
+	const block = page.blocks?.find((candidate) => candidate.type === 'images');
+	if (!block || block.type !== 'images') throw new Error('Expected a standalone image block');
+	return block;
+}
+
 describe('content compatibility', () => {
+	it('seeds blank and example sites with the current standalone image-block model', () => {
+		for (const doc of [blankDoc(), existingDoc()]) {
+			for (const page of Object.values(doc.content.pages)) {
+				expect(page.gallery).toBeUndefined();
+				expect(page.blocks?.some((block) => block.type === 'gallery')).toBe(false);
+			}
+			expect(firstImagesBlock(doc.content.pages.home).gallery.folder).toBe('selected-works');
+		}
+	});
+
 	it('migrates legacy page parts into named section containers without separating pinned canvas content', () => {
 		const legacy = structuredClone(blankDoc().content) as unknown as {
 			schemaVersion: number;
@@ -39,6 +55,7 @@ describe('content compatibility', () => {
 		legacy.schemaVersion = 4;
 		const home = legacy.pages.home;
 		delete home.sections;
+		home.gallery = { folder: 'selected-works', alt: 'Selected work', order: 'asc', layout: 'freeform' };
 		home.blocks = [
 			{ id: 'gallery', type: 'gallery' },
 			{
@@ -189,7 +206,7 @@ describe('content compatibility', () => {
 		};
 
 		const parsed = parseAndMigrateContent(raw);
-		const group = parsed.pages.home.blocks?.find((block) => block.type === 'images');
+		const group = parsed.pages.home.blocks?.find((block) => block.id === 'carousel');
 		expect(group?.type === 'images' ? group.gallery : undefined).toMatchObject({
 			carousel: true,
 			carouselFit: 'fill',
@@ -368,6 +385,8 @@ describe('content compatibility', () => {
 		withExtras.theme.logoPosition = 'freeform';
 		withExtras.theme.logoX = 24;
 		withExtras.theme.logoY = 86;
+		withExtras.theme.navOffsetX = -7;
+		withExtras.theme.navOffsetY = 12;
 		withExtras.site.footerHeights = { desktop: 180, phone: 120 };
 		withExtras.pages.home.background = '#101014';
 		withExtras.pages.home.sectionColors = { 'block:gallery': '#e0685b', 'page:heading': '#f7ecc9' };
@@ -390,6 +409,8 @@ describe('content compatibility', () => {
 		expect(parsed.theme.logoPosition).toBe('freeform');
 		expect(parsed.theme.logoX).toBe(24);
 		expect(parsed.theme.logoY).toBe(86);
+		expect(parsed.theme.navOffsetX).toBe(-7);
+		expect(parsed.theme.navOffsetY).toBe(12);
 		expect(parsed.site.footerHeights).toEqual({ desktop: 180, phone: 120 });
 		expect(parsed.pages.home.background).toBe('#101014');
 		expect(parsed.pages.home.sectionColors).toEqual({
@@ -552,9 +573,9 @@ describe('content compatibility', () => {
 describe('browser draft compatibility', () => {
 	it('accepts a phone-only page heading position and rejects stale gallery item keys', () => {
 		const doc = blankDoc();
-		doc.content.pages.home.mobile = { mode: 'custom', order: ['page:heading', 'block:gallery'] };
+		doc.content.pages.home.mobile = { mode: 'custom', order: ['page:heading', 'block:selected-works-images'] };
 		expect(() => parseAndMigrateEditorDoc(doc)).not.toThrow();
-		doc.content.pages.home.gallery!.mobile = { mode: 'custom', order: ['image:missing'] };
+		firstImagesBlock(doc.content.pages.home).gallery.mobile = { mode: 'custom', order: ['image:missing'] };
 		expect(() => parseAndMigrateEditorDoc(doc)).toThrow(/no longer exists/i);
 	});
 
@@ -679,7 +700,13 @@ describe('browser draft compatibility', () => {
 		doc.galleries.series = [];
 		doc.galleries.detail = [];
 		// A live page may intentionally reuse the draft parent's image group.
-		doc.content.pages.photography.gallery = { folder: 'art', alt: 'Shared artwork', order: 'asc' };
+		firstImagesBlock(doc.content.pages.photography).gallery = { folder: 'art', alt: 'Shared artwork', order: 'asc' };
+		doc.galleries.art = [{
+			id: 'shared-reference',
+			filename: 'shared.jpg',
+			assetId: null,
+			meta: { title: 'Shared', alt: 'Shared artwork', description: '', link: '' },
+		}];
 
 		const bundle = await buildBundle(doc);
 
@@ -693,7 +720,7 @@ describe('browser draft compatibility', () => {
 
 	it('keeps reference-only gallery names and their existing display order', async () => {
 		const doc = blankDoc();
-		doc.content.pages.art.gallery!.order = 'desc';
+		firstImagesBlock(doc.content.pages.art).gallery.order = 'desc';
 		doc.galleries.art = [
 			{
 				id: 'reference-z',
@@ -712,7 +739,7 @@ describe('browser draft compatibility', () => {
 		const bundle = await buildBundle(doc);
 
 		expect(Object.keys(bundle.contentJson.galleries.art.items)).toEqual(['z-last.jpg', 'a-first.jpg']);
-		expect(bundle.contentJson.pages.art.gallery?.order).toBe('desc');
+		expect(firstImagesBlock(bundle.contentJson.pages.art).gallery.order).toBe('desc');
 		expect(bundle.files.some((file) => file.path.startsWith('src/assets/art/'))).toBe(false);
 	});
 
@@ -728,8 +755,8 @@ describe('browser draft compatibility', () => {
 		const bundle = await buildBundle(doc);
 
 		expect(bundle.contentJson.profile.image).toBe('');
-		expect(Object.keys(bundle.contentJson.galleries['selected-works'].items)).toEqual([]);
-		expect(Object.keys(bundle.contentJson.galleries.photography.items)).toEqual([]);
+		expect(bundle.contentJson.galleries['selected-works']).toBeUndefined();
+		expect(bundle.contentJson.galleries.photography).toBeUndefined();
 		expect(Object.keys(bundle.contentJson.galleries.art.items)).toEqual(['01-real-work.png']);
 		expect(bundle.files.map((file) => file.path)).toContain('src/assets/art/01-real-work.png');
 	});
@@ -797,7 +824,8 @@ describe('browser draft compatibility', () => {
 
 	it('round-trips artwork sizing, click actions, and opt-in phone arrangements', async () => {
 		const doc = blankDoc();
-		const folder = doc.content.pages.home.gallery!.folder;
+		const homeImages = firstImagesBlock(doc.content.pages.home);
+		const folder = homeImages.gallery.folder;
 		doc.galleries[folder] = [
 			{
 				id: 'artwork-one',
@@ -816,7 +844,7 @@ describe('browser draft compatibility', () => {
 				},
 			},
 		];
-		doc.content.pages.home.gallery!.mobile = {
+		homeImages.gallery.mobile = {
 			mode: 'custom',
 			order: ['image:artwork-one'],
 			items: { 'image:artwork-one': { width: 75, align: 'right' } },
@@ -834,7 +862,7 @@ describe('browser draft compatibility', () => {
 			focusY: 70,
 			layout: { x: 12, y: 4, w: 28, ar: 1.5, z: 9 },
 		});
-		expect(bundle.contentJson.pages.home.gallery?.mobile).toEqual(doc.content.pages.home.gallery!.mobile);
+		expect(firstImagesBlock(bundle.contentJson.pages.home).gallery.mobile).toEqual(homeImages.gallery.mobile);
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
 	});
 

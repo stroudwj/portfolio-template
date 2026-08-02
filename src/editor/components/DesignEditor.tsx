@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CreativeEditor from './CreativeEditor';
 import LayoutEditor from './LayoutEditor';
 import ThemeEditor from './ThemeEditor';
+import { HelpDisclosure } from './ui/controls';
 
 const DESIGN_AREAS = [
 	{
@@ -35,8 +36,7 @@ export default function DesignEditor() {
 		<div className="design-workspace">
 			<header className="design-workspace-heading">
 				<span className="design-eyebrow">Design</span>
-				<h2>Shape the whole site</h2>
-				<p>Choose an area first. Every change previews live and applies across your portfolio.</p>
+				<h2>Site-wide appearance</h2>
 			</header>
 			<nav className="design-area-tabs" aria-label="Design areas" role="tablist">
 				{DESIGN_AREAS.map((item) => (
@@ -55,7 +55,9 @@ export default function DesignEditor() {
 					</button>
 				))}
 			</nav>
-			<p className="design-area-description">{active.description}</p>
+			<HelpDisclosure label={`About ${active.label.toLowerCase()}`} className="design-area-help">
+				<p>{active.description} Changes preview live and apply across your portfolio.</p>
+			</HelpDisclosure>
 			<div
 				className="design-area-panel"
 				id={`design-panel-${area}`}

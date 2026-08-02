@@ -212,6 +212,10 @@ export interface Theme {
 	logoY?: number;
 	/** Site-wide navigation layout. Absent = 'dock' (the classic left magnify sidebar). */
 	navStyle?: NavStyle;
+	/** Fine horizontal navigation adjustment in pixels. Absent = the style default. */
+	navOffsetX?: number;
+	/** Fine vertical navigation adjustment in pixels. Absent = the style default. */
+	navOffsetY?: number;
 	/** Phones open the menu as a full-screen fade-in overlay instead of the compact corner box. */
 	fullscreenMobileMenu?: boolean;
 	/** Automatically choose readable text over page/section colors. Absent = enabled. */
@@ -526,6 +530,8 @@ export type PageBlock =
 			style?: 'line' | 'double' | 'dotted' | 'ornament';
 			width?: 'short' | 'medium' | 'full';
 			color?: string;
+			/** Freeform divider placement within its section canvas. */
+			layout?: ImageLayout;
 		}
 	| {
 			id: string;
@@ -586,6 +592,8 @@ export interface PageConfig {
 	heading?: string;
 	/** Override the site-wide hanging choice for this page. */
 	hanging?: boolean;
+	/** Override the site-wide hand-hung tilt strength for this page, in degrees. */
+	hangingStrength?: number;
 	/** Present on gallery pages; absent on text-only pages like About. */
 	gallery?: GalleryConfig;
 	/** Ordered body blocks. Filled by the versioned parser for pre-block content. */

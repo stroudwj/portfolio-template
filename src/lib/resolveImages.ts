@@ -84,7 +84,7 @@ export async function resolvePageGalleries(pageKey: string): Promise<Record<stri
  * render an SVG card, so the favicon is never used; undefined means "emit no og:image".
  */
 export async function resolveOgImage(): Promise<string | undefined> {
-	const home = content.pages.home?.gallery;
+	const home = content.pages.home ? pageGalleryConfigs(content.pages.home)[0] : undefined;
 	const image =
 		(content.site.ogImage ? getAsset(content.site.ogImage) : undefined) ??
 		getAsset(content.profile.image) ??
@@ -105,7 +105,9 @@ export async function resolveChildThumbs(pageKey: string): Promise<Record<string
 		const child = content.pages[childKey];
 		if (!child) continue;
 		let image = child.thumbnail ? getAsset(child.thumbnail) : undefined;
-		if (!image && child.gallery) image = getGallery(child.gallery.folder, child.gallery.order)[0]?.image;
+		const firstGallery = pageGalleryConfigs(child)[0];
+		if (!image && firstGallery)
+			image = getGallery(firstGallery.folder, firstGallery.order)[0]?.image;
 		if (!image) continue;
 		out[childKey] = (await getImage({ src: image, width: 640 })).src;
 	}

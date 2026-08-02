@@ -459,7 +459,7 @@ export default function PortfolioPage({
 					return [{
 						id: block.id,
 						layout: block.canvasLayout,
-						freeResize: false,
+						freeResize: true,
 						dragLabel: 'Click and drag sub-pages',
 						content: <ChildPages items={childItemsFor(block)} style={block.style} onNavigate={onNavigate} pageTransition={content.site.creative?.pageTransition} />,
 					}];
@@ -467,7 +467,7 @@ export default function PortfolioPage({
 					return childItemsFor(block).flatMap((item) => item.layout ? [{
 						id: `${block.id}::${item.id}`,
 						layout: item.layout,
-						freeResize: false,
+						freeResize: true,
 						dragLabel: `Click and drag ${item.label}`,
 						content: (
 							<ChildPages
@@ -478,6 +478,20 @@ export default function PortfolioPage({
 							/>
 						),
 					}] : []);
+				if (block.type === 'divider' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: true,
+						dragLabel: 'Click and drag divider',
+						content: (
+							<PortfolioDivider
+								style={block.style}
+								width={block.width}
+								color={block.color}
+							/>
+						),
+					}];
 				if (block.type === 'products' && block.canvasLayout && content.store)
 					return [{
 						id: block.id,
@@ -545,7 +559,13 @@ export default function PortfolioPage({
 		if (freeformHostBySection.has(section.id)) continue;
 		const anchor = section.blockIds.find((id) => {
 			const block = blockById.get(id);
-			return (block?.type === 'text' || block?.type === 'embed') && !!block.layout;
+			return (
+				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider') && !!block.layout) ||
+				(block?.type === 'children' && (!!block.canvasLayout || (block.items ?? []).some((item) => !!item.layout))) ||
+				(block?.type === 'products' && !!block.canvasLayout) ||
+				(block?.type === 'project' && !!block.layout) ||
+				(block?.type === 'form' && !!block.layout)
+			);
 		});
 		if (anchor) standaloneCanvasAnchor.set(section.id, anchor);
 	}
@@ -963,6 +983,21 @@ export default function PortfolioPage({
 				);
 			}
 			case 'divider':
+				if (hasCanvas && block.layout) return null;
+				if (block.layout) {
+					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
+					return (
+						<div key={block.id} className="page-content-wrapper standalone-widget-canvas">
+							<Gallery
+								images={[]}
+								canvasWidgets={canvasWidgets}
+								editable={!!canvasWidgetLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onSelectBlock={selectInnerBlock}
+							/>
+						</div>
+					);
+				}
 				return (
 					<PortfolioDivider
 						key={block.id}

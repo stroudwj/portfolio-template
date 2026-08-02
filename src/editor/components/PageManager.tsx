@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditor } from '../store';
-import { Section } from './ui/controls';
+import { HelpDisclosure, Section } from './ui/controls';
 import { SortableItem, SortableList, type DragHandleProps } from './ui/Sortable';
 import AddPageButton from './AddPageButton';
 
@@ -292,7 +292,9 @@ export default function PageManager({
 
 	return (
 		<Section title="Pages">
-			<p className="muted">Select a page to edit. Drag ⠿ to change the order; use ••• for publishing, visibility, search, address, and delete. Sub-pages stay snapped together in one indented group beneath their parent page.</p>
+			<HelpDisclosure label="How pages are organized">
+				<p>Select a page to edit. Drag ⠿ to reorder it; use ••• for publishing, visibility, search, address, and delete. Sub-pages stay attached to their parent.</p>
+			</HelpDisclosure>
 			<div className="page-manager-list" role="list" aria-label="Pages in your site menu">
 				<SortableList ids={pageIds} onReorder={movePage}>
 					{pages.map((item) => {
@@ -353,14 +355,24 @@ export default function PageManager({
 											onEditPage={onEditPage}
 										/>
 										{hasChildren && (
-											<div className="page-children-list" role="list" aria-label={`Sub-pages under ${label}`}>
-												<div className="page-children-group-heading" role="presentation">
-													<span>↳ Sub-pages grouped under {label}</span>
-													<small>Drag within this group to set the card/list order.</small>
-												</div>
-												<SortableList
-													ids={page.children!}
-													onReorder={(from, to) => editor.moveChildPage(pageKey, from, to)}
+											<details className="page-children-disclosure">
+												<summary>
+													<span>
+														<strong>
+															{page.children!.length} sub-page{page.children!.length === 1 ? '' : 's'}
+														</strong>
+														<small>Under {label}</small>
+													</span>
+													<span className="page-children-chevron" aria-hidden="true">⌄</span>
+												</summary>
+												<div
+													className="page-children-list"
+													role="list"
+													aria-label={`Sub-pages under ${label}`}
+												>
+													<SortableList
+														ids={page.children!}
+														onReorder={(from, to) => editor.moveChildPage(pageKey, from, to)}
 												>
 													{page.children!.map((childKey) => {
 														const child = doc.content.pages[childKey];
@@ -381,9 +393,10 @@ export default function PageManager({
 															</SortableItem>
 														);
 													})}
-												</SortableList>
-												{childControl}
-											</div>
+													</SortableList>
+													{childControl}
+												</div>
+											</details>
 										)}
 										{!hasChildren && childControl}
 									</>

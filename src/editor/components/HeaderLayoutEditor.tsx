@@ -11,6 +11,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 	const logoPosition = theme.logoPosition ?? 'center';
 	const logoX = theme.logoX ?? 50;
 	const logoY = theme.logoY ?? 40;
+	const logoStabilized = theme.stabilizeLogo !== false;
 
 	const applyLogoScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -62,6 +63,13 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 							{label}
 						</button>
 					))}
+				</div>
+			</Field>
+
+			<Field label="While visitors scroll" hint="This affects only the header. Navigation has its own setting in Design → Structure.">
+				<div className="chip-row" role="group" aria-label="Header scroll behavior">
+					<button type="button" className={`btn-icon btn-chip ${logoStabilized ? 'active' : ''}`} aria-pressed={logoStabilized} onClick={() => setTheme({ stabilizeLogo: undefined })}>Stays visible</button>
+					<button type="button" className={`btn-icon btn-chip ${!logoStabilized ? 'active' : ''}`} aria-pressed={!logoStabilized} onClick={() => setTheme({ stabilizeLogo: false })}>Scrolls away</button>
 				</div>
 			</Field>
 

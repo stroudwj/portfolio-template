@@ -39,6 +39,8 @@ export interface ImageCollectionEditorProps {
 	hint?: string;
 	/** Whether uploads must supply alt text or an explicit decorative choice. */
 	requireAltText?: boolean;
+	/** A calmer, selection-based editor used by standalone image-group blocks. */
+	focusedUi?: boolean;
 }
 
 /** Pull reusable photos into the current group without leaving the block editor. */
@@ -137,6 +139,7 @@ export default function ImageCollectionEditor({
 	embedded,
 	hint,
 	requireAltText = false,
+	focusedUi = false,
 }: ImageCollectionEditorProps) {
 	const {
 		doc,
@@ -150,6 +153,7 @@ export default function ImageCollectionEditor({
 	} = useEditor();
 	const [collapsed, setCollapsed] = useState(false);
 	const [compact, setCompact] = useState(true);
+	const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 	const [cropEntryId, setCropEntryId] = useState<string | null>(null);
 	const [pendingUpload, setPendingUpload] = useState<{
 		files: File[];
@@ -197,8 +201,8 @@ export default function ImageCollectionEditor({
 	};
 
 	const body = (
-		<>
-			{entries.length > 0 && (
+		<div className={`image-collection-editor${focusedUi ? ' image-group-editor' : ''}`}>
+			{entries.length > 0 && !focusedUi && (
 				<button type="button" className="collapse-toggle" onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed}>
 					<span className="collapse-chevron" aria-hidden="true">
 						{collapsed ? '▸' : '▾'}
@@ -208,8 +212,25 @@ export default function ImageCollectionEditor({
 				</button>
 			)}
 
-			{(!collapsed || entries.length === 0) && (
+			{(!collapsed || entries.length === 0 || focusedUi) && (
 				<>
+					{focusedUi && (
+						<div className="image-group-collection-head">
+							<div>
+								<strong>Images</strong>
+								<small>
+									{entries.length === 0
+										? 'Start by adding images to this group.'
+										: `${entries.length} image${entries.length === 1 ? '' : 's'} · drag rows to change their order`}
+								</small>
+							</div>
+							<span className="image-group-count" aria-label={`${entries.length} images`}>{entries.length}</span>
+						</div>
+					)}
+					<div
+						className={focusedUi ? 'image-group-source-actions' : undefined}
+						data-tour={focusedUi ? 'image-group-images' : undefined}
+					>
 						<ImageDrop
 							multiple
 							onFiles={(files) => beginUpload(files)}
@@ -222,12 +243,13 @@ export default function ImageCollectionEditor({
 								)
 							}
 						>
-							<span>{addLabel}</span>
+							<span>{focusedUi ? '＋ Add images' : addLabel}</span>
 						</ImageDrop>
 						<WorkbenchPicker targetFolder={folder} />
+					</div>
 						{accessibilityReviewCount > 0 && (
 							<p className="accessibility-review-warning" role="status">
-								Accessibility review: {accessibilityReviewCount} older image{accessibilityReviewCount === 1 ? '' : 's'} need alt text or an explicit decorative choice. Open Details to review.
+								Accessibility review: {accessibilityReviewCount} older image{accessibilityReviewCount === 1 ? '' : 's'} need alt text or an explicit decorative choice. {focusedUi ? 'Choose Edit to review.' : 'Open Details to review.'}
 							</p>
 						)}
 
@@ -235,22 +257,24 @@ export default function ImageCollectionEditor({
 						<p className="muted">{emptyLabel}</p>
 					) : (
 						<>
-							<div className="image-list-heading">
+							<div className={`image-list-heading${focusedUi ? ' image-group-list-heading' : ''}`}>
 								<p className="muted">
 									{hint ??
 										'Arrange images in the live preview — drag one to move it, drag its corner handle to resize. ⠿ here sets the stacking: the top image sits in front when images overlap.'}
 								</p>
-								<div className="image-view-toggle" role="group" aria-label="Image editor view">
-									<button type="button" className={compact ? 'active' : ''} aria-pressed={compact} onClick={() => setCompact(true)}>
-										Compact
-									</button>
-									<button type="button" className={!compact ? 'active' : ''} aria-pressed={!compact} onClick={() => setCompact(false)}>
-										Details
-									</button>
-								</div>
+								{!focusedUi && (
+									<div className="image-view-toggle" role="group" aria-label="Image editor view">
+										<button type="button" className={compact ? 'active' : ''} aria-pressed={compact} onClick={() => setCompact(true)}>
+											Compact
+										</button>
+										<button type="button" className={!compact ? 'active' : ''} aria-pressed={!compact} onClick={() => setCompact(false)}>
+											Details
+										</button>
+									</div>
+								)}
 							</div>
 							<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
-								<div className={`card-list ${compact ? 'image-card-list-compact' : ''}`}>
+								<div className={`card-list ${(focusedUi || compact) ? 'image-card-list-compact' : ''}`}>
 										{entries.map((entry, idx) => {
 											const sample = getSampleArtwork(entry.sampleAssetId);
 											const url =
@@ -265,8 +289,15 @@ export default function ImageCollectionEditor({
 											const linkRequired =
 												entry.meta.clickAction === 'link' && !entry.meta.link.trim();
 											const artworkName = entry.meta.title || entry.filename || `image ${idx + 1}`;
+											const isDetailed = focusedUi ? expandedEntryId === entry.id : !compact;
 											const successor = sampleReplacement(entry.sampleAssetId);
 											const artworkEffects = entry.meta.effects;
+											const artworkHangingMode =
+												artworkEffects?.hang === false
+													? 'off'
+													: artworkEffects?.hang === true || artworkEffects?.skew !== undefined
+														? 'on'
+														: '';
 											const patchEffects = (
 												patch: Partial<NonNullable<typeof artworkEffects>>,
 											) => {
@@ -281,9 +312,7 @@ export default function ImageCollectionEditor({
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
 													<div
-														className={`card ${
-															compact ? 'image-card-compact' : 'image-card-detailed'
-														}`}
+														className={`card ${isDetailed ? 'image-card-detailed' : 'image-card-compact'}${focusedUi ? ' image-group-card' : ''}${isDetailed && focusedUi ? ' is-editing' : ''}`}
 													>
 														<button
 															type="button"
@@ -322,9 +351,15 @@ export default function ImageCollectionEditor({
 														: undefined
 												}
 											/>
-																<span className="card-filename" title={entry.filename}>
-																	{entry.filename}
-																</span>
+																	<span className="card-filename" title={entry.filename}>
+																		{entry.filename}
+																	</span>
+																	{focusedUi && (
+																		<span className="image-card-identity">
+																			<strong>{entry.meta.title || `Image ${idx + 1}`}</strong>
+																			<small title={entry.filename}>{entry.filename || 'Untitled image'}</small>
+																		</span>
+																	)}
 																{sample && (
 																	<span className="sample-asset-label">
 																		Sample — replace or remove
@@ -359,8 +394,17 @@ export default function ImageCollectionEditor({
 																	</button>
 																)}
 															</div>
-														{!compact && (
+														{isDetailed && (
 															<div className="card-fields">
+																{focusedUi && (
+																	<div className="image-card-inspector-head">
+																		<div>
+																			<strong>Edit image</strong>
+																			<small>Content, crop, effects and click behavior</small>
+																		</div>
+																		<button type="button" className="btn-link" aria-label={`Finish editing image ${idx + 1}, ${artworkName}`} onClick={() => setExpandedEntryId(null)}>Done</button>
+																	</div>
+																)}
 																<label className="image-description-field">
 																	<span>Title</span>
 																	<input
@@ -450,30 +494,24 @@ export default function ImageCollectionEditor({
 																		<div className="artwork-effects-grid">
 																			<label>
 																				<span>Hanging</span>
-																				<select
-																					className="select-input"
-																					value={
-																						artworkEffects?.hang === true
-																							? 'on'
-																							: artworkEffects?.hang === false
-																								? 'off'
-																								: ''
-																					}
-																					onChange={(event) =>
-																						patchEffects({
-																							hang:
-																								event.target.value === 'on'
-																									? true
-																									: event.target.value === 'off'
-																										? false
-																										: undefined,
-																						})
-																					}
-																				>
-																					<option value="">Use site/page setting</option>
-																					<option value="on">Hang this artwork</option>
-																					<option value="off">Keep this artwork straight</option>
-																				</select>
+																	<select
+																		className="select-input"
+																		value={artworkHangingMode}
+																		onChange={(event) => {
+																			const mode = event.target.value;
+																			patchEffects({
+																				hang: mode === 'on' ? true : mode === 'off' ? false : undefined,
+																				skew:
+																					mode === 'on'
+																						? artworkEffects?.skew ?? -0.75
+																						: undefined,
+																			});
+																		}}
+																	>
+																		<option value="">Use page setting</option>
+																		<option value="on">Hang this piece</option>
+																		<option value="off">Keep piece straight</option>
+																	</select>
 																			</label>
 																			<label>
 																				<span>Mount</span>
@@ -535,24 +573,24 @@ export default function ImageCollectionEditor({
 																				</select>
 																			</label>
 																		</div>
-																		<label className="motion-range compact artwork-skew-control">
-																			<span>
-																				Tilt
-																				<output>{artworkEffects?.skew ?? 0}°</output>
-																			</span>
-																			<input
+														{artworkHangingMode === 'on' && <label className="motion-range compact artwork-skew-control">
+															<span>
+																Piece tilt
+																<output>{artworkEffects?.skew ?? -0.75}°</output>
+															</span>
+															<input
 																				type="range"
 																				min={-6}
 																				max={6}
 																				step={0.25}
-																				value={artworkEffects?.skew ?? 0}
+																value={artworkEffects?.skew ?? -0.75}
 																				aria-label={`Hanging tilt for ${artworkName}`}
 																				onChange={(event) => {
 																					const skew = Number(event.target.value);
-																					patchEffects({ skew: skew === 0 ? undefined : skew });
-																				}}
-																			/>
-																		</label>
+																	patchEffects({ hang: true, skew });
+																}}
+															/>
+														</label>}
 																		{(artworkEffects?.hover || artworkEffects?.reveal) && (
 																			<label className="effect-phone-control">
 																				<input
@@ -633,6 +671,17 @@ export default function ImageCollectionEditor({
 															</div>
 														)}
 														<div className="card-actions">
+															{focusedUi && (
+																<button
+																	type="button"
+																	className={`image-card-edit-toggle${isDetailed ? ' active' : ''}`}
+																	aria-expanded={isDetailed}
+																	aria-label={`${isDetailed ? 'Close' : 'Edit'} details for image ${idx + 1}, ${artworkName}`}
+																	onClick={() => setExpandedEntryId(isDetailed ? null : entry.id)}
+																>
+																	{isDetailed ? 'Close' : 'Edit'}
+																</button>
+															)}
 															<details className="image-card-actions-menu">
 																<summary
 																	aria-label={`More actions for ${artworkName}`}
@@ -643,30 +692,21 @@ export default function ImageCollectionEditor({
 																<div className="image-card-actions-popover">
 																	<label>
 																		<span>Hanging</span>
-																		<select
-																			className="select-input"
-																			aria-label={`Hanging for ${artworkName}`}
-																			value={
-																				artworkEffects?.hang === true
-																					? 'on'
-																					: artworkEffects?.hang === false
-																						? 'off'
-																						: ''
-																			}
-																			onChange={(event) =>
-																				patchEffects({
-																					hang:
-																						event.target.value === 'on'
-																							? true
-																							: event.target.value === 'off'
-																								? false
-																								: undefined,
-																				})
-																			}
-																		>
-																			<option value="">Use site/page setting</option>
-																			<option value="on">Hang this image</option>
-																			<option value="off">Do not hang</option>
+																				<select
+																					className="select-input"
+																					aria-label={`Hanging for ${artworkName}`}
+																					value={artworkHangingMode}
+																					onChange={(event) => {
+																						const mode = event.target.value;
+																						patchEffects({
+																							hang: mode === 'on' ? true : mode === 'off' ? false : undefined,
+																							skew: mode === 'on' ? artworkEffects?.skew ?? -0.75 : undefined,
+																						});
+																					}}
+																				>
+																					<option value="">Use page setting</option>
+																					<option value="on">Hang this piece</option>
+																					<option value="off">Keep piece straight</option>
 																		</select>
 																	</label>
 																	<label>
@@ -762,7 +802,7 @@ export default function ImageCollectionEditor({
 					)}
 				</>
 			)}
-		</>
+		</div>
 	);
 
 	const uploadModal = pendingUpload && (

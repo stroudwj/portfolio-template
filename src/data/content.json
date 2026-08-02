@@ -39,18 +39,30 @@
     "home": {
       "title": "{name} — Selected Works",
       "heading": "Selected Works",
-      "gallery": { "folder": "selected-works", "alt": "Selected work", "order": "desc" },
-      "blocks": [{ "id": "gallery", "type": "gallery" }]
+      "blocks": [{
+        "id": "selected-works-images",
+        "type": "images",
+        "name": "Selected Works",
+        "gallery": { "folder": "selected-works", "alt": "Selected work", "order": "desc", "layout": "freeform" }
+      }]
     },
     "art": {
       "title": "Art — {name}",
-      "gallery": { "folder": "art", "alt": "Art piece", "order": "asc" },
-      "blocks": [{ "id": "gallery", "type": "gallery" }]
+      "blocks": [{
+        "id": "art-images",
+        "type": "images",
+        "name": "Art",
+        "gallery": { "folder": "art", "alt": "Art piece", "order": "asc", "layout": "freeform" }
+      }]
     },
     "photography": {
       "title": "Photography — {name}",
-      "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc" },
-      "blocks": [{ "id": "gallery", "type": "gallery" }]
+      "blocks": [{
+        "id": "photography-images",
+        "type": "images",
+        "name": "Photography",
+        "gallery": { "folder": "photography", "alt": "Photograph", "order": "desc", "layout": "freeform" }
+      }]
     },
     "about": {
       "title": "About — {name}",

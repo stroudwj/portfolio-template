@@ -46,21 +46,21 @@
    rotate property. Site/page hanging remains the default unless an artwork
    explicitly opts in or out. */
 .artwork-hang-on > img,
-.artwork-hang-on > .canvas-artwork-frame > img,
+.artwork-hang-on > .canvas-artwork-frame,
 .artwork-hang-on .inline-carousel-image {
-	rotate: var(--artwork-skew, -0.8deg) !important;
+	rotate: var(--artwork-skew, -0.75deg) !important;
 }
 
 .artwork-hang-off > img,
-.artwork-hang-off > .canvas-artwork-frame > img,
+.artwork-hang-off > .canvas-artwork-frame,
 .artwork-hang-off .inline-carousel-image {
 	rotate: 0deg !important;
 }
 
 .artwork-skew-custom:not(.artwork-hang-off) > img,
-.artwork-skew-custom:not(.artwork-hang-off) > .canvas-artwork-frame > img,
+.artwork-skew-custom:not(.artwork-hang-off) > .canvas-artwork-frame,
 .artwork-skew-custom:not(.artwork-hang-off) .inline-carousel-image {
-	rotate: var(--artwork-skew);
+	rotate: var(--artwork-skew) !important;
 }
 
 .artwork-mount-frame > img,
@@ -156,10 +156,15 @@
 	}
 	.artwork-effects-phone-off:hover > img,
 	.artwork-effects-phone-off:hover > .canvas-artwork-frame > img,
+	.artwork-effects-phone-off > .canvas-artwork-frame,
 	.artwork-effects-phone-off > .canvas-artwork-frame > img,
 	.artwork-effects-phone-off > img {
 		transform: none;
 		filter: none;
+		rotate: 0deg !important;
+	}
+	.artwork-effects-phone-off .inline-carousel-image {
+		rotate: 0deg !important;
 	}
 }
 

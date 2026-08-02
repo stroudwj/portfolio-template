@@ -40,7 +40,8 @@ describe('motion and reusable project tools', () => {
 			phone: { pageTransition: false, film: false },
 		};
 		doc.content.theme.backgroundTexture = 'concrete';
-		doc.content.pages.art.hanging = false;
+		doc.content.pages.art.hanging = true;
+		doc.content.pages.art.hangingStrength = 3.25;
 		const project = {
 			template: 'exhibition',
 			year: '2026',

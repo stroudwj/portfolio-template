@@ -43,7 +43,9 @@
 		top: 20px;
 	}
 	.header-logo-container.logo-position-left {
-		left: 20px;
+		/* The phone navigation trigger occupies 16px–48px. Keep a left-aligned
+		   identity in the next lane instead of stacking both controls together. */
+		left: 64px;
 	}
 	.header-logo-container.logo-position-freeform {
 		top: var(--logo-y, 20px);

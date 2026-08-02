@@ -32,7 +32,7 @@ describe('image workbench destinations', () => {
 
 		expect(targets).toContainEqual({
 			folder: 'selected-works',
-			label: 'Home — Main images',
+			label: 'Home — Selected Works',
 		});
 		expect(targets).toContainEqual({
 			folder: 'process',

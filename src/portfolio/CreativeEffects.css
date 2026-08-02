@@ -128,22 +128,28 @@ html[data-page-transition]::view-transition-group(*) {
 	user-select: none;
 }
 
-/* "Loose hang" uses the independent rotate property, so hover transforms and
-   freeform canvas geometry continue to work. Per-artwork controls can override it. */
-.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 1) > img {
-	rotate: calc(var(--hang-strength, 0.7) * -1deg);
+/* Site/page hanging is the inherited layer. It deliberately skips every piece
+   with an explicit image-level choice. Freeform rotates the completed crop
+   frame, keeping its geometry and resize handles straight without clipping the
+   rotated artwork against a straight overflow boundary. */
+.creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 1) > img,
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 1) > .canvas-artwork-frame {
+	rotate: calc(var(--hang-strength, 0.75) * -1deg);
 }
-.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 2) > img {
-	rotate: calc(var(--hang-strength, 0.7) * 0.72deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 2) > img,
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 2) > .canvas-artwork-frame {
+	rotate: calc(var(--hang-strength, 0.75) * 0.72deg);
 }
-.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n + 3) > img {
-	rotate: calc(var(--hang-strength, 0.7) * -0.42deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 3) > img,
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 3) > .canvas-artwork-frame {
+	rotate: calc(var(--hang-strength, 0.75) * -0.42deg);
 }
-.creative-loose-hang :is(.masonry-item, .uniform-item, .canvas-item):not(.artwork-hang-off):nth-child(4n) > img {
-	rotate: calc(var(--hang-strength, 0.7) * 1.08deg);
+.creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n) > img,
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n) > .canvas-artwork-frame {
+	rotate: calc(var(--hang-strength, 0.75) * 1.08deg);
 }
-.creative-loose-hang .inline-carousel:not(.artwork-hang-off) .inline-carousel-image {
-	rotate: calc(var(--hang-strength, 0.7) * -0.65deg);
+.creative-loose-hang .inline-carousel:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom) .inline-carousel-image {
+	rotate: calc(var(--hang-strength, 0.75) * -0.65deg);
 }
 
 .creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)) {
@@ -318,8 +324,9 @@ html[data-page-transition]::view-transition-group(*) {
 	html[data-page-transition-phone='off']::view-transition-group(*) {
 		animation-duration: 1ms;
 	}
-	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item, .canvas-item) > img,
-	.creative-phone-off-loose-hang .inline-carousel .inline-carousel-image {
+	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-on, .artwork-skew-custom) > img,
+	.creative-phone-off-loose-hang .canvas-item:not(.artwork-hang-on, .artwork-skew-custom) > .canvas-artwork-frame,
+	.creative-phone-off-loose-hang .inline-carousel:not(.artwork-hang-on, .artwork-skew-custom) .inline-carousel-image {
 		rotate: 0deg;
 	}
 	.creative-phone-off-slow-reveal

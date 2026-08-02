@@ -1,9 +1,10 @@
 // Optional site-wide visual effects in Design. Everything here
 // writes content.site.creative, rendered by portfolio/CreativeEffects in the
 // preview and on the published site.
+import { useState } from 'react';
 import { useEditor } from '../store';
 import { getAssetPreviewUrl } from '../lib/assets';
-import { Field, Section } from './ui/controls';
+import { Field, HelpDisclosure, InspectorTabs, Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import type {
 	CreativeClickMark,
@@ -45,6 +46,14 @@ const PAGE_TRANSITIONS: Array<{ value: PageTransition | ''; label: string }> = [
 	{ value: 'gallery', label: 'Gallery morph' },
 ];
 
+const EFFECT_AREAS = [
+	{ id: 'surface', label: 'Surface', meta: 'Wall & texture' },
+	{ id: 'motion', label: 'Motion', meta: 'Reveal & hover' },
+	{ id: 'pointer', label: 'Pointer', meta: 'Cursor & taps' },
+] as const;
+
+type EffectArea = (typeof EFFECT_AREAS)[number]['id'];
+
 function OnOff({
 	value,
 	onChange,
@@ -76,13 +85,14 @@ function OnOff({
 
 export default function CreativeEditor() {
 	const { doc, setCreative, setCursorImage, removeCursorImage } = useEditor();
+	const [area, setArea] = useState<EffectArea>('surface');
 	if (!doc) return null;
 	const creative = doc.content.site.creative ?? {};
 	const cursor = creative.cursor ?? '';
 	const cursorImageUrl = getAssetPreviewUrl(doc.cursorImage?.assetId);
 	const hasCursorImage = Boolean(doc.cursorImage?.filename || creative.cursorImage);
 	const grain = creative.grain ?? 0;
-	const hangStrength = creative.hangStrength ?? 0.7;
+	const hangStrength = creative.hangStrength ?? 0.75;
 	const film = creative.film;
 	const setPhone = (key: CreativeEffectKey, enabled: boolean) => {
 		const phone = { ...(creative.phone ?? {}) };
@@ -116,18 +126,21 @@ export default function CreativeEditor() {
 	};
 
 	return (
-		<Section title="Motion & interaction" sectionKey="_creative">
-			<p className="muted" style={{ marginTop: 0 }}>
-				Give the published site a point of view. Everything is opt-in and previews live.
-			</p>
+		<Section title="Effects" sectionKey="_creative">
+			<InspectorTabs
+				items={EFFECT_AREAS}
+				active={area}
+				onChange={setArea}
+				ariaLabel="Effect settings"
+			/>
+			<div className="inspector-panel effect-inspector-panel" role="tabpanel">
 
-			<Field
-				label="Hang artwork on the wall"
-				hint="Site-wide hanging control. Every page and individual image can override it."
-			>
+			{area === 'surface' && (
+				<>
+				<Field label="Hangpieces across the site">
 				<div className="motion-control-stack prominent-hanging-control">
 					<OnOff
-						label="Hang artwork site-wide"
+						label="Hang artwork by default"
 						value={creative.looseHang ?? false}
 						onChange={(value) => setCreative({ looseHang: value || undefined })}
 					/>
@@ -135,7 +148,7 @@ export default function CreativeEditor() {
 						<>
 							<label className="motion-range">
 								<span>
-									Hand-hung tilt <output>{hangStrength.toFixed(2)}°</output>
+									Site tilt <output>{hangStrength.toFixed(2)}°</output>
 								</span>
 								<input
 									type="range"
@@ -152,14 +165,15 @@ export default function CreativeEditor() {
 							{phoneControl('looseHang')}
 						</>
 					)}
-					<small>Use Page details for a page-only choice, or each image’s Hang control for one piece.</small>
-				</div>
+					<small className="scope-summary">Pages inherit this setting. A page or individual image can override it without changing the rest of the site.</small>
+					</div>
 			</Field>
+				</>
+			)}
 
-			<Field
-				label="Living film texture"
-				hint="A low-frame-rate grain surface with optional dust, flicker and projector movement."
-			>
+			{area === 'surface' && (
+				<>
+				<Field label="Living film texture">
 				<div className="chip-row" role="group" aria-label="Living film texture">
 					{FILM_PRESETS.map((preset) => (
 						<button
@@ -199,7 +213,6 @@ export default function CreativeEditor() {
 									Over artwork
 								</button>
 							</div>
-							<small>Under keeps the living surface behind your work by default.</small>
 						</div>
 						<label className="motion-range">
 							<span>Intensity <output>{film.intensity ?? 12}%</output></span>
@@ -254,13 +267,14 @@ export default function CreativeEditor() {
 							/>
 						</div>
 					</div>
-				)}
-			</Field>
+					)}
+				</Field>
+				</>
+			)}
 
-			<Field
-				label="Page transitions"
-				hint="Choreograph page changes. Gallery morph connects a project thumbnail to its project page when supported."
-			>
+			{area === 'motion' && (
+				<>
+				<Field label="Page transitions">
 				<div className="chip-row" role="group" aria-label="Page transition">
 					{PAGE_TRANSITIONS.map((transition) => (
 						<button
@@ -279,8 +293,12 @@ export default function CreativeEditor() {
 				</div>
 				{creative.pageTransition && phoneControl('pageTransition')}
 			</Field>
+				</>
+			)}
 
-			<Field label="Custom cursor" hint="Visitors browse your site with this instead of the normal arrow.">
+			{area === 'pointer' && (
+				<>
+				<Field label="Custom cursor">
 				<div className="chip-row">
 					<button
 						type="button"
@@ -340,7 +358,7 @@ export default function CreativeEditor() {
 				</div>
 			</Field>
 
-			<Field label="Cursor trail" hint="Little shapes drift behind the pointer as visitors move it.">
+				<Field label="Cursor trail">
 				<div className="chip-row">
 					{TRAILS.map((t) => (
 						<button
@@ -355,11 +373,12 @@ export default function CreativeEditor() {
 				</div>
 				{creative.trail && phoneControl('trail')}
 			</Field>
+				</>
+			)}
 
-			<Field
-				label="Paper grain"
-				hint="A subtle paper texture behind the artwork, like work pinned to a real surface."
-			>
+			{area === 'surface' && (
+				<>
+				<Field label="Paper grain">
 				<div className="gap-row">
 					<input
 						type="range"
@@ -373,8 +392,15 @@ export default function CreativeEditor() {
 					<span className="gap-unit">{grain > 0 ? `${grain}%` : 'off'}</span>
 				</div>
 			</Field>
+			<HelpDisclosure label="About surface effects">
+				<p>Surface effects sit behind or around the work. Page and image-level hanging choices can override the site-wide wall setting.</p>
+			</HelpDisclosure>
+				</>
+			)}
 
-			<Field label="Tap to mark" hint="Every click or tap leaves a small, temporary studio mark.">
+			{area === 'pointer' && (
+				<>
+				<Field label="Tap to mark">
 				<div className="chip-row" role="group" aria-label="Tap to mark style">
 					{CLICK_MARKS.map((mark) => (
 						<button
@@ -391,8 +417,15 @@ export default function CreativeEditor() {
 				</div>
 				{creative.clickMark && phoneControl('clickMark')}
 			</Field>
+			<HelpDisclosure label="About pointer effects">
+				<p>Pointer effects respond directly to a visitor’s mouse or touch. Each enabled effect can be turned off independently on phones.</p>
+			</HelpDisclosure>
+				</>
+			)}
 
-			<Field label="Slow reveal" hint="Artwork fades in gently when each page opens.">
+			{area === 'motion' && (
+				<>
+				<Field label="Slow reveal">
 				<OnOff
 					label="Slow reveal"
 					value={creative.slowReveal ?? false}
@@ -401,7 +434,7 @@ export default function CreativeEditor() {
 				{creative.slowReveal && phoneControl('slowReveal')}
 			</Field>
 
-			<Field label="Artwork wobble" hint="Pieces do a quick little shake when visitors hover over them.">
+				<Field label="Artwork wobble">
 				<OnOff
 					label="Artwork wobble"
 					value={creative.artworkWobble ?? false}
@@ -410,7 +443,7 @@ export default function CreativeEditor() {
 				{creative.artworkWobble && phoneControl('artworkWobble')}
 			</Field>
 
-			<Field label="Color spin" hint="Hovering a piece sends its colors on one trip around the color wheel.">
+				<Field label="Color spin">
 				<OnOff
 					label="Color spin"
 					value={creative.colorSpin ?? false}
@@ -418,6 +451,12 @@ export default function CreativeEditor() {
 				/>
 				{creative.colorSpin && phoneControl('colorSpin')}
 			</Field>
+			<HelpDisclosure label="About motion effects">
+				<p>Movement applies across the published site. Keep one dominant motion style for a calmer result, then preview it on desktop and phone.</p>
+			</HelpDisclosure>
+				</>
+			)}
+			</div>
 		</Section>
 	);
 }

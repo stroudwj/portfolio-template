@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { useEditor } from '../store';
 import {
 	Field,
+	HelpDisclosure,
 	TextInput,
 	Section,
 	previewTypeMotion,
@@ -438,9 +439,19 @@ export default function PageEditor({
 				});
 				if (!autoScrollSelected) return;
 				requestAnimationFrame(() => {
-					pageContentRef.current
-						?.querySelector<HTMLElement>(`[data-editor-block="${CSS.escape(selection.blockId)}"]`)
-						?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					const target = pageContentRef.current
+						?.querySelector<HTMLElement>(`[data-editor-block="${CSS.escape(selection.blockId)}"]`);
+					const scroller = target?.closest<HTMLElement>('.editor-controls');
+					if (!target || !scroller) return;
+					const targetTop = target.getBoundingClientRect().top
+						- scroller.getBoundingClientRect().top
+						+ scroller.scrollTop;
+					// Keep the selected block just beneath the sticky editor tabs. Centering
+					// tall blocks made carousel selection jump a little too far down.
+					scroller.scrollTo({
+						top: Math.max(0, targetTop - 72),
+						behavior: 'smooth',
+					});
 				});
 			}),
 		[autoScrollSelected, pageKey],
@@ -451,6 +462,9 @@ export default function PageEditor({
 	if (!page) return null;
 	const isHome = pageKey === 'home';
 	const pageName = page.label || (isHome ? 'Home' : pageKey);
+	const siteHanging = doc.content.site.creative?.looseHang === true;
+	const siteHangingStrength = doc.content.site.creative?.hangStrength ?? 0.75;
+	const pageHangingStrength = page.hangingStrength ?? siteHangingStrength;
 	const parentPageEntry = Object.entries(doc.content.pages).find(([, candidate]) =>
 		(candidate.children ?? []).includes(pageKey),
 	);
@@ -800,6 +814,11 @@ export default function PageEditor({
 					bottom = Math.max(bottom, bottomOf(candidate.layout));
 				if (candidate.type === 'form' && candidate.layout)
 					bottom = Math.max(bottom, bottomOf(candidate.layout));
+				if (candidate.type === 'divider' && candidate.layout)
+					bottom = Math.max(bottom, bottomOf(candidate.layout));
+				if (candidate.type === 'children')
+					for (const item of candidate.items ?? [])
+						if (item.layout) bottom = Math.max(bottom, bottomOf(item.layout));
 				if (
 					candidate.type === 'images' &&
 					candidate.gallery.carousel &&
@@ -850,7 +869,7 @@ export default function PageEditor({
 		const owner = sectionForBlock(block.id);
 		const position = owner?.blockIds.indexOf(block.id) ?? -1;
 		const collapsed = itemIsCollapsed('block', block.id);
-		return <div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
+		return <>
 			<button
 				type="button"
 				className="btn-icon block-collapse-toggle"
@@ -861,6 +880,7 @@ export default function PageEditor({
 			>
 				<span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 			</button>
+			<div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
 			<label className="block-type-control" title="Change this block’s type without removing its place in the section">
 				<span className="sr-only">Change type of {blockLabel}</span>
 				<select
@@ -920,41 +940,44 @@ export default function PageEditor({
 			>
 				▣ Move section…
 			</button>
-			<button
-				type="button"
-				className="btn-icon"
-				disabled={!owner || position <= 0}
-				onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position - 1)}
-				aria-label={`Move ${blockLabel} earlier`}
-			>
-				↑
-			</button>
-			<button
-				type="button"
-				className="btn-icon"
-				disabled={!owner || position < 0 || position === owner.blockIds.length - 1}
-				onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position + 1)}
-				aria-label={`Move ${blockLabel} later`}
-			>
-				↓
-			</button>
-			{removable && (
+			<span className="block-order-controls">
 				<button
 					type="button"
-					className="btn-icon danger"
-					onClick={() => {
-						if (
-							block.type === 'about' &&
-							!confirm('Remove the About content from this page? You can add it again later from Add block.')
-						) return;
-						editor.removeBlock(pageKey, block.id);
-					}}
-					aria-label={`Delete ${blockLabel}`}
+					className="btn-icon"
+					disabled={!owner || position <= 0}
+					onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position - 1)}
+					aria-label={`Move ${blockLabel} earlier`}
 				>
-					✕
+					↑
 				</button>
-			)}
-		</div>;
+				<button
+					type="button"
+					className="btn-icon"
+					disabled={!owner || position < 0 || position === owner.blockIds.length - 1}
+					onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position + 1)}
+					aria-label={`Move ${blockLabel} later`}
+				>
+					↓
+				</button>
+				{removable && (
+					<button
+						type="button"
+						className="btn-icon danger"
+						onClick={() => {
+							if (
+								block.type === 'about' &&
+								!confirm('Remove the About content from this page? You can add it again later from Add block.')
+							) return;
+							editor.removeBlock(pageKey, block.id);
+						}}
+						aria-label={`Delete ${blockLabel}`}
+					>
+						✕
+					</button>
+				)}
+			</span>
+			</div>
+		</>;
 	};
 
 	const renderBlock = (block: PageBlock, index: number) => {
@@ -1644,6 +1667,7 @@ export default function PageEditor({
 				const patchGroup = (patch: GalleryPatch) => editor.updateImagesBlock(pageKey, block.id, patch);
 				const groupLabel = `${block.name || `image group ${index + 1}`} on ${pageName}`;
 				const carousel = block.gallery.carousel === true;
+				const hasGroupMobileSettings = phoneItemsFor(block.gallery).length > 0 || !!block.gallery.mobile;
 				const carouselHostBlock = block.gallery.carouselHost
 					? blocks.find(
 							(candidate) =>
@@ -1684,19 +1708,32 @@ export default function PageEditor({
 							/>
 							{controls(index, block, true)}
 						</div>
-						<details className="block-options image-layout-options">
+						<div className="image-group-layout-bar" data-tour="image-group-layout">
+							<div>
+								<strong>Layout</strong>
+								<small>Choose how the group appears on the page.</small>
+							</div>
+							<LayoutToggle
+								label={groupLabel}
+								mode={carousel ? 'carousel' : groupMode}
+								onPatch={patchGroup}
+								carousel
+							/>
+						</div>
+						{(carousel || groupMode === 'grid' || hasGroupMobileSettings) && (
+						<details className="block-options image-layout-options image-group-layout-options">
 							<summary>
-								Layout &amp; mobile <span>{carousel ? 'Carousel' : groupMode === 'grid' ? 'Grid' : 'Freeform'}</span>
+								Customize layout <span>{carousel ? 'Carousel settings' : groupMode === 'grid' ? 'Grid settings' : 'Mobile settings'}</span>
 							</summary>
 							<div className="image-layout-options-body">
-								<LayoutToggle
-									label={groupLabel}
-									mode={carousel ? 'carousel' : groupMode}
-									onPatch={patchGroup}
-									carousel
-								/>
 								{carousel && (
 									<div className="carousel-settings">
+										<details className="carousel-setting-group">
+											<summary>
+												<span>Frame &amp; crop</span>
+												<small>{(block.gallery.carouselFit ?? 'fit') === 'fit' ? 'Fit' : 'Fill'} · {carouselRatio === 'custom' ? 'Custom ratio' : carouselRatio}</small>
+											</summary>
+											<div className="carousel-setting-group-body">
 										<div className="align-toggle carousel-fit-toggle" role="group" aria-label={`Image sizing for ${groupLabel}`}>
 											<button
 												type="button"
@@ -1813,6 +1850,14 @@ export default function PageEditor({
 												</button>
 											</div>
 										)}
+											</div>
+										</details>
+										<details className="carousel-setting-group">
+											<summary>
+												<span>Controls &amp; style</span>
+												<small>{block.gallery.carouselArrowStyle ?? 'chevron'} · {block.gallery.carouselFrameStyle ?? 'no frame'}</small>
+											</summary>
+											<div className="carousel-setting-group-body">
 										<div className="carousel-display-options">
 											<label>
 												Arrow style
@@ -1905,6 +1950,8 @@ export default function PageEditor({
 												Image title below
 											</label>
 										</div>
+											</div>
+										</details>
 										{block.gallery.carouselFrame && (
 											<button
 												type="button"
@@ -1930,7 +1977,7 @@ export default function PageEditor({
 										onAdopt={() => void adoptGridAsFreeform(block.gallery, patchGroup)}
 									/>
 								)}
-								{!carousel && (phoneItemsFor(block.gallery).length > 0 || block.gallery.mobile) && (
+								{!carousel && hasGroupMobileSettings && (
 									<MobileArrangementEditor
 										items={phoneItemsFor(block.gallery)}
 										mobile={block.gallery.mobile}
@@ -1941,6 +1988,7 @@ export default function PageEditor({
 								)}
 							</div>
 						</details>
+						)}
 						<ImageCollectionEditor
 							embedded
 							folder={block.gallery.folder}
@@ -1948,13 +1996,14 @@ export default function PageEditor({
 							addLabel="+ Add image(s)"
 							emptyLabel="No images in this group yet."
 							requireAltText={false}
+							focusedUi
 							hint={
 								carousel
-									? 'Images appear one at a time in this order. Visitors use the previous and next controls to click through.'
+									? 'Images appear one at a time. Drag rows to set the sequence.'
 									: groupMode === 'grid'
-									? 'Images auto-arrange into a neat grid — pick columns and crop above. ⠿ here sets the order.'
-									: 'A second canvas of its own — drag its images in the preview to arrange them. ⠿ here sets the stacking: the top image sits in front.'
-								}
+										? 'Grid placement is automatic. Drag rows to set the sequence.'
+										: 'Drag images in the preview to position them. Drag rows here to set which sits in front.'
+							}
 						/>
 					</div>
 				);
@@ -1999,6 +2048,8 @@ export default function PageEditor({
 				);
 			}
 			case 'divider':
+				{
+					const owner = sectionForBlock(block.id);
 				return (
 					<div className="block divider-editor-block" key={block.id}>
 						<div className="block-head">
@@ -2078,6 +2129,24 @@ export default function PageEditor({
 								</span>
 							</label>
 						</div>
+						<button
+							type="button"
+							className={block.layout ? 'btn-secondary active' : 'btn-secondary'}
+							onClick={() => {
+								if (block.layout) {
+									editor.updateDividerBlock(pageKey, block.id, { layout: undefined });
+									return;
+								}
+								if (owner && !sectionHasFreeCanvas(owner.id))
+									editor.addFreeformGallery(pageKey, block.id, owner.id);
+								const bottom = canvasBottomForBlock(block.id);
+								editor.updateDividerBlock(pageKey, block.id, {
+									layout: { x: 5, y: bottom > 0 ? bottom + 2 : 0, w: 90, ar: 45 },
+								});
+							}}
+						>
+							{block.layout ? 'Return divider to page flow' : 'Place divider freeform'}
+						</button>
 						<PortfolioDivider
 							style={block.style}
 							width={block.width}
@@ -2085,6 +2154,7 @@ export default function PageEditor({
 						/>
 					</div>
 				);
+				}
 			case 'products': {
 				const products = doc.content.store?.products ?? [];
 				const selected = block.productIds;
@@ -2409,65 +2479,56 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, true)}
 						</div>
-						{items.map((item, childIndex, childList) => {
-							const child = doc.content.pages[item.page];
-							const childName = item.label || child?.label || item.page;
-							const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[item.page]?.assetId ?? null);
-							return (
-								<div className="child-row child-link-row" key={item.id}>
-									<div className="child-thumb-picker">
-										<ImageDrop ariaLabel={`Choose a thumbnail for ${childName}`} onFiles={(files) => editor.setPageThumb(item.page, files[0])}>
-											{thumbUrl ? <img className="child-thumb" src={thumbUrl} alt="" /> : <span>＋ Thumb</span>}
-										</ImageDrop>
-									</div>
-									<TextInput
-										value={item.label ?? child?.label ?? item.page}
-										aria-label={`Display text for ${childName} under ${pageName}`}
-										onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, label: event.target.value } : candidate))}
-										placeholder="Card text"
-									/>
-									<select
-										className="select-input child-page-target"
-										value={item.page}
-										aria-label={`Page linked by ${childName}`}
-										onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, page: event.target.value } : candidate))}
-									>
-										{Object.entries(doc.content.pages).map(([targetKey, targetPage]) => (
-											<option key={targetKey} value={targetKey}>{targetPage.label || (targetKey === 'home' ? 'Home' : targetKey)}</option>
-										))}
-									</select>
-									<button type="button" className={item.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => setItemFreeform(item.id)}>
-										{item.layout ? 'Back to flow' : 'Freeform'}
-									</button>
-									<button
-										type="button"
-										className="btn-icon"
-										disabled={childIndex === 0}
-										onClick={() => updateItems(items.map((candidate, index) => index === childIndex - 1 ? items[childIndex] : index === childIndex ? items[childIndex - 1] : candidate))}
-										aria-label={`Move sub-page ${childName} earlier on ${pageName}`}
-									>
-										↑
-									</button>
-									<button
-										type="button"
-										className="btn-icon"
-										disabled={childIndex === childList.length - 1}
-										onClick={() => updateItems(items.map((candidate, index) => index === childIndex + 1 ? items[childIndex] : index === childIndex ? items[childIndex + 1] : candidate))}
-										aria-label={`Move sub-page ${childName} later on ${pageName}`}
-									>
-										↓
-									</button>
-									<button
-										type="button"
-										className="btn-icon danger"
-										onClick={() => updateItems(items.filter((candidate) => candidate.id !== item.id))}
-										aria-label={`Remove ${childName} from this block`}
-									>
-										✕
-									</button>
-								</div>
-							);
-						})}
+						<div className="subpage-card-list">
+							{items.map((item, childIndex, childList) => {
+								const child = doc.content.pages[item.page];
+								const childName = item.label || child?.label || item.page;
+								const targetName = child?.label || (item.page === 'home' ? 'Home' : item.page);
+								const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[item.page]?.assetId ?? null);
+								return (
+									<article className={`subpage-card${item.layout ? ' is-freeform' : ''}`} key={item.id}>
+										<div className="subpage-card-main">
+											<div className="child-thumb-picker">
+												<ImageDrop ariaLabel={`Choose a thumbnail for ${childName}`} onFiles={(files) => editor.setPageThumb(item.page, files[0])}>
+													{thumbUrl ? <img className="child-thumb" src={thumbUrl} alt="" /> : <span>＋</span>}
+												</ImageDrop>
+											</div>
+											<div className="subpage-card-copy">
+												<span>Card {childIndex + 1}</span>
+												<TextInput
+													value={item.label ?? child?.label ?? item.page}
+													aria-label={`Display text for ${childName} under ${pageName}`}
+													onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, label: event.target.value } : candidate))}
+													placeholder="Card text"
+												/>
+											</div>
+											<div className="subpage-card-actions" role="group" aria-label={`Arrange ${childName}`}>
+												<button type="button" className="btn-icon" disabled={childIndex === 0} onClick={() => updateItems(items.map((candidate, index) => index === childIndex - 1 ? items[childIndex] : index === childIndex ? items[childIndex - 1] : candidate))} aria-label={`Move sub-page ${childName} earlier on ${pageName}`}>↑</button>
+												<button type="button" className="btn-icon" disabled={childIndex === childList.length - 1} onClick={() => updateItems(items.map((candidate, index) => index === childIndex + 1 ? items[childIndex] : index === childIndex ? items[childIndex + 1] : candidate))} aria-label={`Move sub-page ${childName} later on ${pageName}`}>↓</button>
+												<button type="button" className="btn-icon danger" onClick={() => updateItems(items.filter((candidate) => candidate.id !== item.id))} aria-label={`Remove ${childName} from this block`}>✕</button>
+											</div>
+										</div>
+										<details className="subpage-card-details">
+											<summary>
+												<span>Link &amp; placement</span>
+												<small>{targetName} · {item.layout ? 'Freeform' : 'Page flow'}</small>
+											</summary>
+											<div className="subpage-card-details-body">
+												<label>
+													<span>Linked page</span>
+													<select className="select-input child-page-target" value={item.page} aria-label={`Page linked by ${childName}`} onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, page: event.target.value } : candidate))}>
+														{Object.entries(doc.content.pages).map(([targetKey, targetPage]) => <option key={targetKey} value={targetKey}>{targetPage.label || (targetKey === 'home' ? 'Home' : targetKey)}</option>)}
+													</select>
+												</label>
+												<button type="button" className={item.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => setItemFreeform(item.id)}>
+													{item.layout ? 'Return card to page flow' : 'Place card freeform'}
+												</button>
+											</div>
+										</details>
+									</article>
+								);
+							})}
+						</div>
 						<div className="subpage-block-actions">
 							<select className="select-input" value="" aria-label={`Add an existing page to ${pageName}`} onChange={(event) => {
 								const target = event.target.value;
@@ -2479,7 +2540,9 @@ export default function PageEditor({
 							</select>
 							<button type="button" className="btn-primary" onClick={() => addChild(pageKey, owner?.id)}>＋ Create new sub-page</button>
 						</div>
-						<p className="muted">Each row is one independent card. Its display text and linked page are separate; Freeform cards can be moved and resized one at a time.</p>
+						<HelpDisclosure label="How sub-page cards work">
+							<p>Each card has independent display text, destination, thumbnail, and placement. Freeform cards can be moved and resized one at a time in the preview.</p>
+						</HelpDisclosure>
 					</div>
 				);
 				}
@@ -2501,33 +2564,58 @@ export default function PageEditor({
 					onChange={(event) => editor.setPageHeading(pageKey, event.target.value)}
 				/>
 			</Field>
-			<Field
-				label="Artwork hanging on this page"
-				hint="Inherit the site wall setting, or make just this page hung or perfectly straight."
-			>
+			<Field label="Hangpieces on this page">
 				<div className="chip-row" role="group" aria-label={`Artwork hanging on ${pageName}`}>
 					<button
 						type="button"
 						className={`btn-icon btn-chip ${page.hanging === undefined ? 'active' : ''}`}
+						aria-pressed={page.hanging === undefined}
 						onClick={() => editor.setPageHanging(pageKey, undefined)}
 					>
-						Use site setting
+						Use site
 					</button>
 					<button
 						type="button"
 						className={`btn-icon btn-chip ${page.hanging === true ? 'active' : ''}`}
+						aria-pressed={page.hanging === true}
 						onClick={() => editor.setPageHanging(pageKey, true)}
 					>
-						Hang this page
+						Hang page
 					</button>
 					<button
 						type="button"
 						className={`btn-icon btn-chip ${page.hanging === false ? 'active' : ''}`}
+						aria-pressed={page.hanging === false}
 						onClick={() => editor.setPageHanging(pageKey, false)}
 					>
-						Keep straight
+						Straight page
 					</button>
 				</div>
+				{page.hanging === true && (
+					<label className="motion-range compact page-hang-strength-control">
+						<span>
+							Page tilt <output>{pageHangingStrength.toFixed(2)}°</output>
+						</span>
+						<input
+							type="range"
+							min={0.25}
+							max={5}
+							step={0.25}
+							value={pageHangingStrength}
+							aria-label={`Hangpiece tilt on ${pageName}`}
+							onChange={(event) =>
+								editor.setPageHangingStrength(pageKey, Number(event.target.value))
+							}
+						/>
+					</label>
+				)}
+				<small className="scope-summary">
+					{page.hanging === undefined
+						? `Following the site: ${siteHanging ? `${siteHangingStrength.toFixed(2)}° tilt` : 'straight'}.`
+						: page.hanging
+							? 'This page overrides the site. Individual images can still override this angle.'
+							: 'This page stays straight. Individual images can still opt into a tilt.'}
+				</small>
 			</Field>
 			{page.heading?.trim() && (
 				<Field
@@ -2726,7 +2814,10 @@ export default function PageEditor({
 								data-editor-section={section.id}
 								style={{ '--section-editor-color': accent } as CSSProperties}
 							>
-									<div className="page-section-editor-head">
+									<div
+										className="page-section-editor-head"
+										data-tour={sectionIndex === 0 ? 'page-section' : undefined}
+									>
 										<button
 											type="button"
 											className="page-section-collapse-toggle"

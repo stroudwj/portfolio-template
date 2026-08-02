@@ -75,11 +75,12 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 	const headerText = content.site.name;
 	const pageBackground = content.pages[page]?.background;
 	const pageHanging = content.pages[page]?.hanging;
+	const pageHangingStrength = content.pages[page]?.hangingStrength;
 	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const rootStyle = {
 		...themeToVars(content.theme),
 		...backgroundBlockVars(pageBackground, automaticContrast),
-		'--hang-strength': String(content.site.creative?.hangStrength ?? 0.7),
+		'--hang-strength': String(pageHangingStrength ?? content.site.creative?.hangStrength ?? 0.75),
 	} as CSSProperties;
 	const creativeClasses = [
 		(pageHanging ?? content.site.creative?.looseHang) && 'creative-loose-hang',
@@ -150,7 +151,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				automaticContrast={automaticContrast}
 				fallbackBackground={pageBackground || content.theme.backgroundColor}
 				stabilized={content.theme.stabilizeNavigation !== false}
-				logoStabilized={content.theme.stabilizeLogo ?? content.theme.stabilizeNavigation ?? true}
+				logoStabilized={content.theme.stabilizeLogo !== false}
 				logoPosition={content.theme.logoPosition}
 				logoX={content.theme.logoX}
 				logoY={content.theme.logoY}

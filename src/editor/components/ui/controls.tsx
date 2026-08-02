@@ -31,6 +31,64 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea className="text-area" {...props} />;
 }
 
+export interface InspectorTab<T extends string> {
+	id: T;
+	label: string;
+	meta?: ReactNode;
+}
+
+/** Compact, inspector-style navigation for related property groups. */
+export function InspectorTabs<T extends string>({
+	items,
+	active,
+	onChange,
+	ariaLabel,
+}: {
+	items: readonly InspectorTab<T>[];
+	active: T;
+	onChange: (id: T) => void;
+	ariaLabel: string;
+}) {
+	return (
+		<div className="inspector-tabs" role="tablist" aria-label={ariaLabel}>
+			{items.map((item) => (
+				<button
+					key={item.id}
+					type="button"
+					className={active === item.id ? 'active' : ''}
+					role="tab"
+					aria-selected={active === item.id}
+					onClick={() => onChange(item.id)}
+				>
+					<span>{item.label}</span>
+					{item.meta && <small>{item.meta}</small>}
+				</button>
+			))}
+		</div>
+	);
+}
+
+/** Secondary guidance stays one quiet line until the user asks for it. */
+export function HelpDisclosure({
+	label = 'How this works',
+	children,
+	className = '',
+}: {
+	label?: string;
+	children: ReactNode;
+	className?: string;
+}) {
+	return (
+		<details className={`help-disclosure ${className}`.trim()}>
+			<summary>
+				<span aria-hidden="true">?</span>
+				{label}
+			</summary>
+			<div>{children}</div>
+		</details>
+	);
+}
+
 /** Collapsed/expanded choices survive reloads — one localStorage map for all sections. */
 const COLLAPSE_STORE = 'portfolio-editor-collapsed-v2';
 const EXPAND_EVENT = 'editor-expand-section';

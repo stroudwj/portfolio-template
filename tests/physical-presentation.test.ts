@@ -134,15 +134,21 @@ describe('physical presentation controls', () => {
 			mutedTextColor: '#555555',
 			accentColor: '#0000ff',
 			fontFamily: 'Arial, sans-serif',
+			navOffsetX: -6,
+			navOffsetY: 9,
 		};
 		expect(themeToVars(theme)).toMatchObject({
 			'--color-body-text': '#222222',
 			'--color-heading-text': '#333333',
 			'--color-subheading-text': '#444444',
+			'--nav-offset-x': '-6px',
+			'--nav-offset-y': '9px',
 		});
 		const css = themeToRootCss(theme);
 		expect(css).toContain('--color-body-text:#222222');
 		expect(css).toContain('--color-heading-text:#333333');
 		expect(css).toContain('--color-subheading-text:#444444');
+		expect(css).toContain('--nav-offset-x:-6px');
+		expect(css).toContain('--nav-offset-y:9px');
 	});
 });

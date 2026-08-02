@@ -472,6 +472,7 @@ export default function Gallery({
 		id: string,
 		focusX: number,
 		focusY: number,
+		zoom: number,
 	) => {
 		if (!editable || settings?.carouselMoveImage !== true || !onCarouselFocusChange || event.button !== 0) return;
 		event.preventDefault();
@@ -485,17 +486,20 @@ export default function Gallery({
 			carouselFit === 'fill'
 				? Math.max(rect.width / naturalWidth, rect.height / naturalHeight)
 				: Math.min(rect.width / naturalWidth, rect.height / naturalHeight);
+		const normalizedZoom = Math.min(Math.max(zoom, 1), 6);
 		const scaledWidth = naturalWidth * imageScale;
 		const scaledHeight = naturalHeight * imageScale;
+		const zoomedWidth = scaledWidth * normalizedZoom;
+		const zoomedHeight = scaledHeight * normalizedZoom;
 		const travelX =
-			carouselFit === 'fill'
-				? Math.max(scaledWidth - rect.width, 0)
+			carouselFit === 'fill' || normalizedZoom > 1
+				? Math.max(zoomedWidth - rect.width, 0)
 				: Math.max(rect.width - scaledWidth, 0);
 		const travelY =
-			carouselFit === 'fill'
-				? Math.max(scaledHeight - rect.height, 0)
+			carouselFit === 'fill' || normalizedZoom > 1
+				? Math.max(zoomedHeight - rect.height, 0)
 				: Math.max(rect.height - scaledHeight, 0);
-		const direction = carouselFit === 'fill' ? -1 : 1;
+		const direction = carouselFit === 'fill' || normalizedZoom > 1 ? -1 : 1;
 		const win = image.ownerDocument.defaultView ?? window;
 		const startX = event.clientX;
 		const startY = event.clientY;
@@ -925,6 +929,15 @@ export default function Gallery({
 										? carouselFocusDraft?.y
 										: activeCarouselEntry.img.focusY ?? 50
 								}%`,
+								transformOrigin: `${
+									carouselFocusDraft?.id === activeCarouselEntry.img.id
+										? carouselFocusDraft?.x
+										: activeCarouselEntry.img.focusX ?? 50
+								}% ${
+									carouselFocusDraft?.id === activeCarouselEntry.img.id
+										? carouselFocusDraft?.y
+										: activeCarouselEntry.img.focusY ?? 50
+								}%`,
 								transform: `scale(${carouselZoomDraft?.id === activeCarouselEntry.img.id ? (carouselZoomDraft?.zoom ?? 1) : activeCarouselEntry.img.cropZoom ?? 1})`,
 							}}
 							onError={
@@ -938,6 +951,7 @@ export default function Gallery({
 									activeCarouselEntry.img.id ?? String(activeCarouselEntry.i),
 									activeCarouselEntry.img.focusX ?? 50,
 									activeCarouselEntry.img.focusY ?? 50,
+									activeCarouselEntry.img.cropZoom ?? 1,
 								)
 							}
 							onClick={(event) => {

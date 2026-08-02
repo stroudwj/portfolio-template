@@ -196,6 +196,15 @@ function sectionCanvasBottom(doc: EditorDoc, page: PageConfig, sectionId: string
 			bottom = Math.max(bottom, bottomOf(block.layout));
 		if (block?.type === 'images' && block.gallery.carouselFrame)
 			bottom = Math.max(bottom, bottomOf(block.gallery.carouselFrame));
+		if (block?.type === 'divider' && block.layout)
+			bottom = Math.max(bottom, bottomOf(block.layout));
+		if (block?.type === 'children')
+			for (const item of block.items ?? [])
+				if (item.layout) bottom = Math.max(bottom, bottomOf(item.layout));
+		if (block?.type === 'project' && block.layout)
+			bottom = Math.max(bottom, bottomOf(block.layout));
+		if (block?.type === 'form' && block.layout)
+			bottom = Math.max(bottom, bottomOf(block.layout));
 		if (
 			(block?.type === 'children' || block?.type === 'products') &&
 			block.canvasLayout
@@ -448,6 +457,8 @@ export interface EditorContextValue {
 	setPageHeading(key: string, heading: string): void;
 	/** Override site-wide hanging for this page; undefined inherits the site choice. */
 	setPageHanging(key: string, hanging: boolean | undefined): void;
+	/** Set the page-only hanging angle; undefined inherits the site strength. */
+	setPageHangingStrength(key: string, strength: number | undefined): void;
 	setHeadingKinetic(key: string, kinetic: KineticTextConfig | undefined): void;
 	setProjectDetails(key: string, project: ProjectDetails | undefined): void;
 	setPageThumb(key: string, file: File): void;
@@ -1512,12 +1523,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const pages: Record<string, PageConfig> = {};
 				for (const [k, page] of Object.entries(prev.content.pages)) {
 					if (doomed.has(k)) continue;
+					let nextPage = page;
 					if (page.children?.some((child) => doomed.has(child))) {
 						const children = page.children.filter((child) => !doomed.has(child));
 						const removedChildBlocks = children.length
 							? []
 							: (page.blocks ?? []).filter((block) => block.type === 'children').map((block) => block.id);
-						pages[k] = {
+						nextPage = {
 							...page,
 							children,
 							blocks: children.length ? page.blocks : page.blocks?.filter((b) => b.type !== 'children'),
@@ -1526,7 +1538,15 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 								: removeBlocksFromSections(page, new Set(removedChildBlocks)),
 							mobile: withoutPhonePageBlocks(page.mobile, removedChildBlocks),
 						};
-					} else pages[k] = page;
+					}
+					// A Sub-pages block may link owned children or any other page. Remove
+					// only cards whose destination was deleted; never discard its siblings.
+					const blocks = nextPage.blocks?.map((block) =>
+						block.type === 'children' && block.items
+							? { ...block, items: block.items.filter((item) => !doomed.has(item.page)) }
+							: block,
+					);
+					pages[k] = blocks ? { ...nextPage, blocks } : nextPage;
 				}
 				const contentGalleries = { ...prev.content.galleries };
 				const docGalleries = { ...prev.galleries };
@@ -1727,9 +1747,26 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		setPageHanging: (key, hanging) =>
 			patchPage(
 				key,
-				(page) => ({ ...page, hanging }),
+				(page) => ({
+					...page,
+					hanging,
+					hangingStrength: hanging === true ? page.hangingStrength : undefined,
+				}),
 				true,
 				`page:${key}:hanging`,
+			),
+		setPageHangingStrength: (key, strength) =>
+			patchPage(
+				key,
+				(page) => ({
+					...page,
+					hangingStrength:
+						strength === undefined
+							? undefined
+							: Math.max(0.25, Math.min(5, strength)),
+				}),
+				true,
+				`page:${key}:hanging-strength`,
 			),
 		setHeadingKinetic: (key, headingKinetic) =>
 			patchPage(
@@ -2055,6 +2092,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					block.id !== blockId ? block :
 					block.type === 'project' ? { ...block, layout: canvasLayout } :
 					block.type === 'form' ? { ...block, layout: canvasLayout } :
+					block.type === 'divider' ? { ...block, layout: canvasLayout } :
 					(block.type === 'children' || block.type === 'products') ? { ...block, canvasLayout } : block,
 				),
 			),
@@ -2249,9 +2287,29 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				),
 			true, `page:${key}:button:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addDividerBlock: (key, sectionId) =>
-			patchPage(key, (page) =>
-				appendBlockToSection(page, { id: uid('divider'), type: 'divider' }, sectionId),
-			),
+			commitDoc((prev) => {
+				const page = prev.content.pages[key];
+				if (!page) return prev;
+				const destination = targetSectionId(page, sectionId);
+				const bottom = destination === NEW_SECTION_ID
+					? 0
+					: sectionCanvasBottom(prev, page, destination);
+				const block: PageBlock = {
+					id: uid('divider'),
+					type: 'divider',
+					layout: { x: 5, y: bottom > 0 ? bottom + 2 : 0, w: 90, ar: 45 },
+				};
+				return {
+					...prev,
+					content: {
+						...prev.content,
+						pages: {
+							...prev.content.pages,
+							[key]: appendBlockToSection(page, block, sectionId),
+						},
+					},
+				};
+			}),
 		updateDividerBlock: (key, blockId, patch) =>
 			patchBlocks(
 				key,

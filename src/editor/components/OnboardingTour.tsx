@@ -34,25 +34,33 @@ const TOUR_STEPS: TourStep[] = [
 	{
 		tab: 'pages',
 		view: 'edit',
-		target: '[data-tour="page-sections"]',
+		target: '[data-tour="image-group-layout"]',
+		title: 'Choose how each image group behaves',
+		body: 'Every image group can be a freeform canvas, an automatic grid, or a click-through carousel. The controls stay with the group they affect.',
+		openPageBuilder: true,
+	},
+	{
+		tab: 'pages',
+		view: 'edit',
+		target: '[data-tour="image-group-images"]',
+		title: 'Add, order, and finish your images',
+		body: 'Upload images or reuse workbench items here. Drag rows to set their order, then choose Edit for descriptions, crops, links, and hanging details.',
+		openPageBuilder: true,
+	},
+	{
+		tab: 'pages',
+		view: 'edit',
+		target: '[data-tour="page-section"]',
 		title: 'Sections organize the page',
-		body: 'Each colored frame is a section: a movable region with its own blocks, background, height, and motion. Rename sections so their purpose stays clear.',
+		body: 'Each colored frame is a movable region with its own blocks, background, height, and motion. Rename sections so their purpose stays clear.',
 		openPageBuilder: true,
 	},
 	{
 		tab: 'pages',
 		view: 'edit',
 		target: '[data-tour="add-block"]',
-		title: 'Add content with a labeled button',
-		body: 'Choose Add block for text, images, video, products, sub-pages, or a saved block. Then choose an existing section or create a new one.',
-		openPageBuilder: true,
-	},
-	{
-		tab: 'pages',
-		view: 'edit',
-		target: '[data-tour="section-control"]',
-		title: 'The square creates a section',
-		body: 'Move section lets you send a block to any existing section or give it a new section of its own. The destination picker always shows what will happen.',
+		title: 'Add more than images',
+		body: 'Choose Add block for text, another image group, video, products, sub-pages, or a saved block. Put it in an existing section or start a new one.',
 		openPageBuilder: true,
 	},
 	{
@@ -200,8 +208,9 @@ export default function OnboardingTour({
 		if (step.openPageBuilder) navigationRef.current.onOpenPageBuilder();
 	}, [open, stepIndex, step.tab, step.view]);
 
-	// Targets can move when a tab opens, the left pane scrolls, or the layout
-	// switches between Edit and Preview. Keep the spotlight attached.
+	// Targets can appear after a tab/page transition and can begin below the
+	// sidebar fold. Reveal each one, then keep the spotlight attached while the
+	// editor settles or the viewport changes.
 	useEffect(() => {
 		if (!open) {
 			setTargetRect(null);
@@ -209,24 +218,41 @@ export default function OnboardingTour({
 		}
 		let frame = 0;
 		let settleTimer = 0;
+		let finalSettleTimer = 0;
 		let observed: Element | null = null;
 		let observer: ResizeObserver | null = null;
+		let mutationObserver: MutationObserver | null = null;
+		let revealed = false;
 
 		const measure = () => {
 			const target = document.querySelector(step.target);
 			if (target !== observed) {
 				observer?.disconnect();
 				observed = target;
+				revealed = false;
 				if (target && typeof ResizeObserver !== 'undefined') {
 					observer = new ResizeObserver(scheduleMeasure);
 					observer.observe(target);
 				}
 			}
 			const box = target?.getBoundingClientRect();
-			if (!box || box.width === 0 || box.height === 0) {
+			if (!target || !box || box.width === 0 || box.height === 0) {
 				setTargetRect(null);
 				return;
 			}
+			if (
+				!revealed &&
+				(box.top < 12 ||
+					box.bottom > window.innerHeight - 12 ||
+					box.left < 12 ||
+					box.right > window.innerWidth - 12)
+			) {
+				revealed = true;
+				target.scrollIntoView({ block: 'center', inline: 'nearest' });
+				scheduleMeasure();
+				return;
+			}
+			revealed = true;
 			setTargetRect({
 				top: box.top,
 				right: box.right,
@@ -243,12 +269,19 @@ export default function OnboardingTour({
 
 		scheduleMeasure();
 		settleTimer = window.setTimeout(scheduleMeasure, 100);
+		finalSettleTimer = window.setTimeout(scheduleMeasure, 350);
+		if (typeof MutationObserver !== 'undefined') {
+			mutationObserver = new MutationObserver(scheduleMeasure);
+			mutationObserver.observe(document.body, { childList: true, subtree: true });
+		}
 		window.addEventListener('resize', scheduleMeasure);
 		window.addEventListener('scroll', scheduleMeasure, true);
 		return () => {
 			cancelAnimationFrame(frame);
 			window.clearTimeout(settleTimer);
+			window.clearTimeout(finalSettleTimer);
 			observer?.disconnect();
+			mutationObserver?.disconnect();
 			window.removeEventListener('resize', scheduleMeasure);
 			window.removeEventListener('scroll', scheduleMeasure, true);
 		};
@@ -325,20 +358,14 @@ export default function OnboardingTour({
 		() => placeBubble(targetRect, bubbleSize),
 		[targetRect, bubbleSize],
 	);
-	const spotlight = targetRect
-		? {
-				top: Math.max(8, targetRect.top - 7),
-				left: Math.max(8, targetRect.left - 7),
-				width: Math.min(
-					window.innerWidth - Math.max(8, targetRect.left - 7) - 8,
-					targetRect.width + 14,
-				),
-				height: Math.min(
-					window.innerHeight - Math.max(8, targetRect.top - 7) - 8,
-					targetRect.height + 14,
-				),
-			}
-		: null;
+	const spotlight = useMemo(() => {
+		if (!targetRect || typeof window === 'undefined') return null;
+		const left = clamp(targetRect.left - 7, 8, window.innerWidth - 8);
+		const top = clamp(targetRect.top - 7, 8, window.innerHeight - 8);
+		const right = clamp(targetRect.right + 7, left, window.innerWidth - 8);
+		const bottom = clamp(targetRect.bottom + 7, top, window.innerHeight - 8);
+		return { top, left, width: right - left, height: bottom - top };
+	}, [targetRect]);
 
 	if (!open) return null;
 

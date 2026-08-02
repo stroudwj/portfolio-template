@@ -13,6 +13,7 @@
 	align-items: flex-start;
 	padding: 5px 5px; /* top/bottom, left/right */
 	background: transparent;
+	transform: translate(var(--nav-offset-x, 0px), var(--nav-offset-y, 0px));
 }
 
 .dock-link {
@@ -101,6 +102,7 @@
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 1.4rem;
+	transform: translate(var(--nav-offset-x, 0px), var(--nav-offset-y, 0px));
 }
 
 .row-link {
@@ -163,8 +165,8 @@
 .nav-menu-trigger {
 	display: none;
 	position: fixed;
-	top: 16px;
-	left: 16px;
+	top: calc(16px + var(--nav-offset-y, 0px));
+	left: calc(16px + var(--nav-offset-x, 0px));
 	z-index: 2100;
 	flex-direction: column;
 	gap: 5px;
@@ -197,8 +199,8 @@
 /* The minimal style shows the trigger on desktop too, tucked top-right. */
 .navigation-shell.nav-minimal .nav-menu-trigger {
 	display: flex;
-	top: 24px;
-	right: 28px;
+	top: calc(24px + var(--nav-offset-y, 0px));
+	right: calc(28px - var(--nav-offset-x, 0px));
 	left: auto;
 }
 .navigation-shell:not(.is-stabilized) .nav-menu-trigger {
@@ -229,8 +231,8 @@
 /* Compact — a small dropdown under the hamburger (the classic behavior) */
 .nav-menu-compact {
 	position: fixed;
-	top: 52px;
-	left: 16px;
+	top: calc(52px + var(--nav-offset-y, 0px));
+	left: calc(16px + var(--nav-offset-x, 0px));
 	z-index: 2000;
 	padding: 10px 14px 12px;
 	border-radius: 10px;
@@ -316,8 +318,8 @@
 	}
 	/* On phones the trigger always sits top-left, even for the minimal style. */
 	.navigation-shell.nav-minimal .nav-menu-trigger {
-		top: 16px;
-		left: 16px;
+		top: calc(16px + var(--nav-offset-y, 0px));
+		left: calc(16px + var(--nav-offset-x, 0px));
 		right: auto;
 	}
 }

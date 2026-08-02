@@ -348,7 +348,10 @@ export default function CanvasGallery({
 
 	useEffect(() => {
 		if (!editable) {
-			setSelected(new Set());
+			// Keep the same empty Set identity once selection is already clear. A new
+			// Set on every non-editable render retriggers this selected-dependent
+			// effect forever (for example on the Pages overview).
+			setSelected((current) => current.size > 0 ? new Set() : current);
 			return;
 		}
 		const canvas = canvasRef.current;

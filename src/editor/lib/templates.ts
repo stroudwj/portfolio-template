@@ -241,13 +241,18 @@ const painterPages: Record<string, PageConfig> = {
 	home: {
 		title: '{name} — Selected Work',
 		heading: 'Selected Work',
-		gallery: { folder: 'selected-work', alt: 'Selected paintings', order: 'asc', layout: 'freeform' },
-		blocks: [{ id: 'gallery', type: 'gallery' }],
+		blocks: [
+			{
+				id: 'selected-work-images',
+				type: 'images',
+				name: 'Selected Work',
+				gallery: { folder: 'selected-work', alt: 'Selected paintings', order: 'asc', layout: 'freeform' },
+			},
+		],
 	},
 	collection: {
 		title: 'Collection — {name}',
 		heading: 'Collection',
-		gallery: { folder: 'collection', alt: 'Painting collection', order: 'asc', layout: 'grid', columns: 3 },
 		blocks: [
 			{
 				id: 'collection-intro',
@@ -255,7 +260,12 @@ const painterPages: Record<string, PageConfig> = {
 				style: 'subheading',
 				text: 'A focused group of recent paintings. Replace every sample with your own work before publishing.',
 			},
-			{ id: 'gallery', type: 'gallery' },
+			{
+				id: 'collection-images',
+				type: 'images',
+				name: 'Collection',
+				gallery: { folder: 'collection', alt: 'Painting collection', order: 'asc', layout: 'grid', columns: 3 },
+			},
 		],
 	},
 	about: {
@@ -335,12 +345,6 @@ const photographerPages: Record<string, PageConfig> = {
 		title: '{name} — Yosemite Valley',
 		heading: 'Yosemite Valley',
 		description: 'Four landscape studies from Carleton Watkins’s Yosemite photographs.',
-		gallery: {
-			folder: 'yosemite-valley',
-			alt: 'Yosemite Valley photographs',
-			order: 'asc',
-			layout: 'freeform',
-		},
 		blocks: [
 			{
 				id: 'valley-intro',
@@ -348,20 +352,23 @@ const photographerPages: Record<string, PageConfig> = {
 				style: 'subheading',
 				text: 'A four-image series. Replace every public-domain sample with your own photographs before publishing.',
 			},
-			{ id: 'gallery', type: 'gallery' },
+			{
+				id: 'yosemite-valley-images',
+				type: 'images',
+				name: 'Yosemite Valley',
+				gallery: {
+					folder: 'yosemite-valley',
+					alt: 'Yosemite Valley photographs',
+					order: 'asc',
+					layout: 'freeform',
+				},
+			},
 		],
 	},
 	'falls-stone': {
 		title: 'Falls & Stone — {name}',
 		heading: 'Falls & Stone',
 		description: 'Water, granite, and forest in four historical landscape photographs.',
-		gallery: {
-			folder: 'falls-stone',
-			alt: 'Waterfalls and granite photographs',
-			order: 'asc',
-			layout: 'grid',
-			columns: 3,
-		},
 		blocks: [
 			{
 				id: 'falls-intro',
@@ -369,20 +376,24 @@ const photographerPages: Record<string, PageConfig> = {
 				style: 'subheading',
 				text: 'Use this page for a tightly edited series, assignment, or location study.',
 			},
-			{ id: 'gallery', type: 'gallery' },
+			{
+				id: 'falls-stone-images',
+				type: 'images',
+				name: 'Falls & Stone',
+				gallery: {
+					folder: 'falls-stone',
+					alt: 'Waterfalls and granite photographs',
+					order: 'asc',
+					layout: 'grid',
+					columns: 3,
+				},
+			},
 		],
 	},
 	'western-horizons': {
 		title: 'Western Horizons — {name}',
 		heading: 'Western Horizons',
 		description: 'Four views of the nineteenth-century American West.',
-		gallery: {
-			folder: 'western-horizons',
-			alt: 'Western landscape photographs',
-			order: 'asc',
-			layout: 'grid',
-			columns: 2,
-		},
 		blocks: [
 			{
 				id: 'horizons-intro',
@@ -390,7 +401,18 @@ const photographerPages: Record<string, PageConfig> = {
 				style: 'subheading',
 				text: 'A second visual rhythm for a distinct body of work, with covers derived from the series itself.',
 			},
-			{ id: 'gallery', type: 'gallery' },
+			{
+				id: 'western-horizons-images',
+				type: 'images',
+				name: 'Western Horizons',
+				gallery: {
+					folder: 'western-horizons',
+					alt: 'Western landscape photographs',
+					order: 'asc',
+					layout: 'grid',
+					columns: 2,
+				},
+			},
 		],
 	},
 	about: {

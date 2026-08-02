@@ -31,7 +31,8 @@ export default function SharingEditor() {
 
 	// What the card will actually show: the chosen image, else the automatic pick
 	// (About photo, else the home gallery's first image) — mirrors resolveOgImage.
-	const autoEntry = doc.galleries[content.pages.home?.gallery?.folder ?? '']?.[0];
+	const homeGallery = content.pages.home ? pageGalleryConfigs(content.pages.home)[0] : undefined;
+	const autoEntry = doc.galleries[homeGallery?.folder ?? '']?.[0];
 	const cardImageSrc = selectedEntry
 		? (getAssetPreviewUrl(selectedEntry.assetId) ?? PLACEHOLDER_IMAGE)
 		: (getAssetPreviewUrl(doc.profileImage.assetId) ??
