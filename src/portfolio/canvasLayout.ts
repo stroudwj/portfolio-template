@@ -5,7 +5,7 @@ import type { ImageLayout, TextFlowLayout, TextLayout } from '../lib/content';
 
 export const DEFAULT_AR = 4 / 3;
 /** Smallest width an image can be resized to, in canvas-width %. */
-export const MIN_W = 8;
+export const MIN_W = 4;
 /** Gutter between auto-placed images, in canvas-width %. */
 export const GUTTER = 2.5;
 /** Auto-placed images per row. */
@@ -25,14 +25,14 @@ export function clampLayout(l: ImageLayout): ImageLayout {
 }
 
 /** Smallest width a canvas text can be resized to, in canvas-width %. */
-export const MIN_TEXT_W = 10;
+export const MIN_TEXT_W = 5;
 /** Smallest useful normal-flow text box width, in content-width %. */
 export const MIN_FLOW_TEXT_W = 20;
 
 /** Aspect ratio of an embedded video player pinned to the canvas. */
 export const EMBED_AR = 16 / 9;
 /** Smallest width a canvas video can be resized to, in canvas-width %. */
-export const MIN_EMBED_W = 15;
+export const MIN_EMBED_W = 8;
 
 /** Fallback height for a canvas text whose real height hasn't been measured yet. */
 const TEXT_H_GUESS = 6;
@@ -163,6 +163,8 @@ export const roundLayout = (l: ImageLayout): ImageLayout => ({
 	y: round2(l.y),
 	w: round2(l.w),
 	ar: round2(l.ar),
+	...(l.z !== undefined ? { z: round2(l.z) } : {}),
+	...(l.locked ? { locked: true } : {}),
 });
 
 export const roundTextLayout = (t: TextLayout): TextLayout => ({
@@ -170,6 +172,7 @@ export const roundTextLayout = (t: TextLayout): TextLayout => ({
 	y: round2(t.y),
 	w: round2(t.w),
 	...(t.h !== undefined ? { h: round2(t.h) } : {}),
+	...(t.z !== undefined ? { z: round2(t.z) } : {}),
 });
 
 export const roundTextFlowLayout = (layout: TextFlowLayout): TextFlowLayout => {

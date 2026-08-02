@@ -7,6 +7,7 @@ import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
 	onPreviewTypeMotion,
+	selectPreviewBlock,
 	onShowPreviewPage,
 	type TypeMotionPreviewRequest,
 } from './ui/controls';
@@ -196,6 +197,26 @@ function DeviceFrame({
 	}, [frameLoaded]);
 
 	useEffect(() => {
+		if (!frameLoaded) return;
+		const doc = iframeRef.current?.contentDocument;
+		if (!doc) return;
+		const selectBlock = (event: PointerEvent) => {
+			const target = event.target as HTMLElement | null;
+			const element = target?.closest<HTMLElement>('[data-preview-block]');
+			const blockId = element?.dataset.previewBlock?.split('::', 1)[0];
+			const pageKey =
+				element?.dataset.previewPage ??
+				element?.parentElement?.closest<HTMLElement>('[data-preview-page]')?.dataset.previewPage;
+			// Canvas widgets can sit inside a different block's freeform host. Let
+			// React finish the pointer event first, then make the closest marker the
+			// authoritative selection so the host cannot overwrite its child.
+			if (blockId && pageKey) queueMicrotask(() => selectPreviewBlock(pageKey, blockId));
+		};
+		doc.addEventListener('pointerdown', selectBlock, true);
+		return () => doc.removeEventListener('pointerdown', selectBlock, true);
+	}, [frameLoaded]);
+
+	useEffect(() => {
 		if (ready) rootRef.current?.render(children);
 	});
 
@@ -204,6 +225,7 @@ function DeviceFrame({
 		const frameWindow = iframeRef.current?.contentWindow;
 		const doc = iframeRef.current?.contentDocument;
 		if (!frameWindow || !doc) return;
+		let restoreFrame = 0;
 		const frame = frameWindow.requestAnimationFrame(() => {
 			const target = doc.querySelector<HTMLElement>(
 				`[data-kinetic-target="${CSS.escape(typeMotionPreview.target)}"]`,
@@ -220,9 +242,19 @@ function DeviceFrame({
 			// the continuous marquee without changing saved content.
 			target.classList.add('kinetic-preview-reset');
 			void target.offsetWidth;
-			target.classList.remove('kinetic-preview-reset');
+			// Restore on the following paint. Removing the reset class in the same
+			// frame is coalesced by some browsers, so the animation never restarts.
+			restoreFrame = frameWindow.requestAnimationFrame(() => {
+				target.classList.remove('kinetic-preview-reset');
+				for (const unit of target.querySelectorAll<HTMLElement>('.kinetic-unit, .kinetic-marquee-track')) {
+					unit.style.animationPlayState = 'running';
+				}
+			});
 		});
-		return () => frameWindow.cancelAnimationFrame(frame);
+		return () => {
+			frameWindow.cancelAnimationFrame(frame);
+			if (restoreFrame) frameWindow.cancelAnimationFrame(restoreFrame);
+		};
 	}, [ready, typeMotionPreview]);
 
 	return (
@@ -350,7 +382,7 @@ export default function PreviewPanel({
 	const currentPage = doc.content.pages[currentKey];
 	const hasFreeformCanvas = pageGalleryConfigs(currentPage).some(
 		(config) => config.layout !== 'grid' && (doc.galleries[config.folder]?.length ?? 0) > 0,
-	);
+	) || !!doc.content.profile.imageLayout;
 
 	const navigate = (path: string) => {
 		const key = path === '' ? 'home' : path;
@@ -373,6 +405,8 @@ export default function PreviewPanel({
 			base={base}
 			onNavigate={navigate}
 			onImageLayout={editable ? (folder, id, layout) => editor.updateGalleryMeta(folder, id, { layout }) : undefined}
+			onProfileImageLayout={editable ? (layout) => editor.setProfileImagePresentation({ imageLayout: layout }) : undefined}
+			onProfileContentLayout={editable ? (layout) => editor.setProfileImagePresentation({ contentLayout: layout }) : undefined}
 			onTextLayout={editable ? (pageKey, blockId, layout) => editor.setTextLayout(pageKey, blockId, layout) : undefined}
 			onEmbedLayout={
 				editable ? (pageKey, blockId, layout) => editor.setEmbedLayout(pageKey, blockId, layout) : undefined
@@ -407,6 +441,21 @@ export default function PreviewPanel({
 							editor.setWidgetLayout(pageKey, blockId, layout)
 					: undefined
 			}
+			onChildItemLayout={
+				editable
+					? (pageKey, blockId, itemId, layout) => {
+							const block = doc.content.pages[pageKey]?.blocks?.find(
+								(candidate) => candidate.id === blockId,
+							);
+							if (!block || block.type !== 'children') return;
+							editor.updateChildrenBlock(pageKey, blockId, {
+								items: (block.items ?? []).map((item) =>
+									item.id === itemId ? { ...item, layout } : item,
+								),
+							});
+						}
+					: undefined
+			}
 			onCarouselHost={
 				editable
 					? (pageKey, blockId, hostId, layout) =>
@@ -422,6 +471,7 @@ export default function PreviewPanel({
 							editor.updateGalleryMeta(folder, id, { focusX, focusY })
 					: undefined
 			}
+			onCarouselZoom={editable ? (folder, id, zoom) => editor.updateGalleryMeta(folder, id, { cropZoom: zoom }) : undefined}
 			resizeBreakpoint={resizeBreakpoint}
 			onSectionHeight={
 				resizeBreakpoint
@@ -434,7 +484,9 @@ export default function PreviewPanel({
 					? (breakpoint, height) => editor.setFooterHeight(breakpoint, height)
 					: undefined
 			}
+			onFooterImageLayout={editable ? (layout) => editor.setFooterImageLayout(layout) : undefined}
 			editorPreview={!fullscreen}
+			onSelectBlock={(pageKey, blockId) => selectPreviewBlock(pageKey, blockId)}
 		/>
 	);
 

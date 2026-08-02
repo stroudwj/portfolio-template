@@ -56,7 +56,14 @@ function RichRun({ run, kinetic }: { run: RichTextRun; kinetic?: KineticTextConf
 	if (run.strike) content = <s>{content}</s>;
 	const href = safeHref(run.link);
 	if (href) content = <a href={href}>{content}</a>;
-	return <span className={`rich-text-run text-size-${run.size ?? 'body'}`}>{content}</span>;
+	return (
+		<span
+			className={`rich-text-run text-size-${run.size ?? 'body'}`}
+			style={run.fontSize ? { fontSize: `${run.fontSize}pt` } : undefined}
+		>
+			{content}
+		</span>
+	);
 }
 
 function RichParagraph({

@@ -297,6 +297,7 @@ function referencedAssetIds(doc: EditorDoc): Set<string> {
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
+		doc.signatureImage,
 		doc.cursorImage,
 		doc.resumeFile,
 		...Object.values(doc.pageThumbs),
@@ -367,14 +368,19 @@ export interface EditorContextValue {
 	reset(): Promise<void>;
 	// profile / contact
 	setName(value: string): void;
+	setProfileName(value: string): void;
 	/** Choose whether the site header shows the site name, custom text, or an uploaded image. */
 	setHeaderMode(value: HeaderMode): void;
 	/** Optional header text; empty falls back to the site name. */
 	setLogoText(value: string): void;
-	setBio(value: string): void;
+	setBio(value: string, richText?: RichTextParagraph[]): void;
+	setProfileBioFont(value: string | undefined): void;
 	setEmail(value: string): void;
 	setProfileImage(file: File): void;
 	removeProfileImage(): void;
+	setProfileImagePresentation(
+		patch: Partial<Pick<Content['profile'], 'imageWidth' | 'imageAspect' | 'imageFocusX' | 'imageFocusY' | 'imageCropZoom' | 'imageLayout' | 'contentLayout'>>,
+	): void;
 	/** Upload a header logo image (replaces the text logo on every page). */
 	setLogoImage(file: File): void;
 	removeLogoImage(): void;
@@ -419,7 +425,7 @@ export interface EditorContextValue {
 	moveProductOffer(productId: string, from: number, to: number): void;
 	// pages
 	addPage(label: string, projectTemplate?: ProjectTemplate): void;
-	addChildPage(parentKey: string, label: string): void;
+	addChildPage(parentKey: string, label: string, sectionId?: string): void;
 	removePage(key: string): void;
 	movePage(from: number, to: number): void;
 	/** Make a copy of a top-level page, including its blocks and image groups. */
@@ -484,6 +490,7 @@ export interface EditorContextValue {
 				| 'carouselFit'
 				| 'carouselFrame'
 				| 'carouselFreeResize'
+				| 'carouselCustomRatio'
 				| 'carouselMoveImage'
 				| 'carouselHost'
 				| 'carouselShowCount'
@@ -492,6 +499,7 @@ export interface EditorContextValue {
 				| 'carouselArrowStyle'
 				| 'carouselFrameStyle'
 				| 'carouselChromeColor'
+				| 'carouselArrowColor'
 				| 'mobile'
 			>
 		>,
@@ -500,12 +508,22 @@ export interface EditorContextValue {
 	renameImagesBlock(key: string, blockId: string, name: string): void;
 	/** Choose how a page's sub-pages are presented (cards, big covers, list, text index). */
 	setChildrenStyle(key: string, blockId: string, style: ChildrenStyle): void;
+	updateChildrenBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Pick<Extract<PageBlock, { type: 'children' }>, 'items' | 'style' | 'canvasLayout'>>,
+	): void;
 	/** Place a sub-page or product collection on its section canvas, or return it to flow. */
 	setWidgetLayout(key: string, blockId: string, layout: ImageLayout | undefined): void;
 	/** Store the hand-drawn signature (undefined clears it off the site). */
 	setSignature(data: SignatureData | undefined): void;
+	setSignatureImage(file: File): void;
+	removeSignatureImage(): void;
 	/** Footer text shown at the bottom of every page (empty removes the footer). */
 	setFooter(value: string): void;
+	setFooterImage(file: File): void;
+	removeFooterImage(): void;
+	setFooterImageLayout(layout: ImageLayout | undefined): void;
 	addEmbedBlock(key: string, kind?: EmbedKind, sectionId?: string): void;
 	updateEmbedBlock(key: string, blockId: string, url: string): void;
 	/** Resize and position a hosted player or map while it stays in page flow. */
@@ -550,7 +568,15 @@ export interface EditorContextValue {
 		blockId: string,
 		patch: Partial<Pick<Extract<PageBlock, { type: 'products' }>, 'productIds' | 'layout'>>,
 	): void;
+	addProjectBlock(key: string, sectionId?: string): void;
+	updateProjectBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'project' }>, 'id' | 'type'>>,
+	): void;
 	removeBlock(key: string, blockId: string): void;
+	/** Replace a block's module type while keeping its place in the page and section. */
+	changeBlockType(key: string, blockId: string, type: PageBlock['type']): void;
 	moveBlock(key: string, from: number, to: number): void;
 	/** Reorder a block inside its current section. */
 	moveBlockInSection(key: string, sectionId: string, from: number, to: number): void;
@@ -641,7 +667,11 @@ export interface EditorContextValue {
 	// history
 	canUndo: boolean;
 	canRedo: boolean;
-	/** Undo the last document change (Cmd+Z). */
+	/** Page currently open in the editor workspace; page travel is undoable. */
+	historyPageKey: string | null;
+	/** Travel to a page (or the page overview) as a history action. */
+	navigateHistoryPage(pageKey: string | null, recordHistory?: boolean): void;
+	/** Undo the last document change or page travel (Cmd+Z). */
 	undo(): void;
 	/** Redo an undone document change (Cmd+Y / Cmd+Shift+Z). */
 	redo(): void;
@@ -665,14 +695,17 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
+	const [historyPageKey, setHistoryPageKey] = useState<string | null>(null);
+	const historyPageRef = useRef<string | null>(null);
 	// Downscaled asset previews finish async; bumping this re-renders every consumer
 	// so getAssetPreviewUrl() calls pick up the light copies.
 	const assetsVersion = useSyncExternalStore(subscribeAssets, getAssetsVersion, getAssetsVersion);
 
 	// Full-document snapshots taken immediately before each user-visible change.
 	// The stacks stay in refs; only the two availability flags enter React state.
-	const undoStack = useRef<EditorDoc[]>([]);
-	const redoStack = useRef<EditorDoc[]>([]);
+	type HistorySnapshot = { doc: EditorDoc; pageKey: string | null };
+	const undoStack = useRef<HistorySnapshot[]>([]);
+	const redoStack = useRef<HistorySnapshot[]>([]);
 	const lastHistoryAction = useRef<{ key: string; at: number } | null>(null);
 	const syncHistoryState = useCallback(() => {
 		const next = { canUndo: undoStack.current.length > 0, canRedo: redoStack.current.length > 0 };
@@ -688,11 +721,25 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			now - lastHistoryAction.current.at < 1200 &&
 			undoStack.current.length > 0;
 		if (!coalesces) {
-			undoStack.current.push(prev);
+			undoStack.current.push({ doc: prev, pageKey: historyPageRef.current });
 			if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
 		}
 		redoStack.current = [];
 		lastHistoryAction.current = actionKey ? { key: actionKey, at: now } : null;
+		syncHistoryState();
+	}, [syncHistoryState]);
+
+	const navigateHistoryPage = useCallback((pageKey: string | null, recordHistory = true) => {
+		if (historyPageRef.current === pageKey) return;
+		const current = docRef.current;
+		if (recordHistory && current) {
+			undoStack.current.push({ doc: current, pageKey: historyPageRef.current });
+			if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
+			redoStack.current = [];
+			lastHistoryAction.current = null;
+		}
+		historyPageRef.current = pageKey;
+		setHistoryPageKey(pageKey);
 		syncHistoryState();
 	}, [syncHistoryState]);
 
@@ -788,6 +835,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		undoStack.current = [];
 		redoStack.current = [];
 		lastHistoryAction.current = null;
+		historyPageRef.current = null;
+		setHistoryPageKey(null);
 		syncHistoryState();
 		setSaveStatus('saved');
 		setSaveError(null);
@@ -802,6 +851,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		saveError,
 		canUndo: historyState.canUndo,
 		canRedo: historyState.canRedo,
+		historyPageKey,
+		navigateHistoryPage,
 
 		startBlank: () => openFresh(blankDoc()),
 		startExisting: () => openFresh(existingDoc()),
@@ -871,6 +922,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			},
 
 		setName: (value) => patchContent((c) => ({ ...c, site: { ...c.site, name: value } }), true, 'site:name'),
+		setProfileName: (value) => patchContent((c) => ({ ...c, profile: { ...c.profile, name: value || undefined } }), true, 'profile:name'),
 		setHeaderMode: (value) =>
 			patchContent(
 				(c) => ({ ...c, site: { ...c.site, headerMode: value } }),
@@ -883,7 +935,25 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				true,
 				'site:logo',
 			),
-		setBio: (value) => patchContent((c) => ({ ...c, profile: { ...c.profile, bio: value } }), true, 'profile:bio'),
+		setBio: (value, richText) =>
+			patchContent(
+				(c) => ({
+					...c,
+					profile: {
+						...c.profile,
+						bio: value,
+						bioRichText: richText?.length ? richText : undefined,
+					},
+				}),
+				true,
+				'profile:bio',
+			),
+		setProfileBioFont: (value) =>
+			patchContent(
+				(c) => ({ ...c, profile: { ...c.profile, bioFontFamily: value || undefined } }),
+				true,
+				'profile:bio-font',
+			),
 		setEmail: (value) => patchContent((c) => ({ ...c, contact: { ...c.contact, email: value } }), true, 'contact:email'),
 
 		setProfileImage: (file) => {
@@ -897,7 +967,17 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			commitDoc((prev) => ({
 				...prev,
 				profileImage: { filename: '', assetId: null, sampleAssetId: null },
+				content: {
+					...prev.content,
+					profile: { ...prev.content.profile, imageLayout: undefined, contentLayout: undefined },
+				},
 			})),
+		setProfileImagePresentation: (patch) =>
+			patchContent(
+				(content) => ({ ...content, profile: { ...content.profile, ...patch } }),
+				true,
+				`profile:image-presentation:${Object.keys(patch).sort().join(',')}`,
+			),
 
 		setLogoImage: (file) => {
 			const assetId = registerAsset(file, file.name);
@@ -1338,11 +1418,14 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					title: `${name} — {name}`,
 					label: name,
 					heading: projectTemplate ? name : undefined,
-					project: projectTemplate ? { template: projectTemplate } : undefined,
 					gallery: { folder, alt: name, order: 'asc' },
-					blocks: [{ id: 'gallery', type: 'gallery' }],
-					sections: [{ id: MAIN_SECTION_ID, name: 'Main section', blockIds: ['gallery'] }],
+					blocks: [
+						...(projectTemplate ? [{ id: uid('project'), type: 'project' as const, project: { template: projectTemplate } }] : []),
+						{ id: 'gallery', type: 'gallery' as const },
+					],
+					sections: [],
 				};
+				page.sections = [{ id: MAIN_SECTION_ID, name: 'Main section', blockIds: (page.blocks ?? []).map((block) => block.id) }];
 				return {
 					...prev,
 					content: {
@@ -1355,7 +1438,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				};
 			}),
 
-		addChildPage: (parentKey, label) =>
+		addChildPage: (parentKey, label, sectionId) =>
 			commitDoc((prev) => {
 				if (!prev.content.pages[parentKey]) return prev;
 				const desired = parentKey === 'home' ? slugify(label) : `${parentKey}/${slugify(label)}`;
@@ -1370,11 +1453,35 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					sections: [{ id: MAIN_SECTION_ID, name: 'Main section', blockIds: ['gallery'] }],
 				};
 				const parent = prev.content.pages[parentKey];
-				const parentBlocks = parent.blocks ?? [];
-				const childrenBlock: PageBlock = { id: uid('children'), type: 'children' };
-				const parentWithChildren = parentBlocks.some((b) => b.type === 'children')
-					? pageWithSections(parent)
-					: appendBlockToSection(parent, childrenBlock);
+				const legacyItems = (parent.children ?? []).map((childKey) => ({
+					id: uid('subpage'),
+					page: childKey,
+					label: prev.content.pages[childKey]?.label ?? childKey,
+				}));
+				const parentBlocks = (parent.blocks ?? []).map((block) =>
+					block.type === 'children' && !block.items ? { ...block, items: legacyItems } : block,
+				);
+				const targetSection = pageSections(parent).find((section) => section.id === sectionId);
+				const targetBlock = parentBlocks.find(
+					(block): block is Extract<PageBlock, { type: 'children' }> =>
+						block.type === 'children' &&
+						sectionId !== NEW_SECTION_ID &&
+						(!sectionId || !!targetSection?.blockIds.includes(block.id)),
+				);
+				const item = { id: uid('subpage'), page: key, label: name };
+				let parentWithChildren: PageConfig;
+				if (targetBlock) {
+					const existingItems = targetBlock.items ?? legacyItems;
+					parentWithChildren = pageWithSections({
+						...parent,
+						blocks: parentBlocks.map((block) =>
+							block.id === targetBlock.id ? { ...targetBlock, items: [...existingItems, item] } : block,
+						),
+					});
+				} else {
+					const childrenBlock: PageBlock = { id: uid('children'), type: 'children', items: [item] };
+					parentWithChildren = appendBlockToSection({ ...parent, blocks: parentBlocks }, childrenBlock, sectionId);
+				}
 				return {
 					...prev,
 					content: {
@@ -1763,7 +1870,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			const block = docRef.current?.content.pages[key]?.blocks?.find((b) => b.id === blockId);
 			const old = block?.type === 'text' ? block.layout : undefined;
 			const moved = layout
-				? !old || old.x !== layout.x || old.y !== layout.y || old.w !== layout.w
+				? !old || old.x !== layout.x || old.y !== layout.y || old.w !== layout.w || old.z !== layout.z
 				: old !== undefined;
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
@@ -1813,49 +1920,63 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
 				if (!page) return prev;
-				const folder =
-					page.gallery?.folder ?? uniqueFolder(`${key.replace(/\//g, '-')}-images`, prev);
-				const gallery: GalleryConfig = {
-					...(page.gallery ?? {
-						folder,
-						alt: page.label ?? key,
-						order: 'asc' as const,
-					}),
-					folder,
-					layout: undefined,
-				};
 				let nextPage = pageWithSections(page);
 				const blocks = [...(nextPage.blocks ?? [])];
-				if (!blocks.some((block) => block.type === 'gallery')) {
-					const block: PageBlock = { id: uid('gallery'), type: 'gallery' };
-					const insertAt = beforeBlockId
-						? blocks.findIndex((block) => block.id === beforeBlockId)
-						: -1;
-					blocks.splice(insertAt >= 0 ? insertAt : blocks.length, 0, block);
-					const destination = targetSectionId(
-						nextPage,
-						sectionId ?? blockSection(nextPage, beforeBlockId ?? '')?.id,
-					);
-					nextPage = {
-						...nextPage,
-						blocks,
-						sections: pageSections(nextPage).map((section) =>
-							section.id === destination
-								? {
-										...section,
-										blockIds: beforeBlockId && section.blockIds.includes(beforeBlockId)
-											? [
-													...section.blockIds.slice(0, section.blockIds.indexOf(beforeBlockId)),
-													block.id,
-													...section.blockIds.slice(section.blockIds.indexOf(beforeBlockId)),
-												]
-											: [...section.blockIds, block.id],
-									}
-								: section,
-						),
-					};
-				}
-				nextPage = { ...nextPage, gallery, blocks: nextPage.blocks ?? blocks };
+				const destination = targetSectionId(
+					nextPage,
+					sectionId ?? blockSection(nextPage, beforeBlockId ?? '')?.id,
+				);
+				const destinationSection = pageSections(nextPage).find((section) => section.id === destination);
+				const destinationIds = new Set(destinationSection?.blockIds ?? []);
+				const alreadyHasCanvas = blocks.some(
+					(block) =>
+						destinationIds.has(block.id) &&
+						((block.type === 'gallery' && page.gallery?.layout !== 'grid') ||
+							(block.type === 'images' && block.gallery.carousel !== true && block.gallery.layout !== 'grid')),
+				);
+				if (alreadyHasCanvas) return prev;
+
+				const hasPrimaryGallery = blocks.some((block) => block.type === 'gallery');
+				const folder = hasPrimaryGallery
+					? uniqueFolder(`${key.replace(/\//g, '-')}-canvas`, prev)
+					: page.gallery?.folder ?? uniqueFolder(`${key.replace(/\//g, '-')}-images`, prev);
+				const block: PageBlock = hasPrimaryGallery
+					? {
+							id: uid('g'),
+							type: 'images',
+							name: 'Freeform canvas',
+							gallery: { folder, alt: page.label ?? key, order: 'asc' },
+						}
+					: { id: uid('gallery'), type: 'gallery' };
+				const insertAt = beforeBlockId
+					? blocks.findIndex((candidate) => candidate.id === beforeBlockId)
+					: -1;
+				blocks.splice(insertAt >= 0 ? insertAt : blocks.length, 0, block);
+				nextPage = {
+					...nextPage,
+					gallery: hasPrimaryGallery
+						? nextPage.gallery
+						: {
+								...(page.gallery ?? { folder, alt: page.label ?? key, order: 'asc' as const }),
+								folder,
+								layout: undefined,
+							},
+					blocks,
+					sections: pageSections(nextPage).map((section) =>
+						section.id === destination
+							? {
+									...section,
+									blockIds: beforeBlockId && section.blockIds.includes(beforeBlockId)
+										? [
+												...section.blockIds.slice(0, section.blockIds.indexOf(beforeBlockId)),
+												block.id,
+												...section.blockIds.slice(section.blockIds.indexOf(beforeBlockId)),
+											]
+										: [...section.blockIds, block.id],
+								}
+							: section,
+					),
+				};
 				return {
 					...prev,
 					content: {
@@ -1918,18 +2039,82 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						: b,
 				),
 			),
+		updateChildrenBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'children'
+						? { ...block, ...patch }
+						: block,
+				),
+			true,
+			`page:${key}:sub-pages:${blockId}`,
+		),
 		setWidgetLayout: (key, blockId, canvasLayout) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((block) =>
-					block.id === blockId &&
-					(block.type === 'children' || block.type === 'products')
-						? { ...block, canvasLayout }
-						: block,
+					block.id !== blockId ? block :
+					block.type === 'project' ? { ...block, layout: canvasLayout } :
+					block.type === 'form' ? { ...block, layout: canvasLayout } :
+					(block.type === 'children' || block.type === 'products') ? { ...block, canvasLayout } : block,
 				),
 			),
 		setSignature: (data) => patchContent((c) => ({ ...c, site: { ...c.site, signature: data } })),
+		setSignatureImage: (file) => {
+			const assetId = registerAsset(file, file.name);
+			commitDoc((prev) => ({
+				...prev,
+				signatureImage: { filename: file.name, assetId, sampleAssetId: null },
+				content: {
+					...prev.content,
+					site: {
+						...prev.content.site,
+						signature: {
+							strokes: prev.content.site.signature?.strokes ?? [],
+							...prev.content.site.signature,
+							image: file.name,
+						},
+					},
+				},
+			}));
+		},
+		removeSignatureImage: () =>
+			commitDoc((prev) => {
+				const signature = prev.content.site.signature;
+				const nextSignature = signature
+					? { ...signature, image: undefined }
+					: undefined;
+				return {
+					...prev,
+					signatureImage: { filename: '', assetId: null, sampleAssetId: null },
+					content: {
+						...prev.content,
+						site: {
+							...prev.content.site,
+							signature:
+								nextSignature && (nextSignature.strokes.length || nextSignature.align)
+									? nextSignature
+									: undefined,
+						},
+					},
+				};
+			}),
 		setFooter: (value) =>
 			patchContent((c) => ({ ...c, site: { ...c.site, footer: value || undefined } }), true, 'site:footer'),
+		setFooterImage: (file) => {
+			const assetId = registerAsset(file, file.name);
+			commitDoc((prev) => ({
+				...prev,
+				footerImage: { filename: file.name, assetId, sampleAssetId: null },
+			}));
+		},
+		removeFooterImage: () =>
+			commitDoc((prev) => ({
+				...prev,
+				footerImage: { filename: '', assetId: null, sampleAssetId: null },
+				content: { ...prev.content, site: { ...prev.content.site, footerImage: undefined, footerImageLayout: undefined } },
+			})),
+		setFooterImageLayout: (footerImageLayout) =>
+			patchContent((content) => ({ ...content, site: { ...content.site, footerImageLayout } }), true, 'site:footer-image-layout'),
 		addEmbedBlock: (key, kind = 'video', sectionId) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
@@ -2130,6 +2315,96 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						: block,
 				);
 			}, true, `page:${key}:products:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addProjectBlock: (key, sectionId) =>
+			patchPage(key, (page) =>
+				appendBlockToSection(page, {
+					id: uid('project'),
+					type: 'project',
+					project: { template: 'artwork' },
+				}, sectionId),
+			),
+		updateProjectBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) => blocks.map((block) =>
+				block.id === blockId && block.type === 'project' ? { ...block, ...patch } : block,
+			), true, `page:${key}:project:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		changeBlockType: (key, blockId, type) =>
+			commitDoc((prev) => {
+				const page = prev.content.pages[key];
+				const current = page?.blocks?.find((block) => block.id === blockId);
+				if (!page || !current || current.type === type) return prev;
+				if (
+					type === 'about' &&
+					(page.blocks ?? []).some((block) => block.id !== blockId && block.type === 'about')
+				) return prev;
+
+				let nextDoc = prev;
+				let nextPage = page;
+				const label =
+					current.type === 'text' ? current.text :
+					current.type === 'button' ? current.label :
+					current.type === 'form' ? current.heading ?? '' : '';
+				let replacement: PageBlock;
+				switch (type) {
+					case 'text':
+						replacement = { id: blockId, type, text: label };
+						break;
+					case 'embed':
+						replacement = { id: blockId, type, kind: 'video', url: '' };
+						break;
+					case 'shots':
+						replacement = { id: blockId, type, src: '', scrollLength: 260, fadeIntoPage: true, fadeStart: 70, fadeDuration: 30, fit: 'cover' };
+						break;
+					case 'gallery': {
+						if (!nextPage.gallery) {
+							const folder = uniqueFolder(`${key.replace(/\//g, '-')}-gallery`, prev);
+							nextPage = { ...nextPage, gallery: { folder, alt: nextPage.label ?? key, order: 'asc' } };
+							nextDoc = {
+								...nextDoc,
+								content: { ...nextDoc.content, galleries: { ...nextDoc.content.galleries, [folder]: { items: {} } } },
+								galleries: { ...nextDoc.galleries, [folder]: [] },
+							};
+						}
+						replacement = { id: blockId, type };
+						break;
+					}
+					case 'images': {
+						const folder = uniqueFolder(`${key.replace(/\//g, '-')}-set`, nextDoc);
+						replacement = { id: blockId, type, gallery: { folder, alt: nextPage.label ?? key, order: 'asc' } };
+						nextDoc = {
+							...nextDoc,
+							content: { ...nextDoc.content, galleries: { ...nextDoc.content.galleries, [folder]: { items: {} } } },
+							galleries: { ...nextDoc.galleries, [folder]: [] },
+						};
+						break;
+					}
+					case 'children': replacement = { id: blockId, type }; break;
+					case 'about': replacement = { id: blockId, type }; break;
+					case 'button': replacement = { id: blockId, type, label: label || 'View project', url: '', appearance: 'solid' }; break;
+					case 'divider': replacement = { id: blockId, type }; break;
+					case 'products': replacement = { id: blockId, type, layout: 'grid' }; break;
+					case 'project': replacement = { id: blockId, type, project: { template: 'artwork' } }; break;
+					case 'form': replacement = {
+						id: blockId, type, heading: label || 'Get in touch', action: '',
+						successMessage: 'Thanks — your message has been sent.',
+						fields: [
+							{ id: uid('field'), type: 'name', label: 'Name', required: true },
+							{ id: uid('field'), type: 'email', label: 'Email', required: true },
+							{ id: uid('field'), type: 'textarea', label: 'Message', required: true },
+						],
+					}; break;
+				}
+				nextPage = {
+					...nextPage,
+					blocks: (nextPage.blocks ?? []).map((block) => block.id === blockId ? replacement : block),
+				};
+				return {
+					...nextDoc,
+					content: {
+						...nextDoc.content,
+						pages: { ...nextDoc.content.pages, [key]: nextPage },
+					},
+				};
+			}),
 		removeBlock: (key, blockId) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
@@ -3049,9 +3324,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			const current = docRef.current;
 			const previous = undoStack.current.pop();
 			if (!previous || !current) return;
-			redoStack.current.push(current);
+			redoStack.current.push({ doc: current, pageKey: historyPageRef.current });
 			if (redoStack.current.length > HISTORY_LIMIT) redoStack.current.shift();
-			replaceDoc(previous);
+			replaceDoc(previous.doc);
+			historyPageRef.current = previous.pageKey;
+			setHistoryPageKey(previous.pageKey);
 			syncHistoryState();
 		},
 		redo: () => {
@@ -3059,9 +3336,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			const next = redoStack.current.pop();
 			const current = docRef.current;
 			if (!next || !current) return;
-			undoStack.current.push(current);
+			undoStack.current.push({ doc: current, pageKey: historyPageRef.current });
 			if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
-			replaceDoc(next);
+			replaceDoc(next.doc);
+			historyPageRef.current = next.pageKey;
+			setHistoryPageKey(next.pageKey);
 			syncHistoryState();
 		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- assetsVersion invalidates asset-URL reads
@@ -3072,6 +3351,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		saveStatus,
 		saveError,
 		historyState,
+		historyPageKey,
+		navigateHistoryPage,
 		assetsVersion,
 		patchContent,
 		patchGallery,

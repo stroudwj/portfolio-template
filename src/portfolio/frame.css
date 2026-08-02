@@ -16,6 +16,7 @@
 	position: relative;
 	z-index: 1;
 	display: flex;
+	box-sizing: border-box;
 	width: 100%;
 	min-height: 100vh;
 }
@@ -59,11 +60,16 @@ body.texture-concrete {
 }
 
 .sidebar {
-	position: absolute;
+	position: sticky;
 	top: 0;
 	left: 0;
 	z-index: 1000;
 	display: flex;
+	flex: 0 0 0;
+	width: 0;
+	min-width: 0;
+	height: 0;
+	align-self: flex-start;
 	align-items: flex-start; /* Aligns the menu to the top */
 	padding-left: 40px;
 	padding-top: 40px; /* Provides space from the top edge */
@@ -116,6 +122,14 @@ body.texture-concrete {
 	left: 0;
 	right: 0;
 	padding: 28px 36px;
+}
+.portfolio-container.nav-style-topbar > .sidebar:not(.is-stabilized),
+.portfolio-container.nav-style-centered > .sidebar:not(.is-stabilized),
+.portfolio-container.nav-style-pill > .sidebar:not(.is-stabilized),
+.portfolio-container.nav-style-minimal > .sidebar:not(.is-stabilized) {
+	flex-basis: 100%;
+	width: 100%;
+	margin-right: -100%;
 }
 .portfolio-container.nav-style-topbar > .sidebar .navigation-shell {
 	width: 100%;
@@ -181,6 +195,43 @@ body.texture-concrete {
 
 .page-content-wrapper.page-photo {
 	padding: 34px 40px 40px;
+}
+
+/* Section boundaries default to the content's natural box. The previous top
+   and bottom wrapper padding made an empty-looking band that could not be
+   removed with the resize handle—most visibly above the About photo. */
+.section-container > .motion-section-inner > :first-child {
+	margin-top: 0;
+}
+.section-container > .motion-section-inner > :last-child {
+	margin-bottom: 0;
+}
+.section-flow-layer > :first-child {
+	margin-top: 0;
+}
+.section-flow-layer > :last-child {
+	margin-bottom: 0;
+}
+.section-container > .motion-section-inner > .page-content-wrapper:first-child,
+.section-container > .motion-section-inner > .collage-container:first-child {
+	padding-top: 0;
+}
+.section-container > .motion-section-inner > .page-content-wrapper:last-child,
+.section-container > .motion-section-inner > .collage-container:last-child {
+	padding-bottom: 0;
+}
+.section-container > .motion-section-inner > .preview-block-boundary:first-child > .page-content-wrapper,
+.section-container > .motion-section-inner > .preview-block-boundary:first-child > .collage-container {
+	padding-top: 0;
+}
+.section-container > .motion-section-inner > .preview-block-boundary:last-child > .page-content-wrapper,
+.section-container > .motion-section-inner > .preview-block-boundary:last-child > .collage-container {
+	padding-bottom: 0;
+}
+.section-mixed-composition .section-canvas-layer .page-content-wrapper,
+.section-mixed-composition .section-canvas-layer .collage-container {
+	padding-top: 0;
+	padding-bottom: 0;
 }
 
 @media (max-width: 768px) {

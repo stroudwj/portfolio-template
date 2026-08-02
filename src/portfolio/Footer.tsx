@@ -8,6 +8,8 @@ import SectionResizeHandle, {
 	type SectionBreakpoint,
 } from './SectionResizeHandle';
 import './Footer.css';
+import Gallery from './Gallery';
+import type { ImageLayout } from '../lib/content';
 
 /** Keep the default credit useful as a link while leaving every other footer fully freeform. */
 function FooterLine({ text }: { text: string }) {
@@ -30,23 +32,37 @@ export default function Footer({
 	heights,
 	resizeBreakpoint,
 	onHeightChange,
+	imageSrc,
+	imageLayout,
+	onImageLayout,
 }: {
 	text: string;
+	imageSrc?: string;
+	imageLayout?: ImageLayout;
+	onImageLayout?: (layout: ImageLayout) => void;
 	heights?: ResponsiveSectionHeight;
 	resizeBreakpoint?: SectionBreakpoint;
 	onHeightChange?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 }) {
-	if (!text.trim()) return null;
+	if (!text.trim() && !imageSrc) return null;
 	return (
 		<footer className="site-footer" style={responsiveHeightVars(heights)}>
-			<p>
+			{imageSrc && imageLayout ? (
+				<Gallery
+					images={[{ id: '__footer-image__', src: imageSrc, alt: 'Footer image', layout: imageLayout }]}
+					alt="Footer image"
+					editable={!!onImageLayout}
+					onLayoutChange={onImageLayout ? (_id, layout) => onImageLayout(layout) : undefined}
+				/>
+			) : imageSrc ? <img className="site-footer-image" src={imageSrc} alt="" /> : null}
+			{text.trim() && <p>
 				{text.split('\n').map((line, index) => (
 					<Fragment key={index}>
 						{index > 0 && <br />}
 						<FooterLine text={line} />
 					</Fragment>
 				))}
-			</p>
+			</p>}
 			{resizeBreakpoint && onHeightChange && (
 				<SectionResizeHandle
 					breakpoint={resizeBreakpoint}

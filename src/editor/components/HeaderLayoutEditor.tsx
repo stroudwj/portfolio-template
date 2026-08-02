@@ -1,8 +1,8 @@
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 
-/** Visual controls for whichever identity Site → Site identity chooses. */
-export default function HeaderLayoutEditor() {
+/** Visual controls for the identity selected in Site → Header. */
+export default function HeaderLayoutEditor({ embedded = false }: { embedded?: boolean }) {
 	const { doc, setTheme } = useEditor();
 	if (!doc) return null;
 
@@ -17,9 +17,9 @@ export default function HeaderLayoutEditor() {
 		setTheme({ logoScale: clamped === 100 ? undefined : clamped });
 	};
 
-	return (
-		<Section title="Header placement" sectionKey="_header-layout">
-			<p className="muted header-layout-intro">Sizes and positions the site name, custom text, or image logo chosen in Site.</p>
+	const fields = (
+		<>
+			<p className="muted header-layout-intro">Sizes and positions the site name or image logo chosen in Site.</p>
 			<Field label="Header size">
 				<div className="gap-row">
 					<input
@@ -97,6 +97,12 @@ export default function HeaderLayoutEditor() {
 					</Field>
 				</div>
 			)}
-		</Section>
+		</>
+	);
+
+	return embedded ? (
+		<div className="header-layout-embedded">{fields}</div>
+	) : (
+		<Section title="Header placement" sectionKey="_header-layout">{fields}</Section>
 	);
 }

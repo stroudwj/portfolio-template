@@ -17,6 +17,8 @@ export interface PortfolioProps extends PortfolioData {
 	onNavigate?: (path: string) => void;
 	/** Editor preview: makes gallery images movable/resizable and reports changes. */
 	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
+	onProfileImageLayout?: (layout: ImageLayout) => void;
+	onProfileContentLayout?: (layout: ImageLayout) => void;
 	/** Editor preview: reports a text block placed/moved on the page canvas. */
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
 	/** Editor preview: reports a video embed placed/moved on the page canvas. */
@@ -32,6 +34,7 @@ export interface PortfolioProps extends PortfolioData {
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
 	/** Editor preview: reports a complete sub-page/product block moved on a canvas. */
 	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onChildItemLayout?: (page: string, blockId: string, itemId: string, layout: ImageLayout) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -39,6 +42,7 @@ export interface PortfolioProps extends PortfolioData {
 		layout?: ImageLayout,
 	) => void;
 	onCarouselFocus?: (folder: string, imageId: string, focusX: number, focusY: number) => void;
+	onCarouselZoom?: (folder: string, imageId: string, zoom: number) => void;
 	resizeBreakpoint?: SectionBreakpoint;
 	onSectionHeight?: (
 		page: string,
@@ -47,10 +51,12 @@ export interface PortfolioProps extends PortfolioData {
 		height: number | undefined,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+	onFooterImageLayout?: (layout: ImageLayout) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
 	/** Published static runtime only: record privacy-light page totals. */
 	analytics?: boolean;
+	onSelectBlock?: (pageKey: string, blockId: string) => void;
 }
 
 /**
@@ -58,12 +64,15 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onCarouselHost, onCarouselFocus, resizeBreakpoint, onSectionHeight, onFooterHeight, editorPreview = false, analytics = false }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
+	// `text` is retained in the schema for older sites, but the editor now has one
+	// canonical header text value: the site name.
 	const headerMode =
-		content.site.headerMode ??
-		(logoImageSrc ? 'image' : content.site.logo ? 'text' : 'name');
-	const headerText = headerMode === 'text' ? (content.site.logo || content.site.name) : content.site.name;
+		(content.site.headerMode ?? (logoImageSrc ? 'image' : 'name')) === 'image'
+			? 'image'
+			: 'name';
+	const headerText = content.site.name;
 	const pageBackground = content.pages[page]?.background;
 	const pageHanging = content.pages[page]?.hanging;
 	const automaticContrast = content.theme.automaticTextContrast !== false;
@@ -141,6 +150,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 				automaticContrast={automaticContrast}
 				fallbackBackground={pageBackground || content.theme.backgroundColor}
 				stabilized={content.theme.stabilizeNavigation !== false}
+				logoStabilized={content.theme.stabilizeLogo ?? content.theme.stabilizeNavigation ?? true}
 				logoPosition={content.theme.logoPosition}
 				logoX={content.theme.logoX}
 				logoY={content.theme.logoY}
@@ -158,6 +168,8 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					base={base}
 					onNavigate={navigate}
 					onImageLayout={onImageLayout}
+					onProfileImageLayout={onProfileImageLayout}
+					onProfileContentLayout={onProfileContentLayout}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
 					onEmbedFlowLayout={onEmbedFlowLayout}
@@ -165,12 +177,16 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onDeleteCanvasItems={onDeleteCanvasItems}
 					onCarouselFrame={onCarouselFrame}
 					onWidgetLayout={onWidgetLayout}
+					onChildItemLayout={onChildItemLayout}
 					onCarouselHost={onCarouselHost}
 					onCarouselFocus={onCarouselFocus}
+					onCarouselZoom={onCarouselZoom}
 					resizeBreakpoint={resizeBreakpoint}
 					onSectionHeight={onSectionHeight}
 					onFooterHeight={onFooterHeight}
+					onFooterImageLayout={onFooterImageLayout}
 					editorPreview={editorPreview}
+					onSelectBlock={onSelectBlock}
 				/>
 			</PortfolioFrame>
 		</div>

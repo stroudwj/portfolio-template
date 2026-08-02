@@ -56,6 +56,8 @@ export async function resolveGallery(folder: string): Promise<ResolvedImage[]> {
 				layout: entry.layout,
 				focusX: entry.focusX,
 				focusY: entry.focusY,
+				cropAspect: entry.cropAspect,
+				cropZoom: entry.cropZoom,
 				effects: entry.effects,
 				// Natural ratio so auto-flowed canvas items get correct heights at build time.
 				ar: entry.image.width && entry.image.height ? entry.image.width / entry.image.height : undefined,
@@ -132,7 +134,7 @@ export async function resolveProductImages(): Promise<Record<string, string>> {
 export async function resolveProfileImage(): Promise<{ src?: string }> {
 	const image = getAsset(content.profile.image);
 	if (!image) return {};
-	const optimized = await getImage({ src: image, width: 320 });
+	const optimized = await getImage({ src: image, width: Math.min(image.width || 960, 960) });
 	return { src: optimized.src };
 }
 

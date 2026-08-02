@@ -45,3 +45,10 @@
 		min-height: var(--section-min-phone, 0px);
 	}
 }
+.site-footer-image {
+	display: block;
+	max-width: min(320px, 70vw);
+	max-height: 180px;
+	margin: 0 auto 1rem;
+	object-fit: contain;
+}

@@ -18,6 +18,7 @@ import { automaticPhoneOrder } from '../src/portfolio/mobileOrder';
 import {
 	clampTextFlowLayout,
 	pointerInCanvas,
+	roundLayout,
 	snapSpanToCenter,
 	snapSpanToEdges,
 } from '../src/portfolio/canvasLayout';
@@ -110,6 +111,17 @@ describe('content compatibility', () => {
 		expect(afterScroll).toEqual({ x: 20, y: 28 });
 	});
 
+	it('preserves an image lock while rounding canvas placement', () => {
+		expect(roundLayout({ x: 2.345, y: 7.891, w: 30.126, ar: 1.777, z: 1, locked: true })).toEqual({
+			x: 2.35,
+			y: 7.89,
+			w: 30.13,
+			ar: 1.78,
+			z: 1,
+			locked: true,
+		});
+	});
+
 	it('keeps normal-flow text width and position inside the content area', () => {
 		expect(clampTextFlowLayout({ x: 90, w: 40 })).toEqual({ x: 60, w: 40 });
 		expect(clampTextFlowLayout({ x: -10, w: 5 })).toEqual({ x: 0, w: 20 });
@@ -165,7 +177,16 @@ describe('content compatibility', () => {
 				},
 			},
 		];
-		raw.galleries.process = { items: { '01-process.jpg': { id: 'process-one', focusX: 75, focusY: 25 } } };
+		raw.galleries.process = {
+			items: {
+				'01-process.jpg': {
+					id: 'process-one',
+					focusX: 75,
+					focusY: 25,
+					cropAspect: '16:9',
+				},
+			},
+		};
 
 		const parsed = parseAndMigrateContent(raw);
 		const group = parsed.pages.home.blocks?.find((block) => block.type === 'images');
@@ -180,7 +201,11 @@ describe('content compatibility', () => {
 			carouselShowTitle: true,
 			carouselRequireAlt: true,
 		});
-		expect(parsed.galleries.process.items['01-process.jpg']).toMatchObject({ focusX: 75, focusY: 25 });
+		expect(parsed.galleries.process.items['01-process.jpg']).toMatchObject({
+			focusX: 75,
+			focusY: 25,
+			cropAspect: '16:9',
+		});
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
 	});
 
@@ -239,7 +264,7 @@ describe('content compatibility', () => {
 					{
 						align: 'center',
 						runs: [
-							{ text: 'Large ', size: 'heading', bold: true },
+							{ text: 'Large ', size: 'heading', fontSize: 54, bold: true },
 							{ text: 'idea', size: 'heading', italic: true, underline: true },
 						],
 					},
@@ -252,7 +277,7 @@ describe('content compatibility', () => {
 				],
 				fontFamily: 'Georgia, "Times New Roman", serif',
 				flowLayout: { x: 18, w: 64 },
-				layout: { x: 12, y: 8, w: 42 },
+				layout: { x: 12, y: 8, w: 42, z: 3 },
 			},
 		];
 
@@ -262,11 +287,12 @@ describe('content compatibility', () => {
 			text: 'Large idea\nDetailed work',
 			fontFamily: 'Georgia, "Times New Roman", serif',
 			flowLayout: { x: 18, w: 64 },
+			layout: { x: 12, y: 8, w: 42, z: 3 },
 			richText: [
 				{
 					align: 'center',
 					runs: [
-						{ text: 'Large ', size: 'heading', bold: true },
+						{ text: 'Large ', size: 'heading', fontSize: 54, bold: true },
 						{ text: 'idea', size: 'heading', italic: true, underline: true },
 					],
 				},
@@ -532,7 +558,7 @@ describe('browser draft compatibility', () => {
 		expect(() => parseAndMigrateEditorDoc(doc)).toThrow(/no longer exists/i);
 	});
 
-	it('lets a contact form use the artist email without requiring a technical form service', () => {
+	it('migrates the former public-email fallback into an independent form delivery email', () => {
 		const doc = blankDoc();
 		doc.content.contact.email = 'artist@example.com';
 		doc.content.pages.home.blocks!.push({
@@ -542,9 +568,13 @@ describe('browser draft compatibility', () => {
 			fields: [{ id: 'message', type: 'textarea', label: 'Message', required: true }],
 		});
 
-		expect(collectIssues(doc).some((issue) => issue.includes('contact form'))).toBe(false);
-		doc.content.contact.email = '';
-		expect(collectIssues(doc).some((issue) => issue.includes('contact email'))).toBe(true);
+		const parsed = parseAndMigrateEditorDoc(doc);
+		const form = parsed.content.pages.home.blocks!.find((block) => block.type === 'form');
+		expect(form?.type === 'form' ? form.recipientEmail : undefined).toBe('artist@example.com');
+		parsed.content.contact.email = '';
+		expect(collectIssues(parsed).some((issue) => issue.includes('contact form'))).toBe(false);
+		if (form?.type === 'form') form.recipientEmail = '';
+		expect(collectIssues(parsed).some((issue) => issue.includes('site owner delivery email'))).toBe(true);
 	});
 
 	it('migrates a v0 draft, backfills registries, and round-trips through export', async () => {
@@ -779,7 +809,10 @@ describe('browser draft compatibility', () => {
 					description: '',
 					link: '/art',
 					clickAction: 'link',
-					layout: { x: 12, y: 4, w: 28, ar: 1.5 },
+					cropAspect: '16:9',
+					focusX: 30,
+					focusY: 70,
+					layout: { x: 12, y: 4, w: 28, ar: 1.5, z: 9 },
 				},
 			},
 		];
@@ -796,7 +829,10 @@ describe('browser draft compatibility', () => {
 			alt: 'A red painting on a white wall',
 			link: '/art',
 			clickAction: 'link',
-			layout: { x: 12, y: 4, w: 28, ar: 1.5 },
+			cropAspect: '16:9',
+			focusX: 30,
+			focusY: 70,
+			layout: { x: 12, y: 4, w: 28, ar: 1.5, z: 9 },
 		});
 		expect(bundle.contentJson.pages.home.gallery?.mobile).toEqual(doc.content.pages.home.gallery!.mobile);
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);

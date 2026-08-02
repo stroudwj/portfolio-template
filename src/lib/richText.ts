@@ -47,8 +47,14 @@ const cleanSize = (value: string | null | undefined): RichTextSize | undefined =
 	return undefined;
 };
 
+const cleanFontSize = (value: number | string | null | undefined): number | undefined => {
+	const size = typeof value === 'number' ? value : Number(value);
+	return Number.isFinite(size) ? Math.min(Math.max(Math.round(size * 10) / 10, 6), 144) : undefined;
+};
+
 const sameFormat = (a: RichTextRun, b: RichTextRun): boolean =>
 	a.size === b.size &&
+	a.fontSize === b.fontSize &&
 	a.link === b.link &&
 	a.bold === b.bold &&
 	a.italic === b.italic &&
@@ -64,6 +70,7 @@ export function normalizeRichText(paragraphs: RichTextParagraph[]): RichTextPara
 				text: candidate.text.replace(/\u00a0/g, ' '),
 				link: candidate.link?.trim() || undefined,
 				size: cleanSize(candidate.size),
+				fontSize: cleanFontSize(candidate.fontSize),
 				bold: candidate.bold ? true : undefined,
 				italic: candidate.italic ? true : undefined,
 				underline: candidate.underline ? true : undefined,
@@ -124,7 +131,10 @@ export function richTextToEditorHtml(paragraphs: RichTextParagraph[]): string {
 						if (run.strike) value = `<s>${value}</s>`;
 						const link = safeEditorLink(run.link);
 						if (link) value = `<a href="${escapeHtml(link)}">${value}</a>`;
-						return `<span data-text-size="${run.size ?? 'body'}">${value}</span>`;
+						const pointSize = run.fontSize
+							? ` data-text-pt="${run.fontSize}" style="font-size:${run.fontSize}pt"`
+							: '';
+						return `<span data-text-size="${run.size ?? 'body'}"${pointSize}>${value}</span>`;
 					})
 					.join('') || '<br>';
 			return `<div data-text-align="${align}" style="text-align:${align}">${content}</div>`;
@@ -134,6 +144,7 @@ export function richTextToEditorHtml(paragraphs: RichTextParagraph[]): string {
 
 interface InlineFormat {
 	size?: RichTextSize;
+	fontSize?: number;
 	link?: string;
 	bold?: true;
 	italic?: true;
@@ -192,6 +203,9 @@ const parseInlineNode = (node: Node, inherited: InlineFormat, runs: RichTextRun[
 	const weight = node.style.fontWeight;
 	const format: InlineFormat = {
 		size: elementSize(node, inherited.size),
+		fontSize:
+			cleanFontSize(node.dataset.textPt) ??
+			(node.style.fontSize.endsWith('pt') ? cleanFontSize(node.style.fontSize.slice(0, -2)) : inherited.fontSize),
 		link:
 			node.tagName === 'A'
 				? node.getAttribute('href')?.trim() || inherited.link

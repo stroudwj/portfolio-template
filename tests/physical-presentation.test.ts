@@ -2,8 +2,11 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import Gallery from '../src/portfolio/Gallery';
+import About from '../src/portfolio/About';
 import { PortfolioDivider } from '../src/portfolio/PageBlocks';
 import CreativeEffects from '../src/portfolio/CreativeEffects';
+import Signature from '../src/portfolio/Signature';
+import { themeToRootCss, themeToVars } from '../src/portfolio/theme';
 
 describe('physical presentation controls', () => {
 	it('renders configurable carousel arrows, frame, color, and artwork mounting', () => {
@@ -86,5 +89,60 @@ describe('physical presentation controls', () => {
 
 		expect(markup).toContain('creative-custom-cursor');
 		expect(markup).toContain('src="/assets/cursors/paintbrush.png"');
+	});
+
+	it('renders uploaded signatures at the selected alignment', () => {
+		const markup = renderToStaticMarkup(
+			createElement(Signature, {
+				base: '/portfolio-template/',
+				data: { strokes: [], image: 'signatures/mark.png', align: 'left' },
+			}),
+		);
+		expect(markup).toContain('site-signature align-left');
+		expect(markup).toContain('src="/portfolio-template/signatures/mark.png"');
+	});
+
+	it('renders About image crop, size, and focal point controls', () => {
+		const markup = renderToStaticMarkup(
+			createElement(About, {
+				name: 'Artist',
+				bio: 'Bio',
+				email: 'artist@example.com',
+				social: [],
+				profileImageSrc: '/portrait.jpg',
+				imageWidth: 320,
+				imageAspect: '1:1',
+				imageFocusX: 25,
+				imageFocusY: 70,
+				imageCropZoom: 1.5,
+			}),
+		);
+		expect(markup).toContain('profile-image-frame is-cropped');
+		expect(markup).toContain('--about-image-width:320px');
+		expect(markup).toContain('aspect-ratio:1');
+		expect(markup).toContain('object-position:25% 70%');
+		expect(markup).toContain('transform:scale(1.5)');
+	});
+
+	it('emits separate heading, subheading, and body color variables', () => {
+		const theme = {
+			backgroundColor: '#ffffff',
+			textColor: '#111111',
+			bodyTextColor: '#222222',
+			headingTextColor: '#333333',
+			subheadingTextColor: '#444444',
+			mutedTextColor: '#555555',
+			accentColor: '#0000ff',
+			fontFamily: 'Arial, sans-serif',
+		};
+		expect(themeToVars(theme)).toMatchObject({
+			'--color-body-text': '#222222',
+			'--color-heading-text': '#333333',
+			'--color-subheading-text': '#444444',
+		});
+		const css = themeToRootCss(theme);
+		expect(css).toContain('--color-body-text:#222222');
+		expect(css).toContain('--color-heading-text:#333333');
+		expect(css).toContain('--color-subheading-text:#444444');
 	});
 });

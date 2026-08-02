@@ -28,8 +28,10 @@ const { title, showLogo = false, base = import.meta.env.BASE_URL, noindex = fals
 const description = Astro.props.description || content.site.description;
 const { site, theme, nav } = content;
 const resolvedLogoImageSrc = await resolveLogoImage();
-const headerMode = site.headerMode ?? (resolvedLogoImageSrc ? 'image' : site.logo ? 'text' : 'name');
-const logo = headerMode === 'text' ? (site.logo || site.name) : site.name;
+// Older content may still contain `headerMode: "text"` and `site.logo`.
+// Both now resolve to the single Header text value (`site.name`).
+const headerMode = (site.headerMode ?? (resolvedLogoImageSrc ? 'image' : 'name')) === 'image' ? 'image' : 'name';
+const logo = site.name;
 const logoImageSrc = headerMode === 'image' ? resolvedLogoImageSrc : undefined;
 const current = stripSlashes(Astro.url.pathname.replace(stripSlashes(base), ''));
 // Site-wide nav layout + the current page's color-blocking background (if any).
@@ -37,6 +39,7 @@ const navStyle = theme.navStyle ?? 'dock';
 const pageConfig = content.pages[current || 'home'];
 const automaticContrast = theme.automaticTextContrast !== false;
 const stabilized = theme.stabilizeNavigation !== false;
+const logoStabilized = theme.stabilizeLogo ?? stabilized;
 const pageBackground = pageConfig?.background || theme.backgroundColor;
 const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background, automaticContrast))
 	.map(([prop, value]) => `${prop}:${value}`)
@@ -119,7 +122,7 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 					href={withBase(base)}
 					automaticContrast={automaticContrast}
 					fallbackBackground={pageBackground}
-					stabilized={stabilized}
+					stabilized={logoStabilized}
 					position={theme.logoPosition}
 					freeformX={theme.logoX}
 					freeformY={theme.logoY}

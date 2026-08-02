@@ -62,6 +62,8 @@ import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
+type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
 const imageClickHref = (image: ResolvedImage): string | undefined =>
 	image.clickAction === 'link' ? safeHref(image.link) : undefined;
 
@@ -101,12 +103,15 @@ export interface CanvasGalleryProps {
 	onOpen?: (index: number, trigger?: HTMLElement) => void;
 	/** Editor preview: keep internal image links inside the preview router. */
 	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
+	onSelectBlock?: (blockId: string) => void;
 }
 
 export interface CanvasWidget {
 	id: string;
 	layout: ImageLayout;
 	freeResize?: boolean;
+	/** Editor-only map-style grip shown over widgets whose contents are interactive. */
+	dragLabel?: string;
 	/** Let pointer drags on the widget image reposition that image instead of moving the widget. */
 	moveImage?: boolean;
 	content: ReactNode;
@@ -130,6 +135,7 @@ export default function CanvasGallery({
 	onDeleteSelection,
 	onOpen,
 	onImageLink,
+	onSelectBlock,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	/** Live position of the item being dragged, keyed by id (committed on release). */
@@ -208,6 +214,10 @@ export default function CanvasGallery({
 	};
 
 	const keyOf = (img: ResolvedImage, i: number): string => img.id ?? `${img.src}-${i}`;
+	const cropRatio = (value: string | undefined): number | undefined => {
+		const match = /^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/.exec(value ?? '');
+		return match ? Number(match[1]) / Number(match[2]) : undefined;
+	};
 	const imageSelectionKey = (img: ResolvedImage, i: number): string =>
 		`image:${keyOf(img, i)}`;
 
@@ -219,7 +229,7 @@ export default function CanvasGallery({
 	const widgetLayouts = widgets.map((widget) => drafts[widget.id] ?? widget.layout);
 	// Effective layout per item: in-flight draft > stored > auto-flowed default.
 	const flowed = flowMissing(
-		images.map((img, i) => ({ layout: img.layout, ar: measured[keyOf(img, i)] ?? img.ar })),
+		images.map((img, i) => ({ layout: img.layout, ar: cropRatio(img.cropAspect) ?? measured[keyOf(img, i)] ?? img.ar })),
 		autoFlowFloor,
 	);
 	const layouts = images.map(
@@ -230,7 +240,7 @@ export default function CanvasGallery({
 		...textLayouts.map(textBottom),
 		...embedLayouts.map(bottomOf),
 		...widgetLayouts.map(bottomOf),
-		editable ? 30 : 1,
+		1,
 	);
 	const multiSelected = selected.size > 1;
 
@@ -277,6 +287,65 @@ export default function CanvasGallery({
 		}),
 	];
 
+	const commitSelectionLayout = (
+		item: ReturnType<typeof selectionItems>[number],
+		layout: ImageLayout | TextLayout,
+	) => {
+		if (item.kind === 'image') {
+			const rounded = roundLayout(layout as ImageLayout);
+			onLayoutChange?.(item.id, rounded);
+		}
+		else if (item.kind === 'embed') onEmbedLayout?.(item.id, roundLayout(layout as ImageLayout));
+		else if (item.kind === 'widget') onWidgetLayout?.(item.id, roundLayout(layout as ImageLayout));
+		else onTextLayout?.(item.id, roundTextLayout(layout as TextLayout));
+	};
+
+	const moveSelectionLayer = (direction: 'front' | 'back') => {
+		const chosen = selectionItems().find((item) => selected.has(item.key));
+		if (!chosen || selected.size !== 1) return;
+		const layers = selectionItems().map((item, index) => Math.max(1, item.layout.z ?? index + 1));
+		// Canvas items must stay above the canvas background/hit target. Negative
+		// z-indices made a sent-back image visible but impossible to select again.
+		const z = direction === 'front' ? Math.max(...layers, 1) + 1 : Math.max(1, Math.min(...layers, 2) - 1);
+		commitSelectionLayout(chosen, { ...chosen.layout, z });
+	};
+
+	const toggleSelectedImageLock = () => {
+		const chosen = selectionItems().find((item) => selected.has(item.key));
+		if (!chosen || selected.size !== 1 || chosen.kind !== 'image') return;
+		commitSelectionLayout(chosen, {
+			...(chosen.layout as ImageLayout),
+			locked: !(chosen.layout as ImageLayout).locked,
+		});
+	};
+	const runToolbarPointerAction = (event: React.PointerEvent, action: () => void) => {
+		event.stopPropagation();
+		action();
+	};
+	const runToolbarKeyAction = (event: React.KeyboardEvent, action: () => void) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		event.stopPropagation();
+		action();
+	};
+
+	const resizeSelectionWithKeys = (amount: number) => {
+		const chosen = selectionItems().find((item) => selected.has(item.key));
+		if (!chosen || selected.size !== 1) return;
+		if (chosen.kind === 'image' && (chosen.layout as ImageLayout).locked) return;
+		if (chosen.kind === 'text') {
+			commitSelectionLayout(
+				chosen,
+				clampTextLayout({ ...(chosen.layout as TextLayout), w: chosen.layout.w + amount }),
+			);
+			return;
+		}
+		commitSelectionLayout(
+			chosen,
+			clampLayout({ ...(chosen.layout as ImageLayout), w: chosen.layout.w + amount }),
+		);
+	};
+
 	useEffect(() => {
 		if (!editable) {
 			setSelected(new Set());
@@ -291,6 +360,26 @@ export default function CanvasGallery({
 				setSelected(new Set());
 				return;
 			}
+			const target = event.target as HTMLElement | null;
+			if (
+				target &&
+				(target.matches('input, textarea, select') ||
+					target.isContentEditable ||
+					!!target.closest('[contenteditable="true"]'))
+			) return;
+			if (doc.activeElement !== canvas && !canvas.contains(doc.activeElement)) return;
+			if (!event.metaKey && !event.ctrlKey && !event.altKey && selected.size === 1) {
+				if (event.key === '[' || event.key === ']') {
+					event.preventDefault();
+					moveSelectionLayer(event.key === ']' ? 'front' : 'back');
+					return;
+				}
+				if (event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+					event.preventDefault();
+					resizeSelectionWithKeys(event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : -1);
+					return;
+				}
+			}
 			if (
 				(event.key !== 'Backspace' && event.key !== 'Delete' && event.key !== 'Del') ||
 				event.metaKey ||
@@ -299,16 +388,6 @@ export default function CanvasGallery({
 				!onDeleteSelection ||
 				selected.size === 0
 			) return;
-			const target = event.target as HTMLElement | null;
-			if (
-				target &&
-				(target.matches('input, textarea, select') ||
-					target.isContentEditable ||
-					!!target.closest('[contenteditable="true"]'))
-			) return;
-			// Several canvases can coexist on a page. Only the one that last took
-			// pointer focus owns the shortcut, even if another retains stale selection.
-			if (doc.activeElement !== canvas && !canvas.contains(doc.activeElement)) return;
 			const selection: CanvasSelection = {};
 			for (const key of selected) {
 				const separator = key.indexOf(':');
@@ -388,10 +467,10 @@ export default function CanvasGallery({
 	// and texts keep stacking above every image (as their DOM order always had it).
 	// The dragged item jumps above everything, including the grid overlay (5000).
 	const DRAG_Z = 6000;
-	const imageZ = (i: number) => images.length - i;
-	const embedZ = (i: number) => images.length + embeds.length - i;
-	const textZ = (i: number) => images.length + embeds.length + shownTexts.length - i;
-	const widgetZ = (i: number) => images.length + embeds.length + shownTexts.length + widgets.length - i;
+	const imageZ = (i: number) => Math.max(1, layouts[i].z ?? images.length - i);
+	const embedZ = (i: number) => Math.max(1, embedLayouts[i].z ?? images.length + embeds.length - i);
+	const textZ = (i: number) => Math.max(1, textLayouts[i].z ?? images.length + embeds.length + shownTexts.length - i);
+	const widgetZ = (i: number) => Math.max(1, widgetLayouts[i].z ?? images.length + embeds.length + shownTexts.length + widgets.length - i);
 
 	const measure = (key: string, el: HTMLImageElement) => {
 		if (el.naturalWidth && el.naturalHeight)
@@ -454,6 +533,7 @@ export default function CanvasGallery({
 		minW: number,
 		commit: (id: string, layout: ImageLayout) => void,
 		freeResize = false,
+		corner: ResizeCorner = 'se',
 	) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -492,6 +572,35 @@ export default function CanvasGallery({
 				next = { ...from, x, y };
 			} else {
 				setCenterGuide(false);
+				if (corner !== 'se') {
+					const east = corner.endsWith('e');
+					const south = corner.startsWith('s');
+					const right = from.x + from.w;
+					const bottom = from.y + h;
+					if (freeResize) {
+						const width = Math.max(from.w + (east ? dx : -dx), minW);
+						const height = Math.max(h + (south ? dy : -dy), MIN_W);
+						next = {
+							...from,
+							x: east ? from.x : right - width,
+							y: south ? from.y : bottom - height,
+							w: width,
+							ar: Math.min(Math.max(width / height, 0.2), 5),
+						};
+					} else {
+						const delta = Math.max(east ? dx : -dx, (south ? dy : -dy) * from.ar);
+						const width = Math.max(from.w + delta, minW);
+						next = {
+							...from,
+							x: east ? from.x : right - width,
+							y: south ? from.y : bottom - width / from.ar,
+							w: width,
+						};
+					}
+					finalDraft = clampLayout(next);
+					setDrafts((draft) => ({ ...draft, [id]: finalDraft! }));
+					return;
+				}
 				if (freeResize) {
 					let width = Math.min(Math.max(from.w + dx, minW), 100 - from.x);
 					let height = Math.max(from.w / from.ar + dy, MIN_W);
@@ -569,7 +678,11 @@ export default function CanvasGallery({
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 		canvas.focus({ preventScroll: true });
-		const chosen = selectionItems().filter((item) => selected.has(item.key));
+		const chosen = selectionItems().filter(
+			(item) =>
+				selected.has(item.key) &&
+				!(item.kind === 'image' && (item.layout as ImageLayout).locked),
+		);
 		if (chosen.length < 2) return;
 		e.preventDefault();
 		e.stopPropagation();
@@ -751,7 +864,7 @@ export default function CanvasGallery({
 		win.addEventListener('pointerup', up);
 	};
 
-	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize') => {
+	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
 		if (!editable || !img.id || e.button !== 0 || !onLayoutChange) return;
 		canvasRef.current?.focus({ preventScroll: true });
 		const key = imageSelectionKey(img, index);
@@ -766,15 +879,21 @@ export default function CanvasGallery({
 			});
 			return;
 		}
+		if (layouts[index].locked) {
+			e.preventDefault();
+			e.stopPropagation();
+			setSelected(new Set([key]));
+			return;
+		}
 		if (mode === 'move' && selected.has(key) && selected.size > 1) {
 			startGroupDrag(e);
 			return;
 		}
 		setSelected(new Set([key]));
-		startItemDrag(e, img.id, key, layouts[index], mode, MIN_W, onLayoutChange);
+		startItemDrag(e, img.id, key, layouts[index], mode, MIN_W, onLayoutChange, false, corner);
 	};
 
-	const startEmbedDrag = (e: React.PointerEvent, embed: CanvasEmbed, index: number, mode: 'move' | 'resize') => {
+	const startEmbedDrag = (e: React.PointerEvent, embed: CanvasEmbed, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
 		if (!editable || e.button !== 0 || !onEmbedLayout) return;
 		canvasRef.current?.focus({ preventScroll: true });
 		const key = `video:${embed.id}`;
@@ -794,14 +913,15 @@ export default function CanvasGallery({
 			return;
 		}
 		setSelected(new Set([key]));
-		startItemDrag(e, embed.id, key, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout);
+		startItemDrag(e, embed.id, key, embedLayouts[index], mode, MIN_EMBED_W, onEmbedLayout, false, corner);
 	};
 
-	const startWidgetDrag = (e: React.PointerEvent, widget: CanvasWidget, index: number, mode: 'move' | 'resize') => {
+	const startWidgetDrag = (e: React.PointerEvent, widget: CanvasWidget, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
 		if (!editable || e.button !== 0 || !onWidgetLayout) return;
 		const target = e.target as HTMLElement;
 		if (
 			mode === 'move' &&
+			!target.closest('.canvas-widget-drag-handle') &&
 			target.closest(
 				widget.moveImage
 					? 'button, a, .inline-carousel-image'
@@ -835,10 +955,11 @@ export default function CanvasGallery({
 			MIN_W,
 			onWidgetLayout,
 			widget.freeResize === true,
+			corner,
 		);
 	};
 
-	const startTextDrag = (e: React.PointerEvent, text: CanvasText, index: number, mode: 'move' | 'resize') => {
+	const startTextDrag = (e: React.PointerEvent, text: CanvasText, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
 		if (!editable || e.button !== 0) return;
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -893,10 +1014,13 @@ export default function CanvasGallery({
 							),
 							y: snapSpanToEdges(snapY(from.y + dy), fromH, ys),
 						}
-					: {
-							...from,
-							w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W),
-						};
+					: corner.endsWith('e')
+						? { ...from, w: Math.max(snapX(from.x + from.w + dx) - from.x, MIN_TEXT_W) }
+						: {
+								...from,
+								x: Math.min(snapX(from.x + dx), from.x + from.w - MIN_TEXT_W),
+								w: Math.max(from.w - dx, MIN_TEXT_W),
+							};
 			if (mode === 'resize') setCenterGuide(false);
 			finalDraft = clampTextLayout(next);
 			setTextDrafts((d) => ({ ...d, [id]: finalDraft! }));
@@ -936,6 +1060,8 @@ export default function CanvasGallery({
 		win.addEventListener('pointercancel', up);
 		win.addEventListener('scroll', scroll, true);
 	};
+	const singleSelectedItem =
+		selected.size === 1 ? selectionItems().find((item) => selected.has(item.key)) : undefined;
 
 	return (
 		<div
@@ -959,6 +1085,38 @@ export default function CanvasGallery({
 					}}
 					aria-hidden="true"
 				/>
+			)}
+			{editable && selected.size === 1 && (
+				<div className="canvas-layer-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+					<button
+						type="button"
+						onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('front'))}
+						onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('front'))}
+						title="Bring to front (])"
+					>Bring to front</button>
+					<button
+						type="button"
+						onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('back'))}
+						onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('back'))}
+						title="Send to back ([)"
+					>Send to back</button>
+					{singleSelectedItem?.kind === 'image' && (
+						<button
+							type="button"
+							className="canvas-lock-button"
+							onPointerDown={(event) => runToolbarPointerAction(event, toggleSelectedImageLock)}
+							onKeyDown={(event) => runToolbarKeyAction(event, toggleSelectedImageLock)}
+							title={(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image position and size'}
+						>
+							{(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image'}
+						</button>
+					)}
+					<span title="Resize selected item with Shift + arrow keys">
+						{singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
+							? 'Position & size locked'
+							: '⇧ + arrows resize'}
+					</span>
+				</div>
 			)}
 			{editable && guide.kind === 'squares' && (
 				<div
@@ -1005,17 +1163,24 @@ export default function CanvasGallery({
 						dragId === img.id || (dragId === '__group__' && selected.has(item.key));
 					const href = editable ? undefined : imageClickHref(img);
 					return (
-						<div key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
+						<div key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''} ${l.locked ? 'locked' : ''}`} style={vars}
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
 							role={!editable && !href && onOpen ? 'button' : undefined} tabIndex={!editable && !href && onOpen ? 0 : undefined}
 							aria-haspopup={!editable && !href && onOpen ? 'dialog' : undefined}
 							aria-label={!editable && !href && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
 							onClick={!editable && !href && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
 							onKeyDown={!editable && !href && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
-							<img src={img.src} srcSet={img.srcSet} alt={img.decorative ? '' : img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
-								onError={img.sample ? (event) => showSampleUnavailable(event.currentTarget) : undefined}
-								onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
-								ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
+							<div className="canvas-artwork-frame">
+								<img src={img.src} srcSet={img.srcSet} alt={img.decorative ? '' : img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
+									style={{
+										objectPosition: `${img.focusX ?? 50}% ${img.focusY ?? 50}%`,
+										scale: img.cropZoom && img.cropZoom > 1 ? String(img.cropZoom) : undefined,
+										transformOrigin: `${img.focusX ?? 50}% ${img.focusY ?? 50}%`,
+									}}
+									onError={img.sample ? (event) => showSampleUnavailable(event.currentTarget) : undefined}
+									onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
+									ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
+							</div>
 							{href && (
 								<a
 									className="artwork-link-overlay"
@@ -1026,7 +1191,10 @@ export default function CanvasGallery({
 									onClick={(event) => onImageLink?.(href, event)}
 								/>
 							)}
-							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startDrag(e, img, i, 'resize')} aria-hidden="true" />}
+							{editable && l.locked && <span className="canvas-lock-badge" title="Image position and size are locked" aria-label="Locked image">🔒</span>}
+							{editable && !l.locked && !multiSelected && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+								<span key={corner} className={`canvas-resize corner-${corner}`} title={`Resize from ${corner.toUpperCase()} corner`} onPointerDown={(e) => startDrag(e, img, i, 'resize', corner)} aria-hidden="true" />
+							))}
 						</div>
 					);
 				}
@@ -1050,13 +1218,18 @@ export default function CanvasGallery({
 					return (
 						<div
 							key={item.key}
+							data-preview-block={embed.id}
+							onPointerDownCapture={() => onSelectBlock?.(embed.id)}
 							className={`canvas-item canvas-embed-item canvas-embed-${kind} ${
 								dragId === embed.id || (dragId === '__group__' && selected.has(item.key))
 									? 'dragging'
 									: ''
 							} ${selected.has(item.key) ? 'selected' : ''}`}
 							style={vars}
-							onPointerDown={editable ? (e) => startEmbedDrag(e, embed, i, 'move') : undefined}
+							onPointerDown={(event) => {
+								onSelectBlock?.(embed.id);
+								if (editable) startEmbedDrag(event, embed, i, 'move');
+							}}
 						>
 							{spec ? (
 								<iframe
@@ -1105,7 +1278,9 @@ export default function CanvasGallery({
 									<span aria-hidden="true">⠿</span> {label}
 								</button>
 							)}
-							{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize')} aria-hidden="true" />}
+							{editable && !multiSelected && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+								<span key={corner} className={`canvas-resize corner-${corner}`} title={`Resize from ${corner.toUpperCase()} corner`} onPointerDown={(e) => startEmbedDrag(e, embed, i, 'resize', corner)} aria-hidden="true" />
+							))}
 						</div>
 					);
 				}
@@ -1125,9 +1300,14 @@ export default function CanvasGallery({
 					return (
 						<div
 							key={item.key}
+							data-preview-block={widget.id}
+							onPointerDownCapture={() => onSelectBlock?.(widget.id.split('::', 1)[0])}
 							className={`canvas-item canvas-widget-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`}
 							style={vars}
-							onPointerDown={editable ? (event) => startWidgetDrag(event, widget, i, 'move') : undefined}
+							onPointerDown={(event) => {
+								onSelectBlock?.(widget.id.split('::', 1)[0]);
+								if (editable) startWidgetDrag(event, widget, i, 'move');
+							}}
 							onClickCapture={
 								editable
 									? (event) => {
@@ -1140,14 +1320,23 @@ export default function CanvasGallery({
 							}
 						>
 							<div className="canvas-widget-content">{widget.content}</div>
-							{editable && (
-								<span
-									className="canvas-resize canvas-widget-resize"
-									onPointerDown={(event) => startWidgetDrag(event, widget, i, 'resize')}
-									title="Resize carousel"
-									aria-hidden="true"
-								/>
+							{editable && widget.dragLabel && (
+								<button
+									type="button"
+									className="canvas-embed-drag-handle canvas-widget-drag-handle"
+									aria-label={widget.dragLabel}
+									title={widget.dragLabel}
+									onPointerDown={(event) => {
+										onSelectBlock?.(widget.id.split('::', 1)[0]);
+										startWidgetDrag(event, widget, i, 'move');
+									}}
+								>
+									<span aria-hidden="true">⠿</span> {widget.dragLabel}
+								</button>
 							)}
+							{editable && !widget.moveImage && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+								<span key={corner} className={`canvas-resize canvas-widget-resize corner-${corner}`} onPointerDown={(event) => startWidgetDrag(event, widget, i, 'resize', corner)} title={`Resize from ${corner.toUpperCase()} corner`} aria-hidden="true" />
+							))}
 						</div>
 					);
 				}
@@ -1162,12 +1351,15 @@ export default function CanvasGallery({
 							: textZ(i),
 				} as CSSProperties;
 				return (
-					<div key={item.key} className={`canvas-item canvas-text-item ${
+					<div key={item.key} data-preview-block={text.id} onPointerDownCapture={() => onSelectBlock?.(text.id)} className={`canvas-item canvas-text-item ${
 						dragId === text.id || (dragId === '__group__' && selected.has(item.key))
 							? 'dragging'
 							: ''
 					} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
-						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={editable ? (e) => startTextDrag(e, text, i, 'move') : undefined}>
+						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={(event) => {
+							onSelectBlock?.(text.id);
+							if (editable) startTextDrag(event, text, i, 'move');
+						}}>
 						<div className={`canvas-text align-${text.align ?? 'left'}`}>
 							{text.text.trim() ? (
 								<TextContent
@@ -1181,7 +1373,9 @@ export default function CanvasGallery({
 								/>
 							) : <em className="canvas-text-empty">Empty text — write in the panel</em>}
 						</div>
-						{editable && !multiSelected && <span className="canvas-resize" onPointerDown={(e) => startTextDrag(e, text, i, 'resize')} aria-hidden="true" />}
+						{editable && !multiSelected && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+							<span key={corner} className={`canvas-resize corner-${corner}`} title={`Resize from ${corner.toUpperCase()} corner`} onPointerDown={(e) => startTextDrag(e, text, i, 'resize', corner)} aria-hidden="true" />
+						))}
 					</div>
 				);
 			})}

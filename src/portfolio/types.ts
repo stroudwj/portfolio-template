@@ -112,6 +112,10 @@ export interface ResolvedImage {
 	/** Carousel fill-mode focal point, in source-image percentages. */
 	focusX?: number;
 	focusY?: number;
+	/** Per-image crop ratio used by the freeform canvas. */
+	cropAspect?: string;
+	/** Non-destructive crop magnification. */
+	cropZoom?: number;
 	effects?: ArtworkEffectConfig;
 }
 

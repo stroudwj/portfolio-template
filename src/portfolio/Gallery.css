@@ -183,7 +183,7 @@
 	border: 0;
 	border-radius: 0;
 	background: transparent;
-	color: var(--carousel-chrome, var(--color-accent));
+	color: var(--carousel-arrow, var(--carousel-chrome, var(--color-accent)));
 	font-family: var(--font-family);
 	font-size: 32px;
 	font-weight: 500;
@@ -221,7 +221,7 @@
 	height: 38px;
 	border-radius: 50%;
 	background: var(--carousel-chrome, var(--color-accent));
-	color: var(--color-bg);
+	color: var(--carousel-arrow, var(--color-bg));
 	font-size: 28px;
 	box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
 }
@@ -237,7 +237,7 @@
 	width: 32px;
 	height: 56px;
 	background: var(--carousel-chrome, var(--color-accent));
-	color: var(--color-bg);
+	color: var(--carousel-arrow, var(--color-bg));
 	font-size: 28px;
 }
 
@@ -271,6 +271,11 @@
 
 .carousel-frame-resize {
 	z-index: 4;
+	touch-action: none;
+}
+.carousel-image-resize {
+	z-index: 5;
+	opacity: 1;
 	touch-action: none;
 }
 
@@ -345,6 +350,15 @@
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
 }
+.uniform-item.has-native-crop,
+.masonry-item.has-native-crop {
+	overflow: hidden;
+}
+.uniform-item.has-native-crop img,
+.masonry-item.has-native-crop img {
+	width: 100%;
+	display: block;
+}
 
 .uniform-grid.cropped .uniform-item img {
 	aspect-ratio: var(--cell-ar, 1);
@@ -396,6 +410,10 @@
 	aspect-ratio: var(--ar, 1.3333);
 }
 
+.canvas-widget-item {
+	pointer-events: auto;
+}
+
 .canvas-item img {
 	width: 100%;
 	height: 100%;
@@ -403,6 +421,11 @@
 	display: block;
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	transition: box-shadow 0.3s ease;
+}
+.canvas-artwork-frame {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
 }
 
 /* Text pinned to the canvas: width from its layout, height from its content. */
@@ -524,6 +547,35 @@
 	background: rgba(0, 47, 167, 0.1);
 }
 
+.canvas-layer-toolbar {
+	position: sticky;
+	top: 8px;
+	left: 8px;
+	z-index: 6500;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px;
+	border: 1px solid rgba(0, 47, 167, 0.35);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+	font: 600 10px/1.2 system-ui, sans-serif;
+}
+.canvas-layer-toolbar button {
+	padding: 5px 7px;
+	border: 0;
+	border-radius: 5px;
+	background: #002fa7;
+	color: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+.canvas-layer-toolbar .canvas-lock-button {
+	background: #27324f;
+}
+.canvas-layer-toolbar span { padding: 0 4px; color: #3c4561; }
+
 /* Hosted players and maps pinned to the canvas fill their saved aspect-ratio box. */
 .canvas-item.canvas-embed-item iframe {
 	width: 100%;
@@ -605,6 +657,7 @@
 	white-space: nowrap;
 	cursor: grab;
 	touch-action: none;
+	pointer-events: auto;
 	transform: translateX(-50%);
 }
 
@@ -613,7 +666,8 @@
 	outline-offset: 2px;
 }
 
-.canvas-embed-item.dragging .canvas-embed-drag-handle {
+.canvas-embed-item.dragging .canvas-embed-drag-handle,
+.canvas-widget-item.dragging .canvas-widget-drag-handle {
 	cursor: grabbing;
 }
 
@@ -639,6 +693,24 @@
 .canvas-gallery.editable .canvas-item.selected {
 	outline: 2px solid #002fa7;
 	outline-offset: 2px;
+}
+.canvas-gallery.editable .canvas-item.locked {
+	cursor: default;
+}
+.canvas-lock-badge {
+	position: absolute;
+	z-index: 4;
+	top: 6px;
+	right: 6px;
+	display: grid;
+	width: 24px;
+	height: 24px;
+	place-items: center;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.92);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	font: 13px/1 system-ui, sans-serif;
+	pointer-events: none;
 }
 
 /* z-index while dragging is set inline (DRAG_Z) — it must beat the grid overlay. */
@@ -674,9 +746,14 @@
 	opacity: 0;
 	transition: opacity 0.15s ease;
 }
+.canvas-resize.corner-nw { top: -10px; right: auto; bottom: auto; left: -10px; cursor: nwse-resize; }
+.canvas-resize.corner-ne { top: -10px; right: -10px; bottom: auto; left: auto; cursor: nesw-resize; }
+.canvas-resize.corner-sw { top: auto; right: auto; bottom: -10px; left: -10px; cursor: nesw-resize; }
+.canvas-resize.corner-se { top: auto; right: -10px; bottom: -10px; left: auto; cursor: nwse-resize; }
 
 .canvas-item:hover .canvas-resize,
 .canvas-item.dragging .canvas-resize,
+.canvas-item.selected .canvas-resize,
 .canvas-embed-item .canvas-resize {
 	opacity: 1;
 }

@@ -116,6 +116,8 @@ function versionAssetIds(doc: EditorDoc): Set<string> {
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
+		doc.footerImage,
+		doc.signatureImage,
 		doc.cursorImage,
 		doc.resumeFile,
 		...Object.values(doc.pageThumbs),

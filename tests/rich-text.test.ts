@@ -42,6 +42,19 @@ describe('rich text model', () => {
 		expect(html).not.toContain('<img');
 	});
 
+	it('preserves exact point sizes independently from the Body/Small/Large presets', () => {
+		const rich = normalizeRichText([
+			{ runs: [{ text: 'Caption', fontSize: 9.5 }, { text: 'Title', size: 'heading', fontSize: 54 }] },
+		]);
+		expect(rich[0].runs).toEqual([
+			{ text: 'Caption', fontSize: 9.5 },
+			{ text: 'Title', size: 'heading', fontSize: 54 },
+		]);
+		const html = richTextToEditorHtml(rich);
+		expect(html).toContain('data-text-pt="9.5" style="font-size:9.5pt"');
+		expect(html).toContain('data-text-size="heading" data-text-pt="54"');
+	});
+
 	it('keeps links on selected words instead of merging them into surrounding text', () => {
 		const rich = normalizeRichText([
 			{

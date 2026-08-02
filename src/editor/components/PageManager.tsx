@@ -272,14 +272,27 @@ export default function PageManager({
 }) {
 	const editor = useEditor();
 	const { doc, movePage } = editor;
+	const [addingChildTo, setAddingChildTo] = useState<string | null>(null);
+	const [newChildName, setNewChildName] = useState('');
 	if (!doc) return null;
+	const finishAddingChild = () => {
+		const name = newChildName.trim();
+		if (!addingChildTo || !name) return;
+		editor.addChildPage(addingChildTo, name);
+		setAddingChildTo(null);
+		setNewChildName('');
+	};
+	const cancelAddingChild = () => {
+		setAddingChildTo(null);
+		setNewChildName('');
+	};
 
 	const pages = doc.content.nav;
 	const pageIds = pages.map((item) => item.path || 'home');
 
 	return (
 		<Section title="Pages">
-			<p className="muted">Select a page to edit. Drag ⠿ to change the order; use ••• for publishing, visibility, search, address, and delete.</p>
+			<p className="muted">Select a page to edit. Drag ⠿ to change the order; use ••• for publishing, visibility, search, address, and delete. Sub-pages stay snapped together in one indented group beneath their parent page.</p>
 			<div className="page-manager-list" role="list" aria-label="Pages in your site menu">
 				<SortableList ids={pageIds} onReorder={movePage}>
 					{pages.map((item) => {
@@ -287,6 +300,43 @@ export default function PageManager({
 						const page = doc.content.pages[pageKey];
 						if (!page) return null;
 						const label = page.label || item.label || (pageKey === 'home' ? 'Home' : 'Untitled page');
+						const hasChildren = (page.children ?? []).length > 0;
+						const childControl = addingChildTo === pageKey ? (
+							<form
+								className="page-subpage-create"
+								onSubmit={(event) => {
+									event.preventDefault();
+									finishAddingChild();
+								}}
+							>
+								<label htmlFor={`new-subpage-${pageKey}`}>New sub-page under {label}</label>
+								<input
+									id={`new-subpage-${pageKey}`}
+									className="text-input"
+									value={newChildName}
+									onChange={(event) => setNewChildName(event.target.value)}
+									placeholder="Sub-page name"
+									autoFocus
+								/>
+								<div>
+									<button type="submit" className="btn-primary" disabled={!newChildName.trim()}>
+										Add to {label}
+									</button>
+									<button type="button" className="btn-ghost" onClick={cancelAddingChild}>Cancel</button>
+								</div>
+							</form>
+						) : (
+							<button
+								type="button"
+								className="btn-link page-add-subpage"
+								onClick={() => {
+									setAddingChildTo(pageKey);
+									setNewChildName('');
+								}}
+							>
+								＋ {hasChildren ? 'Add another sub-page' : `Add sub-page under ${label}`}
+							</button>
+						);
 
 						return (
 							<SortableItem id={pageKey} key={pageKey}>
@@ -302,8 +352,12 @@ export default function PageManager({
 											handle={handle}
 											onEditPage={onEditPage}
 										/>
-										{(page.children ?? []).length > 0 && (
+										{hasChildren && (
 											<div className="page-children-list" role="list" aria-label={`Sub-pages under ${label}`}>
+												<div className="page-children-group-heading" role="presentation">
+													<span>↳ Sub-pages grouped under {label}</span>
+													<small>Drag within this group to set the card/list order.</small>
+												</div>
 												<SortableList
 													ids={page.children!}
 													onReorder={(from, to) => editor.moveChildPage(pageKey, from, to)}
@@ -328,8 +382,10 @@ export default function PageManager({
 														);
 													})}
 												</SortableList>
+												{childControl}
 											</div>
 										)}
+										{!hasChildren && childControl}
 									</>
 								)}
 							</SortableItem>

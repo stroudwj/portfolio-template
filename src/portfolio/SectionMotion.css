@@ -1,5 +1,6 @@
 .motion-section-inner {
 	position: relative;
+	display: flow-root;
 	width: 100%;
 	box-sizing: border-box;
 	transform-origin: 50% 50%;
@@ -96,4 +97,31 @@
 		transform: none !important;
 		transition: none !important;
 	}
+}
+.section-mixed-composition {
+	display: grid;
+	align-items: start;
+}
+
+.section-mixed-composition > .section-flow-layer,
+.section-mixed-composition > .section-canvas-layer {
+	grid-area: 1 / 1;
+	min-width: 0;
+}
+
+.section-mixed-composition > .section-flow-layer {
+	position: relative;
+	z-index: 1;
+}
+
+.section-mixed-composition > .section-canvas-layer {
+	position: relative;
+	z-index: 2;
+	pointer-events: none;
+}
+
+.section-mixed-composition > .section-canvas-layer .canvas-item,
+.section-mixed-composition > .section-canvas-layer button,
+.section-mixed-composition > .section-canvas-layer a {
+	pointer-events: auto;
 }

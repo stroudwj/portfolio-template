@@ -8,11 +8,19 @@ import type { PageHeadingPosition, Theme } from '../../lib/content';
 import { compatibleThemePresets } from '../lib/templates';
 import { customFontValue, fontOptionsForTheme } from '../lib/font-options';
 
-type ColorKey = 'backgroundColor' | 'textColor' | 'mutedTextColor' | 'accentColor';
+type ColorKey =
+	| 'backgroundColor'
+	| 'bodyTextColor'
+	| 'headingTextColor'
+	| 'subheadingTextColor'
+	| 'mutedTextColor'
+	| 'accentColor';
 
 const COLOR_FIELDS: Array<{ key: ColorKey; label: string }> = [
 	{ key: 'backgroundColor', label: 'Background' },
-	{ key: 'textColor', label: 'Text' },
+	{ key: 'headingTextColor', label: 'Headers' },
+	{ key: 'subheadingTextColor', label: 'Subheaders' },
+	{ key: 'bodyTextColor', label: 'Body text' },
 	{ key: 'mutedTextColor', label: 'Muted text' },
 	{ key: 'accentColor', label: 'Accent (hover, links)' },
 ];
@@ -43,7 +51,6 @@ export default function ThemeEditor() {
 	const headingFont = theme.headingFontFamily ?? '';
 	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
 	const automaticContrast = theme.automaticTextContrast !== false;
-	const subheadingScale = theme.subheadingScale ?? 100;
 	const pageHeadingScale = theme.pageHeadingScale ?? 100;
 	const pageHeadingPosition = theme.pageHeadingPosition ?? 'right';
 	const pageHeadingX = theme.pageHeadingX ?? 50;
@@ -56,11 +63,6 @@ export default function ThemeEditor() {
 			),
 		),
 	);
-
-	const applySubheadingScale = (value: number) => {
-		const clamped = Math.max(50, Math.min(Math.round(value), 200));
-		setTheme({ subheadingScale: clamped === 100 ? undefined : clamped });
-	};
 
 	const applyPageHeadingScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -90,11 +92,9 @@ export default function ThemeEditor() {
 				</div>
 				<div className="theme-preset-grid">
 					{presets.map((preset) => {
-						const selected =
-							theme.backgroundColor === preset.tokens.backgroundColor &&
-							theme.textColor === preset.tokens.textColor &&
-							theme.accentColor === preset.tokens.accentColor &&
-							theme.fontFamily === preset.tokens.fontFamily;
+						const selected = Object.entries(preset.tokens).every(
+							([key, value]) => theme[key as keyof Theme] === value,
+						);
 						return (
 							<button
 								key={preset.id}
@@ -160,17 +160,17 @@ export default function ThemeEditor() {
 				</div>
 			</Field>
 			{COLOR_FIELDS.map(({ key, label }) => (
-				<Field key={key} label={label}>
+				<Field key={key} label={label} hint={key.endsWith('TextColor') ? 'This can be changed independently from the other text levels.' : undefined}>
 					<div className="color-field">
 						<input
 							type="color"
-							value={isHex(theme[key]) ? theme[key] : '#000000'}
+							value={isHex(theme[key] ?? theme.textColor) ? (theme[key] ?? theme.textColor) : '#000000'}
 							onChange={(e) => setTheme({ [key]: e.target.value })}
 							aria-label={`${label} color`}
 						/>
 						<input
 							className="text-input"
-							value={theme[key]}
+							value={theme[key] ?? theme.textColor}
 							onChange={(e) => setTheme({ [key]: e.target.value })}
 							placeholder="#111111"
 						/>
@@ -205,6 +205,27 @@ export default function ThemeEditor() {
 					<small>Choose the type system, then size and place recurring headings.</small>
 				</div>
 			</div>
+			<Field
+				label="Upload your own font"
+				hint={`Upload a ${FONT_EXTENSIONS.join('/')} file — it appears immediately in both font lists and publishes with your site.`}
+				error={fontError ?? undefined}
+			>
+				<div>
+					<input
+						ref={fontInputRef}
+						type="file"
+						accept={FONT_EXTENSIONS.map((e) => `.${e}`).join(',')}
+						hidden
+						onChange={(e) => {
+							handleFontFile(e.target.files?.[0]);
+							e.target.value = '';
+						}}
+					/>
+					<button type="button" className="btn-secondary" onClick={() => fontInputRef.current?.click()}>
+						Upload font…
+					</button>
+				</div>
+			</Field>
 			<Field label="Body font">
 				<select
 					className="text-input"
@@ -314,54 +335,6 @@ export default function ThemeEditor() {
 						</label>
 					</div>
 				)}
-			</Field>
-			<Field
-				label="Small heading size"
-				hint="“Small heading” is a style you can choose on any text block. This changes all of those blocks."
-			>
-				<div className="gap-row">
-					<input
-						type="range"
-						min={50}
-						max={200}
-						step={5}
-						value={subheadingScale}
-						onChange={(e) => applySubheadingScale(Number(e.target.value))}
-						aria-label="Small heading size"
-					/>
-					<span className="gap-unit">{subheadingScale}%</span>
-					{subheadingScale !== 100 && (
-						<button
-							type="button"
-							className="btn-icon btn-chip"
-							onClick={() => applySubheadingScale(100)}
-							title="Back to the default size"
-						>
-							Reset
-						</button>
-					)}
-				</div>
-			</Field>
-			<Field
-				label="Your own font"
-				hint={`Upload a ${FONT_EXTENSIONS.join('/')} file — it’s added to the list above and published with your site.`}
-				error={fontError ?? undefined}
-			>
-				<div>
-					<input
-						ref={fontInputRef}
-						type="file"
-						accept={FONT_EXTENSIONS.map((e) => `.${e}`).join(',')}
-						hidden
-						onChange={(e) => {
-							handleFontFile(e.target.files?.[0]);
-							e.target.value = '';
-						}}
-					/>
-					<button type="button" className="btn-secondary" onClick={() => fontInputRef.current?.click()}>
-						Upload font…
-					</button>
-				</div>
 			</Field>
 			{customFonts.map((f) => (
 				<div className="font-row" key={f.name}>

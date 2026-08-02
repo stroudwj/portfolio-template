@@ -8,6 +8,9 @@ import type { Theme } from '../lib/content';
 type ThemeVarKey = Exclude<
 	keyof Theme,
 	| 'customFonts'
+	| 'bodyTextColor'
+	| 'headingTextColor'
+	| 'subheadingTextColor'
 	| 'contentGap'
 	| 'headingFontFamily'
 	| 'logoScale'
@@ -23,6 +26,7 @@ type ThemeVarKey = Exclude<
 	| 'fullscreenMobileMenu'
 	| 'automaticTextContrast'
 	| 'stabilizeNavigation'
+	| 'stabilizeLogo'
 	| 'backgroundTexture'
 >;
 
@@ -64,6 +68,9 @@ export function themeToVars(theme: Theme): CSSProperties {
 	const style: Record<string, string> = {};
 	for (const [cssVar, key] of VARS) style[cssVar] = theme[key];
 	style['--content-gap'] = contentGapCss(theme);
+	style['--color-body-text'] = theme.bodyTextColor || theme.textColor;
+	style['--color-heading-text'] = theme.headingTextColor || theme.textColor;
+	style['--color-subheading-text'] = theme.subheadingTextColor || theme.textColor;
 	style['--font-heading'] = headingFontCss(theme);
 	style['--logo-scale'] = logoScaleCss(theme);
 	style['--subheading-scale'] = subheadingScaleCss(theme);
@@ -76,7 +83,7 @@ export function themeToVars(theme: Theme): CSSProperties {
 /** Theme → a `:root { … }` CSS string for the Astro Layout's global injection. */
 export function themeToRootCss(theme: Theme): string {
 	const body = VARS.map(([cssVar, key]) => `${cssVar}:${theme[key]};`).join('');
-	return `:root{${body}--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};--page-heading-scale:${pageHeadingScaleCss(theme)};--page-heading-x:${pageHeadingXCss(theme)};--page-heading-y:${pageHeadingYCss(theme)};}`;
+	return `:root{${body}--color-body-text:${theme.bodyTextColor || theme.textColor};--color-heading-text:${theme.headingTextColor || theme.textColor};--color-subheading-text:${theme.subheadingTextColor || theme.textColor};--content-gap:${contentGapCss(theme)};--font-heading:${headingFontCss(theme)};--logo-scale:${logoScaleCss(theme)};--subheading-scale:${subheadingScaleCss(theme)};--page-heading-scale:${pageHeadingScaleCss(theme)};--page-heading-x:${pageHeadingXCss(theme)};--page-heading-y:${pageHeadingYCss(theme)};}`;
 }
 
 /** Parse a #rgb / #rrggbb hex string to [r,g,b] in 0–255, or null if not hex. */
@@ -107,8 +114,8 @@ export function readableTextVars(bgColor: string): Record<string, string> {
 	if (!rgb) return {};
 	const dark = relativeLuminance(rgb) < 0.5;
 	return dark
-		? { '--color-text': '#f5f5f2', '--color-text-muted': 'rgba(245,245,242,0.72)' }
-		: { '--color-text': '#111111', '--color-text-muted': 'rgba(17,17,17,0.62)' };
+		? { '--color-text': '#f5f5f2', '--color-body-text': '#f5f5f2', '--color-heading-text': '#f5f5f2', '--color-subheading-text': '#f5f5f2', '--color-text-muted': 'rgba(245,245,242,0.72)' }
+		: { '--color-text': '#111111', '--color-body-text': '#111111', '--color-heading-text': '#111111', '--color-subheading-text': '#111111', '--color-text-muted': 'rgba(17,17,17,0.62)' };
 }
 
 /**

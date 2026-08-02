@@ -1,37 +1,31 @@
 import { useEditor } from '../store';
-import type { HeaderMode } from '../../lib/content';
 import { Field, Section, TextInput } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
+import HeaderLayoutEditor from './HeaderLayoutEditor';
 
-const HEADER_MODES: Array<{ value: HeaderMode; label: string }> = [
-	{ value: 'name', label: 'Site name' },
-	{ value: 'text', label: 'Custom text' },
-	{ value: 'image', label: 'Image logo' },
-];
-
-/** Global identity and the single explicit choice that controls what the header
- * displays. Visual sizing and placement live in Design → Header layout. */
+/** Global identity plus all header sizing and placement controls. */
 export default function SiteIdentityEditor() {
 	const {
 		doc,
 		setName,
 		setHeaderMode,
-		setLogoText,
 		setLogoImage,
 		removeLogoImage,
+		setTheme,
 	} = useEditor();
 	if (!doc) return null;
 
 	const { site } = doc.content;
 	const logoUrl = getAssetPreviewUrl(doc.logoImage.assetId);
-	const headerMode =
+	const inferredHeaderMode =
 		site.headerMode ??
 		(logoUrl || doc.logoImage.filename ? 'image' : site.logo ? 'text' : 'name');
+	const headerMode = inferredHeaderMode === 'image' ? 'image' : 'name';
 
 	return (
-		<Section title="Site identity" sectionKey="_identity">
-			<Field label="Site name" hint="Used on your About page, in browser titles, and whenever the header uses your name.">
+		<Section title="Header" sectionKey="_identity">
+			<Field label="Header text" hint="Changes only the text identity in the header and the site’s browser-title name. About has its own name field.">
 				<TextInput
 					value={site.name}
 					placeholder="Your name"
@@ -39,31 +33,12 @@ export default function SiteIdentityEditor() {
 				/>
 			</Field>
 
-			<Field label="Header displays" hint="Choose one identity for the top of every page.">
+			<Field label="Header displays" hint="Choose text or an uploaded image for the top of every page.">
 				<div className="chip-row header-mode-row" role="group" aria-label="Header identity">
-					{HEADER_MODES.map((mode) => (
-						<button
-							key={mode.value}
-							type="button"
-							className={`btn-icon btn-chip ${headerMode === mode.value ? 'active' : ''}`}
-							aria-pressed={headerMode === mode.value}
-							onClick={() => setHeaderMode(mode.value)}
-						>
-							{mode.label}
-						</button>
-					))}
+					<button type="button" className={`btn-icon btn-chip ${headerMode === 'name' ? 'active' : ''}`} aria-pressed={headerMode === 'name'} onClick={() => setHeaderMode('name')}>Text</button>
+					<button type="button" className={`btn-icon btn-chip ${headerMode === 'image' ? 'active' : ''}`} aria-pressed={headerMode === 'image'} onClick={() => setHeaderMode('image')}>Image</button>
 				</div>
 			</Field>
-
-			{headerMode === 'text' && (
-				<Field label="Custom header text" hint="Leave blank to fall back to your site name.">
-					<TextInput
-						value={site.logo ?? ''}
-						placeholder={site.name || 'Your name'}
-						onChange={(event) => setLogoText(event.target.value)}
-					/>
-				</Field>
-			)}
 
 			{headerMode === 'image' && (
 				<Field label="Header image" hint="Upload a transparent PNG or SVG when possible.">
@@ -81,8 +56,16 @@ export default function SiteIdentityEditor() {
 					</div>
 				</Field>
 			)}
+			{headerMode === 'image' && (
+				<Field label="Header image placement" hint="Freeform exposes the header position controls without changing its current coordinates.">
+					<div className="chip-row">
+						<button type="button" className={`btn-chip ${doc.content.theme.logoPosition !== 'freeform' ? 'active' : ''}`} onClick={() => setTheme({ logoPosition: 'center' })}>Normal</button>
+						<button type="button" className={`btn-chip ${doc.content.theme.logoPosition === 'freeform' ? 'active' : ''}`} onClick={() => setTheme({ logoPosition: 'freeform' })}>Freeform</button>
+					</div>
+				</Field>
+			)}
 
-			<p className="muted identity-layout-note">Size and position are in Design → Header layout.</p>
+			<HeaderLayoutEditor embedded />
 		</Section>
 	);
 }

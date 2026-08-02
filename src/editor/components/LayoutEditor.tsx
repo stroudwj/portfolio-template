@@ -4,7 +4,7 @@ import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
 import type { NavStyle } from '../../lib/content';
 
-const MIN_GAP = -140;
+const MIN_GAP = -400;
 const MAX_GAP = 400;
 
 const NAV_STYLES: Array<{ value: NavStyle; label: string; hint: string }> = [
@@ -22,6 +22,7 @@ export default function LayoutEditor() {
 	const navStyle: NavStyle = doc.content.theme.navStyle ?? 'dock';
 	const fullscreenMobile = doc.content.theme.fullscreenMobileMenu ?? false;
 	const stabilized = doc.content.theme.stabilizeNavigation !== false;
+	const logoStabilized = doc.content.theme.stabilizeLogo ?? stabilized;
 
 	const applyGap = (value: number) => {
 		const clamped = Math.max(MIN_GAP, Math.min(Math.round(value), MAX_GAP));
@@ -29,8 +30,15 @@ export default function LayoutEditor() {
 	};
 
 	return (
-		<Section title="Navigation & page spacing" sectionKey="_layout">
-			<Field label="Navigation menu" hint={NAV_STYLES.find((s) => s.value === navStyle)?.hint}>
+		<Section title="Site navigation & page spacing" sectionKey="_layout">
+			<div className="design-control-heading navigation-control-heading">
+				<span aria-hidden="true">☰</span>
+				<div>
+					<strong>Navigation menu layout</strong>
+					<small>These choices change only the page menu—not the page or artwork layout.</small>
+				</div>
+			</div>
+			<Field label="Choose the navigation menu style" hint={NAV_STYLES.find((s) => s.value === navStyle)?.hint}>
 				<div className="chip-row" role="group" aria-label="Navigation menu style">
 					{NAV_STYLES.map((style) => (
 						<button
@@ -46,24 +54,30 @@ export default function LayoutEditor() {
 			</Field>
 
 			<Field
-				label="Keep navigation in place"
-				hint="On pins your logo and chosen menu where they are. Off lets them scroll away with the page."
+				label="Navigation scrolls with page"
+				hint="Scrolls keeps the menu attached to the page with a sticky edge so it stays reachable; Stays pins it to the browser window."
 			>
-				<div className="chip-row" role="group" aria-label="Keep navigation in place">
-					<button
-						type="button"
-						className={`btn-icon btn-chip ${stabilized ? 'active' : ''}`}
-						onClick={() => setTheme({ stabilizeNavigation: undefined })}
-					>
-						On
-					</button>
+				<div className="chip-row" role="group" aria-label="Navigation scroll behavior">
 					<button
 						type="button"
 						className={`btn-icon btn-chip ${!stabilized ? 'active' : ''}`}
 						onClick={() => setTheme({ stabilizeNavigation: false })}
 					>
-						Off
+						Scrolls
 					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${stabilized ? 'active' : ''}`}
+						onClick={() => setTheme({ stabilizeNavigation: undefined })}
+					>
+						Stays
+					</button>
+				</div>
+			</Field>
+			<Field label="Logo/name scrolls with page" hint="This controls the header identity separately from the navigation menu.">
+				<div className="chip-row" role="group" aria-label="Logo and name scroll behavior">
+					<button type="button" className={`btn-icon btn-chip ${!logoStabilized ? 'active' : ''}`} onClick={() => setTheme({ stabilizeLogo: false })}>Scrolls</button>
+					<button type="button" className={`btn-icon btn-chip ${logoStabilized ? 'active' : ''}`} onClick={() => setTheme({ stabilizeLogo: true })}>Stays</button>
 				</div>
 			</Field>
 

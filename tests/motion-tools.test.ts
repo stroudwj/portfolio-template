@@ -41,14 +41,16 @@ describe('motion and reusable project tools', () => {
 		};
 		doc.content.theme.backgroundTexture = 'concrete';
 		doc.content.pages.art.hanging = false;
-		doc.content.pages.art.project = {
+		const project = {
 			template: 'exhibition',
 			year: '2026',
 			medium: 'Oil on linen',
 			dimensions: '120 × 90 cm',
 			collaborators: 'Studio Example',
 			exhibitionHistory: 'North Gallery, 2026',
-		};
+		} as const;
+		doc.content.pages.art.blocks!.push({ id: 'project', type: 'project', project });
+		doc.content.pages.art.sections![0].blockIds.push('project');
 		doc.content.pages.art.headingKinetic = { effect: 'marquee', speed: 125, phone: false };
 		doc.content.galleries.art.items['work.jpg'] = {
 			id: 'work-1',

@@ -37,6 +37,10 @@ export interface Site {
 	signature?: SignatureData;
 	/** Footer line(s) shown at the bottom of every page. "\n" is a line break; absent/empty = no footer. */
 	footer?: string;
+	/** Optional footer image (path under src/assets/). */
+	footerImage?: string;
+	/** Optional independent Freeform placement for the footer image. */
+	footerImageLayout?: ImageLayout;
 	/** Optional minimum footer height, independently adjustable for desktop and phone. */
 	footerHeights?: ResponsiveSectionHeight;
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
@@ -162,6 +166,10 @@ export interface ArtworkEffectConfig {
  */
 export interface SignatureData {
 	strokes: number[][][];
+	/** Optional uploaded signature image, served from public/ when published. */
+	image?: string;
+	/** Horizontal placement at the foot of the site. Absent = centered. */
+	align?: 'left' | 'center' | 'right';
 }
 
 /** A user-uploaded font: `file` is a path under src/assets/ (e.g. "fonts/my-font.woff2"). */
@@ -176,6 +184,10 @@ export interface Theme {
 	mutedTextColor: string;
 	accentColor: string;
 	fontFamily: string;
+	/** Optional independent text colors. Missing values stay linked to textColor. */
+	bodyTextColor?: string;
+	headingTextColor?: string;
+	subheadingTextColor?: string;
 	/** Font for headings (page titles + the text logo). Absent = same as fontFamily. */
 	headingFontFamily?: string;
 	/** Signed vertical offset (px) between the site header and page content. Absent = 0. */
@@ -206,6 +218,8 @@ export interface Theme {
 	automaticTextContrast?: boolean;
 	/** Pin the logo and chosen navigation layout while scrolling. Absent = enabled. */
 	stabilizeNavigation?: boolean;
+	/** Pin the header logo/name independently from the navigation. */
+	stabilizeLogo?: boolean;
 	/** A site-wide physical wall surface behind the portfolio. */
 	backgroundTexture?: 'corkboard' | 'blackboard' | 'wood' | 'fence' | 'concrete';
 	/** Fonts uploaded in the editor, available alongside the factory list. */
@@ -227,10 +241,26 @@ export interface NavItem {
 }
 
 export interface Profile {
+	/** Name shown in About content; independent from the header/site name. */
+	name?: string;
 	/** Image file living in src/assets/ (resolved via ./galleries.ts). */
 	image: string;
 	/** About-page body. "\n" is a line break; "\n\n" is a blank line. */
 	bio: string;
+	/** Structured formatting for the About bio. Absent preserves legacy plain text. */
+	bioRichText?: RichTextParagraph[];
+	/** Optional About-only font; absent follows the site body font. */
+	bioFontFamily?: string;
+	/** About-photo presentation. Missing values preserve the original natural image. */
+	imageWidth?: number;
+	imageAspect?: string;
+	imageFocusX?: number;
+	imageFocusY?: number;
+	imageCropZoom?: number;
+	/** Freeform placement for the About photo; absent keeps it beside the bio. */
+	imageLayout?: ImageLayout;
+	/** Freeform placement for the About words/links as one independently movable element. */
+	contentLayout?: ImageLayout;
 }
 
 export interface Contact {
@@ -324,6 +354,8 @@ export interface GalleryConfig {
 	carouselFrame?: ImageLayout;
 	/** Let the carousel frame's width and height resize independently. */
 	carouselFreeResize?: boolean;
+	/** Keep the numeric W:H controls visible even if the custom value matches a preset. */
+	carouselCustomRatio?: boolean;
 	/** Drag the active image within its frame instead of moving the carousel. Defaults to false. */
 	carouselMoveImage?: boolean;
 	/** Block ID of a freeform image-group canvas this carousel was explicitly dropped onto. */
@@ -340,6 +372,8 @@ export interface GalleryConfig {
 	carouselFrameStyle?: 'none' | 'line' | 'shadow' | 'mat';
 	/** Optional color for carousel arrows and frames. */
 	carouselChromeColor?: string;
+	/** Arrow glyph color, independent from the frame/button chrome. */
+	carouselArrowColor?: string;
 	/** Opt-in independent phone arrangement. Absent = a complete automatic layout. */
 	mobile?: MobileComposition;
 }
@@ -354,6 +388,8 @@ export interface RichTextRun {
 	/** Link applied only to this run of selected words. */
 	link?: string;
 	size?: RichTextSize;
+	/** Exact print-style size selected in the editor. Presets use 12/18/32pt. */
+	fontSize?: number;
 	bold?: true;
 	italic?: true;
 	underline?: true;
@@ -376,6 +412,17 @@ export interface FormField {
 /** How a page's sub-pages are presented by the 'children' block. */
 export type ChildrenStyle = 'cards' | 'large' | 'list' | 'index';
 
+/** One independently labelled/linkable card in a Sub-pages block. */
+export interface ChildPageItem {
+	id: string;
+	/** Destination page key. It may be an owned sub-page or any existing page. */
+	page: string;
+	/** Card text is independent from the destination page's own name. */
+	label?: string;
+	/** Optional independent Freeform placement; absent keeps this card in flow. */
+	layout?: ImageLayout;
+}
+
 /**
  * Freeform placement of a text block on the page canvas. Same coordinate
  * system as ImageLayout: x, y and w are percentages of the canvas WIDTH.
@@ -388,6 +435,8 @@ export interface TextLayout {
 	y: number;
 	w: number;
 	h?: number;
+	/** Explicit canvas layer order. Missing values use the legacy list order. */
+	z?: number;
 }
 
 /** Horizontal width and placement for a text box that remains in page flow. */
@@ -466,6 +515,8 @@ export type PageBlock =
 			style?: ChildrenStyle;
 			/** Optional placement of the complete sub-page collection on its section canvas. */
 			canvasLayout?: ImageLayout;
+			/** Current blocks store individual cards; absent preserves legacy page.children behavior. */
+			items?: ChildPageItem[];
 		}
 	| { id: string; type: 'about' }
 	| { id: string; type: 'button'; label: string; url: string; align?: TextAlign; appearance?: 'solid' | 'outline' }
@@ -487,11 +538,25 @@ export type PageBlock =
 		}
 	| {
 			id: string;
+			type: 'project';
+			project: ProjectDetails;
+			labels?: Partial<Record<ProjectFieldKey, string>>;
+			order?: ProjectFieldKey[];
+			fontFamily?: string;
+			fontSize?: number;
+			layout?: ImageLayout;
+		}
+	| {
+			id: string;
 			type: 'form';
 			heading?: string;
 			action: string;
+			/** Artist/site-owner inbox used by the no-service email fallback. */
+			recipientEmail?: string;
 			successMessage?: string;
 			fields: FormField[];
+			/** Optional image-like placement on the section's freeform canvas. */
+			layout?: ImageLayout;
 		};
 
 /**
@@ -560,6 +625,8 @@ export interface ProjectDetails {
 	exhibitionHistory?: string;
 }
 
+export type ProjectFieldKey = keyof Omit<ProjectDetails, 'template'>;
+
 /** A block saved to the document's section library, including its visual behavior. */
 export interface SavedSectionTemplate {
 	id: string;
@@ -581,6 +648,10 @@ export interface ImageLayout {
 	y: number;
 	w: number;
 	ar: number;
+	/** Explicit canvas layer order. Missing values use the legacy list order. */
+	z?: number;
+	/** Editor lock: keeps an image selectable while preventing move and resize. */
+	locked?: boolean;
 }
 
 export interface ImageMeta {
@@ -607,6 +678,10 @@ export interface ImageMeta {
 	/** Carousel fill-mode focal point, as percentages of the source image. */
 	focusX?: number;
 	focusY?: number;
+	/** Per-image crop ratio used in freeform layouts, such as "1:1". */
+	cropAspect?: string;
+	/** Non-destructive crop magnification. */
+	cropZoom?: number;
 	/** Editor-only workbench organization; stripped from published gallery items. */
 	workbenchFolder?: string;
 	/** Per-artwork reveal/hover treatment. */

@@ -2,13 +2,14 @@
 // blocks — text anywhere, the image gallery, the About section, and sub-pages
 // (thumbnail cards). Sub-pages get their own nested PageEditor so their galleries
 // and text are edited in place; nesting is one level deep by design.
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useEditor } from '../store';
 import {
 	Field,
 	TextInput,
 	Section,
 	previewTypeMotion,
+	onSelectPreviewBlock,
 	showEditorTab,
 } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
@@ -37,6 +38,7 @@ import {
 } from '../../portfolio/canvasLayout';
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import {
+	isEmail,
 	isUrl,
 	isVideoFile,
 	MAX_VIDEO_BYTES,
@@ -45,11 +47,13 @@ import {
 import { fontOptionsForTheme } from '../lib/font-options';
 import type {
 	ChildrenStyle,
+	ChildPageItem,
 	FormField,
 	GalleryConfig,
 	KineticTextEffect,
 	PageBlock,
 	ProjectTemplate,
+	ProjectFieldKey,
 	SectionMotionEffect,
 	TextAlign,
 } from '../../lib/content';
@@ -81,6 +85,7 @@ const FORM_FIELD_TYPES: Array<{ value: FormField['type']; label: string }> = [
 ];
 
 const PAGE_ITEM_COLLAPSE_STORE = 'portfolio-editor-page-items-collapsed-v1';
+const AUTO_SCROLL_SELECTED_STORE = 'portfolio-editor-auto-scroll-selected';
 
 function loadPageItemCollapse(): Record<string, boolean> {
 	if (typeof localStorage === 'undefined') return {};
@@ -125,6 +130,21 @@ const SECTION_MOTION_EFFECTS: Array<{
 	{ value: 'sequence', label: 'Sequence' },
 ];
 
+const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
+	{ value: 'text', label: 'Text' },
+	{ value: 'gallery', label: 'Main gallery' },
+	{ value: 'images', label: 'Image group' },
+	{ value: 'embed', label: 'Video / audio / map' },
+	{ value: 'shots', label: 'Shots / scroll video' },
+	{ value: 'button', label: 'Button' },
+	{ value: 'divider', label: 'Divider' },
+	{ value: 'children', label: 'Sub-pages' },
+	{ value: 'about', label: 'About content' },
+	{ value: 'form', label: 'Contact form' },
+	{ value: 'products', label: 'Products' },
+	{ value: 'project', label: 'Project fields' },
+];
+
 const CROP_OPTIONS: Array<{ value: string; label: string }> = [
 	{ value: '', label: 'Original (no crop)' },
 	{ value: '1:1', label: 'Square 1:1' },
@@ -144,6 +164,51 @@ const CAROUSEL_RATIOS = [
 	{ value: '3:4', label: 'Portrait 3:4', ar: 3 / 4 },
 	{ value: '2:3', label: 'Portrait 2:3', ar: 2 / 3 },
 ] as const;
+
+function CarouselCustomRatioInputs({
+	aspect,
+	onChange,
+}: {
+	aspect: number;
+	onChange: (aspect: number) => void;
+}) {
+	const [width, setWidth] = useState(String(Math.round(aspect * 100) / 100));
+	const [height, setHeight] = useState('1');
+
+	useEffect(() => {
+		setWidth(String(Math.round(aspect * 100) / 100));
+		setHeight('1');
+	}, [aspect]);
+
+	const commit = () => {
+		const nextWidth = Number(width);
+		const nextHeight = Number(height);
+		if (!Number.isFinite(nextWidth) || !Number.isFinite(nextHeight) || nextWidth <= 0 || nextHeight <= 0) {
+			setWidth(String(Math.round(aspect * 100) / 100));
+			setHeight('1');
+			return;
+		}
+		onChange(nextWidth / nextHeight);
+	};
+
+	const enterToCommit = (event: KeyboardEvent<HTMLInputElement>) => {
+		if (event.key === 'Enter') event.currentTarget.blur();
+	};
+
+	return (
+		<div className="carousel-custom-ratio" role="group" aria-label="Custom carousel frame ratio">
+			<label>
+				W
+				<input className="text-input compact-number" type="text" inputMode="decimal" value={width} onChange={(event) => setWidth(event.target.value)} onBlur={commit} onKeyDown={enterToCommit} aria-label="Custom carousel ratio width" />
+			</label>
+			<span aria-hidden="true">:</span>
+			<label>
+				H
+				<input className="text-input compact-number" type="text" inputMode="decimal" value={height} onChange={(event) => setHeight(event.target.value)} onBlur={commit} onKeyDown={enterToCommit} aria-label="Custom carousel ratio height" />
+			</label>
+		</div>
+	);
+}
 
 const isPageOrWebLink = (value: string): boolean =>
 	!value.trim() || isUrl(value) || value.startsWith('/') || value.startsWith('#');
@@ -170,6 +235,7 @@ type GalleryPatch = Partial<
 		| 'carouselFit'
 		| 'carouselFrame'
 		| 'carouselFreeResize'
+		| 'carouselCustomRatio'
 		| 'carouselMoveImage'
 		| 'carouselHost'
 		| 'carouselShowCount'
@@ -178,6 +244,7 @@ type GalleryPatch = Partial<
 		| 'carouselArrowStyle'
 		| 'carouselFrameStyle'
 		| 'carouselChromeColor'
+		| 'carouselArrowColor'
 		| 'mobile'
 	>
 >;
@@ -325,6 +392,17 @@ export default function PageEditor({
 		label: string;
 		sourceSectionId: string;
 	} | null>(null);
+	const [newSubpageName, setNewSubpageName] = useState<string | null>(null);
+	const [pendingSubpage, setPendingSubpage] = useState<{
+		parentKey: string;
+		sectionId?: string;
+	} | null>(null);
+	const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+	const [autoScrollSelected, setAutoScrollSelected] = useState(() =>
+		typeof localStorage === 'undefined'
+			? true
+			: localStorage.getItem(AUTO_SCROLL_SELECTED_STORE) !== 'false',
+	);
 	const [collapsedEditorItems, setCollapsedEditorItems] = useState<
 		Record<string, boolean>
 	>(loadPageItemCollapse);
@@ -347,12 +425,35 @@ export default function PageEditor({
 			return { ...current, [key]: collapsed };
 		});
 	};
+	useEffect(
+		() =>
+			onSelectPreviewBlock((selection) => {
+				if (selection.pageKey !== pageKey) return;
+				setSelectedBlockId(selection.blockId);
+				setCollapsedEditorItems((current) => {
+					const blockKey = collapseItemKey('block', selection.blockId);
+					const next = { ...current, [blockKey]: false };
+					storePageItemCollapse(blockKey, false);
+					return next;
+				});
+				if (!autoScrollSelected) return;
+				requestAnimationFrame(() => {
+					pageContentRef.current
+						?.querySelector<HTMLElement>(`[data-editor-block="${CSS.escape(selection.blockId)}"]`)
+						?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				});
+			}),
+		[autoScrollSelected, pageKey],
+	);
 	const { doc } = editor;
 	if (!doc) return null;
 	const page = doc.content.pages[pageKey];
 	if (!page) return null;
 	const isHome = pageKey === 'home';
 	const pageName = page.label || (isHome ? 'Home' : pageKey);
+	const parentPageEntry = Object.entries(doc.content.pages).find(([, candidate]) =>
+		(candidate.children ?? []).includes(pageKey),
+	);
 	const blocks = page.blocks ?? [];
 	const sections = pageSections(page);
 	const blockById = new Map(blocks.map((block) => [block.id, block]));
@@ -466,9 +567,9 @@ export default function PageEditor({
 		})),
 	];
 
-	const addChild = () => {
-		const name = prompt('Name of the new sub-page:');
-		if (name?.trim()) editor.addChildPage(pageKey, name.trim());
+	const addChild = (parentKey = pageKey, sectionId?: string) => {
+		setPendingSubpage({ parentKey, sectionId });
+		setNewSubpageName('');
 	};
 	const runAdd = (action: () => void, scrollToNewBlock = true) => {
 		const before = new Set(blocks.map((block) => block.id));
@@ -571,6 +672,7 @@ export default function PageEditor({
 				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}>About content</button>
 			)}
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}>Contact form</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}>Project fields</button>
 			<button
 				type="button"
 				onClick={() => {
@@ -586,7 +688,20 @@ export default function PageEditor({
 			>
 				{doc.content.store ? 'Products' : 'Set up products…'}
 			</button>
-			{!nested && <button type="button" onClick={() => runAdd(addChild, false)}>Sub-page</button>}
+			{!nested && (
+				<button
+					type="button"
+					onClick={() =>
+						runSectionAdd(
+							(target) => addChild(pageKey, target),
+							sectionId,
+							'sub-page',
+						)
+					}
+				>
+					Sub-page
+				</button>
+			)}
 			{(doc.content.sectionLibrary?.length ?? 0) > 0 && (
 				<>
 					<span className="add-menu-heading">Reuse a saved block</span>
@@ -639,7 +754,7 @@ export default function PageEditor({
 	/** Lowest occupied edge in this block's section. Every freeform widget uses
 	 * this shared placement rule, so adding one never covers work at the top. */
 	function canvasBottomForBlock(blockId: string): number {
-		let bottom = 18;
+		let bottom = 0;
 		const owner = sectionForBlock(blockId);
 		const ownerBlocks = new Set(owner?.blockIds ?? []);
 		const host = owner?.blockIds
@@ -681,6 +796,10 @@ export default function PageEditor({
 					candidate.canvasLayout
 				)
 					bottom = Math.max(bottom, bottomOf(candidate.canvasLayout));
+				if (candidate.type === 'project' && candidate.layout)
+					bottom = Math.max(bottom, bottomOf(candidate.layout));
+				if (candidate.type === 'form' && candidate.layout)
+					bottom = Math.max(bottom, bottomOf(candidate.layout));
 				if (
 					candidate.type === 'images' &&
 					candidate.gallery.carousel &&
@@ -696,9 +815,10 @@ export default function PageEditor({
 	 * center it horizontally, so it is immediately visible without covering art. */
 	const textLayoutAtCanvasBottom = (block: Extract<PageBlock, { type: 'text' }>) => {
 		const width = Math.min(block.flowLayout?.w ?? 50, 60);
+		const bottom = canvasBottomForBlock(block.id);
 		return roundTextLayout({
 			x: (100 - width) / 2,
-			y: canvasBottomForBlock(block.id) + 2,
+			y: bottom > 0 ? bottom + 2 : 0,
 			w: width,
 		});
 	};
@@ -741,6 +861,34 @@ export default function PageEditor({
 			>
 				<span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 			</button>
+			<label className="block-type-control" title="Change this block’s type without removing its place in the section">
+				<span className="sr-only">Change type of {blockLabel}</span>
+				<select
+					className="select-input"
+					value={block.type}
+					aria-label={`Change type of ${blockLabel}`}
+					onChange={(event) => {
+						const next = event.target.value as PageBlock['type'];
+						if (
+							confirm(`Change this ${name} block to ${BLOCK_TYPE_OPTIONS.find((option) => option.value === next)?.label ?? next}? Its current type-specific settings will be replaced.`)
+						) editor.changeBlockType(pageKey, block.id, next);
+						else event.target.value = block.type;
+					}}
+				>
+					{BLOCK_TYPE_OPTIONS.map((option) => (
+						<option
+							key={option.value}
+							value={option.value}
+							disabled={
+								(option.value === 'about' && hasAboutBlock && block.type !== 'about') ||
+								(option.value === 'gallery' && blocks.some((candidate) => candidate.id !== block.id && candidate.type === 'gallery'))
+							}
+						>
+							{option.label}
+						</option>
+					))}
+				</select>
+			</label>
 			<button
 				type="button"
 				className="btn-secondary save-section-button"
@@ -1507,13 +1655,19 @@ export default function PageEditor({
 						)
 					: undefined;
 				const carouselFrame = block.gallery.carouselFrame ?? DEFAULT_CAROUSEL_FRAME;
-				const carouselRatio =
-					CAROUSEL_RATIOS.find((option) => Math.abs(option.ar - carouselFrame.ar) < 0.01)?.value ?? 'custom';
+				const carouselRatio = block.gallery.carouselCustomRatio
+					? 'custom'
+					: CAROUSEL_RATIOS.find((option) => Math.abs(option.ar - carouselFrame.ar) < 0.01)?.value ?? 'custom';
 				const setCarouselRatio = (value: string) => {
+					if (value === 'custom') {
+						patchGroup({ carouselCustomRatio: true, carouselFreeResize: undefined });
+						return;
+					}
 					const option = CAROUSEL_RATIOS.find((candidate) => candidate.value === value);
 					if (!option) return;
 					patchGroup({
 						carouselFreeResize: undefined,
+						carouselCustomRatio: undefined,
 						carouselFrame: roundLayout({ ...carouselFrame, ar: option.ar }),
 					});
 				};
@@ -1601,14 +1755,28 @@ export default function PageEditor({
 													value={carouselRatio}
 													onChange={(event) => setCarouselRatio(event.target.value)}
 												>
-													{carouselRatio === 'custom' && <option value="custom">Custom</option>}
+												{carouselRatio === 'custom' && <option value="custom">Custom</option>}
+												{carouselRatio !== 'custom' && <option value="custom">Custom ratio</option>}
 													{CAROUSEL_RATIOS.map((option) => (
 														<option key={option.value} value={option.value}>
 															{option.label}
 														</option>
 													))}
 												</select>
-											</label>
+										</label>
+						{carouselRatio === 'custom' && (
+							<CarouselCustomRatioInputs
+								aspect={carouselFrame.ar}
+								onChange={(aspect) => patchGroup({
+									carouselFreeResize: undefined,
+									carouselCustomRatio: true,
+									carouselFrame: roundLayout({
+										...carouselFrame,
+										ar: Math.min(Math.max(aspect, 0.2), 5),
+									}),
+								})}
+							/>
+						)}
 										</div>
 										<p className="muted carousel-edit-hint">
 											{block.gallery.carouselMoveImage === true
@@ -1703,13 +1871,21 @@ export default function PageEditor({
 														}
 														aria-label={`Carousel arrow and frame color for ${groupLabel}`}
 													/>
-													<button
-														type="button"
-														className="btn-link"
-														onClick={() => patchGroup({ carouselChromeColor: undefined })}
-													>
-														Theme
+											<button
+												type="button"
+												className={`btn-link ${block.gallery.carouselChromeColor ? '' : 'active'}`}
+												aria-pressed={!block.gallery.carouselChromeColor}
+												onClick={() => patchGroup({ carouselChromeColor: undefined })}
+											>
+												Auto
 													</button>
+												</span>
+											</label>
+											<label className="carousel-chrome-color">
+												Arrow color
+												<span className="color-field">
+											<input type="color" value={/^#[\da-f]{6}$/i.test(block.gallery.carouselArrowColor ?? '') ? block.gallery.carouselArrowColor! : /^#[\da-f]{6}$/i.test(doc.content.theme.backgroundColor) ? doc.content.theme.backgroundColor : '#ffffff'} onChange={(event) => patchGroup({ carouselArrowColor: event.target.value })} aria-label={`Carousel arrow glyph color for ${groupLabel}`} />
+											<button type="button" className={`btn-link ${block.gallery.carouselArrowColor ? '' : 'active'}`} aria-pressed={!block.gallery.carouselArrowColor} onClick={() => patchGroup({ carouselArrowColor: undefined })}>Auto</button>
 												</span>
 											</label>
 											<label>
@@ -1735,8 +1911,9 @@ export default function PageEditor({
 												className="btn-link carousel-reset-frame"
 												onClick={() =>
 													patchGroup({
-														carouselFrame: undefined,
-														carouselFreeResize: undefined,
+												carouselFrame: undefined,
+												carouselFreeResize: undefined,
+												carouselCustomRatio: undefined,
 													})
 												}
 											>
@@ -2057,10 +2234,51 @@ export default function PageEditor({
 					</div>
 				);
 			}
+			case 'project': {
+				const fieldKeys: ProjectFieldKey[] = ['year', 'medium', 'dimensions', 'collaborators', 'exhibitionHistory'];
+				const labels: Record<ProjectFieldKey, string> = {
+					year: 'Year', medium: 'Medium', dimensions: 'Dimensions', collaborators: 'Collaborators', exhibitionHistory: 'Exhibition history',
+				};
+				const order = [...(block.order ?? []), ...fieldKeys.filter((key) => !(block.order ?? []).includes(key))];
+				const owner = sectionForBlock(block.id);
+				const updateOrder = (from: number, to: number) => {
+					const next = order.slice();
+					const [item] = next.splice(from, 1);
+					next.splice(to, 0, item);
+					editor.updateProjectBlock(pageKey, block.id, { order: next });
+				};
+				return (
+					<div className="block project-editor-block" key={block.id}>
+						<div className="block-head"><span className="block-label">Project fields</span>{controls(index, block, true)}</div>
+						<div className="block-choice-row">
+							<label>Template<select className="select-input" value={block.project.template} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { project: { ...block.project, template: event.target.value as ProjectTemplate } })}><option value="artwork">Artwork</option><option value="collaboration">Collaboration</option><option value="exhibition">Exhibition</option></select></label>
+							<label>Font<select className="select-input" value={block.fontFamily ?? ''} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { fontFamily: event.target.value || undefined })}><option value="">Page font</option>{textFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
+							<label>Size<input className="text-input compact-number" type="number" min={8} max={96} value={block.fontSize ?? 16} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { fontSize: Number(event.target.value) || undefined })} /></label>
+							<button type="button" className={block.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => {
+								if (block.layout) editor.setWidgetLayout(pageKey, block.id, undefined);
+								else {
+									if (owner && !sectionHasFreeCanvas(owner.id)) editor.addFreeformGallery(pageKey, block.id, owner.id);
+									editor.setWidgetLayout(pageKey, block.id, { x: 15, y: canvasBottomForBlock(block.id) + 2, w: 70, ar: 3 });
+								}
+							}}>{block.layout ? 'Back to flow' : 'Freeform'}</button>
+						</div>
+						<div className="project-field-grid">
+							{order.map((key, fieldIndex) => <div className="project-block-field" key={key}>
+								<input className="text-input" value={block.labels?.[key] ?? labels[key]} aria-label={`${labels[key]} label`} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { labels: { ...block.labels, [key]: event.target.value } })} />
+								<textarea className="text-area" rows={key === 'exhibitionHistory' ? 3 : 1} value={block.project[key] ?? ''} placeholder={labels[key]} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { project: { ...block.project, [key]: event.target.value || undefined } })} />
+								<button type="button" className="btn-icon" disabled={fieldIndex === 0} onClick={() => updateOrder(fieldIndex, fieldIndex - 1)}>↑</button>
+								<button type="button" className="btn-icon" disabled={fieldIndex === order.length - 1} onClick={() => updateOrder(fieldIndex, fieldIndex + 1)}>↓</button>
+							</div>)}
+						</div>
+					</div>
+				);
+			}
 			case 'form': {
 				const endpointInvalid = !!block.action && (!isUrl(block.action) || !block.action.startsWith('https://'));
+				const recipientInvalid = !!block.recipientEmail && !isEmail(block.recipientEmail);
 				const updateFields = (fields: FormField[]) => editor.updateFormBlock(pageKey, block.id, { fields });
 				const formLabel = `contact form ${index + 1} on ${pageName}`;
+				const owner = sectionForBlock(block.id);
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
@@ -2071,8 +2289,15 @@ export default function PageEditor({
 							<TextInput aria-label={`Heading for ${formLabel}`} value={block.heading ?? ''} placeholder="Get in touch" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { heading: event.target.value })} />
 						</Field>
 						<Field
+							label="Site owner delivery email"
+							hint="Private form setting: this is where a visitor's message is addressed. It is separate from the public email shown in About."
+							error={recipientInvalid ? 'Enter a valid email address.' : undefined}
+						>
+							<TextInput aria-label={`Site owner delivery email for ${formLabel}`} value={block.recipientEmail ?? ''} placeholder="you@example.com" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { recipientEmail: event.target.value || undefined })} />
+						</Field>
+						<Field
 							label="Optional form service address"
-							hint="Leave this blank to use your public contact email from About content. The visitor’s email app opens with their message ready. To send directly instead, paste the form address from a service such as Formspree."
+							hint="Leave this blank to open the visitor’s email app with a message addressed to the site owner email above. To send directly in the page instead, paste the form address from a service such as Formspree."
 							error={endpointInvalid ? 'Use the https:// form address supplied by your form service.' : undefined}
 						>
 							<TextInput aria-label={`Optional form service address for ${formLabel}`} value={block.action} placeholder="https://formspree.io/f/…" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { action: event.target.value })} />
@@ -2086,6 +2311,14 @@ export default function PageEditor({
 							</ol>
 							<p className="muted">This is optional. Without a form service, visitors can still continue in their email app.</p>
 						</details>
+						<button type="button" className={block.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => {
+							if (block.layout) editor.setWidgetLayout(pageKey, block.id, undefined);
+							else {
+								if (owner && !sectionHasFreeCanvas(owner.id)) editor.addFreeformGallery(pageKey, block.id, owner.id);
+								const bottom = canvasBottomForBlock(block.id);
+								editor.setWidgetLayout(pageKey, block.id, { x: 15, y: bottom > 0 ? bottom + 2 : 0, w: 70, ar: 3 });
+							}
+						}}>{block.layout ? 'Back to flow' : 'Move form Freeform'}</button>
 						<div className="form-fields-editor">
 							<span className="field-label">Questions on the form</span>
 							{block.fields.map((field, fieldIndex) => (
@@ -2128,6 +2361,35 @@ export default function PageEditor({
 					</div>
 				);
 			case 'children':
+				{
+					const items: ChildPageItem[] = block.items ?? (page.children ?? []).map((childKey) => ({
+						id: childKey,
+						page: childKey,
+						label: doc.content.pages[childKey]?.label ?? childKey,
+					}));
+					const updateItems = (next: typeof items) =>
+						editor.updateChildrenBlock(pageKey, block.id, { items: next });
+					const owner = sectionForBlock(block.id);
+					const setItemFreeform = (itemId: string) => {
+						const itemIndex = items.findIndex((item) => item.id === itemId);
+						const item = items[itemIndex];
+						if (!item) return;
+						if (!item.layout && owner && !sectionHasFreeCanvas(owner.id))
+							editor.addFreeformGallery(pageKey, block.id, owner.id);
+						updateItems(items.map((candidate, index) =>
+							candidate.id === itemId
+								? {
+									...candidate,
+									layout: candidate.layout ? undefined : {
+										x: 8 + (index % 2) * 43,
+										y: canvasBottomForBlock(block.id) + Math.floor(index / 2) * 26 + 2,
+										w: 38,
+										ar: 4 / 3,
+									},
+								}
+								: candidate,
+						));
+					};
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
@@ -2145,31 +2407,43 @@ export default function PageEditor({
 									</option>
 								))}
 							</select>
-							{controls(index, block, false)}
+							{controls(index, block, true)}
 						</div>
-						{collectionCanvasControl(block, 'sub-pages')}
-						{(page.children ?? []).map((childKey, childIndex, childList) => {
-							const child = doc.content.pages[childKey];
-							const childName = child?.label || childKey;
-							const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[childKey]?.assetId ?? null);
+						{items.map((item, childIndex, childList) => {
+							const child = doc.content.pages[item.page];
+							const childName = item.label || child?.label || item.page;
+							const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[item.page]?.assetId ?? null);
 							return (
-								<div className="child-row" key={childKey}>
+								<div className="child-row child-link-row" key={item.id}>
 									<div className="child-thumb-picker">
-										<ImageDrop ariaLabel={`Choose a thumbnail for ${childName}`} onFiles={(files) => editor.setPageThumb(childKey, files[0])}>
+										<ImageDrop ariaLabel={`Choose a thumbnail for ${childName}`} onFiles={(files) => editor.setPageThumb(item.page, files[0])}>
 											{thumbUrl ? <img className="child-thumb" src={thumbUrl} alt="" /> : <span>＋ Thumb</span>}
 										</ImageDrop>
 									</div>
 									<TextInput
-										value={child?.label ?? childKey}
-										aria-label={`Name of sub-page ${childName} under ${pageName}`}
-										onChange={(e) => editor.renamePage(childKey, e.target.value)}
-										placeholder="Sub-page name"
+										value={item.label ?? child?.label ?? item.page}
+										aria-label={`Display text for ${childName} under ${pageName}`}
+										onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, label: event.target.value } : candidate))}
+										placeholder="Card text"
 									/>
+									<select
+										className="select-input child-page-target"
+										value={item.page}
+										aria-label={`Page linked by ${childName}`}
+										onChange={(event) => updateItems(items.map((candidate) => candidate.id === item.id ? { ...candidate, page: event.target.value } : candidate))}
+									>
+										{Object.entries(doc.content.pages).map(([targetKey, targetPage]) => (
+											<option key={targetKey} value={targetKey}>{targetPage.label || (targetKey === 'home' ? 'Home' : targetKey)}</option>
+										))}
+									</select>
+									<button type="button" className={item.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => setItemFreeform(item.id)}>
+										{item.layout ? 'Back to flow' : 'Freeform'}
+									</button>
 									<button
 										type="button"
 										className="btn-icon"
 										disabled={childIndex === 0}
-										onClick={() => editor.moveChildPage(pageKey, childIndex, childIndex - 1)}
+										onClick={() => updateItems(items.map((candidate, index) => index === childIndex - 1 ? items[childIndex] : index === childIndex ? items[childIndex - 1] : candidate))}
 										aria-label={`Move sub-page ${childName} earlier on ${pageName}`}
 									>
 										↑
@@ -2178,7 +2452,7 @@ export default function PageEditor({
 										type="button"
 										className="btn-icon"
 										disabled={childIndex === childList.length - 1}
-										onClick={() => editor.moveChildPage(pageKey, childIndex, childIndex + 1)}
+										onClick={() => updateItems(items.map((candidate, index) => index === childIndex + 1 ? items[childIndex] : index === childIndex ? items[childIndex + 1] : candidate))}
 										aria-label={`Move sub-page ${childName} later on ${pageName}`}
 									>
 										↓
@@ -2186,22 +2460,29 @@ export default function PageEditor({
 									<button
 										type="button"
 										className="btn-icon danger"
-										onClick={() => {
-											if (confirm(`Delete the “${child?.label ?? childKey}” sub-page?`)) editor.removePage(childKey);
-										}}
-										aria-label={`Delete sub-page ${childName}`}
+										onClick={() => updateItems(items.filter((candidate) => candidate.id !== item.id))}
+										aria-label={`Remove ${childName} from this block`}
 									>
 										✕
 									</button>
 								</div>
 							);
 						})}
-						<p className="muted">
-							Each sub-page is its own page with images and text — edit them below. ↑↓ sets their order on the page.
-							Without a thumbnail, the card uses the sub-page’s first image.
-						</p>
+						<div className="subpage-block-actions">
+							<select className="select-input" value="" aria-label={`Add an existing page to ${pageName}`} onChange={(event) => {
+								const target = event.target.value;
+								if (!target) return;
+								updateItems([...items, { id: uid('subpage'), page: target, label: doc.content.pages[target]?.label ?? target }]);
+							}}>
+								<option value="">＋ Link an existing page…</option>
+								{Object.entries(doc.content.pages).filter(([key]) => !items.some((item) => item.page === key)).map(([key, target]) => <option key={key} value={key}>{target.label || key}</option>)}
+							</select>
+							<button type="button" className="btn-primary" onClick={() => addChild(pageKey, owner?.id)}>＋ Create new sub-page</button>
+						</div>
+						<p className="muted">Each row is one independent card. Its display text and linked page are separate; Freeform cards can be moved and resized one at a time.</p>
 					</div>
 				);
+				}
 		}
 	};
 
@@ -2318,72 +2599,6 @@ export default function PageEditor({
 					</div>
 				</Field>
 			)}
-			<div className="project-template-editor">
-				<label className="field">
-					<span className="field-label">Project fields</span>
-					<select
-						className="select-input"
-						value={page.project?.template ?? ''}
-						aria-label={`Project field template for ${pageName}`}
-						onChange={(event) => {
-							const template = event.target.value as ProjectTemplate | '';
-							editor.setProjectDetails(
-								pageKey,
-								template
-									? { ...page.project, template }
-									: undefined,
-							);
-						}}
-					>
-						<option value="">Not a project page</option>
-						<option value="artwork">Artwork — year, medium, dimensions</option>
-						<option value="collaboration">Collaboration — add collaborators</option>
-						<option value="exhibition">Exhibition — add exhibition history</option>
-					</select>
-					<span className="field-hint">Structured facts stay consistent across project pages.</span>
-				</label>
-				{page.project && (
-					<div className="project-field-grid">
-						{([
-							['year', 'Year', '2026'],
-							['medium', 'Medium', 'Oil on canvas'],
-							['dimensions', 'Dimensions', '120 × 90 cm'],
-							['collaborators', 'Collaborators', 'Names and roles'],
-							['exhibitionHistory', 'Exhibition history', 'Venue, city, year'],
-						] as const).map(([key, label, placeholder]) => (
-							<label className={key === 'exhibitionHistory' ? 'wide' : ''} key={key}>
-								<span>{label}</span>
-								{key === 'exhibitionHistory' ? (
-									<textarea
-										className="text-area"
-										rows={3}
-										placeholder={placeholder}
-										value={page.project?.[key] ?? ''}
-										onChange={(event) =>
-											editor.setProjectDetails(pageKey, {
-												...page.project!,
-												[key]: event.target.value || undefined,
-											})
-										}
-									/>
-								) : (
-									<input
-										className="text-input"
-										placeholder={placeholder}
-										value={page.project?.[key] ?? ''}
-										onChange={(event) =>
-											editor.setProjectDetails(pageKey, {
-												...page.project!,
-												[key]: event.target.value || undefined,
-											})
-										}
-									/>
-								)}
-							</label>
-						))}
-					</div>
-				)}
-			</div>
 		</>
 	);
 
@@ -2393,6 +2608,22 @@ export default function PageEditor({
 			defaultCollapsed={nested && includeChildren}
 			title={nested ? `↳ ${page.label ?? pageKey}` : isHome ? `Page: ${page.label || 'Home'}` : `Page: ${page.label ?? pageKey}`}
 		>
+			<label className="selected-block-follow-toggle">
+				<input
+					type="checkbox"
+					checked={autoScrollSelected}
+					onChange={(event) => {
+						setAutoScrollSelected(event.target.checked);
+						localStorage.setItem(AUTO_SCROLL_SELECTED_STORE, String(event.target.checked));
+					}}
+				/>
+				Auto-scroll to selected block
+			</label>
+			{nested && parentPageEntry && (
+				<button type="button" className="btn-primary add-sibling-subpage" onClick={() => addChild(parentPageEntry[0])}>
+					＋ Add another sub-page
+				</button>
+			)}
 			{hasAboutBlock ? (
 				<details className="page-settings-disclosure">
 					<summary>
@@ -2607,7 +2838,8 @@ export default function PageEditor({
 											<div
 												key={block.id}
 												data-editor-block={block.id}
-												className={itemIsCollapsed('block', block.id) ? 'is-collapsed' : undefined}
+												className={`${itemIsCollapsed('block', block.id) ? 'is-collapsed' : ''}${selectedBlockId === block.id ? ' is-selected-editor-block' : ''}`.trim() || undefined}
+												onPointerDown={() => setSelectedBlockId(block.id)}
 											>
 												{renderBlock(block, index)}
 											</div>
@@ -2624,7 +2856,7 @@ export default function PageEditor({
 					})}
 				</div>
 			</div>
-			{!nested && (
+			{
 				<details className="page-add-block floating-add-block" ref={floatingAddMenuRef}>
 					<summary className="floating-add-button" aria-label={`Add a block to ${pageName}`} title="Add block">
 						<span aria-hidden="true">＋</span>
@@ -2634,7 +2866,7 @@ export default function PageEditor({
 						{addBlockMenuItems()}
 					</div>
 				</details>
-			)}
+			}
 
 			<details className="page-editor-advanced">
 				<summary>
@@ -2928,6 +3160,51 @@ export default function PageEditor({
 								);
 							})}
 					</div>
+				</Modal>
+			)}
+
+			{newSubpageName !== null && pendingSubpage && (
+				<Modal
+					title={`Add a sub-page under ${doc.content.pages[pendingSubpage.parentKey]?.label || pageName}`}
+					onClose={() => { setNewSubpageName(null); setPendingSubpage(null); }}
+					footer={
+						<>
+							<button type="button" className="btn-ghost" onClick={() => { setNewSubpageName(null); setPendingSubpage(null); }}>Cancel</button>
+							<button
+								type="button"
+								className="btn-primary"
+								disabled={!newSubpageName.trim()}
+								onClick={() => {
+									const name = newSubpageName.trim();
+									if (!name) return;
+									editor.addChildPage(pendingSubpage.parentKey, name, pendingSubpage.sectionId);
+									setNewSubpageName(null);
+									setPendingSubpage(null);
+								}}
+							>
+								Add sub-page
+							</button>
+						</>
+					}
+				>
+					<label className="field">
+						<span className="field-label">Sub-page name</span>
+						<input
+							className="text-input"
+							value={newSubpageName}
+							onChange={(event) => setNewSubpageName(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key !== 'Enter' || !newSubpageName.trim()) return;
+								event.preventDefault();
+								editor.addChildPage(pendingSubpage.parentKey, newSubpageName.trim(), pendingSubpage.sectionId);
+								setNewSubpageName(null);
+								setPendingSubpage(null);
+							}}
+							placeholder="For example, Paintings"
+							autoFocus
+						/>
+					</label>
+					<p className="muted">A new page will be created and one independently editable card will be added to the section you chose.</p>
 				</Modal>
 			)}
 

@@ -58,6 +58,7 @@ export function referencedAssetPaths(content: Content): string[] {
 	const paths: string[] = [];
 	if (content.profile.image) paths.push(`src/assets/${content.profile.image}`);
 	if (content.site.logoImage) paths.push(`src/assets/${content.site.logoImage}`);
+	if (content.site.footerImage) paths.push(`src/assets/${content.site.footerImage}`);
 	if (content.site.creative?.cursorImage)
 		paths.push(`src/assets/${content.site.creative.cursorImage}`);
 	for (const page of Object.values(content.pages)) if (page.thumbnail) paths.push(`src/assets/${page.thumbnail}`);
@@ -143,6 +144,8 @@ function resolveGalleries(content: Content, assetPaths: Set<string>, ratios: Map
 					layout: meta.layout,
 					focusX: meta.focusX,
 					focusY: meta.focusY,
+					cropAspect: meta.cropAspect,
+					cropZoom: meta.cropZoom,
 					effects: meta.effects,
 					ar: ratios.get(`assets/${config.folder}/${name}`),
 				} satisfies ResolvedImage;

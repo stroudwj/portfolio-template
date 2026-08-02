@@ -10,6 +10,8 @@ const imageLayoutSchema = passthrough({
 	y: z.number(),
 	w: z.number(),
 	ar: z.number().positive(),
+	z: z.number().optional(),
+	locked: z.boolean().optional(),
 });
 
 const textLayoutSchema = passthrough({
@@ -17,6 +19,7 @@ const textLayoutSchema = passthrough({
 	y: z.number(),
 	w: z.number(),
 	h: z.number().optional(),
+	z: z.number().optional(),
 });
 
 const textFlowLayoutSchema = passthrough({
@@ -105,6 +108,7 @@ const galleryConfigSchema = passthrough({
 	carouselFit: z.enum(['fit', 'fill']).optional(),
 	carouselFrame: imageLayoutSchema.optional(),
 	carouselFreeResize: z.boolean().optional(),
+	carouselCustomRatio: z.boolean().optional(),
 	carouselMoveImage: z.boolean().optional(),
 	carouselHost: z.string().min(1).optional(),
 	carouselShowCount: z.boolean().optional(),
@@ -113,6 +117,7 @@ const galleryConfigSchema = passthrough({
 	carouselArrowStyle: z.enum(['chevron', 'arrow', 'circle', 'tab']).optional(),
 	carouselFrameStyle: z.enum(['none', 'line', 'shadow', 'mat']).optional(),
 	carouselChromeColor: z.string().optional(),
+	carouselArrowColor: z.string().optional(),
 	mobile: mobileCompositionSchema.optional(),
 });
 
@@ -177,6 +182,7 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 							text: z.string(),
 							link: z.string().optional(),
 							size: z.enum(['body', 'subheading', 'heading']).optional(),
+							fontSize: z.number().min(6).max(144).optional(),
 							bold: z.literal(true).optional(),
 							italic: z.literal(true).optional(),
 							underline: z.literal(true).optional(),
@@ -227,6 +233,12 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		type: z.literal('children'),
 		style: z.enum(['cards', 'large', 'list', 'index']).optional(),
 		canvasLayout: imageLayoutSchema.optional(),
+		items: z.array(passthrough({
+			id: z.string().min(1),
+			page: z.string().min(1),
+			label: z.string().optional(),
+			layout: imageLayoutSchema.optional(),
+		})).optional(),
 	}),
 	passthrough({ id: z.string(), type: z.literal('about') }),
 	passthrough({
@@ -253,10 +265,29 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 	}),
 	passthrough({
 		id: z.string(),
+		type: z.literal('project'),
+		project: passthrough({
+			template: z.enum(['artwork', 'collaboration', 'exhibition']),
+			year: z.string().optional(),
+			medium: z.string().optional(),
+			dimensions: z.string().optional(),
+			collaborators: z.string().optional(),
+			exhibitionHistory: z.string().optional(),
+		}),
+		labels: z.record(z.string(), z.string()).optional(),
+		order: z.array(z.enum(['year', 'medium', 'dimensions', 'collaborators', 'exhibitionHistory'])).optional(),
+		fontFamily: z.string().optional(),
+		fontSize: z.number().min(8).max(96).optional(),
+		layout: imageLayoutSchema.optional(),
+	}),
+	passthrough({
+		id: z.string(),
 		type: z.literal('form'),
 		heading: z.string().optional(),
 		action: z.string(),
+		recipientEmail: z.string().optional(),
 		successMessage: z.string().optional(),
+		layout: imageLayoutSchema.optional(),
 		fields: z.array(
 			passthrough({
 				id: z.string(),
@@ -282,6 +313,8 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	cropAspect: z.string().regex(/^\d+(?:\.\d+)?\s*[:/]\s*\d+(?:\.\d+)?$/).optional(),
+	cropZoom: z.number().min(1).max(6).optional(),
 	workbenchFolder: z.string().max(80).optional(),
 	effects: artworkEffectSchema.optional(),
 });
@@ -298,8 +331,14 @@ export const contentSchema = passthrough({
 		description: z.string(),
 		favicon: z.string(),
 		language: z.string().min(2).optional(),
-		signature: passthrough({ strokes: z.array(z.array(z.array(z.number()))) }).optional(),
+		signature: passthrough({
+			strokes: z.array(z.array(z.array(z.number()))),
+			image: z.string().optional(),
+			align: z.enum(['left', 'center', 'right']).optional(),
+		}).optional(),
 		footer: z.string().optional(),
+		footerImage: z.string().optional(),
+		footerImageLayout: imageLayoutSchema.optional(),
 		footerHeights: responsiveSectionHeightSchema.optional(),
 		ogImage: z.string().optional(),
 		creative: passthrough({
@@ -341,6 +380,9 @@ export const contentSchema = passthrough({
 		mutedTextColor: z.string(),
 		accentColor: z.string(),
 		fontFamily: z.string(),
+		bodyTextColor: z.string().optional(),
+		headingTextColor: z.string().optional(),
+		subheadingTextColor: z.string().optional(),
 		headingFontFamily: z.string().optional(),
 		contentGap: z.number().optional(),
 		logoScale: z.number().optional(),
@@ -356,11 +398,43 @@ export const contentSchema = passthrough({
 		fullscreenMobileMenu: z.boolean().optional(),
 		automaticTextContrast: z.boolean().optional(),
 		stabilizeNavigation: z.boolean().optional(),
+		stabilizeLogo: z.boolean().optional(),
 		backgroundTexture: z.enum(['corkboard', 'blackboard', 'wood', 'fence', 'concrete']).optional(),
 		customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 	}),
 	nav: z.array(passthrough({ path: z.string(), label: z.string(), hidden: z.boolean().optional() })),
-	profile: passthrough({ image: z.string(), bio: z.string() }),
+	profile: passthrough({
+		name: z.string().optional(),
+		image: z.string(),
+		bio: z.string(),
+		bioRichText: z
+			.array(
+				passthrough({
+					align: z.enum(['left', 'center', 'right']).optional(),
+					runs: z.array(
+						passthrough({
+							text: z.string(),
+							link: z.string().optional(),
+							size: z.enum(['body', 'subheading', 'heading']).optional(),
+							fontSize: z.number().min(6).max(144).optional(),
+							bold: z.literal(true).optional(),
+							italic: z.literal(true).optional(),
+							underline: z.literal(true).optional(),
+							strike: z.literal(true).optional(),
+						}),
+					),
+				}),
+			)
+			.optional(),
+		bioFontFamily: z.string().min(1).optional(),
+		imageWidth: z.number().min(60).max(720).optional(),
+		imageAspect: z.string().optional(),
+		imageFocusX: z.number().min(0).max(100).optional(),
+		imageFocusY: z.number().min(0).max(100).optional(),
+		imageCropZoom: z.number().min(1).max(6).optional(),
+		imageLayout: imageLayoutSchema.optional(),
+		contentLayout: imageLayoutSchema.optional(),
+	}),
 	contact: passthrough({ email: z.string() }),
 	social: z.array(passthrough({ label: z.string(), url: z.string() })),
 	resume: passthrough({ label: z.string(), url: z.string() }),
@@ -614,6 +688,13 @@ function ensurePageBlocks(raw: unknown): unknown {
 		) {
 			(value.blocks as unknown[]).push({ id: 'children', type: 'children' });
 		}
+		if (
+			isObject(value.project) &&
+			!(value.blocks as unknown[]).some((block) => isObject(block) && block.type === 'project')
+		) {
+			(value.blocks as unknown[]).push({ id: 'project', type: 'project', project: value.project });
+			delete value.project;
+		}
 		if (typeof value.label !== 'string' || !value.label) value.label = labelByPath.get(key) ?? key;
 	}
 	return raw;
@@ -655,6 +736,23 @@ function ensureStableImageIds(raw: unknown): unknown {
 			if (isObject(meta) && (typeof meta.id !== 'string' || !meta.id))
 				meta.id = stableImageId(folder, filename, index);
 		});
+	}
+	return raw;
+}
+
+/** Contact forms previously borrowed the public About email at render time.
+ * Copy that value into the form once so future edits keep the public address
+ * and the private delivery address independent. */
+function ensureFormRecipientEmails(raw: unknown): unknown {
+	if (!isObject(raw) || !isObject(raw.pages) || !isObject(raw.contact)) return raw;
+	const email = typeof raw.contact.email === 'string' ? raw.contact.email : '';
+	if (!email) return raw;
+	for (const page of Object.values(raw.pages)) {
+		if (!isObject(page) || !Array.isArray(page.blocks)) continue;
+		for (const block of page.blocks) {
+			if (isObject(block) && block.type === 'form' && typeof block.recipientEmail !== 'string')
+				block.recipientEmail = email;
+		}
 	}
 	return raw;
 }
@@ -893,6 +991,7 @@ export function parseAndMigrateContent(raw: unknown): Content {
 	migrated = ensureStableImageIds(migrated);
 	migrated = ensurePageBlocks(migrated);
 	migrated = migrateContentV4ToV5(migrated);
+	migrated = ensureFormRecipientEmails(migrated);
 
 	const parsed = contentSchema.safeParse(migrated);
 	if (!parsed.success) {

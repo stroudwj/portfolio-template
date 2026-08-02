@@ -18,6 +18,7 @@ export interface PortfolioFrameProps {
 	automaticContrast?: boolean;
 	fallbackBackground?: string;
 	stabilized?: boolean;
+	logoStabilized?: boolean;
 	logoPosition?: LogoPosition;
 	logoX?: number;
 	logoY?: number;
@@ -37,6 +38,7 @@ export default function PortfolioFrame({
 	automaticContrast = true,
 	fallbackBackground = '#ffffff',
 	stabilized = true,
+	logoStabilized = stabilized,
 	logoPosition = 'center',
 	logoX,
 	logoY,
@@ -52,7 +54,7 @@ export default function PortfolioFrame({
 				onNavigate={onNavigate}
 				automaticContrast={automaticContrast}
 				fallbackBackground={fallbackBackground}
-				stabilized={stabilized}
+				stabilized={logoStabilized}
 				position={logoPosition}
 				freeformX={logoX}
 				freeformY={logoY}

@@ -9,7 +9,7 @@
 	font-family: var(--font-heading, var(--font-family));
 	font-size: calc(2rem * var(--page-heading-scale, 1));
 	font-weight: 700;
-	color: var(--color-text);
+	color: var(--color-heading-text, var(--color-text));
 	margin: 0;
 	letter-spacing: -0.02em;
 	text-align: right;

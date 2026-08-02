@@ -3,16 +3,26 @@
    pages — like signing the corner of a finished piece. */
 .site-signature {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: center;
 	margin-top: auto;
 	padding: 2.5rem 40px 2rem;
 }
+
+.site-signature.align-left { justify-content: flex-start; }
+.site-signature.align-right { justify-content: flex-end; }
 
 .site-signature svg {
 	width: 170px;
 	max-width: 45vw;
 	height: auto;
 	overflow: visible;
+}
+
+.site-signature img {
+	display: block;
+	width: min(300px, 45vw);
+	max-height: 140px;
+	object-fit: contain;
 }
 
 .site-signature polyline {

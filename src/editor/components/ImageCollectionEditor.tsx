@@ -25,6 +25,7 @@ import {
 	WORKBENCH_FOLDER,
 	writeImageTransfer,
 } from '../lib/image-transfer';
+import ImageCropDialog, { type ImageCropSettings } from './ImageCropDialog';
 
 export interface ImageCollectionEditorProps {
 	folder: string;
@@ -149,6 +150,7 @@ export default function ImageCollectionEditor({
 	} = useEditor();
 	const [collapsed, setCollapsed] = useState(false);
 	const [compact, setCompact] = useState(true);
+	const [cropEntryId, setCropEntryId] = useState<string | null>(null);
 	const [pendingUpload, setPendingUpload] = useState<{
 		files: File[];
 		replaceEntryId?: string;
@@ -156,6 +158,12 @@ export default function ImageCollectionEditor({
 	} | null>(null);
 	if (!doc) return null;
 	const entries = doc.galleries[folder] ?? [];
+	const cropEntry = entries.find((entry) => entry.id === cropEntryId);
+	const cropUrl = cropEntry
+		? getAssetPreviewUrl(cropEntry.assetId) ??
+			sampleArtworkUrl(cropEntry.sampleAssetId) ??
+			PLACEHOLDER_IMAGE
+		: undefined;
 	const moveTargets = imageGroupTargets(doc).filter((target) => target.folder !== folder);
 	const accessibilityReviewCount = requireAltText
 		? entries.filter((entry) => !entry.sampleAssetId && !entry.meta.alt.trim() && !entry.meta.decorative).length
@@ -393,6 +401,18 @@ export default function ImageCollectionEditor({
 																			Decorative image
 																		</label>
 																	</label>
+																		<div className="artwork-crop-editor">
+																			<div>
+																				<strong>Crop photo</strong>
+																				<small>
+																					{entry.meta.cropAspect ? `${entry.meta.cropAspect} frame` : 'Original frame'}
+																					{entry.meta.cropZoom && entry.meta.cropZoom > 1 ? ` · ${entry.meta.cropZoom.toFixed(2)}× zoom` : ''}
+																				</small>
+																			</div>
+																			<button type="button" className="btn-secondary" onClick={() => setCropEntryId(entry.id)}>
+																				Open crop lightbox…
+																			</button>
+																		</div>
 																	<div className="artwork-effects-editor">
 																		<div className="artwork-effects-heading">
 																			<span>Artwork effects</span>
@@ -754,11 +774,42 @@ export default function ImageCollectionEditor({
 			onConfirm={finishUpload}
 		/>
 	);
+	const cropModal = cropEntry && cropUrl && (
+		<ImageCropDialog
+			src={cropUrl}
+			name={cropEntry.meta.title || cropEntry.filename || 'photo'}
+			initial={{
+				aspect: cropEntry.meta.cropAspect,
+				focusX: cropEntry.meta.focusX ?? 50,
+				focusY: cropEntry.meta.focusY ?? 50,
+				zoom: cropEntry.meta.cropZoom ?? 1,
+			}}
+			onClose={() => setCropEntryId(null)}
+			onSave={(settings: ImageCropSettings) => {
+				const match = /^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/.exec(settings.aspect ?? '');
+				const ratio = match
+					? Number(match[1]) / Number(match[2])
+					: settings.naturalAspect;
+				updateGalleryMeta(folder, cropEntry.id, {
+					cropAspect: settings.aspect,
+					cropZoom: settings.zoom > 1.001 ? settings.zoom : undefined,
+					focusX: settings.focusX,
+					focusY: settings.focusY,
+					layout:
+						cropEntry.meta.layout && ratio
+							? { ...cropEntry.meta.layout, ar: ratio }
+							: cropEntry.meta.layout,
+				});
+				setCropEntryId(null);
+			}}
+		/>
+	);
 	if (embedded)
 		return (
 			<>
 				{body}
 				{uploadModal}
+				{cropModal}
 			</>
 		);
 	return (
@@ -767,6 +818,7 @@ export default function ImageCollectionEditor({
 				{body}
 			</Section>
 			{uploadModal}
+			{cropModal}
 		</>
 	);
 }

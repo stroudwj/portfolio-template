@@ -44,6 +44,8 @@ function assetSlots(doc: EditorDoc): Array<{ id: string; filename: string }> {
 	for (const slot of [
 		doc.profileImage,
 		doc.logoImage,
+		doc.footerImage,
+		doc.signatureImage,
 		doc.cursorImage,
 		doc.resumeFile,
 		...Object.values(doc.pageThumbs),
@@ -169,6 +171,8 @@ function remapAssetIds(doc: EditorDoc, ids: ReadonlyMap<string, string>): Editor
 	for (const slot of [
 		next.profileImage,
 		next.logoImage,
+		next.footerImage,
+		next.signatureImage,
 		next.cursorImage,
 		next.resumeFile,
 		...Object.values(next.pageThumbs),

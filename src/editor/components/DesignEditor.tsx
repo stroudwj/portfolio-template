@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import CreativeEditor from './CreativeEditor';
-import HeaderLayoutEditor from './HeaderLayoutEditor';
 import LayoutEditor from './LayoutEditor';
-import SignatureEditor from './SignatureEditor';
 import ThemeEditor from './ThemeEditor';
 
 const DESIGN_AREAS = [
@@ -16,7 +14,7 @@ const DESIGN_AREAS = [
 		id: 'structure',
 		icon: '▤',
 		label: 'Structure',
-		description: 'Navigation, header placement, and spacing across the site.',
+		description: 'Navigation and spacing across the site. Header controls live in Site → Header.',
 	},
 	{
 		id: 'effects',
@@ -64,17 +62,9 @@ export default function DesignEditor() {
 				role="tabpanel"
 				aria-labelledby={`design-area-${area}`}
 			>
-				{area === 'style' && (
-					<>
-						<ThemeEditor />
-						<SignatureEditor />
-					</>
-				)}
+				{area === 'style' && <ThemeEditor />}
 				{area === 'structure' && (
-					<>
-						<LayoutEditor />
-						<HeaderLayoutEditor />
-					</>
+					<LayoutEditor />
 				)}
 				{area === 'effects' && <CreativeEditor />}
 			</div>

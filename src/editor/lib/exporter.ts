@@ -358,6 +358,26 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 		content.resume = { ...content.resume, url: '' };
 	}
 
+	// Signature images live under public/ so the same URL works in Astro pages
+	// and in the standalone published runtime.
+	const signatureBlob = localAssetBlob(
+		doc.signatureImage?.assetId,
+		doc.signatureImage?.filename || 'Signature image',
+	);
+	if (signatureBlob) {
+		const finalName = `signatures/${sanitizeFilename(doc.signatureImage.filename || 'signature.png')}`;
+		files.push({ path: `public/${finalName}`, bytes: new Uint8Array(await signatureBlob.arrayBuffer()) });
+		content.site.signature = {
+			strokes: content.site.signature?.strokes ?? [],
+			...content.site.signature,
+			image: finalName,
+		};
+	} else if (content.site.signature?.image && doc.signatureImage?.filename) {
+		referencedFiles.add(`public/${content.site.signature.image}`);
+	} else if (content.site.signature?.image) {
+		content.site.signature = { ...content.site.signature, image: undefined };
+	}
+
 	// Profile image.
 	const profileBlob = localAssetBlob(doc.profileImage.assetId, doc.profileImage.filename || 'Profile image');
 	if (profileBlob) {
@@ -380,6 +400,18 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 	} else {
 		content.site.logoImage = doc.logoImage?.filename || undefined;
 		if (content.site.logoImage) referencedFiles.add(`src/assets/${content.site.logoImage}`);
+	}
+
+	// Optional footer image uses its own prefix so it cannot collide with gallery/profile assets.
+	const footerImageBlob = localAssetBlob(doc.footerImage?.assetId, doc.footerImage?.filename || 'Footer image');
+	if (footerImageBlob) {
+		const cleaned = sanitizeFilename(doc.footerImage.filename || 'footer-image');
+		const finalName = cleaned.startsWith('footer-') ? cleaned : `footer-${cleaned}`;
+		files.push({ path: `src/assets/${finalName}`, bytes: new Uint8Array(await footerImageBlob.arrayBuffer()) });
+		content.site.footerImage = finalName;
+	} else {
+		content.site.footerImage = doc.footerImage?.filename || undefined;
+		if (content.site.footerImage) referencedFiles.add(`src/assets/${content.site.footerImage}`);
 	}
 
 	// Custom pointer image. The editor keeps its Blob separately so preview URLs

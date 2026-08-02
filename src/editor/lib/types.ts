@@ -27,6 +27,10 @@ export interface ImageMeta {
 	/** Carousel fill-mode focal point, in source-image percentages. */
 	focusX?: number;
 	focusY?: number;
+	/** Optional crop ratio applied to this image in freeform layouts. */
+	cropAspect?: string;
+	/** Non-destructive crop magnification. */
+	cropZoom?: number;
 	effects?: ArtworkEffectConfig;
 	/** Private organizer used only by the editor's image workbench. */
 	workbenchFolder?: string;
@@ -66,6 +70,10 @@ export interface EditorDoc {
 	profileImage: SingleImage;
 	/** The header logo image (empty filename = the text logo renders). */
 	logoImage: SingleImage;
+	/** Optional image displayed in the global footer. */
+	footerImage: SingleImage;
+	/** Optional uploaded image alternative to the hand-drawn site signature. */
+	signatureImage: SingleImage;
 	/** Optional uploaded pointer image used by the site-wide custom cursor effect. */
 	cursorImage: SingleImage;
 	/** page key -> its sub-page card thumbnail. */

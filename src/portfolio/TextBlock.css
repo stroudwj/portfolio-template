@@ -5,9 +5,9 @@
 .text-block {
 	--text-flow-x: 0;
 	--text-flow-w: 100;
-	margin: 1.5rem 0;
+	margin: 0;
 	padding: 0 40px;
-	color: var(--color-text);
+	color: var(--color-body-text, var(--color-text));
 	font-family: var(--font-family);
 }
 .text-block .text-block-content {
@@ -29,6 +29,16 @@
 	font-family: var(--font-heading, var(--font-family));
 	font-weight: 500;
 	letter-spacing: -0.015em;
+}
+
+.text-block-content.text-style-heading,
+.rich-text-run.text-size-heading {
+	color: var(--color-heading-text, var(--color-text));
+}
+
+.text-block-content.text-style-subheading,
+.rich-text-run.text-size-subheading {
+	color: var(--color-subheading-text, var(--color-text));
 }
 
 .text-block-content.text-style-heading {

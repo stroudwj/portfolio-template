@@ -1,5 +1,5 @@
 .bio-container {
-	padding: 25vh 0px 0px;
+	padding: 0;
 	margin-left: 25vw;
 	display: flex;
 	flex-direction: column;
@@ -8,13 +8,26 @@
 	width: 33.333%;
 	min-width: 300px;
 	font-weight: 500;
-	color: var(--color-text);
+	color: var(--color-body-text, var(--color-text));
 }
 
+.profile-image-frame {
+	display: block;
+	width: min(var(--about-image-width, 160px), 100%);
+	overflow: hidden;
+}
 .profile-image {
-	width: 160px;
+	width: 100%;
 	height: auto;
 	display: block;
+}
+.profile-image-frame.is-cropped {
+	max-height: 80vh;
+	width: min(var(--about-image-width, 160px), 100%);
+}
+.profile-image-frame.is-cropped .profile-image {
+	height: 100%;
+	object-fit: cover;
 }
 .profile-image-placeholder {
 	display: grid;
@@ -33,6 +46,13 @@
 	text-wrap: pretty;
 	margin: 0;
 }
+.about-bio-copy {
+	margin: 3em 0 2em;
+}
+.about-bio-copy > .text-block-content {
+	width: 100%;
+	margin: 0;
+}
 .about-preview-placeholder {
 	opacity: 0.48;
 	font-style: italic;
@@ -41,9 +61,38 @@
 	font-size: 13px;
 }
 
+.about-freeform-composition {
+	display: grid;
+	position: relative;
+}
+.about-freeform-composition > .gallery-root,
+.about-freeform-composition > .bio-container {
+	grid-area: 1 / 1;
+}
+.about-freeform-composition > .gallery-root {
+	z-index: 2;
+	pointer-events: none;
+}
+.about-freeform-composition > .gallery-root .canvas-item {
+	pointer-events: auto;
+}
+.about-freeform-composition > .gallery-root .canvas-layer-toolbar {
+	pointer-events: auto;
+}
+.canvas-widget-content > .bio-container {
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+}
+.about-freeform-composition > .bio-container {
+	position: relative;
+	z-index: 1;
+}
+
 @media (max-width: 900px) {
 	.bio-container {
-		padding: 220px 30px 40px;
+		padding: 0 30px;
 		margin-left: 0;
 		width: 100%;
 		max-width: 600px;

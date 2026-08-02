@@ -26,6 +26,7 @@ interface ToolbarState {
 	underline: boolean;
 	strike: boolean;
 	size: RichTextSize;
+	fontSize: number;
 	align: TextAlign;
 	link?: string;
 }
@@ -48,14 +49,15 @@ const DEFAULT_TOOLBAR: ToolbarState = {
 	underline: false,
 	strike: false,
 	size: 'body',
+	fontSize: 12,
 	align: 'left',
 	link: undefined,
 };
 
-const TEXT_SIZES: Array<{ value: RichTextSize; label: string; commandSize: string }> = [
-	{ value: 'body', label: 'Body', commandSize: '3' },
-	{ value: 'subheading', label: 'Small', commandSize: '5' },
-	{ value: 'heading', label: 'Large', commandSize: '7' },
+const TEXT_SIZES: Array<{ value: RichTextSize; label: string; commandSize: string; pt: number }> = [
+	{ value: 'body', label: 'Body · 12pt', commandSize: '3', pt: 12 },
+	{ value: 'subheading', label: 'Small · 18pt', commandSize: '5', pt: 18 },
+	{ value: 'heading', label: 'Large · 32pt', commandSize: '7', pt: 32 },
 ];
 
 const ALIGNMENTS: Array<{ value: TextAlign; label: string; command: string }> = [
@@ -93,6 +95,14 @@ const selectedAlign = (root: HTMLElement): TextAlign => {
 	return 'left';
 };
 
+const selectedPointSize = (root: HTMLElement): number => {
+	const element = selectionElement(root)?.closest<HTMLElement>('[data-text-pt], [data-text-size], font');
+	const explicit = Number(element?.dataset.textPt);
+	if (Number.isFinite(explicit) && explicit >= 6) return explicit;
+	const size = selectedSize(root);
+	return size === 'heading' ? 32 : size === 'subheading' ? 18 : 12;
+};
+
 const selectedLink = (root: HTMLElement): string | undefined =>
 	selectionElement(root)?.closest<HTMLAnchorElement>('a[href]')?.getAttribute('href')?.trim() ||
 	undefined;
@@ -118,6 +128,7 @@ export default function RichTextEditor({
 	const selectionRef = useRef<Range | null>(null);
 	const lastEmittedRef = useRef<string | undefined>(undefined);
 	const [toolbar, setToolbar] = useState<ToolbarState>(DEFAULT_TOOLBAR);
+	const [pointInput, setPointInput] = useState('12');
 	const documentValue = useMemo(
 		() => value ?? legacyTextToRichText(legacyText, legacyStyle, legacyAlign),
 		[value, legacyText, legacyStyle, legacyAlign],
@@ -137,15 +148,18 @@ export default function RichTextEditor({
 		if (!editor || !selectionElement(editor)) return;
 		const doc = editor.ownerDocument;
 		const commands = editingDocument(doc);
+		const fontSize = selectedPointSize(editor);
 		setToolbar({
 			bold: commands.queryCommandState('bold'),
 			italic: commands.queryCommandState('italic'),
 			underline: commands.queryCommandState('underline'),
 			strike: commands.queryCommandState('strikeThrough'),
 			size: selectedSize(editor),
+			fontSize,
 			align: selectedAlign(editor),
 			link: selectedLink(editor),
 		});
+		setPointInput(String(fontSize));
 		const selection = editor.ownerDocument.getSelection();
 		if (selection?.rangeCount) selectionRef.current = selection.getRangeAt(0).cloneRange();
 	}, []);
@@ -170,18 +184,42 @@ export default function RichTextEditor({
 	const runCommand = (command: string, argument?: string) => {
 		const editor = editorRef.current;
 		if (!editor) return;
-		editor.focus();
+		restoreSelection();
 		editingDocument(editor.ownerDocument).execCommand(command, false, argument);
+		emit();
+	};
+
+	const applyPointSize = (size: RichTextSize, points: number, commandSize = '7') => {
+		const editor = editorRef.current;
+		if (!editor) return;
+		const clamped = Math.min(Math.max(Math.round(points * 10) / 10, 6), 144);
+		restoreSelection();
+		// Use a temporary size that differs from every toolbar preset. Reusing the
+		// current preset value can make execCommand a no-op, which is why an exact
+		// point size occasionally appeared not to apply after choosing Large/Small.
+		const markerSize = commandSize === '1' ? '7' : '1';
+		editingDocument(editor.ownerDocument).execCommand('fontSize', false, markerSize);
+		for (const element of editor.querySelectorAll<HTMLElement>(`font[size="${markerSize}"]`)) {
+			element.removeAttribute('size');
+			element.dataset.textSize = size;
+			element.dataset.textPt = String(clamped);
+			element.style.fontSize = `${clamped}pt`;
+		}
 		emit();
 	};
 
 	const restoreSelection = () => {
 		const editor = editorRef.current;
-		const range = selectionRef.current;
-		if (!editor || !range) return;
+		// Capture before focus: focusing the editor from a number input can fire a
+		// selectionchange with a collapsed caret and overwrite the saved range.
+		const range = selectionRef.current?.cloneRange();
+		if (!editor) return;
+		editor.focus();
+		if (!range) return;
 		const selection = editor.ownerDocument.getSelection();
 		selection?.removeAllRanges();
 		selection?.addRange(range);
+		selectionRef.current = range.cloneRange();
 	};
 
 	const editLink = () => {
@@ -201,7 +239,6 @@ export default function RichTextEditor({
 			alert('Use a web address, an email link, or a site path such as /work.');
 			return;
 		}
-		editor.focus();
 		restoreSelection();
 		const command = link ? 'createLink' : 'unlink';
 		editingDocument(editor.ownerDocument).execCommand(command, false, link);
@@ -240,11 +277,33 @@ export default function RichTextEditor({
 							aria-label={`${size.label} size for ${label}`}
 							aria-pressed={toolbar.size === size.value}
 							onMouseDown={keepSelection}
-							onClick={() => runCommand('fontSize', size.commandSize)}
+							onClick={() => applyPointSize(size.value, size.pt, size.commandSize)}
 						>
 							{size.label}
 						</button>
 					))}
+					<label className="rich-text-point-size">
+						<span className="sr-only">Exact point size for {label}</span>
+						<input
+							type="number"
+							min={6}
+							max={144}
+							step={0.5}
+							value={pointInput}
+							aria-label={`Exact point size for ${label}`}
+							onChange={(event) => setPointInput(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === 'Enter') {
+									event.preventDefault();
+									applyPointSize(toolbar.size, Number(event.currentTarget.value) || toolbar.fontSize);
+								}
+							}}
+							onBlur={(event) =>
+								applyPointSize(toolbar.size, Number(event.currentTarget.value) || toolbar.fontSize)
+							}
+						/>
+						<span>pt</span>
+					</label>
 				</div>
 				<div className="rich-text-tool-group mark-tools" role="group" aria-label={`Formatting for ${label}`}>
 					<button

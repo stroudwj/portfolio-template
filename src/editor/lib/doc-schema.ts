@@ -17,6 +17,8 @@ const imageLayoutSchema = passthrough({
 	y: z.number(),
 	w: z.number(),
 	ar: z.number().positive(),
+	z: z.number().optional(),
+	locked: z.boolean().optional(),
 });
 const imageMetaSchema = passthrough({
 	title: z.string(),
@@ -30,6 +32,8 @@ const imageMetaSchema = passthrough({
 	layout: imageLayoutSchema.optional(),
 	focusX: z.number().min(0).max(100).optional(),
 	focusY: z.number().min(0).max(100).optional(),
+	cropAspect: z.string().regex(/^\d+(?:\.\d+)?\s*[:/]\s*\d+(?:\.\d+)?$/).optional(),
+	cropZoom: z.number().min(1).max(6).optional(),
 	workbenchFolder: z.string().max(80).optional(),
 	effects: passthrough({
 		hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
@@ -58,6 +62,8 @@ export const editorDocSchema = passthrough({
 	),
 	profileImage: singleImageSchema,
 	logoImage: singleImageSchema,
+	footerImage: singleImageSchema.default({ filename: '', assetId: null, sampleAssetId: null }),
+	signatureImage: singleImageSchema.default({ filename: '', assetId: null, sampleAssetId: null }),
 	cursorImage: singleImageSchema.default({ filename: '', assetId: null, sampleAssetId: null }),
 	pageThumbs: z.record(z.string(), singleImageSchema),
 	productImages: z.record(z.string(), singleImageSchema),
@@ -78,6 +84,8 @@ export const editorDocSchema = passthrough({
 	for (const [slotName, slot] of [
 		['profileImage', value.profileImage],
 		['logoImage', value.logoImage],
+		['footerImage', value.footerImage],
+		['signatureImage', value.signatureImage],
 		['cursorImage', value.cursorImage],
 		['resumeFile', value.resumeFile],
 		...Object.entries(value.pageThumbs).map(([key, item]) => [`pageThumbs.${key}`, item] as const),

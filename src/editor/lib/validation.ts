@@ -140,10 +140,12 @@ export function collectIssues(doc: EditorDoc): string[] {
 			if (block.type === 'text' && block.link && !isUrl(block.link) && !block.link.startsWith('/') && !block.link.startsWith('#'))
 				issues.push(`Linked text on “${page.label ?? key}” needs a valid destination.`);
 			if (block.type === 'form') {
+				if (block.recipientEmail && !isEmail(block.recipientEmail))
+					issues.push(`The site owner delivery email for the contact form on “${page.label ?? key}” is not valid.`);
 				if (block.action && (!isUrl(block.action) || !block.action.startsWith('https://')))
 					issues.push(`The direct-delivery address for the contact form on “${page.label ?? key}” is not valid.`);
-				else if (!block.action && !isEmail(doc.content.contact.email))
-					issues.push(`Add a contact email so the form on “${page.label ?? key}” has somewhere to send messages.`);
+				else if (!block.action && !isEmail(block.recipientEmail ?? ''))
+					issues.push(`Add a site owner delivery email so the form on “${page.label ?? key}” has somewhere to send messages.`);
 			}
 		}
 	}

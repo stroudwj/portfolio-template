@@ -94,6 +94,16 @@ export function parseAspect(value: string | undefined): number | undefined {
 	return w > 0 && h > 0 ? w / h : undefined;
 }
 
+const nativeCropStyle = (image: ResolvedImage): CSSProperties => {
+	const ratio = parseAspect(image.cropAspect);
+	return {
+		...(ratio ? { aspectRatio: String(ratio), objectFit: 'cover' as const } : {}),
+		objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
+		scale: image.cropZoom && image.cropZoom > 1 ? String(image.cropZoom) : undefined,
+		transformOrigin: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
+	};
+};
+
 export interface GalleryProps {
 	images: ResolvedImage[];
 	/** Fallback alt text for images without their own title. */
@@ -124,6 +134,8 @@ export interface GalleryProps {
 	onCarouselHostChange?: (hostId: string, layout: ImageLayout) => void;
 	/** Reports the crop focal point for one carousel image (editor only). */
 	onCarouselFocusChange?: (id: string, focusX: number, focusY: number) => void;
+	/** Reports non-destructive image scaling inside the carousel frame. */
+	onCarouselZoomChange?: (id: string, zoom: number) => void;
 	/** Carousels owned by other image-group blocks but hosted on this freeform canvas. */
 	carouselWidgets?: CarouselWidget[];
 	/** Other complete blocks (sub-pages/products) hosted on this freeform canvas. */
@@ -136,6 +148,7 @@ export interface GalleryProps {
 	embeddedCarousel?: boolean;
 	/** Editor preview: keep internal image links inside the preview router. */
 	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
+	onSelectBlock?: (blockId: string) => void;
 }
 
 export interface CarouselWidget {
@@ -144,6 +157,7 @@ export interface CarouselWidget {
 	settings: GalleryConfig;
 	alt?: string;
 	onFocusChange?: (id: string, focusX: number, focusY: number) => void;
+	onZoomChange?: (id: string, zoom: number) => void;
 }
 
 /**
@@ -170,17 +184,20 @@ export default function Gallery({
 	onCarouselFrameChange,
 	onCarouselHostChange,
 	onCarouselFocusChange,
+	onCarouselZoomChange,
 	carouselWidgets = [],
 	canvasWidgets = [],
 	onCarouselWidgetLayout,
 	onDeleteCarousel,
 	embeddedCarousel = false,
 	onImageLink,
+	onSelectBlock,
 }: GalleryProps) {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 	const [carouselPosition, setCarouselPosition] = useState(0);
 	const [carouselFrameDraft, setCarouselFrameDraft] = useState<ImageLayout | null>(null);
 	const [carouselFocusDraft, setCarouselFocusDraft] = useState<{ id: string; x: number; y: number } | null>(null);
+	const [carouselZoomDraft, setCarouselZoomDraft] = useState<{ id: string; zoom: number } | null>(null);
 	const [carouselSelected, setCarouselSelected] = useState(false);
 	const [carouselCenterGuide, setCarouselCenterGuide] = useState(false);
 	const open = openIndex !== null ? images[openIndex] : null;
@@ -289,6 +306,7 @@ export default function Gallery({
 	const startCarouselFrameGesture = (
 		event: React.PointerEvent<HTMLElement>,
 		mode: 'move' | 'resize',
+		corner: 'nw' | 'ne' | 'sw' | 'se' = 'se',
 	) => {
 		if (!editable || !onCarouselFrameChange || event.button !== 0) return;
 		const root = galleryRootRef.current;
@@ -327,44 +345,76 @@ export default function Gallery({
 				draft = clampLayout({ ...from, x, y });
 			} else {
 				setCarouselCenterGuide(false);
+				const east = corner.endsWith('e');
+				const south = corner.startsWith('s');
+				const originalHeight = from.w / from.ar;
+				const right = from.x + from.w;
+				const bottom = from.y + originalHeight;
 				if (settings?.carouselFreeResize === true) {
-					let width = Math.min(Math.max(from.w + dx, MIN_W), 100 - from.x);
-					let height = Math.max(from.w / from.ar + dy, MIN_W);
+					let width = Math.max(from.w + (east ? dx : -dx), MIN_W);
+					let height = Math.max(originalHeight + (south ? dy : -dy), MIN_W);
+					width = Math.min(width, east ? 100 - from.x : right);
+					if (!south) height = Math.min(height, bottom);
 					if (carouselGuideSnap) {
-						width = Math.max(snapCarouselX(from.x + width) - from.x, MIN_W);
-						height = Math.max(snapCarouselY(from.y + height) - from.y, MIN_W);
+						const movingX = east ? from.x + width : right - width;
+						const movingY = south ? from.y + height : bottom - height;
+						const snappedX = snapCarouselX(movingX);
+						const snappedY = snapCarouselY(movingY);
+						width = Math.max(east ? snappedX - from.x : right - snappedX, MIN_W);
+						height = Math.max(south ? snappedY - from.y : bottom - snappedY, MIN_W);
 					}
 					if (gridPrefs.edgeSnap) {
-						const right = nearestEdge(from.x + width, [0, 100], EDGE_SNAP);
-						const bottom = nearestEdge(
-							from.y + height,
+						const horizontal = nearestEdge(east ? from.x + width : right - width, [0, 100], EDGE_SNAP);
+						const vertical = nearestEdge(
+							south ? from.y + height : bottom - height,
 							[0, MIN_CAROUSEL_CANVAS_HEIGHT],
 							EDGE_SNAP,
 						);
-						if (right !== null) width = Math.max(right - from.x, MIN_W);
-						if (bottom !== null) height = Math.max(bottom - from.y, MIN_W);
+						if (horizontal !== null) width = Math.max(east ? horizontal - from.x : right - horizontal, MIN_W);
+						if (vertical !== null) height = Math.max(south ? vertical - from.y : bottom - vertical, MIN_W);
 					}
+					width = Math.min(width, east ? 100 - from.x : right);
+					if (!south) height = Math.min(height, bottom);
 					draft = clampLayout({
 						...from,
+						x: east ? from.x : right - width,
+						y: south ? from.y : bottom - height,
 						w: width,
 						ar: Math.min(Math.max(width / height, 0.2), 5),
 					});
 					setCarouselFrameDraft(draft);
 					return;
 				}
-				let width = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
-				if (carouselGuideSnap) width = snapCarouselX(from.x + width) - from.x;
+				const growthX = east ? dx : -dx;
+				const growthY = (south ? dy : -dy) * from.ar;
+				const growth = Math.abs(growthX) >= Math.abs(growthY) ? growthX : growthY;
+				let width = Math.max(from.w + growth, MIN_W);
+				width = Math.min(width, east ? 100 - from.x : right);
+				if (!south) width = Math.min(width, bottom * from.ar);
+				if (carouselGuideSnap) {
+					const movingX = east ? from.x + width : right - width;
+					const snappedX = snapCarouselX(movingX);
+					width = Math.max(east ? snappedX - from.x : right - snappedX, MIN_W);
+				}
 				if (gridPrefs.edgeSnap) {
-					const right = nearestEdge(from.x + width, [0, 100], EDGE_SNAP);
-					const bottom = nearestEdge(from.y + width / from.ar, [0, MIN_CAROUSEL_CANVAS_HEIGHT], EDGE_SNAP);
-					const widthAtRight = right === null ? null : right - from.x;
-					const widthAtBottom = bottom === null ? null : (bottom - from.y) * from.ar;
+					const horizontal = nearestEdge(east ? from.x + width : right - width, [0, 100], EDGE_SNAP);
+					const vertical = nearestEdge(south ? from.y + width / from.ar : bottom - width / from.ar, [0, MIN_CAROUSEL_CANVAS_HEIGHT], EDGE_SNAP);
+					const widthAtRight = horizontal === null ? null : east ? horizontal - from.x : right - horizontal;
+					const widthAtBottom = vertical === null ? null : south ? (vertical - from.y) * from.ar : (bottom - vertical) * from.ar;
 					const rightDistance = widthAtRight === null ? Infinity : Math.abs(widthAtRight - width);
 					const bottomDistance = widthAtBottom === null ? Infinity : Math.abs(widthAtBottom - width);
 					if (rightDistance <= bottomDistance && rightDistance < Infinity) width = widthAtRight as number;
 					else if (bottomDistance < Infinity) width = widthAtBottom as number;
 				}
-				draft = clampLayout({ ...from, w: Math.max(width, MIN_W) });
+				width = Math.min(width, east ? 100 - from.x : right);
+				if (!south) width = Math.min(width, bottom * from.ar);
+				width = Math.max(width, MIN_W);
+				draft = clampLayout({
+					...from,
+					x: east ? from.x : right - width,
+					y: south ? from.y : bottom - width / from.ar,
+					w: width,
+				});
 			}
 			setCarouselFrameDraft(draft);
 		};
@@ -472,6 +522,43 @@ export default function Gallery({
 			win.removeEventListener('pointercancel', up);
 			setCarouselFocusDraft(null);
 			if (cropDraggedRef.current) onCarouselFocusChange(id, Math.round(nextX), Math.round(nextY));
+		};
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+	};
+
+	const startCarouselImageResize = (
+		event: React.PointerEvent<HTMLElement>,
+		id: string,
+		startZoom: number,
+		corner: 'nw' | 'ne' | 'sw' | 'se',
+	) => {
+		if (!editable || settings?.carouselMoveImage !== true || !onCarouselZoomChange || event.button !== 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const stage = event.currentTarget.closest<HTMLElement>('.inline-carousel-stage');
+		if (!stage) return;
+		const rect = stage.getBoundingClientRect();
+		const startX = event.clientX;
+		const startY = event.clientY;
+		const directionX = corner.includes('e') ? 1 : -1;
+		const directionY = corner.includes('s') ? 1 : -1;
+		const win = stage.ownerDocument.defaultView ?? window;
+		let zoom = Math.min(Math.max(startZoom, 1), 6);
+		const move = (next: PointerEvent) => {
+			const distance =
+				((next.clientX - startX) * directionX + (next.clientY - startY) * directionY) /
+				Math.max(rect.width + rect.height, 1);
+			zoom = Math.min(Math.max(startZoom + distance * 8, 1), 6);
+			setCarouselZoomDraft({ id, zoom });
+		};
+		const up = () => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			setCarouselZoomDraft(null);
+			onCarouselZoomChange(id, Math.round(zoom * 100) / 100);
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
@@ -631,6 +718,7 @@ export default function Gallery({
 		? ({
 				...(activeCarouselEntry ? artworkEffectStyle(activeCarouselEntry.img) : {}),
 				'--carousel-chrome': settings?.carouselChromeColor || 'var(--color-accent)',
+				'--carousel-arrow': settings?.carouselArrowColor || 'var(--color-bg)',
 				...(!embeddedCarousel ? {
 				'--carousel-x': String(carouselFrame.x),
 				'--carousel-y': String((carouselFrame.y / carouselCanvasHeight) * 100),
@@ -653,7 +741,9 @@ export default function Gallery({
 				editable={editable}
 				embeddedCarousel
 				onCarouselFocusChange={widget.onFocusChange}
+				onCarouselZoomChange={widget.onZoomChange}
 				onImageLink={onImageLink}
+				onSelectBlock={onSelectBlock}
 			/>
 		),
 	}));
@@ -835,6 +925,7 @@ export default function Gallery({
 										? carouselFocusDraft?.y
 										: activeCarouselEntry.img.focusY ?? 50
 								}%`,
+								transform: `scale(${carouselZoomDraft?.id === activeCarouselEntry.img.id ? (carouselZoomDraft?.zoom ?? 1) : activeCarouselEntry.img.cropZoom ?? 1})`,
 							}}
 							onError={
 								activeCarouselEntry.img.sample
@@ -864,6 +955,9 @@ export default function Gallery({
 									: (event) => openFromKeyboard(event, activeCarouselEntry.i)
 							}
 						/>
+						{editable && settings?.carouselMoveImage === true && onCarouselZoomChange && (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+							<span key={corner} className={`canvas-resize carousel-image-resize corner-${corner}`} title={`Resize image from ${corner.toUpperCase()} corner`} onPointerDown={(event) => startCarouselImageResize(event, activeCarouselEntry.img.id ?? String(activeCarouselEntry.i), activeCarouselEntry.img.cropZoom ?? 1, corner)} aria-hidden="true" />
+						))}
 						{activeCarouselHref && (
 							<a
 								className="artwork-link-overlay"
@@ -899,14 +993,9 @@ export default function Gallery({
 							</>
 						)}
 					</div>
-					{editable && !embeddedCarousel && onCarouselFrameChange && (
-						<span
-							className="canvas-resize carousel-frame-resize"
-							title="Resize carousel"
-							onPointerDown={(event) => startCarouselFrameGesture(event, 'resize')}
-							aria-hidden="true"
-						/>
-					)}
+					{editable && !embeddedCarousel && onCarouselFrameChange && settings?.carouselMoveImage !== true && (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+						<span key={corner} className={`canvas-resize carousel-frame-resize corner-${corner}`} title={`Resize carousel from ${corner.toUpperCase()} corner`} onPointerDown={(event) => startCarouselFrameGesture(event, 'resize', corner)} aria-hidden="true" />
+					))}
 					</div>
 					{settings?.carouselShowTitle === true && activeCarouselEntry.img.title && (
 						<p className="inline-carousel-title">{activeCarouselEntry.img.title}</p>
@@ -935,7 +1024,7 @@ export default function Gallery({
 						const href = editable ? undefined : imageClickHref(img);
 						return (
 							<div
-								className={`uniform-item ${artworkEffectClass(img)}`}
+								className={`uniform-item ${artworkEffectClass(img)} ${img.cropAspect || (img.cropZoom ?? 1) > 1 ? 'has-native-crop' : ''}`}
 								style={{
 									...phoneItemVars(settings, imagePhoneKey(img, i), i),
 									...artworkEffectStyle(img),
@@ -957,6 +1046,7 @@ export default function Gallery({
 											? `Open ${img.title || img.alt || alt} in image viewer`
 											: undefined
 									}
+									style={nativeCropStyle(img)}
 									onError={
 										img.sample
 											? (event) => showSampleUnavailable(event.currentTarget)
@@ -998,6 +1088,7 @@ export default function Gallery({
 					onDeleteSelection={onDeleteSelection}
 					onOpen={editable ? undefined : openLightbox}
 					onImageLink={onImageLink}
+					onSelectBlock={onSelectBlock}
 				/>
 			) : (
 				<div className="masonry-grid">
@@ -1005,7 +1096,7 @@ export default function Gallery({
 						const href = imageClickHref(img);
 						return (
 							<div
-								className={`masonry-item ${artworkEffectClass(img)}`}
+								className={`masonry-item ${artworkEffectClass(img)} ${img.cropAspect || (img.cropZoom ?? 1) > 1 ? 'has-native-crop' : ''}`}
 								style={{
 									...spanVars(img),
 									...phoneItemVars(settings, imagePhoneKey(img, i), i),
@@ -1024,6 +1115,7 @@ export default function Gallery({
 									tabIndex={href ? undefined : 0}
 									aria-haspopup={href ? undefined : 'dialog'}
 									aria-label={href ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
+									style={nativeCropStyle(img)}
 									onError={
 										img.sample
 											? (event) => showSampleUnavailable(event.currentTarget)

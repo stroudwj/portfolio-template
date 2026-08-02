@@ -46,7 +46,7 @@ import {
 	roundTextLayout,
 	textBottom,
 } from './canvasLayout';
-import type { ImageLayout, PageBlock } from '../lib/content';
+import type { ChildPageItem, ImageLayout, PageBlock } from '../lib/content';
 import type { CanvasWidget } from './CanvasGallery';
 import { pageSections, sectionPartKey } from '../lib/pageSections';
 import { sharedPageTransitionName } from './pageTransitions';
@@ -61,6 +61,10 @@ export interface PortfolioPageProps extends PortfolioData {
 	onNavigate?: (path: string) => void;
 	/** Editor preview: makes gallery images movable/resizable and reports changes. */
 	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
+	/** Editor preview: moves/resizes the About photo on its own freeform canvas. */
+	onProfileImageLayout?: (layout: ImageLayout) => void;
+	/** Editor preview: moves/resizes the About words and links separately. */
+	onProfileContentLayout?: (layout: ImageLayout) => void;
 	/** Editor preview: reports a text block placed/moved on the page canvas. */
 	onTextLayout?: (page: string, blockId: string, layout: TextLayout) => void;
 	/** Editor preview: reports a hosted player/map placed or moved on the page canvas. */
@@ -81,6 +85,7 @@ export interface PortfolioPageProps extends PortfolioData {
 	) => void;
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
+	onChildItemLayout?: (page: string, blockId: string, itemId: string, layout: ImageLayout) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -88,6 +93,7 @@ export interface PortfolioPageProps extends PortfolioData {
 		layout?: ImageLayout,
 	) => void;
 	onCarouselFocus?: (folder: string, imageId: string, focusX: number, focusY: number) => void;
+	onCarouselZoom?: (folder: string, imageId: string, zoom: number) => void;
 	/** Editor preview: responsive minimum-height editing for page sections. */
 	resizeBreakpoint?: SectionBreakpoint;
 	onSectionHeight?: (
@@ -97,8 +103,10 @@ export interface PortfolioPageProps extends PortfolioData {
 		height: number | undefined,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+	onFooterImageLayout?: (layout: ImageLayout) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
+	onSelectBlock?: (pageKey: string, blockId: string) => void;
 }
 
 /** Where a flow block was released, in canvas-width % of the page's canvas. */
@@ -268,6 +276,8 @@ export default function PortfolioPage({
 	base,
 	onNavigate,
 	onImageLayout,
+	onProfileImageLayout,
+	onProfileContentLayout,
 	onTextLayout,
 	onEmbedLayout,
 	onEmbedFlowLayout,
@@ -275,12 +285,16 @@ export default function PortfolioPage({
 	onDeleteCanvasItems,
 	onCarouselFrame,
 	onWidgetLayout,
+	onChildItemLayout,
 	onCarouselHost,
 	onCarouselFocus,
+	onCarouselZoom,
 	resizeBreakpoint,
 	onSectionHeight,
 	onFooterHeight,
+	onFooterImageLayout,
 	editorPreview = false,
+	onSelectBlock,
 }: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 	const [pageRoot, setPageRootState] = useState<HTMLDivElement | null>(null);
@@ -326,6 +340,7 @@ export default function PortfolioPage({
 		onDeleteCanvasItems
 			? (selection: CanvasSelection) => onDeleteCanvasItems(page, folder, selection)
 			: undefined;
+	const selectInnerBlock = onSelectBlock ? (blockId: string) => onSelectBlock(page, blockId) : undefined;
 
 	// Text and videos pin to the canvas only when the page renders one (freeform gallery).
 	const blocks = config.blocks ?? [];
@@ -352,6 +367,9 @@ export default function PortfolioPage({
 				? (imageId, focusX, focusY) =>
 						onCarouselFocus(block.gallery.folder, imageId, focusX, focusY)
 				: undefined,
+			onZoomChange: onCarouselZoom
+				? (imageId, zoom) => onCarouselZoom(block.gallery.folder, imageId, zoom)
+				: undefined,
 		};
 		hostedCarousels.set(host.id, [...(hostedCarousels.get(host.id) ?? []), widget]);
 	});
@@ -362,8 +380,13 @@ export default function PortfolioPage({
 	const sections = pageSections(config);
 	const blockById = new Map(blocks.map((block) => [block.id, block]));
 	const canvasWidgetLayoutChange =
-		onWidgetLayout || onCarouselFrame
+		onWidgetLayout || onCarouselFrame || onChildItemLayout
 			? (blockId: string, layout: ImageLayout) => {
+					const [ownerId, itemId] = blockId.split('::');
+					if (itemId && blockById.get(ownerId)?.type === 'children') {
+						onChildItemLayout?.(page, ownerId, itemId, layout);
+						return;
+					}
 					if (blockById.get(blockId)?.type === 'images')
 						onCarouselFrame?.(page, blockId, layout);
 					else onWidgetLayout?.(page, blockId, layout);
@@ -389,12 +412,15 @@ export default function PortfolioPage({
 	const canvasTextsBySection = new Map<string, CanvasText[]>();
 	const canvasEmbedsBySection = new Map<string, CanvasEmbed[]>();
 	const canvasWidgetsBySection = new Map<string, CanvasWidget[]>();
-	const childItems = (config.children ?? []).map((key) => ({
-		key,
-		label: content.pages[key]?.label ?? key,
-		href: withBase(base, `${key}/`),
-		thumbSrc: pageThumbs?.[key],
-	}));
+	const childItemsFor = (block: Extract<PageBlock, { type: 'children' }>) =>
+		(block.items ?? (config.children ?? []).map((key): ChildPageItem => ({ id: key, page: key }))).map((item) => ({
+			id: item.id,
+			key: item.page,
+			label: item.label || content.pages[item.page]?.label || item.page,
+			href: withBase(base, `${item.page}/`),
+			thumbSrc: pageThumbs?.[item.page],
+			layout: item.layout,
+		}));
 	for (const section of sections) {
 		const sectionBlocks = section.blockIds
 			.map((id) => blockById.get(id))
@@ -428,21 +454,30 @@ export default function PortfolioPage({
 		);
 		canvasWidgetsBySection.set(
 			section.id,
-			sectionBlocks.flatMap((block) => {
-				if (block.type === 'children' && block.canvasLayout)
+			sectionBlocks.flatMap((block): CanvasWidget[] => {
+				if (block.type === 'children' && block.canvasLayout && !block.items)
 					return [{
 						id: block.id,
 						layout: block.canvasLayout,
-						freeResize: true,
+						freeResize: false,
+						dragLabel: 'Click and drag sub-pages',
+						content: <ChildPages items={childItemsFor(block)} style={block.style} onNavigate={onNavigate} pageTransition={content.site.creative?.pageTransition} />,
+					}];
+				if (block.type === 'children')
+					return childItemsFor(block).flatMap((item) => item.layout ? [{
+						id: `${block.id}::${item.id}`,
+						layout: item.layout,
+						freeResize: false,
+						dragLabel: `Click and drag ${item.label}`,
 						content: (
 							<ChildPages
-								items={childItems}
+								items={[item]}
 								style={block.style}
 								onNavigate={onNavigate}
 								pageTransition={content.site.creative?.pageTransition}
 							/>
 						),
-					}];
+					}] : []);
 				if (block.type === 'products' && block.canvasLayout && content.store)
 					return [{
 						id: block.id,
@@ -455,6 +490,35 @@ export default function PortfolioPage({
 								productIds={block.productIds}
 								layout={block.layout}
 								locale={content.site.language}
+							/>
+						),
+					}];
+				if (block.type === 'project' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: true,
+						dragLabel: 'Click and drag project fields',
+						content: <ProjectDetails project={block.project} labels={block.labels} order={block.order} fontFamily={block.fontFamily} fontSize={block.fontSize} />,
+					}];
+				if (block.type === 'form' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: false,
+						dragLabel: 'Click and drag contact form',
+						content: (
+							<ContactForm
+								heading={block.heading}
+								action={block.action}
+								fallbackEmail={block.recipientEmail}
+								successMessage={block.successMessage}
+								fields={block.fields.map((field) => ({
+									name: field.id,
+									type: field.type,
+									label: field.label,
+									required: field.required,
+								}))}
 							/>
 						),
 					}];
@@ -528,6 +592,7 @@ export default function PortfolioPage({
 								onTextLayout={textLayoutChange}
 								onEmbedLayout={embedLayoutChange}
 								onDeleteSelection={deleteFromCanvas('')}
+								onSelectBlock={selectInnerBlock}
 							/>
 						</div>
 					);
@@ -591,6 +656,7 @@ export default function PortfolioPage({
 								onTextLayout={textLayoutChange}
 								onEmbedLayout={embedLayoutChange}
 								onDeleteSelection={deleteFromCanvas('')}
+								onSelectBlock={selectInnerBlock}
 							/>
 						</div>
 					);
@@ -669,25 +735,64 @@ export default function PortfolioPage({
 					resumeHref || (content.resume && content.resume.url)
 						? { label: content.resume?.label || 'Résumé', href: resumeHref ?? withBase(base, content.resume.url) }
 						: null;
-				return (
+				const aboutContent = (
 					<About
-						key={block.id}
-						name={content.site.name}
+						name={content.profile.name ?? content.site.name}
 						bio={content.profile.bio}
+						bioRichText={content.profile.bioRichText}
+						bioFontFamily={content.profile.bioFontFamily}
 						email={content.contact.email}
 						social={content.social}
-						profileImageSrc={profileImageSrc}
+						profileImageSrc={content.profile.imageLayout ? undefined : profileImageSrc}
+						imageWidth={content.profile.imageWidth}
+						imageAspect={content.profile.imageAspect}
+						imageFocusX={content.profile.imageFocusX}
+						imageFocusY={content.profile.imageFocusY}
+						imageCropZoom={content.profile.imageCropZoom}
+						profileImageFreeform={!!content.profile.imageLayout}
 						resume={resume}
 						editorPreview={editorPreview}
 					/>
 				);
+				if (!profileImageSrc || !content.profile.imageLayout) return <div key={block.id}>{aboutContent}</div>;
+				return (
+					<div className="about-freeform-composition" key={block.id}>
+						<Gallery
+							images={[{
+								id: '__about-photo__',
+								src: profileImageSrc,
+								alt: content.profile.name || content.site.name || 'About photo',
+								layout: content.profile.imageLayout,
+								focusX: content.profile.imageFocusX,
+								focusY: content.profile.imageFocusY,
+								cropAspect: content.profile.imageAspect,
+								cropZoom: content.profile.imageCropZoom,
+							}]}
+							canvasWidgets={content.profile.contentLayout ? [{
+								id: `${block.id}::about-content`,
+								layout: content.profile.contentLayout,
+								freeResize: true,
+								dragLabel: 'Click and drag About text',
+								content: aboutContent,
+							}] : undefined}
+							alt="About photo"
+							editable={!!onProfileImageLayout || !!onProfileContentLayout}
+							onLayoutChange={onProfileImageLayout ? (_id, layout) => onProfileImageLayout(layout) : undefined}
+							onCarouselWidgetLayout={onProfileContentLayout ? (_id, layout) => onProfileContentLayout(layout) : undefined}
+							onSelectBlock={selectInnerBlock}
+						/>
+						{!content.profile.contentLayout && aboutContent}
+					</div>
+				);
 			}
 			case 'children': {
-				if (hasCanvas && block.canvasLayout) return null;
+				if (hasCanvas && block.canvasLayout && !block.items) return null;
+				const flowingItems = childItemsFor(block).filter((item) => !item.layout);
+				if (!flowingItems.length) return null;
 				return (
 					<ChildPages
 						key={block.id}
-						items={childItems}
+						items={flowingItems}
 						style={block.style}
 						onNavigate={onNavigate}
 						pageTransition={content.site.creative?.pageTransition}
@@ -707,6 +812,9 @@ export default function PortfolioPage({
 						locale={content.site.language}
 					/>
 				);
+			case 'project':
+				if (hasCanvas && block.layout) return null;
+				return <ProjectDetails key={block.id} project={block.project} labels={block.labels} order={block.order} fontFamily={block.fontFamily} fontSize={block.fontSize} />;
 			case 'gallery': {
 				const sharedTransitionStyle =
 					content.site.creative?.pageTransition === 'gallery'
@@ -734,6 +842,7 @@ export default function PortfolioPage({
 						}
 						onDeleteSelection={gallery ? deleteFromCanvas(gallery.folder) : undefined}
 						onImageLink={imageLinkNavigate}
+						onSelectBlock={selectInnerBlock}
 					/>
 				);
 				// Home keeps its collage layout; other pages the standard wrapper (the
@@ -818,6 +927,7 @@ export default function PortfolioPage({
 									? (id, focusX, focusY) => onCarouselFocus(block.gallery.folder, id, focusX, focusY)
 									: undefined
 							}
+							onCarouselZoomChange={onCarouselZoom ? (id, zoom) => onCarouselZoom(block.gallery.folder, id, zoom) : undefined}
 							onDeleteCarousel={
 								block.gallery.carousel === true && onDeleteCanvasItems
 									? () =>
@@ -827,6 +937,7 @@ export default function PortfolioPage({
 									: undefined
 							}
 							onImageLink={imageLinkNavigate}
+							onSelectBlock={selectInnerBlock}
 						/>
 					</div>
 				);
@@ -861,12 +972,13 @@ export default function PortfolioPage({
 					/>
 				);
 			case 'form':
+				if (hasCanvas && block.layout) return null;
 				return (
 					<ContactForm
 						key={block.id}
 						heading={block.heading}
 						action={block.action}
-						fallbackEmail={content.contact.email}
+						fallbackEmail={block.recipientEmail}
 						successMessage={block.successMessage}
 						fields={block.fields.map((field) => ({
 							name: field.id,
@@ -913,10 +1025,36 @@ export default function PortfolioPage({
 			const sectionBlocks = section.blockIds
 				.map((id) => blockById.get(id))
 				.filter((block): block is PageBlock => !!block);
-			const rendered = sectionBlocks
-				.map((block) => renderBlock(block))
+			const renderedByBlock = sectionBlocks
+				.map((block) => {
+					const renderedBlock = renderBlock(block);
+					return renderedBlock ? (
+						<div
+							className="preview-block-boundary"
+							data-preview-page={page}
+							data-preview-block={block.id}
+							key={block.id}
+						>
+							{renderedBlock}
+						</div>
+					) : null;
+				})
 				.filter((node): node is NonNullable<typeof node> => node !== null);
-			if (!rendered.length) return [];
+			if (!renderedByBlock.length) return [];
+			const canvasHostId = freeformHostBySection.get(section.id);
+			const canvasHostIndex = canvasHostId
+				? sectionBlocks.findIndex((block) => block.id === canvasHostId)
+				: -1;
+			const canvasRendered = canvasHostIndex >= 0 ? renderedByBlock.find((node) => node.key === canvasHostId) : undefined;
+			const flowRendered = canvasRendered
+				? renderedByBlock.filter((node) => node !== canvasRendered)
+				: renderedByBlock;
+			const rendered = canvasRendered && flowRendered.length ? (
+				<div className="section-mixed-composition">
+					<div className="section-flow-layer">{flowRendered}</div>
+					<div className="section-canvas-layer">{canvasRendered}</div>
+				</div>
+			) : <>{renderedByBlock}</>;
 			const shots = sectionBlocks.find(
 				(block): block is Extract<PageBlock, { type: 'shots' }> =>
 					block.type === 'shots',
@@ -934,7 +1072,7 @@ export default function PortfolioPage({
 						? ` shots-page-part${shots.fadeIntoPage !== false ? ' shots-fade-page' : ''}`
 						: ''
 				}${standaloneCanvas ? ' standalone-canvas-page-part' : ''}`,
-				rendered: <>{rendered}</>,
+				rendered,
 				shotsLength: shots?.scrollLength ?? (shots ? 260 : undefined),
 				shotsFadeStart: shots?.fadeStart ?? (shots ? 70 : undefined),
 				locksSectionEdge: standaloneCanvas,
@@ -990,7 +1128,7 @@ export default function PortfolioPage({
 							}
 						>
 							<div className="motion-section-inner">{part.rendered}</div>
-							{resizeBreakpoint && onSectionHeight && !part.locksSectionEdge && (
+							{resizeBreakpoint && onSectionHeight && (
 								<SectionResizeHandle
 									breakpoint={resizeBreakpoint}
 									value={config.sectionHeights?.[part.key]?.[resizeBreakpoint]}
@@ -1004,10 +1142,13 @@ export default function PortfolioPage({
 					);
 				})}
 			</div>
-			{content.site.signature && <Signature data={content.site.signature} />}
-			{content.site.footer && (
+			{content.site.signature && <Signature data={content.site.signature} base={base} />}
+			{(content.site.footer || content.site.footerImage) && (
 				<Footer
-					text={content.site.footer}
+					text={content.site.footer ?? ''}
+					imageSrc={content.site.footerImage ? (/^(?:blob:|data:|https?:|\/)/i.test(content.site.footerImage) ? content.site.footerImage : withBase(base, `assets/${content.site.footerImage}`)) : undefined}
+					imageLayout={content.site.footerImageLayout}
+					onImageLayout={onFooterImageLayout}
 					heights={content.site.footerHeights}
 					resizeBreakpoint={resizeBreakpoint}
 					onHeightChange={onFooterHeight}

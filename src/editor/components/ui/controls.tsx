@@ -110,6 +110,31 @@ export function onPreviewTypeMotion(
 	return () => window.removeEventListener(PREVIEW_TYPE_MOTION_EVENT, handler);
 }
 
+const SELECT_PREVIEW_BLOCK_EVENT = 'editor-select-preview-block';
+
+export interface PreviewBlockSelection {
+	pageKey: string;
+	blockId: string;
+}
+
+/** Keep the live preview and the matching block card in the page editor in sync. */
+export function selectPreviewBlock(pageKey: string, blockId: string) {
+	window.dispatchEvent(
+		new CustomEvent<PreviewBlockSelection>(SELECT_PREVIEW_BLOCK_EVENT, {
+			detail: { pageKey, blockId },
+		}),
+	);
+}
+
+export function onSelectPreviewBlock(
+	fn: (selection: PreviewBlockSelection) => void,
+): () => void {
+	const handler = (event: Event) =>
+		fn((event as CustomEvent<PreviewBlockSelection>).detail);
+	window.addEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
+	return () => window.removeEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
+}
+
 export function Section({
 	title,
 	children,

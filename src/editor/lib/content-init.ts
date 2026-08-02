@@ -87,6 +87,8 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 					layout: meta.layout,
 					focusX: meta.focusX,
 					focusY: meta.focusY,
+					cropAspect: meta.cropAspect,
+					cropZoom: meta.cropZoom,
 				},
 				assetId: null,
 				sampleAssetId: sampleAssetId ?? null,
@@ -155,6 +157,12 @@ export function initDocFromContent(content: Content): EditorDoc {
 			sampleAssetId: profileSampleAssetId,
 		},
 		logoImage: { filename: cloned.site.logoImage || '', assetId: null, sampleAssetId: null },
+		footerImage: { filename: cloned.site.footerImage || '', assetId: null, sampleAssetId: null },
+		signatureImage: {
+			filename: cloned.site.signature?.image?.slice(cloned.site.signature.image.lastIndexOf('/') + 1) || '',
+			assetId: null,
+			sampleAssetId: null,
+		},
 		cursorImage: {
 			filename: cursorImagePath.slice(cursorImagePath.lastIndexOf('/') + 1),
 			assetId: null,
@@ -183,6 +191,11 @@ export function upgradeDoc(doc: EditorDoc): EditorDoc {
 /** Live document -> resolved data the shared portfolio components can render. */
 export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 	const content = cloneContent(doc.content);
+	const signatureImageSrc = getAssetPreviewUrl(doc.signatureImage?.assetId);
+	if (signatureImageSrc && content.site.signature)
+		content.site.signature = { ...content.site.signature, image: signatureImageSrc };
+	const footerImageSrc = getAssetPreviewUrl(doc.footerImage?.assetId);
+	if (footerImageSrc) content.site.footerImage = footerImageSrc;
 	const cursorImageSrc = getAssetPreviewUrl(doc.cursorImage?.assetId);
 	if (cursorImageSrc) {
 		content.site.creative = {
@@ -217,6 +230,8 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			layout: e.meta.layout,
 			focusX: e.meta.focusX,
 			focusY: e.meta.focusY,
+			cropAspect: e.meta.cropAspect,
+			cropZoom: e.meta.cropZoom,
 			effects: e.meta.effects,
 		}));
 	}

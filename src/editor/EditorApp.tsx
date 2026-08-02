@@ -43,11 +43,37 @@ type EditorTab = (typeof EDITOR_TABS)[number]['id'];
 const TAB_STORE = 'portfolio-editor.tab';
 const SIDEBAR_WIDTH_STORE = 'portfolio-editor.sidebar-width';
 const UI_THEME_STORE = 'portfolio-editor.ui-theme';
+const UI_CUSTOM_STORE = 'portfolio-editor.ui-custom';
 const DEFAULT_SIDEBAR_WIDTH = 440;
 const MIN_SIDEBAR_WIDTH = 320;
 const MIN_PREVIEW_WIDTH = 360;
 const MAX_SIDEBAR_WIDTH = 720;
 type UiTheme = 'warm' | 'light' | 'dark' | 'contrast';
+interface UiCustomization {
+	enabled: boolean;
+	canvas: string;
+	text: string;
+	accent: string;
+	font: string;
+}
+
+const DEFAULT_UI_CUSTOMIZATION: UiCustomization = {
+	enabled: false,
+	canvas: '#faf8f5',
+	text: '#1a1a1a',
+	accent: '#002fa7',
+	font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+};
+
+function loadUiCustomization(): UiCustomization {
+	if (typeof window === 'undefined') return DEFAULT_UI_CUSTOMIZATION;
+	try {
+		const value = JSON.parse(window.localStorage.getItem(UI_CUSTOM_STORE) ?? '{}') as Partial<UiCustomization>;
+		return { ...DEFAULT_UI_CUSTOMIZATION, ...value };
+	} catch {
+		return DEFAULT_UI_CUSTOMIZATION;
+	}
+}
 
 const UI_THEMES: Array<{ value: UiTheme; label: string }> = [
 	{ value: 'warm', label: 'Warm' },
@@ -76,6 +102,8 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: '⌘/Ctrl ⇧ Z', label: 'Redo' },
 	{ keys: '⌘/Ctrl Y', label: 'Redo' },
 	{ keys: '⇧ S', label: 'Toggle edge snap' },
+	{ keys: '[ / ]', label: 'Send selected canvas items backward / bring them forward' },
+	{ keys: '⇧ Arrow keys', label: 'Resize selected canvas items' },
 	{ keys: 'Delete / Backspace', label: 'Remove selected canvas items' },
 	{ keys: 'Esc', label: 'Leave fullscreen preview' },
 ];
@@ -86,11 +114,15 @@ function TopbarMoreMenu({
 	onShowTour,
 	uiTheme,
 	onUiTheme,
+	uiCustom,
+	onUiCustom,
 }: {
 	onReset: () => void;
 	onShowTour: () => void;
 	uiTheme: UiTheme;
 	onUiTheme: (theme: UiTheme) => void;
+	uiCustom: UiCustomization;
+	onUiCustom: (custom: UiCustomization) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
@@ -169,6 +201,34 @@ function TopbarMoreMenu({
 							))}
 						</div>
 					</div>
+					<details className="topbar-custom-appearance">
+						<summary>Customize editor colors &amp; font</summary>
+						<label className="check-row compact">
+							<input
+								type="checkbox"
+								checked={uiCustom.enabled}
+								onChange={(event) => onUiCustom({ ...uiCustom, enabled: event.target.checked })}
+							/>
+							Use my editor appearance
+						</label>
+						<div className="topbar-custom-appearance-fields">
+							<label>Canvas <input type="color" value={uiCustom.canvas} onChange={(event) => onUiCustom({ ...uiCustom, canvas: event.target.value, enabled: true })} /></label>
+							<label>Text <input type="color" value={uiCustom.text} onChange={(event) => onUiCustom({ ...uiCustom, text: event.target.value, enabled: true })} /></label>
+							<label>Accent <input type="color" value={uiCustom.accent} onChange={(event) => onUiCustom({ ...uiCustom, accent: event.target.value, enabled: true })} /></label>
+							<label>
+								Editor font
+								<select value={uiCustom.font} onChange={(event) => onUiCustom({ ...uiCustom, font: event.target.value, enabled: true })}>
+									<option value="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Inter / system</option>
+									<option value="Avenir, 'Avenir Next', sans-serif">Avenir</option>
+									<option value="Georgia, 'Times New Roman', serif">Georgia</option>
+									<option value="Menlo, Monaco, Consolas, monospace">Menlo mono</option>
+								</select>
+							</label>
+						</div>
+						<button type="button" className="btn-link" onClick={() => onUiCustom(DEFAULT_UI_CUSTOMIZATION)}>
+							Reset custom appearance
+						</button>
+					</details>
 					<button
 						type="button"
 						className="topbar-more-action danger"
@@ -218,12 +278,13 @@ function Shell({ base }: { base: string }) {
 		redo,
 		canUndo,
 		canRedo,
+		historyPageKey: selectedPage,
+		navigateHistoryPage,
 		saveStatus,
 		saveError,
 	} = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 	const controlsRef = useRef<HTMLDivElement>(null);
-	const [selectedPage, setSelectedPage] = useState<string | null>(null);
 	const [lastSelectedPage, setLastSelectedPage] = useState<string | null>(null);
 	const [tourReplayToken, setTourReplayToken] = useState(0);
 	const [uiTheme, setUiTheme] = useState<UiTheme>(() =>
@@ -231,6 +292,7 @@ function Shell({ base }: { base: string }) {
 			? 'warm'
 			: normalizeUiTheme(window.localStorage.getItem(UI_THEME_STORE)),
 	);
+	const [uiCustom, setUiCustom] = useState<UiCustomization>(loadUiCustomization);
 	const [sidebarWidth, setSidebarWidth] = useState(() => {
 		if (typeof window === 'undefined') return DEFAULT_SIDEBAR_WIDTH;
 		const saved = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORE));
@@ -274,6 +336,14 @@ function Shell({ base }: { base: string }) {
 			window.localStorage.setItem(UI_THEME_STORE, next);
 		} catch {
 			/* storage blocked — the appearance still holds this session */
+		}
+	};
+	const pickUiCustom = (next: UiCustomization) => {
+		setUiCustom(next);
+		try {
+			window.localStorage.setItem(UI_CUSTOM_STORE, JSON.stringify(next));
+		} catch {
+			/* storage blocked — the custom appearance still holds this session */
 		}
 	};
 	useEffect(() => {
@@ -333,9 +403,17 @@ function Shell({ base }: { base: string }) {
 	// Removing/resetting the page currently open in the workspace returns to the
 	// overview instead of leaving an empty editor panel behind.
 	useEffect(() => {
-		if (selectedPage && !doc?.content.pages[selectedPage]) setSelectedPage(null);
+		if (selectedPage && !doc?.content.pages[selectedPage]) navigateHistoryPage(null, false);
 		if (lastSelectedPage && !doc?.content.pages[lastSelectedPage]) setLastSelectedPage(null);
-	}, [doc, selectedPage, lastSelectedPage]);
+	}, [doc, selectedPage, lastSelectedPage, navigateHistoryPage]);
+
+	// Undo/redo can change page travel without going through openPageWorkspace.
+	// Keep the live preview and expanded page group synchronized with that history.
+	useEffect(() => {
+		if (!selectedPage || !doc?.content.pages[selectedPage]) return;
+		expandSection(selectedPage);
+		showPreviewPage(selectedPage);
+	}, [doc, selectedPage]);
 
 	// Returning from checkout reloads the page onto the Start screen. If the buyer set out to
 	// publish, resume their saved draft automatically so they land back in the editor (AccountControls
@@ -367,16 +445,14 @@ function Shell({ base }: { base: string }) {
 
 	const openPageWorkspace = (pageKey: string) => {
 		if (!doc.content.pages[pageKey]) return;
-		setSelectedPage(pageKey);
+		navigateHistoryPage(pageKey);
 		setLastSelectedPage(pageKey);
 		pickTab('pages');
-		expandSection(pageKey);
-		showPreviewPage(pageKey);
 		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 	};
 
 	const closePageWorkspace = () => {
-		setSelectedPage(null);
+		navigateHistoryPage(null);
 		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 	};
 
@@ -394,8 +470,22 @@ function Shell({ base }: { base: string }) {
 	});
 	const selectedChoice = pageChoices.find((choice) => choice.key === selectedPage);
 
+	const customEditorStyle = uiCustom.enabled
+		? ({
+				'--paper': uiCustom.canvas,
+				'--ink': uiCustom.text,
+				'--ink-soft': `color-mix(in srgb, ${uiCustom.text} 66%, ${uiCustom.canvas})`,
+				'--klein': uiCustom.accent,
+				'--klein-dark': `color-mix(in srgb, ${uiCustom.accent} 78%, black)`,
+				'--wall-1': `color-mix(in srgb, ${uiCustom.canvas} 90%, ${uiCustom.text})`,
+				'--wall-2': `color-mix(in srgb, ${uiCustom.canvas} 78%, ${uiCustom.text})`,
+				'--wall-3': `color-mix(in srgb, ${uiCustom.canvas} 84%, ${uiCustom.text})`,
+				fontFamily: uiCustom.font,
+			} as React.CSSProperties)
+		: undefined;
+
 	return (
-		<div className={`editor ui-theme-${uiTheme}`}>
+		<div className={`editor ui-theme-${uiTheme}`} style={customEditorStyle}>
 			<header className="editor-topbar">
 				<a className="editor-brand" href={withBase(base)} aria-label="Hangwork home">
 					<picture>
@@ -453,6 +543,8 @@ function Shell({ base }: { base: string }) {
 					onShowTour={() => setTourReplayToken((token) => token + 1)}
 					uiTheme={uiTheme}
 					onUiTheme={pickUiTheme}
+					uiCustom={uiCustom}
+					onUiCustom={pickUiCustom}
 				/>
 			</header>
 

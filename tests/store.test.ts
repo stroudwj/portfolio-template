@@ -856,7 +856,7 @@ describe('linked portfolio images', () => {
 });
 
 describe('canvas placement without an image group', () => {
-	it('keeps standalone canvas drag surfaces but omits competing section edges', () => {
+	it('keeps standalone canvas drag surfaces and exposes every section edge', () => {
 		const content = structuredClone(blankContent);
 		content.pages.home = {
 			...content.pages.home,
@@ -899,7 +899,7 @@ describe('canvas placement without an image group', () => {
 		expect(markup).toContain('standalone-canvas-page-part');
 		expect(markup).toContain('is-empty-page-heading');
 		expect(markup).toContain('aria-label="Resize page heading for desktop"');
-		expect(markup.match(/section-resize-handle/g)).toHaveLength(1);
+		expect(markup.match(/section-resize-handle/g)).toHaveLength(2);
 	});
 
 	it('renders independently ordered sections as separate freeform canvases', () => {
