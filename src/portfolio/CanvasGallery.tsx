@@ -18,6 +18,7 @@ import {
 	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import type {
 	CanvasEmbed,
 	CanvasLayoutUpdates,
@@ -64,6 +65,12 @@ import './Gallery.css';
 import './ArtworkEffects.css';
 
 type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+const CANVAS_SCOPE_SELECTION = 'portfolio-canvas-scope-selection';
+type CanvasScopeSelectionDetail = {
+	selections: Map<Element, Set<string>>;
+	toolbarCanvas: Element | null;
+};
 
 const imageClickHref = (image: ResolvedImage): string | undefined =>
 	image.clickAction === 'link' ? safeHref(image.link) : undefined;
@@ -156,8 +163,11 @@ export default function CanvasGallery({
 	const [dragGesture, setDragGesture] = useState<'move' | 'resize' | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(() => new Set());
 	const [marquee, setMarquee] = useState<
-		{ x: number; y: number; w: number; h: number } | null
+		{ left: number; top: number; width: number; height: number } | null
 	>(null);
+	const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number } | null>(null);
+	const [toolbarOwner, setToolbarOwner] = useState(true);
+	const [scopedSelectionCount, setScopedSelectionCount] = useState(0);
 	const [centerGuide, setCenterGuide] = useState(false);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
 	const draggedClickRef = useRef<string | null>(null);
@@ -243,7 +253,7 @@ export default function CanvasGallery({
 		...widgetLayouts.map(bottomOf),
 		1,
 	);
-	const multiSelected = selected.size > 1;
+	const multiSelected = Math.max(selected.size, scopedSelectionCount) > 1;
 
 	const selectionItems = () => [
 		...images.map((img, index) => {
@@ -871,22 +881,32 @@ export default function CanvasGallery({
 		win.addEventListener('scroll', scroll, true);
 	};
 
-	const startMarquee = (event: React.PointerEvent<HTMLDivElement>) => {
-		if (!editable || event.button !== 0 || event.target !== event.currentTarget) return;
+	const startMarquee = (
+		event: React.PointerEvent<HTMLDivElement> | PointerEvent,
+		canvas = canvasRef.current,
+	) => {
+		if (!editable || event.button !== 0 || !canvas) return;
 		event.preventDefault();
-		const canvas = event.currentTarget;
 		canvas.focus({ preventScroll: true });
 		const win = canvas.ownerDocument.defaultView ?? window;
-		const origin = pointerInCanvas(
-			event.clientX,
-			event.clientY,
-			canvas.getBoundingClientRect(),
+		const scope = canvas.closest('.portfolio-page-part') ?? canvas.parentElement ?? canvas;
+		const originPage = { x: event.clientX + win.scrollX, y: event.clientY + win.scrollY };
+		const candidates = Array.from(
+			scope.querySelectorAll<HTMLElement>('.canvas-gallery.editable .canvas-item[data-canvas-selection-key]'),
 		);
-		const originX = Math.min(Math.max(origin.x, 0), 100);
-		const originY = Math.max(origin.y, 0);
-		const candidates = selectionItems();
-		const base = event.shiftKey ? new Set(selected) : new Set<string>();
-		const captureTarget = event.currentTarget;
+		const base = new Map<Element, Set<string>>();
+		if (event.shiftKey) {
+			for (const item of candidates) {
+				if (!item.classList.contains('selected')) continue;
+				const owner = item.closest('.canvas-gallery');
+				const key = item.dataset.canvasSelectionKey;
+				if (!owner || !key) continue;
+				const keys = base.get(owner) ?? new Set<string>();
+				keys.add(key);
+				base.set(owner, keys);
+			}
+		}
+		const captureTarget = canvas;
 		const pointerId = event.pointerId;
 		let lastPointer = { x: event.clientX, y: event.clientY };
 		let moved = false;
@@ -897,33 +917,42 @@ export default function CanvasGallery({
 		}
 
 		const update = (clientX: number, clientY: number) => {
-			// The preview can scroll while the pointer stays still. Read the live
-			// canvas rectangle so the marquee remains anchored to its start point.
-			const current = pointerInCanvas(
-				clientX,
-				clientY,
-				canvas.getBoundingClientRect(),
-			);
-			const x2 = Math.min(Math.max(current.x, 0), 100);
-			const y2 = Math.max(current.y, 0);
+			// Keep the starting point attached to the document during preview scroll,
+			// while the pointer end remains attached to the live cursor.
+			const x1 = originPage.x - win.scrollX;
+			const y1 = originPage.y - win.scrollY;
 			const box = {
-				x: Math.min(originX, x2),
-				y: Math.min(originY, y2),
-				w: Math.abs(x2 - originX),
-				h: Math.abs(y2 - originY),
+				left: Math.min(x1, clientX),
+				top: Math.min(y1, clientY),
+				width: Math.abs(clientX - x1),
+				height: Math.abs(clientY - y1),
 			};
-			moved = moved || box.w > 0.25 || box.h > 0.25;
+			moved = moved || box.width > 3 || box.height > 3;
 			setMarquee(box);
-			const nextSelection = new Set(base);
+			const selections = new Map<Element, Set<string>>(
+				Array.from(base, ([owner, keys]) => [owner, new Set(keys)]),
+			);
 			for (const item of candidates) {
+				const rect = item.getBoundingClientRect();
 				const intersects =
-					item.layout.x < box.x + box.w &&
-					item.layout.x + item.layout.w > box.x &&
-					item.layout.y < box.y + box.h &&
-					item.layout.y + item.height > box.y;
-				if (intersects) nextSelection.add(item.key);
+					rect.left < box.left + box.width &&
+					rect.right > box.left &&
+					rect.top < box.top + box.height &&
+					rect.bottom > box.top;
+				if (!intersects) continue;
+				const owner = item.closest('.canvas-gallery');
+				const key = item.dataset.canvasSelectionKey;
+				if (!owner || !key) continue;
+				const keys = selections.get(owner) ?? new Set<string>();
+				keys.add(key);
+				selections.set(owner, keys);
 			}
-			setSelected(nextSelection);
+			const toolbarCanvas = selections.has(canvas)
+				? canvas
+				: selections.keys().next().value ?? null;
+			scope.dispatchEvent(new CustomEvent<CanvasScopeSelectionDetail>(CANVAS_SCOPE_SELECTION, {
+				detail: { selections, toolbarCanvas },
+			}));
 		};
 		const move = (next: PointerEvent) => {
 			lastPointer = { x: next.clientX, y: next.clientY };
@@ -942,13 +971,75 @@ export default function CanvasGallery({
 				// Pointer capture may already have been released on cancellation.
 			}
 			setMarquee(null);
-			if (!moved && !event.shiftKey) setSelected(new Set());
+			if (!moved && !event.shiftKey) {
+				scope.dispatchEvent(new CustomEvent<CanvasScopeSelectionDetail>(CANVAS_SCOPE_SELECTION, {
+					detail: { selections: new Map(), toolbarCanvas: null },
+				}));
+			}
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
 		win.addEventListener('pointercancel', up);
 		win.addEventListener('scroll', scroll, true);
 	};
+
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!editable || !canvas) return;
+		const scope = canvas.closest('.portfolio-page-part') ?? canvas.parentElement;
+		if (!scope) return;
+		const applyScopeSelection = (raw: Event) => {
+			const detail = (raw as CustomEvent<CanvasScopeSelectionDetail>).detail;
+			setSelected(new Set(detail.selections.get(canvas) ?? []));
+			setToolbarOwner(detail.toolbarCanvas === canvas);
+			setScopedSelectionCount(
+				Array.from(detail.selections.values()).reduce((total, keys) => total + keys.size, 0),
+			);
+		};
+		const beginFromScope = (event: Event) => {
+			const pointer = event as PointerEvent;
+			if (pointer.button !== 0) return;
+			// The editor preview may render into an iframe from a parent-window React
+			// bundle, so `instanceof Element` is not reliable across the two realms.
+			const target = pointer.target && (pointer.target as Element).nodeType === 1
+				? pointer.target as Element
+				: null;
+			if (!target || target.closest('.canvas-layer-toolbar, .section-resize-handle')) return;
+			const item = target.closest<HTMLElement>('.canvas-item[data-canvas-selection-key]');
+			if (item) {
+				if (!pointer.shiftKey) {
+					const owner = item.closest('.canvas-gallery');
+					const key = item.dataset.canvasSelectionKey;
+					if (owner && key) scope.dispatchEvent(new CustomEvent<CanvasScopeSelectionDetail>(CANVAS_SCOPE_SELECTION, {
+						detail: { selections: new Map([[owner, new Set([key])]]), toolbarCanvas: owner },
+					}));
+				}
+				return;
+			}
+			if (target.closest('button, a, input, textarea, select, [contenteditable="true"]')) return;
+			const canvases = Array.from(scope.querySelectorAll<HTMLElement>('.canvas-gallery.editable'));
+			const direct = target.closest<HTMLElement>('.canvas-gallery.editable');
+			const owner = direct ?? canvases.reduce<HTMLElement | null>((nearest, candidate) => {
+				const rect = candidate.getBoundingClientRect();
+				const distance = pointer.clientY < rect.top
+					? rect.top - pointer.clientY
+					: pointer.clientY > rect.bottom ? pointer.clientY - rect.bottom : 0;
+				if (!nearest) return candidate;
+				const previous = nearest.getBoundingClientRect();
+				const previousDistance = pointer.clientY < previous.top
+					? previous.top - pointer.clientY
+					: pointer.clientY > previous.bottom ? pointer.clientY - previous.bottom : 0;
+				return distance < previousDistance ? candidate : nearest;
+			}, null);
+			if (owner === canvas) startMarquee(pointer, canvas);
+		};
+		scope.addEventListener(CANVAS_SCOPE_SELECTION, applyScopeSelection);
+		scope.addEventListener('pointerdown', beginFromScope, true);
+		return () => {
+			scope.removeEventListener(CANVAS_SCOPE_SELECTION, applyScopeSelection);
+			scope.removeEventListener('pointerdown', beginFromScope, true);
+		};
+	}, [editable]);
 
 	const startDrag = (e: React.PointerEvent, img: ResolvedImage, index: number, mode: 'move' | 'resize', corner: ResizeCorner = 'se') => {
 		if (!editable || !img.id || e.button !== 0 || !onLayoutChange) return;
@@ -1149,31 +1240,60 @@ export default function CanvasGallery({
 	const singleSelectedItem =
 		selected.size === 1 ? selectionItems().find((item) => selected.has(item.key)) : undefined;
 
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!editable || !selected.size || !canvas) {
+			setToolbarPosition(null);
+			return;
+		}
+		const win = canvas.ownerDocument.defaultView ?? window;
+		const update = () => {
+			const rect = canvas.getBoundingClientRect();
+			if (rect.bottom <= 0 || rect.top >= win.innerHeight) {
+				setToolbarPosition(null);
+				return;
+			}
+			setToolbarPosition({
+				top: Math.max(8, rect.top + 8),
+				left: Math.min(Math.max(8, rect.left + 8), Math.max(8, win.innerWidth - 80)),
+			});
+		};
+		update();
+		win.addEventListener('scroll', update, true);
+		win.addEventListener('resize', update);
+		return () => {
+			win.removeEventListener('scroll', update, true);
+			win.removeEventListener('resize', update);
+		};
+	}, [editable, selected.size]);
+
 	return (
 		<div
 			ref={canvasRef}
 			className={`canvas-gallery ${editable ? 'editable' : ''}`}
 			style={{ '--ch': String(height) } as CSSProperties}
 			tabIndex={editable ? -1 : undefined}
-			onPointerDown={startMarquee}
+			onPointerDown={(event) => {
+				if (event.target === event.currentTarget) startMarquee(event, event.currentTarget);
+			}}
 		>
 			{editable && centerGuide && (
 				<div className="canvas-center-guide" aria-hidden="true" />
 			)}
-			{editable && marquee && (
+			{editable && marquee && canvasRef.current && createPortal(
 				<div
 					className="canvas-marquee"
-					style={{
-						left: `${marquee.x}%`,
-						top: `${(marquee.y / height) * 100}%`,
-						width: `${marquee.w}%`,
-						height: `${(marquee.h / height) * 100}%`,
-					}}
+					style={marquee}
 					aria-hidden="true"
-				/>
+				/>,
+				canvasRef.current.ownerDocument.body,
 			)}
-			{editable && selected.size > 0 && (
-				<div className="canvas-layer-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+			{editable && toolbarOwner && selected.size > 0 && toolbarPosition && canvasRef.current && createPortal(
+				<div
+					className="canvas-layer-toolbar"
+					style={toolbarPosition}
+					onPointerDown={(event) => event.stopPropagation()}
+				>
 					<div className="canvas-nudge-controls" role="group" aria-label="Nudge selected canvas items">
 						{([
 							['left', '←', -1, 0],
@@ -1195,7 +1315,7 @@ export default function CanvasGallery({
 							>{label}</button>
 						))}
 					</div>
-					{selected.size === 1 && (
+					{scopedSelectionCount === 1 && selected.size === 1 && (
 						<>
 							<button
 								type="button"
@@ -1223,13 +1343,14 @@ export default function CanvasGallery({
 						</>
 					)}
 					<span title="Resize selected item with Shift + arrow keys">
-						{selected.size > 1
-							? `${selected.size} selected · arrows nudge`
+						{scopedSelectionCount > 1
+							? `${scopedSelectionCount} selected · arrows nudge`
 							: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
 							? 'Position & size locked'
 							: 'Arrows nudge · ⇧ arrows resize'}
 					</span>
-				</div>
+				</div>,
+				canvasRef.current.ownerDocument.body,
 			)}
 			{editable && guide.kind === 'squares' && (
 				<div
@@ -1276,7 +1397,7 @@ export default function CanvasGallery({
 						dragId === img.id || (dragId === '__group__' && selected.has(item.key));
 					const href = editable ? undefined : imageClickHref(img);
 					return (
-						<div key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''} ${l.locked ? 'locked' : ''}`} style={vars}
+						<div key={item.key} data-canvas-selection-key={item.key} className={`canvas-item ${artworkEffectClass(img)} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''} ${l.locked ? 'locked' : ''}`} style={vars}
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
 							role={!editable && !href && onOpen ? 'button' : undefined} tabIndex={!editable && !href && onOpen ? 0 : undefined}
 							aria-haspopup={!editable && !href && onOpen ? 'dialog' : undefined}
@@ -1331,6 +1452,7 @@ export default function CanvasGallery({
 					return (
 						<div
 							key={item.key}
+							data-canvas-selection-key={item.key}
 							data-preview-block={embed.id}
 							onPointerDownCapture={() => onSelectBlock?.(embed.id)}
 							className={`canvas-item canvas-embed-item canvas-embed-${kind} ${
@@ -1413,6 +1535,7 @@ export default function CanvasGallery({
 					return (
 						<div
 							key={item.key}
+							data-canvas-selection-key={item.key}
 							data-preview-block={widget.id}
 							onPointerDownCapture={() => onSelectBlock?.(widget.id.split('::', 1)[0])}
 							className={`canvas-item canvas-widget-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`}
@@ -1464,7 +1587,7 @@ export default function CanvasGallery({
 							: textZ(i),
 				} as CSSProperties;
 				return (
-					<div key={item.key} data-preview-block={text.id} onPointerDownCapture={() => onSelectBlock?.(text.id)} className={`canvas-item canvas-text-item ${
+					<div key={item.key} data-canvas-selection-key={item.key} data-preview-block={text.id} onPointerDownCapture={() => onSelectBlock?.(text.id)} className={`canvas-item canvas-text-item ${
 						dragId === text.id || (dragId === '__group__' && selected.has(item.key))
 							? 'dragging'
 							: ''

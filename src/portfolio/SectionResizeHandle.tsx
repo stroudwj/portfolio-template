@@ -41,20 +41,43 @@ export default function SectionResizeHandle({
 		event.stopPropagation();
 		const handle = event.currentTarget;
 		const win = handle.ownerDocument.defaultView ?? window;
-		const startY = event.clientY;
-		const startHeight = measuredHeight(handle);
-		let draft = startHeight;
-		const move = (next: PointerEvent) => {
-			draft = Math.max(0, startHeight + next.clientY - startY);
+		let lastClientY = event.clientY;
+		let draft = measuredHeight(handle);
+		const update = (clientY: number) => {
+			const parentTop = handle.parentElement?.getBoundingClientRect().top;
+			if (parentTop === undefined) return;
+			// Measure from the section's live viewport position. This keeps the edge
+			// under the pointer when the preview scrolls during the drag.
+			draft = Math.max(0, clientY - parentTop);
 			applyLive(handle, draft);
 		};
+		const move = (next: PointerEvent) => {
+			lastClientY = next.clientY;
+			update(next.clientY);
+		};
+		const scroll = () => update(lastClientY);
 		const up = () => {
 			win.removeEventListener('pointermove', move);
 			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+			win.removeEventListener('scroll', scroll, true);
+			try {
+				if (handle.hasPointerCapture(event.pointerId))
+					handle.releasePointerCapture(event.pointerId);
+			} catch {
+				// Window listeners still complete the gesture when capture is unavailable.
+			}
 			onChange(Math.round(draft));
 		};
+		try {
+			handle.setPointerCapture(event.pointerId);
+		} catch {
+			// The fixed editor drag surface and window listeners are sufficient.
+		}
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+		win.addEventListener('scroll', scroll, true);
 	};
 
 	const reset = (handle: HTMLElement) => {
