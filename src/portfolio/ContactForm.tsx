@@ -1,5 +1,6 @@
 import { useId, useState, type SubmitEvent } from 'react';
 import './ContactForm.css';
+import { contactMailtoHref, type ContactEmailParts } from './contactEmail';
 
 export type ContactFormFieldType = 'name' | 'email' | 'text' | 'textarea';
 
@@ -17,8 +18,10 @@ export interface ContactFormProps {
 	action: string;
 	successMessage?: string;
 	fields: readonly ContactFormField[];
-	/** No-setup fallback: opens the visitor's email app when no form service is connected. */
-	fallbackEmail?: string;
+	/** No-setup fallback: opens the visitor's email app when no form service is
+	 * connected. Split + encoded like the contact block's address — never a
+	 * readable address. See ./contactEmail.ts. */
+	fallbackEmail?: ContactEmailParts;
 }
 
 type SubmitState = 'idle' | 'sending' | 'success' | 'email' | 'failure' | 'unavailable';
@@ -31,10 +34,6 @@ function isHttpsEndpoint(value: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-function isEmail(value: string): boolean {
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 function fieldInput(field: ContactFormField, id: string, disabled: boolean) {
@@ -67,12 +66,15 @@ export default function ContactForm({
 	action,
 	successMessage = 'Your message was sent.',
 	fields,
-	fallbackEmail = '',
+	fallbackEmail,
 }: ContactFormProps) {
 	const formId = useId();
 	const [submitState, setSubmitState] = useState<SubmitState>('idle');
 	const endpointIsSafe = isHttpsEndpoint(action);
-	const emailFallbackIsReady = isEmail(fallbackEmail);
+	// Assembled from the encoded halves only here, at render/click time — never
+	// stored or printed as a joined address. undefined when there's nothing usable.
+	const fallbackMailto = contactMailtoHref(fallbackEmail);
+	const emailFallbackIsReady = !!fallbackMailto;
 	const isAvailable = endpointIsSafe || emailFallbackIsReady;
 	const trimmedHeading = heading.trim();
 	const feedbackId = `${formId}-feedback`;
@@ -94,13 +96,12 @@ export default function ContactForm({
 			setSubmitState('success');
 			return;
 		}
-		if (!endpointIsSafe && emailFallbackIsReady) {
+		if (!endpointIsSafe && fallbackMailto) {
 			const body = fields
 				.map((field) => `${field.label}:\n${String(data.get(field.name) ?? '').trim()}`)
 				.join('\n\n');
 			const subject = trimmedHeading || 'Portfolio message';
-			const recipient = encodeURIComponent(fallbackEmail.trim()).replace(/%40/gi, '@');
-			window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+			window.location.href = `${fallbackMailto}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 			recordInquiry();
 			setSubmitState('email');
 			return;

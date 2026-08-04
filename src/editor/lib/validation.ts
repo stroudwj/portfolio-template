@@ -143,11 +143,14 @@ export function collectIssues(doc: EditorDoc): string[] {
 			if (block.type === 'contact' && !decodeContactEmail(block.email))
 				issues.push(`The contact block on “${page.label ?? key}” needs an email address.`);
 			if (block.type === 'form') {
-				if (block.recipientEmail && !isEmail(block.recipientEmail))
-					issues.push(`The site owner delivery email for the contact form on “${page.label ?? key}” is not valid.`);
+				// Like the contact block above, the stored value is either a fully valid
+				// encoded address or empty — the editor field never commits a half-typed
+				// or malformed one (see ContactEmailField in PageEditor.tsx), so there is
+				// no separate "present but invalid" state left to report here.
+				const recipient = decodeContactEmail(block.recipientEmail);
 				if (block.action && (!isUrl(block.action) || !block.action.startsWith('https://')))
 					issues.push(`The direct-delivery address for the contact form on “${page.label ?? key}” is not valid.`);
-				else if (!block.action && !isEmail(block.recipientEmail ?? ''))
+				else if (!block.action && !recipient)
 					issues.push(`Add a site owner delivery email so the form on “${page.label ?? key}” has somewhere to send messages.`);
 			}
 		}

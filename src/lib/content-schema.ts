@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Content } from './content';
+import { encodeContactEmail } from '../portfolio/contactEmail';
 
 export const CONTENT_SCHEMA_VERSION = 5 as const;
 
@@ -173,6 +174,14 @@ const storeConfigSchema = passthrough({
 	products: z.array(storeProductSchema),
 });
 
+// Shared by the contact block's address and the form block's delivery inbox: an
+// address split in two and hex-encoded, so neither field can hold a joined `@`
+// string. See portfolio/contactEmail.ts.
+const contactEmailPartsSchema = passthrough({
+	user: z.string().default(''),
+	domain: z.string().default(''),
+});
+
 const pageBlockSchema = z.discriminatedUnion('type', [
 	passthrough({
 		id: z.string(),
@@ -294,10 +303,7 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		type: z.literal('contact'),
 		heading: z.string().optional(),
 		text: z.string().optional(),
-		email: passthrough({
-			user: z.string().default(''),
-			domain: z.string().default(''),
-		}),
+		email: contactEmailPartsSchema,
 		buttonLabel: z.string().default('Email me'),
 	}),
 	passthrough({
@@ -305,7 +311,11 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		type: z.literal('form'),
 		heading: z.string().optional(),
 		action: z.string(),
-		recipientEmail: z.string().optional(),
+		// Split + encoded like the contact block's address above — never a readable
+		// email. See portfolio/contactEmail.ts. A legacy plain-string value is
+		// converted to this shape by encodeFormRecipientEmails() before this schema
+		// runs, so nothing here reaches parsed content as a joined address.
+		recipientEmail: contactEmailPartsSchema.optional(),
 		successMessage: z.string().optional(),
 		layout: imageLayoutSchema.optional(),
 		fields: z.array(
@@ -765,7 +775,11 @@ function ensureStableImageIds(raw: unknown): unknown {
 
 /** Contact forms previously borrowed the public About email at render time.
  * Copy that value into the form once so future edits keep the public address
- * and the private delivery address independent. */
+ * and the private delivery address independent. Only an entirely absent field
+ * counts as unset — encodeFormRecipientEmails() below leaves a string in place
+ * for this step to encode, and an already-encoded object must survive untouched
+ * on every later reparse or an artist's customized delivery address would keep
+ * silently reverting to the public one. */
 function ensureFormRecipientEmails(raw: unknown): unknown {
 	if (!isObject(raw) || !isObject(raw.pages) || !isObject(raw.contact)) return raw;
 	const email = typeof raw.contact.email === 'string' ? raw.contact.email : '';
@@ -773,8 +787,30 @@ function ensureFormRecipientEmails(raw: unknown): unknown {
 	for (const page of Object.values(raw.pages)) {
 		if (!isObject(page) || !Array.isArray(page.blocks)) continue;
 		for (const block of page.blocks) {
-			if (isObject(block) && block.type === 'form' && typeof block.recipientEmail !== 'string')
+			if (isObject(block) && block.type === 'form' && block.recipientEmail === undefined)
 				block.recipientEmail = email;
+		}
+	}
+	return raw;
+}
+
+/** Schema 5 (and every version before it) stored the form block's delivery inbox
+ * as a plain string, which the static-site inliner (staticgen/html.ts) ships
+ * verbatim in window.__HW__ — harvestable by scrapers, exactly like the address
+ * the contact block used to store before it moved to split + encoded halves.
+ * Encode any plain string left here (freshly hand-authored, freshly copied above
+ * from the site's public contact.email, or surviving from an old draft) the same
+ * way. Not tied to a schema-version bump: existing drafts and hand-authored
+ * content.json upgrade silently the next time they're loaded or published. An
+ * already-encoded object (the normal case once a draft has been through this
+ * once) is left untouched. */
+function encodeFormRecipientEmails(raw: unknown): unknown {
+	if (!isObject(raw) || !isObject(raw.pages)) return raw;
+	for (const page of Object.values(raw.pages)) {
+		if (!isObject(page) || !Array.isArray(page.blocks)) continue;
+		for (const block of page.blocks) {
+			if (isObject(block) && block.type === 'form' && typeof block.recipientEmail === 'string')
+				block.recipientEmail = encodeContactEmail(block.recipientEmail);
 		}
 	}
 	return raw;
@@ -1015,6 +1051,7 @@ export function parseAndMigrateContent(raw: unknown): Content {
 	migrated = ensurePageBlocks(migrated);
 	migrated = migrateContentV4ToV5(migrated);
 	migrated = ensureFormRecipientEmails(migrated);
+	migrated = encodeFormRecipientEmails(migrated);
 
 	const parsed = contentSchema.safeParse(migrated);
 	if (!parsed.success) {

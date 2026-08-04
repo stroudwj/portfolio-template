@@ -644,7 +644,7 @@ describe('browser draft compatibility', () => {
 		expect(() => parseAndMigrateEditorDoc(doc)).toThrow(/no longer exists/i);
 	});
 
-	it('migrates the former public-email fallback into an independent form delivery email', () => {
+	it('migrates the former public-email fallback into an independent, encoded form delivery email', () => {
 		const doc = blankDoc();
 		doc.content.contact.email = 'artist@example.com';
 		doc.content.pages.home.blocks!.push({
@@ -656,11 +656,51 @@ describe('browser draft compatibility', () => {
 
 		const parsed = parseAndMigrateEditorDoc(doc);
 		const form = parsed.content.pages.home.blocks!.find((block) => block.type === 'form');
-		expect(form?.type === 'form' ? form.recipientEmail : undefined).toBe('artist@example.com');
+		expect(form?.type === 'form' ? decodeContactEmail(form.recipientEmail) : undefined).toBe('artist@example.com');
+		// The copied address is stored split + encoded, never as the joined string.
+		expect(JSON.stringify(form?.type === 'form' ? form.recipientEmail : undefined)).not.toContain('artist');
+		expect(JSON.stringify(form?.type === 'form' ? form.recipientEmail : undefined)).not.toContain('example.com');
 		parsed.content.contact.email = '';
 		expect(collectIssues(parsed).some((issue) => issue.includes('contact form'))).toBe(false);
-		if (form?.type === 'form') form.recipientEmail = '';
+		if (form?.type === 'form') form.recipientEmail = undefined;
 		expect(collectIssues(parsed).some((issue) => issue.includes('site owner delivery email'))).toBe(true);
+	});
+
+	it('encodes a hand-authored form block whose recipientEmail is still a plain string, with no schema-version bump', () => {
+		// Pre-fix drafts (and hand-edited content.json) stored the form's delivery
+		// inbox as a plain string. A raw, untyped mutation stands in for that legacy
+		// shape here since the current PageBlock type no longer allows constructing
+		// one directly — see the analogous /bio route-migration test above.
+		const legacy = structuredClone(blankDoc()) as unknown as {
+			content: {
+				pages: Record<string, { blocks: Array<Record<string, unknown>> }>;
+			};
+		};
+		legacy.content.pages.home.blocks.push({
+			id: 'legacy-form',
+			type: 'form',
+			action: '',
+			recipientEmail: 'owner@legacy-studio.com',
+			fields: [{ id: 'message', type: 'textarea', label: 'Message', required: true }],
+		});
+
+		const parsed = parseAndMigrateEditorDoc(legacy);
+		const form = parsed.content.pages.home.blocks!.find((block) => block.id === 'legacy-form');
+		if (form?.type !== 'form') throw new Error('Expected the form block to survive parsing');
+
+		expect(CONTENT_SCHEMA_VERSION).toBe(5);
+		expect(parsed.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
+		expect(typeof form.recipientEmail).not.toBe('string');
+		expect(decodeContactEmail(form.recipientEmail)).toBe('owner@legacy-studio.com');
+		expect(contactMailtoHref(form.recipientEmail)).toBe('mailto:owner@legacy-studio.com');
+		// The stored halves are encoded, never the address itself.
+		expect(JSON.stringify(form.recipientEmail)).not.toContain('owner');
+		expect(JSON.stringify(form.recipientEmail)).not.toContain('legacy-studio.com');
+
+		// Parsing the parsed document again changes nothing (idempotent, no re-encode).
+		expect(parseAndMigrateEditorDoc(parsed).content.pages.home.blocks).toEqual(
+			parsed.content.pages.home.blocks,
+		);
 	});
 
 	it('migrates a v0 draft, backfills registries, and round-trips through export', async () => {
