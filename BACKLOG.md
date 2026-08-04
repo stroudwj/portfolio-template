@@ -14,7 +14,12 @@ Statuses: `queued` → `running` → `review` → `merged`.
 
 ---
 
-## 1. Contact block for portfolios — `running`
+## 1. Contact block for portfolios — `merged`
+
+> Shipped 2026-08-04 as the "Email button" block (renamed from "Contact" — it sits beside the
+> pre-existing "Contact form" block in the add menu, which the spec's recon had missed).
+> Address stored as split hex halves (`src/portfolio/contactEmail.ts`) because published
+> pages inline all content as `window.__HW__`. Spawned follow-up: spec 7.
 
 **Goal.** Artists currently have no way to put "email me about commissions" on their site.
 Add a `contact` block: heading, short text, and an email button, placeable on any page.
@@ -69,7 +74,7 @@ exists — the Klein-outlined element), `src/editor/store.tsx` (movement + undo 
 
 ---
 
-## 3. Landing page refresh — `running` (main session)
+## 3. Landing page refresh — `merged` (2026-08-04)
 
 og:image social card (none exists today — shared links get no preview), Examples band showing
 the real example site as a proper card, FAQ teaser band (promise-to-proof links), copy pass
@@ -101,3 +106,16 @@ DESIGN.md, radius ≤3px, 1px `--wall-2` border, no shadows).
 A scheduled session that drafts one `learn/` article (`src/lib/seoArticles.ts` pattern) plus a
 short distribution checklist (where to post it, community threads worth answering) for review.
 Nothing publishes without human review; posting is always the human's step.
+
+---
+
+## 7. Contact form block leaks its recipient address — `queued`
+
+Found while building spec 1: the pre-existing `form` block (`src/portfolio/ContactForm.tsx`)
+stores `recipientEmail` in plain text, and because every published page inlines the whole
+Content as `window.__HW__`, the raw address ships in the served bytes — harvestable even
+though the new email-button block obfuscates. Reuse `src/portfolio/contactEmail.ts` (split
+hex halves) for the form's mailto fallback path: encode on save in the editor, decode at
+submit/click time, migrate existing plain values on draft load (no schema version bump if
+kept optional-with-fallback). Tests: published HTML for a site with a form block contains no
+raw address; old drafts with plain `recipientEmail` still work.

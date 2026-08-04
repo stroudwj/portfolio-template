@@ -147,7 +147,7 @@ const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
 	{ value: 'divider', label: 'Divider' },
 	{ value: 'children', label: 'Sub-pages' },
 	{ value: 'about', label: 'About content' },
-	{ value: 'contact', label: 'Contact' },
+	{ value: 'contact', label: 'Email button' },
 	{ value: 'form', label: 'Contact form' },
 	{ value: 'products', label: 'Products' },
 	{ value: 'project', label: 'Project fields' },
@@ -737,7 +737,7 @@ export default function PageEditor({
 			{!hasAboutBlock && (
 				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}>About content</button>
 			)}
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'contact')}>Contact</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'email button')}>Email button</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}>Contact form</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}>Project fields</button>
 			<button
@@ -2401,7 +2401,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Contact</span>
+							<span className="block-label">Email button</span>
 							{controls(index, block, true)}
 						</div>
 						<Field label="Heading">

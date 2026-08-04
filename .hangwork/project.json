@@ -159,8 +159,8 @@
       "gitBlobSha": "d47fe117067afd215c0d01e7fb1f3e9122198b5e"
     },
     "src/editor/components/PageEditor.tsx": {
-      "sha256": "c53953b82bd37b5cbe920c1cefaabfc6f476270940c9cb986567f9ec59e81818",
-      "gitBlobSha": "bb9121e3c0d56520658f95c26aaad4c06692ef85"
+      "sha256": "dbd24bc77e2f8d8749bb4e1844f517301e18976a9849b3b07c3b3c256c13f47b",
+      "gitBlobSha": "6f0faf0d1481ccc232fefc9880f7f1b3a4eb49ab"
     },
     "src/editor/components/PageManager.tsx": {
       "sha256": "e8f60e2dd21c1b07e4ece96b5f7be39cfb4d302f161140920550110b565e8b24",
@@ -819,8 +819,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "ad9250946d2663bcdd9ea2a1cfb7fad90074d30c2dcf269c7105350a8a7f8d6a",
-      "gitBlobSha": "20bb4efbb8c8c8615ca5ac6ad0f50cbd8c668720"
+      "sha256": "0428825f3c0a993d871097496eb8dd842254bb4176856f47319d909f55e7c7cc",
+      "gitBlobSha": "05da256121ceff3092c444587b12b537871e28bc"
     }
   }
 }

@@ -155,8 +155,8 @@
       "gitBlobSha": "d47fe117067afd215c0d01e7fb1f3e9122198b5e"
     },
     "src/editor/components/PageEditor.tsx": {
-      "sha256": "c53953b82bd37b5cbe920c1cefaabfc6f476270940c9cb986567f9ec59e81818",
-      "gitBlobSha": "bb9121e3c0d56520658f95c26aaad4c06692ef85"
+      "sha256": "dbd24bc77e2f8d8749bb4e1844f517301e18976a9849b3b07c3b3c256c13f47b",
+      "gitBlobSha": "6f0faf0d1481ccc232fefc9880f7f1b3a4eb49ab"
     },
     "src/editor/components/PageManager.tsx": {
       "sha256": "e8f60e2dd21c1b07e4ece96b5f7be39cfb4d302f161140920550110b565e8b24",
