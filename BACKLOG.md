@@ -119,7 +119,13 @@ Nothing publishes without human review; posting is always the human's step.
 
 ---
 
-## 7. Contact form block leaks its recipient address — `queued`
+## 7. Contact form block leaks its recipient address — `merged`
+
+> Shipped 2026-08-04. `recipientEmail` is now split hex halves (shared
+> `contactEmailPartsSchema`); legacy plain strings encode silently on load, no version
+> bump. Two extra defects found and fixed in the old path: a normalizer guard that would
+> have clobbered a customized delivery address once the field held an object, and the
+> mailto fallback un-escaping the raw `@` it had just encoded.
 
 Found while building spec 1: the pre-existing `form` block (`src/portfolio/ContactForm.tsx`)
 stores `recipientEmail` in plain text, and because every published page inlines the whole
