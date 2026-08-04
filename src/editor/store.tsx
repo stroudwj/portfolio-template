@@ -605,8 +605,15 @@ export interface EditorContextValue {
 	// galleries
 	addGalleryImages(
 		folder: string,
-		images: Array<{ file: File; alt: string; decorative?: true }>,
+		images: Array<{
+			file: File;
+			alt: string;
+			decorative?: true;
+			workbenchFolder?: string;
+		}>,
 	): void;
+	/** Create a persistent workbench folder, even when it has no photos. */
+	createWorkbenchFolder(name: string): void;
 	/** Copy or move an existing image between the workbench and any image group. */
 	transferGalleryImage(
 		sourceFolder: string,
@@ -2902,14 +2909,30 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		addGalleryImages: (folder, images) =>
 			patchGallery(folder, (entries) => [
 				...entries,
-				...images.map(({ file, alt, decorative }) => ({
+				...images.map(({ file, alt, decorative, workbenchFolder }) => ({
 					id: uid('e'),
 					filename: file.name,
-					meta: { title: '', alt, decorative, description: '', link: '' },
+					meta: {
+						title: '',
+						alt,
+						decorative,
+						description: '',
+						link: '',
+						workbenchFolder,
+					},
 					assetId: registerAsset(file, file.name),
 					sampleAssetId: null,
 				})),
 			]),
+		createWorkbenchFolder: (name) =>
+			commitDoc((prev) => {
+				const clean = name.trim().slice(0, 80);
+				if (!clean || (prev.workbenchFolders ?? []).includes(clean)) return prev;
+				return {
+					...prev,
+					workbenchFolders: [...(prev.workbenchFolders ?? []), clean],
+				};
+			}),
 		transferGalleryImage: (sourceFolder, entryId, targetFolder, move = false) =>
 			commitDoc((prev) => {
 				if (sourceFolder === targetFolder) return prev;

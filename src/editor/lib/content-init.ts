@@ -163,6 +163,7 @@ export function initDocFromContent(content: Content): EditorDoc {
 		docVersion: 4,
 		content: cloned,
 		galleries,
+		workbenchFolders: [],
 		profileImage: {
 			filename: cloned.profile.image.slice(cloned.profile.image.lastIndexOf('/') + 1),
 			assetId: null,

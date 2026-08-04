@@ -61,6 +61,32 @@ describe('image workbench destinations', () => {
 			parseAndMigrateEditorDoc(doc).galleries[WORKBENCH_FOLDER][0].meta.workbenchFolder,
 		).toBe('Installation');
 	});
+
+	it('preserves empty named workbench folders in browser drafts', () => {
+		const doc = blankDoc();
+		doc.workbenchFolders = ['Ideas'];
+
+		expect(parseAndMigrateEditorDoc(doc).workbenchFolders).toEqual(['Ideas']);
+	});
+
+	it('lifts legacy photo folders into the persistent folder list', () => {
+		const doc = blankDoc();
+		doc.galleries[WORKBENCH_FOLDER] = [{
+			id: 'legacy-photo',
+			filename: 'legacy.jpg',
+			assetId: null,
+			sampleAssetId: null,
+			meta: {
+				title: '',
+				alt: '',
+				description: '',
+				link: '',
+				workbenchFolder: 'Archive',
+			},
+		}];
+
+		expect(parseAndMigrateEditorDoc(doc).workbenchFolders).toEqual(['Archive']);
+	});
 });
 
 describe('freeform collection blocks', () => {

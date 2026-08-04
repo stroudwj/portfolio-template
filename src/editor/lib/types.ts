@@ -67,6 +67,8 @@ export interface EditorDoc {
 	content: Content;
 	/** folder name -> ordered image entries. */
 	galleries: Record<string, ImageEntry[]>;
+	/** Named workbench folders, including folders that do not contain photos yet. */
+	workbenchFolders: string[];
 	profileImage: SingleImage;
 	/** The header logo image (empty filename = the text logo renders). */
 	logoImage: SingleImage;

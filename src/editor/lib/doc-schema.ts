@@ -60,6 +60,7 @@ export const editorDocSchema = passthrough({
 			}),
 		),
 	),
+	workbenchFolders: z.array(z.string().trim().min(1).max(80)).default([]),
 	profileImage: singleImageSchema,
 	logoImage: singleImageSchema,
 	footerImage: singleImageSchema.default({ filename: '', assetId: null, sampleAssetId: null }),
@@ -360,6 +361,24 @@ export function parseAndMigrateEditorDoc(raw: unknown): EditorDoc {
 		const entries = migrated.galleries[folder];
 		if (!Array.isArray(entries) || !entries.some((entry) => isObject(entry) && entry.id === entryId))
 			delete migrated.ogImage;
+	}
+	// Folder names used to live only on photos. Lift them into the persistent
+	// folder list so deleting the last photo does not also delete its folder.
+	if (isObject(migrated) && isObject(migrated.galleries)) {
+		const folders = new Set(
+			Array.isArray(migrated.workbenchFolders)
+				? migrated.workbenchFolders.filter((value): value is string => typeof value === 'string')
+				: [],
+		);
+		for (const entries of Object.values(migrated.galleries)) {
+			if (!Array.isArray(entries)) continue;
+			for (const entry of entries) {
+				if (!isObject(entry) || !isObject(entry.meta)) continue;
+				const name = entry.meta.workbenchFolder;
+				if (typeof name === 'string' && name.trim()) folders.add(name.trim().slice(0, 80));
+			}
+		}
+		migrated.workbenchFolders = [...folders];
 	}
 	const parsed = editorDocSchema.safeParse(migrated);
 	if (!parsed.success) {

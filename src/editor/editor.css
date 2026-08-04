@@ -566,6 +566,11 @@ body.workbench-window-open .floating-add-block {
 	background: color-mix(in srgb, var(--klein) 13%, var(--paper));
 	color: var(--ink);
 }
+.workbench-folders button.drop-target {
+	background: color-mix(in srgb, var(--klein) 19%, var(--paper));
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--klein) 55%, transparent) inset;
+	color: var(--ink);
+}
 .workbench-folders button:not(.active):hover {
 	background: color-mix(in srgb, var(--wall-2) 55%, transparent);
 }
@@ -614,6 +619,62 @@ body.workbench-window-open .floating-add-block {
 	gap: 8px;
 	user-select: none;
 }
+.workbench-grid:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--klein) 65%, transparent);
+	outline-offset: 3px;
+}
+.workbench-grid.drop-over {
+	border-color: var(--klein);
+	background: color-mix(in srgb, var(--klein) 4%, var(--paper));
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--klein) 24%, transparent) inset;
+}
+.workbench-grid.is-empty,
+.workbench-fullscreen .workbench-grid.is-empty {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	min-height: 180px;
+	place-items: center;
+	padding: 18px;
+	border: 1px dashed var(--wall-2);
+	border-radius: 7px;
+}
+.workbench-empty {
+	display: grid;
+	width: min(290px, 100%);
+	place-items: center;
+	gap: 7px;
+	color: var(--ink-soft);
+	text-align: center;
+	pointer-events: auto;
+}
+.workbench-empty > svg {
+	width: 52px;
+	height: 52px;
+	fill: none;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 1.5;
+}
+.workbench-empty > strong {
+	color: var(--ink);
+	font-size: 12px;
+}
+.workbench-empty > span {
+	font-size: 10px;
+}
+.workbench-empty > div {
+	width: 100%;
+	margin-top: 3px;
+}
+.workbench-empty .imagedrop {
+	padding: 9px 12px;
+	border-style: solid;
+	font-size: 11px;
+}
+.workbench-empty .imagedrop-folder {
+	font-size: 10px;
+}
 .workbench-card {
 	position: relative;
 	z-index: 1;
@@ -635,6 +696,10 @@ body.workbench-window-open .floating-add-block {
 	border-color: color-mix(in srgb, var(--klein) 60%, var(--wall-2));
 	background: color-mix(in srgb, var(--klein) 7%, var(--paper));
 	box-shadow: 0 0 0 1px color-mix(in srgb, var(--klein) 20%, transparent);
+}
+.workbench-card:focus-visible {
+	outline: 2px solid var(--klein);
+	outline-offset: 2px;
 }
 .workbench-card > input {
 	position: absolute;
@@ -700,6 +765,12 @@ body.workbench-window-open .floating-add-block {
 	box-shadow: 0 0 0 1px color-mix(in srgb, white 42%, transparent) inset;
 	pointer-events: none;
 }
+.workbench-drop-status {
+	display: block;
+	margin-top: 6px;
+	color: var(--ink-soft);
+	font-size: 9px;
+}
 .workbench-actions {
 	display: flex;
 	align-items: center;
@@ -720,6 +791,20 @@ body.workbench-window-open .floating-add-block {
 	padding: 4px 8px;
 	border-radius: 5px;
 	font-size: 10px;
+}
+.workbench-actions .workbench-trash {
+	width: 30px;
+	min-width: 30px;
+	padding: 5px;
+}
+.workbench-trash svg {
+	width: 16px;
+	height: 16px;
+	fill: none;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 1.7;
 }
 .workbench-actions .select-input {
 	flex: 1 1 96px;

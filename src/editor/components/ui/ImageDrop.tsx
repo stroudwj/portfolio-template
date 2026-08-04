@@ -30,7 +30,7 @@ async function walkEntry(entry: FileSystemEntry, out: File[]): Promise<void> {
  * inside it (sorted by name). Entries must be grabbed synchronously — the
  * DataTransfer is dead after the first await.
  */
-async function filesFromDrop(dt: DataTransfer): Promise<File[]> {
+export async function filesFromDrop(dt: DataTransfer): Promise<File[]> {
 	const entries = Array.from(dt.items ?? [])
 		.map((item) => item.webkitGetAsEntry?.())
 		.filter((e): e is FileSystemEntry => !!e);

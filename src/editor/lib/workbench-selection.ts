@@ -28,6 +28,25 @@ export const selectWorkbenchItem = (
 	return new Set([id]);
 };
 
+/** Select the inclusive Finder-style range between an anchor and a target. */
+export const selectWorkbenchRange = (
+	current: ReadonlySet<string>,
+	orderedIds: readonly string[],
+	anchorId: string,
+	targetId: string,
+	additive = false,
+) => {
+	const anchorIndex = orderedIds.indexOf(anchorId);
+	const targetIndex = orderedIds.indexOf(targetId);
+	if (anchorIndex < 0 || targetIndex < 0)
+		return selectWorkbenchItem(current, targetId, { shiftKey: true });
+	const next = additive ? new Set(current) : new Set<string>();
+	const start = Math.min(anchorIndex, targetIndex);
+	const end = Math.max(anchorIndex, targetIndex);
+	for (let index = start; index <= end; index += 1) next.add(orderedIds[index]);
+	return next;
+};
+
 /** Shift/Command/Ctrl-drag adds the marquee hits to the existing selection. */
 export const workbenchMarqueeBase = (
 	current: ReadonlySet<string>,
