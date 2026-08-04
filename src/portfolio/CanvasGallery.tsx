@@ -186,6 +186,10 @@ export default function CanvasGallery({
 	 *  commit on release) but "release" here is ~500ms of no further arrow keys. */
 	const nudgeBurstItems = useRef<ReturnType<typeof selectionItems> | null>(null);
 	const nudgeBurstTimer = useRef<number | undefined>(undefined);
+	/** Canvas height when the burst began. Rendered height never drops below it
+	 *  until the burst commits, so nudging the bottommost item up doesn't reflow
+	 *  everything under the canvas on every keypress. */
+	const nudgeHeightFloor = useRef<number | null>(null);
 	const gridPrefs = useGridPrefs();
 
 	// Snap targets follow the chosen guide: square guides snap x AND y to the
@@ -267,7 +271,10 @@ export default function CanvasGallery({
 		...embedLayouts.map(bottomOf),
 		...widgetLayouts.map(bottomOf),
 		1,
+		nudgeHeightFloor.current ?? 1,
 	);
+	const heightRef = useRef(height);
+	heightRef.current = height;
 	const multiSelected = Math.max(selected.size, scopedSelectionCount) > 1;
 
 	const selectionItems = () => [
@@ -387,6 +394,7 @@ export default function CanvasGallery({
 	 *  escape, unmount) can call it first without checking.  */
 	const flushNudgeBurst = () => {
 		clearNudgeBurstTimer();
+		nudgeHeightFloor.current = null;
 		const items = nudgeBurstItems.current;
 		nudgeBurstItems.current = null;
 		setNudgeReadout(null);
@@ -469,8 +477,19 @@ export default function CanvasGallery({
 			if (item.kind === 'text') nextTextDrafts[item.id] = clampTextLayout(next as TextLayout);
 			else nextDrafts[item.id] = clampLayout(next as ImageLayout);
 		});
-		if (Object.keys(nextDrafts).length) setDrafts((d) => ({ ...d, ...nextDrafts }));
-		if (Object.keys(nextTextDrafts).length) setTextDrafts((d) => ({ ...d, ...nextTextDrafts }));
+		// Write the refs through immediately: the next key-repeat press can arrive
+		// before React re-renders (which is when the refs otherwise sync), and it
+		// must accumulate from THIS press's result — otherwise fast repeats read a
+		// stale baseline and steps get silently dropped.
+		if (Object.keys(nextDrafts).length) {
+			draftsRef.current = { ...draftsRef.current, ...nextDrafts };
+			setDrafts((d) => ({ ...d, ...nextDrafts }));
+		}
+		if (Object.keys(nextTextDrafts).length) {
+			textDraftsRef.current = { ...textDraftsRef.current, ...nextTextDrafts };
+			setTextDrafts((d) => ({ ...d, ...nextTextDrafts }));
+		}
+		if (nudgeBurstItems.current === null) nudgeHeightFloor.current = heightRef.current;
 		setNudgeReadout(chosen.length === 1 ? { x: nudged[0].x, y: nudged[0].y } : null);
 		nudgeBurstItems.current = chosen;
 		clearNudgeBurstTimer();
@@ -1431,18 +1450,25 @@ export default function CanvasGallery({
 							)}
 						</>
 					)}
+					{/* The hint keeps its width (visibility, not display) while the readout
+					    overlays it, so the toolbar doesn't change size on every keypress. */}
 					<span
-						className={nudgeReadout ? 'canvas-nudge-readout' : undefined}
+						className={`canvas-nudge-hint-slot${nudgeReadout ? ' has-readout' : ''}`}
 						title="Shift + arrow keys resizes · Alt/Option + arrow keys nudges 10x"
 						aria-live="polite"
 					>
-						{nudgeReadout
-							? `x ${formatCanvasPercent(nudgeReadout.x)}% · y ${formatCanvasPercent(nudgeReadout.y)}%`
-							: scopedSelectionCount > 1
-							? `${scopedSelectionCount} selected · arrows nudge`
-							: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
-							? 'Position & size locked'
-							: 'Arrows nudge (⌥ 10x) · ⇧ resize'}
+						<span className="canvas-nudge-hint-text">
+							{scopedSelectionCount > 1
+								? `${scopedSelectionCount} selected · arrows nudge`
+								: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
+								? 'Position & size locked'
+								: 'Arrows nudge (⌥ 10x) · ⇧ resize'}
+						</span>
+						{nudgeReadout && (
+							<span className="canvas-nudge-readout">
+								{`x ${formatCanvasPercent(nudgeReadout.x)}% · y ${formatCanvasPercent(nudgeReadout.y)}%`}
+							</span>
+						)}
 					</span>
 				</div>,
 				canvasRef.current.ownerDocument.body,

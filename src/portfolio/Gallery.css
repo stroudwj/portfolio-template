@@ -609,12 +609,29 @@
 }
 .canvas-layer-toolbar span { padding: 0 4px; color: #3c4561; }
 
-/* Transient x/y readout while an arrow-key nudge is in progress, replacing
-   the toolbar's static shortcut hint until the burst commits. DESIGN.md's
-   13px/--ink-soft caption spec (#6b6963) hardcoded like the Klein accents
-   above — this stylesheet also ships to published sites, where the editor's
-   token set isn't loaded, and this text never renders there (editable-only). */
+/* Transient x/y readout while an arrow-key nudge is in progress. It overlays
+   the shortcut hint, whose box keeps its size (visibility, not display), so
+   the toolbar's width never changes mid-burst. DESIGN.md's 13px/--ink-soft
+   caption spec (#6b6963) hardcoded like the Klein accents above — this
+   stylesheet also ships to published sites, where the editor's token set
+   isn't loaded, and this text never renders there (editable-only). */
+.canvas-layer-toolbar .canvas-nudge-hint-slot {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+}
+.canvas-layer-toolbar .canvas-nudge-hint-slot > span {
+	padding: 0;
+}
+.canvas-layer-toolbar .canvas-nudge-hint-slot.has-readout .canvas-nudge-hint-text {
+	visibility: hidden;
+}
 .canvas-layer-toolbar .canvas-nudge-readout {
+	position: absolute;
+	inset: 0;
+	display: inline-flex;
+	align-items: center;
 	font-size: 13px;
 	font-weight: 400;
 	color: #6b6963;

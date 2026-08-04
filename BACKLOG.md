@@ -52,7 +52,11 @@ block editor's structure), `src/portfolio/` renderer (render on-theme), `src/edi
 > recon looked in the wrong directory). Improved instead of duplicated: grid-aware step,
 > one undo entry per burst, transient x/y readout, Klein focus ring — and a real stale-state
 > bug in rapid nudge bursts found and fixed. 10× is Alt/Option+Arrow (Shift+Arrow was
-> already resize).
+> already resize). Post-merge glitch fixes (user report, verified in the live editor):
+> key-repeat presses no longer drop steps (write-through draft refs), the canvas no
+> longer reflows the page on every keypress when the bottommost item moves (height
+> floor until the burst commits), and the toolbar no longer changes width when the
+> readout replaces the hint (overlay slot).
 
 **Goal.** With a freeform-canvas element selected, arrow keys move it by one snap/grid step
 (Shift = 10×). A small position/size readout appears while nudging.
