@@ -2,9 +2,9 @@
 
 A **hosted portfolio builder for visual artists**. Build your site in the browser at
 **[hangwork.art/editor](https://hangwork.art/editor/)**, preview it fully, and publish when
-it's ready. One payment, no subscription — your published site lives in a free **Hangwork
-account you own**, at `yourname.hangwork.art` (or your own domain), and you can download the
-whole thing as plain files anytime. Nothing to install; you only pay when you publish.
+it's ready. Choose **$99 once** for lifetime access and downloads, or **$10/month** for hosted
+access without downloads. Published sites live at `yourname.hangwork.art` (or your own domain).
+Nothing to install; you only pay when you publish.
 
 ## This repository
 

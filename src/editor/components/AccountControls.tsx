@@ -81,6 +81,7 @@ export default function AccountControls() {
 			)}
 			{showLicense && (
 				<LicenseGateModal
+					currentPlan={account.plan}
 					onClose={() => setShowLicense(false)}
 				/>
 			)}

@@ -15,6 +15,18 @@ class MemoryKv {
 }
 
 describe('privacy-light portfolio analytics', () => {
+	it('serves an offline notice for a site whose monthly access ended', async () => {
+		const kv = new MemoryKv();
+		await kv.put('host:artist.hangwork.art', JSON.stringify({ siteId: 'site-1', status: 'subscription_lapsed' }));
+		const response = await siteWorker.fetch(
+			new Request('https://artist.hangwork.art/'),
+			{ KV: kv, SITES: {} },
+		);
+		expect(response.status).toBe(503);
+		expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+		expect(await response.text()).toContain('subscription is no longer active');
+	});
+
 	it('aggregates opens, viewing time, and inquiries without visitor identifiers', async () => {
 		const kv = new MemoryKv();
 		await kv.put('host:artist.hangwork.art', JSON.stringify({ siteId: 'site-1', status: 'active' }));

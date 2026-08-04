@@ -3604,7 +3604,7 @@ a.resume-name:hover {
 }
 .checkout-options {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 	margin: 0 0 18px;
 	padding: 0 0 18px;
@@ -3622,7 +3622,22 @@ a.resume-name:hover {
 	color: var(--ink);
 	text-align: left;
 	font: inherit;
+	cursor: pointer;
+	appearance: none;
+}
+.checkout-option:disabled {
 	cursor: default;
+	opacity: 0.72;
+}
+.link-button {
+	border: 0;
+	background: transparent;
+	padding: 0;
+	color: var(--klein);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
 }
 .checkout-option.selected {
 	border-color: var(--klein);

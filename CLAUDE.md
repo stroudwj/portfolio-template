@@ -1,7 +1,7 @@
 # CLAUDE.md — Hangwork
 
-Hangwork is a **hosted portfolio builder for visual artists**. One payment (Polar),
-no subscription; a published site lives in a free **Hangwork account** the artist owns, at
+Hangwork is a **hosted portfolio builder for visual artists**. Polar offers $99 lifetime
+access with downloads or $10/month hosted access without downloads; a published site lives in a **Hangwork account** at
 `[name].hangwork.art` or their own domain. The product is **hangwork.art**. This repo is the
 whole thing: the marketing site, the visual editor, the portfolio renderer, and the two
 Cloudflare Workers that run accounts + hosting.
@@ -44,7 +44,7 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
   `gh-publish-dryrun.mts`.
 - `.hangwork/` — `runtime-release.json` + `project.json`: the runtime integrity manifest
   (below). Generated; commit alongside source.
-- `src/lib/pricing.ts` — single source of the $99 lifetime price (`currentPriceText`).
+- `src/lib/pricing.ts` — single source of lifetime/monthly prices and the upgrade credit.
   Never hardcode a price in a component.
 
 ## How publishing works (current — Cloudflare accounts, NOT GitHub)
@@ -53,15 +53,16 @@ In the editor's 🚀 Publish tab ([PublishPanel.tsx](src/editor/components/Publi
 
 1. **Sign in** to a Hangwork account — magic-link email or Google, no passwords
    ([account/config.ts](src/editor/lib/account/config.ts), `SignInModal`).
-2. **License** — pay-once gate (Polar). Built and unlocked can happen in either
+2. **Plan** — lifetime or monthly gate (Polar). Built and unlocked can happen in either
    order; built-but-unpaid hits the gate, paid-but-empty just waits for content.
 3. **Publish** — `staticgen/` builds the static site in the browser and uploads it to the API
    Worker (`/publish`, `/upload`) straight into **R2** under the site's stable id; KV is
    updated so the serving Worker can route it.
 4. Live at **`[name].hangwork.art`** (naming helper: [github/subdomain.ts](src/editor/lib/github/subdomain.ts),
    `SITES_ROOT_DOMAIN`). Custom domains via Cloudflare-for-SaaS (`CustomDomainModal`).
-5. **Own it forever** — "Download my site (zip)" hits `/site/export`; the Worker zips the
-   served files, portable to any host. Visibility (live / under construction / offline) and
+5. **Lifetime downloads** — "Download my site (zip)" hits `/site/export`; the Worker allows
+	lifetime accounts and zips the served files, portable to any host. Monthly subscriptions are
+	kept online only while active. Visibility (live / under construction / offline) and
    delete are D1 rows mirrored to KV — the row is the kill switch.
 
 Two Cloudflare Workers back this: `oauth-proxy/` (the API, at `ACCOUNT_API_URL`) and
@@ -90,7 +91,7 @@ and commit `.hangwork/runtime-release.json` + `.hangwork/project.json` with your
 - **Store** — Stripe **Payment Links** (strict `buy.stripe.com`), the artist's own Stripe
   account, no Hangwork cut. `StoreEditor`, [src/portfolio/Products.tsx](src/portfolio/Products.tsx),
   `src/lib/stripe-payment-link.ts`. No cart / inventory sync / order dashboard, by design.
-- **License** — Polar, pay-once; server ledger via the API Worker's `/webhooks/polar`.
+- **Access** — Polar lifetime + monthly products; server ledger and subscription revocation via `/webhooks/polar`.
 
 ## Legacy / dead code — ignore unless explicitly asked
 

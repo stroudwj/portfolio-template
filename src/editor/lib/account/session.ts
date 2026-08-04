@@ -22,6 +22,8 @@ export interface AccountSiteSummary {
 export interface AccountSummary {
 	user: AccountUser;
 	licensed: boolean;
+	plan: 'lifetime' | 'monthly' | null;
+	canDownload: boolean;
 	site: AccountSiteSummary | null;
 }
 

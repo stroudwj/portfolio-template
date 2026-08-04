@@ -104,6 +104,12 @@ export default {
 				'X-Robots-Tag': 'noindex',
 			});
 		}
+		if (route.status === 'subscription_lapsed') {
+			return html(statusPage('Site offline', 'This site is offline because its Hangwork subscription is no longer active.'), 503, {
+				'Retry-After': '3600',
+				'X-Robots-Tag': 'noindex',
+			});
+		}
 		if (route.status === 'under_construction') {
 			return html(constructionPage(), 200, { 'X-Robots-Tag': 'noindex' });
 		}

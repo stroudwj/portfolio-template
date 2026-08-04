@@ -14,8 +14,8 @@ The product's server side, as one Cloudflare Worker (plus its sibling serving Wo
    DNS record does the routing), Cloudflare-for-SaaS custom hostnames, and the
    `/site/export` zip (the ownership guarantee).
 4. **Polar checkout + webhook** (`/checkout/polar`, `/webhooks/polar`) — authenticated
-   checkout sessions and the robust purchase ledger; paid orders grant access and refunds
-   or benefit revocations remove it.
+	checkout sessions for lifetime/monthly plans and the robust purchase ledger; paid orders
+	grant access, while refunds or subscription revocations remove it and pause the site.
 5. **Operator console** (`/admin/*`) — allowlisted account, license, and site inspection
    plus audited manual grants and reversible site suspensions. It uses the normal signed
    account session plus a second server-side operator allowlist and never mutates paid
@@ -49,8 +49,9 @@ Dashboard steps (one-time, see also `../site-server/wrangler.toml`):
 - **Cache Rules**: cache-eligible on `*.hangwork.art`, respect origin Cache-Control —
   repeat hits then never touch Worker/R2.
 - **Polar → Settings → Webhooks**: point at `https://<this-worker>/webhooks/polar`,
-  events `order.paid`, `order.refunded`, and `benefit_grant.revoked`. Create the
-  Organization Access Token with only `checkouts:read` and `checkouts:write`, then store
+  events `order.paid`, `order.refunded`, `benefit_grant.revoked`, and `subscription.revoked`. Create the
+	Organization Access Token with `checkouts:read`, `checkouts:write`, and
+	`subscriptions:write` (used to stop monthly billing after a lifetime upgrade), then store
   both credentials as Worker secrets:
 
   ```sh
@@ -60,7 +61,9 @@ Dashboard steps (one-time, see also `../site-server/wrangler.toml`):
 
   Sandbox and production are isolated. Keep `POLAR_SERVER`, `POLAR_PRODUCT_ID`, and
   `POLAR_ORGANIZATION_ID` in `wrangler.toml` aligned with the environment that issued
-  those two secrets. `POLAR_PRODUCT_ID` must point to the $99 lifetime product.
+	those two secrets. `POLAR_PRODUCT_ID` points to the $99 lifetime product,
+	`POLAR_MONTHLY_PRODUCT_ID` to the $10/month product, and `POLAR_UPGRADE_DISCOUNT_ID`
+	to the automatic $10 lifetime-upgrade credit.
 - **Google Cloud Console** (optional): OAuth client (Web), redirect URI = the editor URL
   (`https://hangwork.art/editor/`); set `GOOGLE_CLIENT_ID` here + in
   `src/editor/lib/account/config.ts`.

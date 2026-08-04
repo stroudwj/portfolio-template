@@ -14,7 +14,7 @@ export const SEO_ARTICLES = [
 		title: 'Portfolio website without a subscription — Hangwork',
 		heading: 'A portfolio website without a subscription.',
 		description:
-			'Learn how a no-subscription portfolio website works, what Hangwork includes for one payment, what you own, and which optional costs remain.',
+			'Learn how a no-subscription portfolio website works, what Hangwork lifetime access includes, what you own, and which optional costs remain.',
 	},
 	{
 		slug: 'how-to-make-an-art-portfolio-site',

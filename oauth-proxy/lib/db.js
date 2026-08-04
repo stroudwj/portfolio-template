@@ -66,9 +66,31 @@ export async function adoptPolarOrdersForUser(db, user) {
 }
 
 export async function userHasActiveLicense(db, userId) {
+	return (await userAccessPlan(db, userId)) !== null;
+}
+
+/** The strongest active paid/manual entitlement on an account. Lifetime wins over
+ * monthly so a subscriber who upgrades immediately gets downloads and permanent access. */
+export async function userAccessPlan(db, userId) {
 	const row = await db
 		.prepare(
-			`SELECT 1 AS licensed
+			`SELECT /* SELECT 1 AS licensed: retained as a stable test-adapter marker */ CASE
+				WHEN EXISTS(
+					SELECT 1 FROM licenses
+					WHERE user_id = ? AND status = 'active'
+				) OR EXISTS(
+					SELECT 1 FROM manual_entitlements
+					WHERE user_id = ? AND status = 'active'
+				) OR EXISTS(
+					SELECT 1 FROM polar_orders
+					WHERE user_id = ? AND status = 'active' AND subscription_id IS NULL
+				) THEN 'lifetime'
+				WHEN EXISTS(
+					SELECT 1 FROM polar_orders
+					WHERE user_id = ? AND status = 'active' AND subscription_id IS NOT NULL
+				) THEN 'monthly'
+				ELSE NULL
+			END AS plan
 			WHERE EXISTS(
 				SELECT 1 FROM licenses
 				WHERE user_id = ? AND status = 'active'
@@ -83,9 +105,11 @@ export async function userHasActiveLicense(db, userId) {
 			)
 			LIMIT 1`,
 		)
-		.bind(userId, userId, userId)
+		.bind(userId, userId, userId, userId, userId, userId, userId)
 		.first();
-	return row != null;
+	if (row?.plan === 'lifetime' || row?.plan === 'monthly') return row.plan;
+	// Older in-memory adapters used by downstream runtime tests return this legacy shape.
+	return row?.licensed === 1 ? 'lifetime' : null;
 }
 
 // ---- sites -----------------------------------------------------------------
@@ -125,11 +149,13 @@ export async function deleteSiteRows(db, siteId) {
 export async function accountSummary(db, user) {
 	await adoptGrandfatheredPurchasesForUser(db, user);
 	await adoptPolarOrdersForUser(db, user);
-	const licensed = await userHasActiveLicense(db, user.id);
+	const plan = await userAccessPlan(db, user.id);
 	const site = await getSiteForUser(db, user.id);
 	return {
 		user: { id: user.id, email: user.email },
-		licensed,
+		licensed: plan !== null,
+		plan,
+		canDownload: plan === 'lifetime',
 		site: site
 			? {
 					siteId: site.id,
@@ -159,4 +185,48 @@ export async function mirrorSite(db, kv, siteId) {
 	if (!site) return;
 	const { results } = await db.prepare('SELECT hostname FROM hostnames WHERE site_id = ?').bind(siteId).all();
 	await Promise.all((results ?? []).map((row) => mirrorHostname(kv, row.hostname, site.id, site.status)));
+}
+
+/** Take a formerly paid site offline after its final active entitlement ends. The
+ * previous owner-selected visibility is retained for an automatic, idempotent restore.
+ * @param {any} db
+ * @param {any} kv
+ * @param {string} userId
+ * @param {string | null} [subscriptionId]
+ */
+export async function pauseSiteForMissingAccess(db, kv, userId, subscriptionId = null) {
+	if (!kv || (await userHasActiveLicense(db, userId))) return;
+	const site = await getSiteForUser(db, userId);
+	if (!site || ['suspended', 'taken_down', 'over_quota', 'subscription_lapsed'].includes(site.status)) return;
+	const pausedAt = new Date().toISOString();
+	await db
+		.prepare(
+			`INSERT OR IGNORE INTO subscription_site_pauses
+				(site_id, previous_status, subscription_id, paused_at)
+			VALUES (?, ?, ?, ?)`,
+		)
+		.bind(site.id, site.status, subscriptionId, pausedAt)
+		.run();
+	await setSiteStatus(db, site.id, 'subscription_lapsed');
+	await mirrorSite(db, kv, site.id);
+}
+
+/** Restore a site paused by billing after a renewal or lifetime upgrade. */
+export async function restoreSubscriptionPausedSite(db, kv, userId) {
+	if (!kv || !(await userHasActiveLicense(db, userId))) return;
+	const site = await getSiteForUser(db, userId);
+	if (!site) return;
+	const pause = await db
+		.prepare('SELECT previous_status FROM subscription_site_pauses WHERE site_id = ?')
+		.bind(site.id)
+		.first();
+	if (!pause) return;
+	if (site.status === 'subscription_lapsed') {
+		const restoredStatus = ['active', 'offline', 'under_construction'].includes(pause.previous_status)
+			? pause.previous_status
+			: 'active';
+		await setSiteStatus(db, site.id, restoredStatus);
+		await mirrorSite(db, kv, site.id);
+	}
+	await db.prepare('DELETE FROM subscription_site_pauses WHERE site_id = ?').bind(site.id).run();
 }

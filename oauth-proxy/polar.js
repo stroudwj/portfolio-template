@@ -6,13 +6,22 @@
 
 import { Webhook, WebhookVerificationError } from 'standardwebhooks';
 import { json } from './lib/http.js';
-import { touchUser } from './lib/db.js';
+import {
+	touchUser,
+	userAccessPlan,
+	pauseSiteForMissingAccess,
+	restoreSubscriptionPausedSite,
+} from './lib/db.js';
 import { sessionUser } from './auth.js';
 
 const CHECKOUT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function configuredProductIds(env) {
-	return new Set([env.POLAR_PRODUCT_ID].filter(Boolean));
+	return new Set([env.POLAR_PRODUCT_ID, env.POLAR_MONTHLY_PRODUCT_ID].filter(Boolean));
+}
+
+function productIdForPlan(env, plan) {
+	return plan === 'monthly' ? env.POLAR_MONTHLY_PRODUCT_ID || '' : env.POLAR_PRODUCT_ID || '';
 }
 
 function acceptsProduct(env, productId) {
@@ -71,22 +80,33 @@ export async function polarCheckoutCreate(request, env, corsOrigin, origin) {
 		return json({ error: 'invalid_json' }, 400, corsOrigin);
 	}
 	const plan = typeof body?.plan === 'string' ? body.plan : 'lifetime';
-	if (plan !== 'lifetime') return json({ error: 'invalid_plan' }, 400, corsOrigin);
-	const productId = env.POLAR_PRODUCT_ID || '';
+	if (plan !== 'lifetime' && plan !== 'monthly') return json({ error: 'invalid_plan' }, 400, corsOrigin);
+	const productId = productIdForPlan(env, plan);
 	if (!apiBase || !env.POLAR_ACCESS_TOKEN || !productId) {
 		return json({ error: 'polar_unconfigured' }, 503, corsOrigin);
 	}
 	if (!env.SESSION_SECRET || !env.DB) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
 	const user = await sessionUser(request, env);
 	if (!user) return json({ error: 'invalid_session' }, 401, corsOrigin);
+	const currentPlan = await userAccessPlan(env.DB, user.id);
+	if (currentPlan === 'lifetime') return json({ error: 'account_already_licensed' }, 409, corsOrigin);
+	if (currentPlan === 'monthly' && plan === 'monthly') return json({ error: 'account_already_subscribed' }, 409, corsOrigin);
 
 	const { successUrl, returnUrl } = checkoutReturnUrls(origin, env);
 	const customerIp = request.headers.get('CF-Connecting-IP') || '';
+	const alternativeProductId = plan === 'lifetime' ? env.POLAR_MONTHLY_PRODUCT_ID : env.POLAR_PRODUCT_ID;
+	const products = currentPlan === 'monthly'
+		? [productId]
+		: [productId, alternativeProductId].filter(Boolean);
+	const upgradeDiscountId = currentPlan === 'monthly' && plan === 'lifetime'
+		? env.POLAR_UPGRADE_DISCOUNT_ID || ''
+		: '';
 	const payload = {
-		products: [productId],
+		products,
 		success_url: successUrl,
 		return_url: returnUrl,
 		allow_discount_codes: true,
+		...(upgradeDiscountId ? { discount_id: upgradeDiscountId } : {}),
 		metadata: {
 			source: 'hangwork-editor',
 			environment: env.POLAR_SERVER,
@@ -151,7 +171,11 @@ export async function polarCheckoutStatus(request, env, corsOrigin) {
 		const upstreamFailure = !response.ok && response.status !== 404;
 		return json({ error: 'checkout_not_found' }, upstreamFailure ? 502 : 404, corsOrigin);
 	}
-	return json({ status: data.status }, 200, corsOrigin);
+	return json(
+		{ status: data.status, plan: data.product_id === env.POLAR_MONTHLY_PRODUCT_ID ? 'monthly' : 'lifetime' },
+		200,
+		corsOrigin,
+	);
 }
 
 function standardWebhookHeaders(request) {
@@ -211,18 +235,72 @@ async function recordPaidOrder(env, order) {
 			createdAt,
 		)
 		.run();
+	if (user?.id && order.productId === env.POLAR_PRODUCT_ID) {
+		await revokeSupersededMonthlySubscriptions(env, user.id);
+	}
 	if (user?.id) await touchUser(env.DB, user.id);
+	if (user?.id && env.KV) await restoreSubscriptionPausedSite(env.DB, env.KV, user.id);
+}
+
+/** Immediately stop any active monthly subscription after its customer buys the
+ * lifetime upgrade. The paid lifetime order is inserted first, so Polar's
+ * subscription.revoked webhook can never take the upgraded customer's access offline.
+ * Throwing on an upstream failure makes Polar retry the order.paid webhook. */
+async function revokeSupersededMonthlySubscriptions(env, userId) {
+	if (!env.POLAR_MONTHLY_PRODUCT_ID) return;
+	const { results } = await env.DB
+		.prepare(
+			`SELECT DISTINCT subscription_id FROM polar_orders
+			WHERE user_id = ? AND product_id = ? AND status = 'active'
+				AND subscription_id IS NOT NULL`,
+		)
+		.bind(userId, env.POLAR_MONTHLY_PRODUCT_ID)
+		.all();
+	const subscriptionIds = (results ?? []).map((row) => row.subscription_id).filter(Boolean);
+	if (subscriptionIds.length === 0) return;
+	const apiBase = polarApiBase(env);
+	if (!apiBase || !env.POLAR_ACCESS_TOKEN) throw new Error('Polar subscription revocation is unconfigured');
+
+	for (const subscriptionId of subscriptionIds) {
+		let response;
+		try {
+			response = await fetch(`${apiBase}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+				method: 'DELETE',
+				headers: polarHeaders(env),
+			});
+		} catch {
+			throw new Error('Polar subscription revocation is unreachable');
+		}
+		// Missing/conflicted subscriptions are already inactive from Hangwork's
+		// perspective, which keeps webhook retries idempotent.
+		if (!response.ok && response.status !== 404 && response.status !== 409) {
+			throw new Error('Polar subscription revocation failed');
+		}
+		await env.DB.prepare("UPDATE polar_orders SET status = 'revoked' WHERE subscription_id = ?")
+			.bind(subscriptionId)
+			.run();
+	}
 }
 
 async function revokeOrder(env, payload) {
-	if (payload?.type === 'benefit_grant.revoked') {
-		// Preserve revocation handling for legacy monthly subscriptions sold before
-		// Hangwork moved to lifetime-only pricing.
-		const subscriptionId = payload.data?.subscription_id;
+	if (payload?.type === 'benefit_grant.revoked' || payload?.type === 'subscription.revoked') {
+		// A subscription revocation is authoritative only when the paid period really
+		// ends (scheduled cancellations stay active until then).
+		const subscriptionId = payload.type === 'subscription.revoked'
+			? payload.data?.id
+			: payload.data?.subscription_id;
 		if (subscriptionId) {
+			const affected = env.KV
+				? await env.DB.prepare(
+					'SELECT user_id FROM polar_orders WHERE subscription_id = ? AND user_id IS NOT NULL LIMIT 1',
+				).bind(subscriptionId).first()
+				: null;
 			await env.DB.prepare("UPDATE polar_orders SET status = 'revoked' WHERE subscription_id = ?")
 				.bind(subscriptionId)
 				.run();
+			if (affected?.user_id && env.KV) {
+				await pauseSiteForMissingAccess(env.DB, env.KV, affected.user_id, subscriptionId);
+			}
 			return;
 		}
 		const orderId = payload.data?.order_id;
@@ -238,7 +316,15 @@ async function revokeOrder(env, payload) {
 	// A partial refund does not revoke lifetime access; Polar's benefit-grant
 	// revocation event remains authoritative if an operator revokes it manually.
 	if (Number(order.refunded_amount || 0) < Number(order.total_amount || 0)) return;
+	const affected = env.KV
+		? await env.DB.prepare('SELECT user_id, subscription_id FROM polar_orders WHERE id = ?')
+			.bind(order.id)
+			.first()
+		: null;
 	await env.DB.prepare("UPDATE polar_orders SET status = 'refunded' WHERE id = ?").bind(order.id).run();
+	if (affected?.user_id && env.KV) {
+		await pauseSiteForMissingAccess(env.DB, env.KV, affected.user_id, affected.subscription_id || null);
+	}
 }
 
 /** POST /webhooks/polar — Standard Webhooks signature auth; no CORS gate. */
@@ -256,9 +342,14 @@ export async function polarWebhook(request, env) {
 		return new Response('invalid webhook', { status: 400 });
 	}
 
-	const order = paidOrder(payload);
-	if (order) await recordPaidOrder(env, order);
-	else await revokeOrder(env, payload);
+	try {
+		const order = paidOrder(payload);
+		if (order) await recordPaidOrder(env, order);
+		else await revokeOrder(env, payload);
+	} catch {
+		// A non-2xx response asks Polar to retry transient database or API failures.
+		return new Response('processing failed', { status: 502 });
+	}
 	return new Response('ok', { status: 200 });
 }
 

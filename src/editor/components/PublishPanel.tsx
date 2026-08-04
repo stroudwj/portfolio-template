@@ -6,7 +6,7 @@ import { useEditor } from '../store';
 import { Section } from './ui/controls';
 import { useAccount } from './useAccount';
 import { hasPublishableContent } from '../lib/validation';
-import { currentPriceText } from '../../lib/pricing';
+import { currentPriceText, monthlyPriceText, monthlyUpgradeCreditText } from '../../lib/pricing';
 import { loadSiteInfo } from '../lib/account/site-store';
 import { AccountError } from '../lib/account/client';
 import { ACCOUNT_API_URL } from '../lib/account/config';
@@ -85,6 +85,7 @@ export default function PublishPanel() {
 	const siteName = account.site?.subdomain ?? info?.subdomain ?? '';
 	const hasLiveSite = Boolean(account.site?.subdomain);
 	const currentStatus = account.site?.status ?? 'active';
+	const billingLocked = currentStatus === 'subscription_lapsed';
 	const adminLocked = currentStatus === 'suspended' || currentStatus === 'taken_down';
 
 	const changeVisibility = async (next: string) => {
@@ -100,6 +101,11 @@ export default function PublishPanel() {
 	};
 
 	const downloadBackup = async () => {
+		if (!account.canDownload) {
+			setBackupError('Downloads are included with lifetime access. Upgrade to download a backup.');
+			setBackupState('error');
+			return;
+		}
 		setBackupState('saving');
 		setBackupError('');
 		try {
@@ -130,6 +136,11 @@ export default function PublishPanel() {
 	// demand — the exact artifact any static host (Netlify Drop, Cloudflare Pages,
 	// a plain web server) can serve as-is.
 	const exportSite = async () => {
+		if (!account.canDownload) {
+			setExportError('Site downloads are included with lifetime access. Upgrade to download your site.');
+			setExportState('error');
+			return;
+		}
 		setExportState('exporting');
 		setExportError('');
 		try {
@@ -196,7 +207,11 @@ export default function PublishPanel() {
 
 			{hasLiveSite && (
 				<Section title="Site visibility" sectionKey="_publish-visibility">
-					{adminLocked ? (
+					{billingLocked ? (
+						<p className="muted" style={{ marginTop: 0 }}>
+							This site is offline because monthly access ended. Restart monthly access or upgrade to lifetime to restore it.
+						</p>
+					) : adminLocked ? (
 						<p className="muted" style={{ marginTop: 0 }}>
 							This site is currently locked by Hangwork support. Contact us if you think this is a mistake.
 						</p>
@@ -247,7 +262,9 @@ export default function PublishPanel() {
 				<div className="status-row">
 					<span className="status-label">License</span>
 					{unlocked ? (
-						<span className="status-value">✓ Unlocked — access active</span>
+						<span className="status-value">
+							✓ {account.plan === 'monthly' ? `${monthlyPriceText}/month — access active` : 'Lifetime — access active'}
+						</span>
 					) : account.status === 'checking' ? (
 						<span className="status-value muted">checking…</span>
 					) : (
@@ -264,7 +281,15 @@ export default function PublishPanel() {
 				    this is only for people who prefer to settle it before they build. */}
 				{!unlocked && account.status !== 'checking' && (
 					<p className="muted license-lock-note">
-						Lifetime access is {currentPriceText}, paid once. You can buy now or wait until you publish.
+						Choose {currentPriceText} once for every feature, or {monthlyPriceText}/month without downloads. You can buy now or wait until you publish.
+					</p>
+				)}
+				{account.plan === 'monthly' && (
+					<p className="muted license-lock-note">
+						Upgrade to lifetime for {monthlyUpgradeCreditText} off. The credit is applied automatically at checkout.{' '}
+						<button type="button" className="link-button" onClick={() => setShowLicense('unlock')}>
+							Upgrade now…
+						</button>
 					</p>
 				)}
 				<div className="publish-panel-actions">
@@ -281,21 +306,30 @@ export default function PublishPanel() {
 				{!built && <p className="muted">Hang your first piece, then publish.</p>}
 			</Section>
 
-			<Section title="Own it forever" sectionKey="_publish-own">
+			<Section title="Download your site" sectionKey="_publish-own">
 				<p className="muted" style={{ marginTop: 0 }}>
-					Download your published site as plain files — HTML, images, everything. It works on any web host
-					exactly as it is, with or without Hangwork.
+					{account.canDownload
+						? 'Download your published site as plain files — HTML, images, everything. It works on any web host exactly as it is, with or without Hangwork.'
+						: account.plan === 'monthly'
+							? `Downloads are not included with monthly access. Upgrade to lifetime and your ${monthlyUpgradeCreditText} credit is applied automatically.`
+							: 'Site downloads are included with lifetime access.'}
 				</p>
 				<div className="publish-panel-actions">
-					<button
-						type="button"
-						className="btn-secondary"
-						onClick={exportSite}
-						disabled={exportState === 'exporting' || !signedIn || !published}
-						title={!signedIn ? 'Sign in first.' : !published ? 'Publish once first.' : undefined}
-					>
-						{exportState === 'exporting' ? 'Preparing your files…' : 'Download my site (zip)'}
-					</button>
+					{account.canDownload ? (
+						<button
+							type="button"
+							className="btn-secondary"
+							onClick={exportSite}
+							disabled={exportState === 'exporting' || !signedIn || !published}
+							title={!signedIn ? 'Sign in first.' : !published ? 'Publish once first.' : undefined}
+						>
+							{exportState === 'exporting' ? 'Preparing your files…' : 'Download my site (zip)'}
+						</button>
+					) : (
+						<button type="button" className="btn-secondary" onClick={() => (signedIn ? setShowLicense('unlock') : setShowSignIn(true))}>
+							Get lifetime access…
+						</button>
+					)}
 				</div>
 				<p className="muted" role="status" aria-live="polite">
 					{exportState === 'done' && 'Downloaded. Drop the unzipped folder on Netlify, Cloudflare Pages, or any host.'}
@@ -307,19 +341,23 @@ export default function PublishPanel() {
 
 			<Section title="Back up your work" sectionKey="_publish-backup">
 				<p className="muted" style={{ marginTop: 0 }}>
-					Download one backup file with your editable pages, drafts, and uploaded files. This does not publish or change your live website.
+					{account.canDownload
+						? 'Download one backup file with your editable pages, drafts, and uploaded files. This does not publish or change your live website.'
+						: 'Backup downloads are included with lifetime access. You can still open an existing backup below.'}
 				</p>
-				<div className="publish-panel-actions">
-					<button
-						type="button"
-						className="btn-secondary"
-						onClick={downloadBackup}
-						disabled={backupState === 'saving'}
-						aria-describedby="backup-download-status"
-					>
-						{backupState === 'saving' ? 'Preparing backup…' : 'Download backup file'}
-					</button>
-				</div>
+				{account.canDownload && (
+					<div className="publish-panel-actions">
+						<button
+							type="button"
+							className="btn-secondary"
+							onClick={downloadBackup}
+							disabled={backupState === 'saving'}
+							aria-describedby="backup-download-status"
+						>
+							{backupState === 'saving' ? 'Preparing backup…' : 'Download backup file'}
+						</button>
+					</div>
+				)}
 				<p id="backup-download-status" className="muted" role="status" aria-live="polite">
 					{backupState === 'saving' && 'Gathering your pages, drafts, and uploaded files…'}
 					{backupState === 'saved' && 'Backup downloaded.'}
@@ -381,6 +419,7 @@ export default function PublishPanel() {
 			{showLicense && (
 				<LicenseGateModal
 					context={showLicense}
+					currentPlan={account.plan}
 					onClose={() => setShowLicense(null)}
 				/>
 			)}
@@ -414,7 +453,7 @@ export default function PublishPanel() {
 					account={account}
 					siteName={siteName}
 					liveUrl={liveUrl}
-					onExport={() => void exportSite()}
+					onExport={account.canDownload ? () => void exportSite() : undefined}
 					exporting={exportState === 'exporting'}
 					onClose={() => setShowDelete(false)}
 					onDeleted={() => {

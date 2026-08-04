@@ -3,7 +3,7 @@
 // this array so adding another example only requires one new object.
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
-import { currentPriceText, pricing } from '../../lib/pricing';
+import { currentPriceText, monthlyPriceText, pricing } from '../../lib/pricing';
 import Favicons from '../../components/Favicons.astro';
 
 export function getStaticPaths() {
@@ -111,13 +111,13 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 			</section>
 
 			<!-- The just-browsed-the-gallery moment. Desktop heads to the editor (payment
-			     waits until publish); phones can buy lifetime access before moving to a
+			     waits until publish); phones can choose a plan before moving to a
 			     computer, and the editor there hands off by email. -->
 			<section class="closing">
 				<div class="closing-copy">
 					<p>More walls are coming as artists publish them.</p>
 					<div class="paynow-framing">
-						<p class="paynow-anchor">{currentPriceText} once. Yours forever.</p>
+						<p class="paynow-anchor">{currentPriceText} once or {monthlyPriceText}/month.</p>
 						<p class="paynow-refund">
 							Changed your mind before you build? {pricing.refundDays} days, no questions.
 						</p>
@@ -126,7 +126,7 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, 'examples'), Astro.site
 				<div class="closing-actions">
 					<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
 					<a class="btn btn-primary paynow-cta" href={checkoutEntryUrl}>
-						Own Hangwork — {currentPriceText}
+						Choose a plan
 					</a>
 				</div>
 			</section>

@@ -18,13 +18,14 @@ import { Zip, ZipPassThrough } from 'fflate';
 import { json, readJson } from './lib/http.js';
 import { sessionUser } from './auth.js';
 import {
-	getSite,
 	getSiteForUser,
 	createSite,
 	mirrorHostname,
 	dropHostname,
 	mirrorSite,
 	setSiteStatus,
+	userHasActiveLicense,
+	userAccessPlan,
 	listHostnames,
 	deleteSiteRows,
 } from './lib/db.js';
@@ -270,6 +271,7 @@ export async function siteStatusSet(request, env, corsOrigin) {
 	if (!ready(env)) return json({ error: 'accounts_unconfigured' }, 503, corsOrigin);
 	const got = await requireUserSite(request, env);
 	if (got.error) return json({ error: got.error }, got.status, corsOrigin);
+	if (!(await userHasActiveLicense(env.DB, got.user.id))) return json({ error: 'license_required' }, 402, corsOrigin);
 	const body = await readJson(request);
 	const status = typeof body?.status === 'string' ? body.status : '';
 	if (!USER_SITE_STATUSES.has(status)) return json({ error: 'invalid_status' }, 400, corsOrigin);
@@ -338,6 +340,9 @@ export async function exportSite(request, env, corsOrigin) {
 	if (!ready(env) || !env.SITES) return json({ error: 'export_unconfigured' }, 503, corsOrigin);
 	const got = await requireUserSite(request, env);
 	if (got.error) return json({ error: got.error }, got.status, corsOrigin);
+	if ((await userAccessPlan(env.DB, got.user.id)) !== 'lifetime') {
+		return json({ error: 'lifetime_required' }, 402, corsOrigin);
+	}
 	const site = got.site;
 
 	const prefix = `${site.id}/`;

@@ -2,6 +2,7 @@ import { AccountClient } from '../lib/account/client';
 import { getSession } from '../lib/account/session';
 
 export type PolarCheckoutStatus = 'open' | 'expired' | 'confirmed' | 'succeeded' | 'failed';
+export type HangworkPlan = 'lifetime' | 'monthly';
 
 const RESUME_KEY = 'portfolio-editor:resume-publish';
 let checkoutReturnRead = false;
@@ -11,19 +12,19 @@ function client() {
 	return new AccountClient(getSession()?.token ?? null);
 }
 
-export async function startPolarCheckout(): Promise<void> {
+export async function startPolarCheckout(plan: HangworkPlan): Promise<void> {
 	const { data } = await client().request<{ url: string }>('/checkout/polar', {
-		body: { plan: 'lifetime' },
+		body: { plan },
 	});
 	if (!data.url) throw new Error('Polar did not return a checkout URL.');
 	window.location.assign(data.url);
 }
 
-export async function getPolarCheckoutStatus(checkoutId: string): Promise<PolarCheckoutStatus> {
-	const { data } = await client().request<{ status: PolarCheckoutStatus }>('/checkout/polar/status', {
+export async function getPolarCheckoutStatus(checkoutId: string): Promise<{ status: PolarCheckoutStatus; plan: HangworkPlan }> {
+	const { data } = await client().request<{ status: PolarCheckoutStatus; plan: HangworkPlan }>('/checkout/polar/status', {
 		body: { checkout_id: checkoutId },
 	});
-	return data.status;
+	return data;
 }
 
 /**

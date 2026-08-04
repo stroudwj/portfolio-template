@@ -4,12 +4,13 @@
 // Layout.astro carries the portfolio's theme, og:image and description from
 // content.json, none of which belong on a marketing page.
 import { withBase } from '../portfolio/types';
-import { currentPrice, currentPriceText, pricing } from '../lib/pricing';
+import { currentPrice, currentPriceText, monthlyPriceText, pricing } from '../lib/pricing';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
-const checkoutEntryUrl = `${editorUrl}?unlock=1`;
+const lifetimeCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=lifetime`;
+const monthlyCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=monthly`;
 const examplesUrl = withBase(base, 'examples');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
@@ -21,7 +22,7 @@ const artPortfolioGuideUrl = withBase(base, 'learn/how-to-make-an-art-portfolio-
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const title = 'Portfolio website builder for artists — Hangwork';
 const description =
-	`Build an art portfolio website with a visual editor. Pay ${currentPriceText} once for lifetime access, an included hangwork.art address, and site files you own.`;
+	`Build an art portfolio website with a visual editor. Choose ${currentPriceText} once for lifetime access or ${monthlyPriceText} per month for hosted access.`;
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
 const applicationLd = {
 	'@context': 'https://schema.org',
@@ -30,13 +31,28 @@ const applicationLd = {
 	applicationCategory: 'DesignApplication',
 	operatingSystem: 'Web browser',
 	description,
-	offers: {
-		'@type': 'Offer',
-		name: 'Hangwork lifetime license',
-		price: currentPrice,
-		priceCurrency: 'USD',
-		url: canonicalUrl,
-	},
+	offers: [
+		{
+			'@type': 'Offer',
+			name: 'Hangwork lifetime access',
+			price: currentPrice,
+			priceCurrency: 'USD',
+			url: canonicalUrl,
+		},
+		{
+			'@type': 'Offer',
+			name: 'Hangwork monthly access',
+			price: pricing.monthlyPrice,
+			priceCurrency: 'USD',
+			priceSpecification: {
+				'@type': 'UnitPriceSpecification',
+				price: pricing.monthlyPrice,
+				priceCurrency: 'USD',
+				billingDuration: 'P1M',
+			},
+			url: canonicalUrl,
+		},
+	],
 };
 ---
 
@@ -86,15 +102,15 @@ const applicationLd = {
 					>
 				</h1>
 				<p class="lede">
-					A portfolio site for visual artists. Pay once, publish forever, and keep your work and
-					published site files.
+					A portfolio site for visual artists. Start monthly or pay once for lifetime access and
+					portable site files.
 				</p>
 				<div class="hero-actions">
 					<div class="primary-action">
 						<a class="btn btn-primary" href={editorUrl}>Hang your first piece</a>
 						<p class="hero-price">
-							<span class="hero-current-price">{currentPriceText} once.</span>
-							<span>Yours forever.</span>
+							<span class="hero-current-price">{currentPriceText} once</span>
+							<span>or {monthlyPriceText}/month.</span>
 						</p>
 					</div>
 					<a class="btn btn-secondary" href={examplesUrl}>View example sites</a>
@@ -145,26 +161,38 @@ const applicationLd = {
 
 			<section class="band pricing" id="pricing">
 				<div class="pricing-copy">
-					<h2>One price. Yours forever.</h2>
+					<h2>Choose how you pay.</h2>
 					<p class="included">
-						Your lifetime license includes the editor, your yourname.hangwork.art address, publishing, and
-						future editor updates.
+						Both plans include the editor, your yourname.hangwork.art address, publishing, custom domains,
+						and future editor updates.
 					</p>
 					<div class="pricing-options">
-						<article class="pricing-option">
+						<article class="pricing-option featured">
 							<p class="pricing-option-label">Lifetime access</p>
 							<p class="price-lockup">
 								<strong>{currentPriceText}</strong>
 								<span>once</span>
 							</p>
-							<p>Build, publish, and keep updating your portfolio with no renewal or subscription.</p>
-							<a class="btn btn-primary" href={checkoutEntryUrl}>
-								Own Hangwork — {currentPriceText}
+							<p>Every feature, including site and backup downloads. Pay once, keep access, and keep your site live.</p>
+							<a class="btn btn-primary" href={lifetimeCheckoutEntryUrl}>
+								Choose lifetime — {currentPriceText}
+							</a>
+						</article>
+						<article class="pricing-option">
+							<p class="pricing-option-label">Monthly access</p>
+							<p class="price-lockup">
+								<strong>{monthlyPriceText}</strong>
+								<span>per month</span>
+							</p>
+							<p>Everything except downloads. Keep paying to retain access; your published site goes offline if the subscription ends.</p>
+							<p class="upgrade-credit">Upgrade later and get your first {monthlyPriceText} payment off lifetime access.</p>
+							<a class="btn btn-secondary" href={monthlyCheckoutEntryUrl}>
+								Start monthly — {monthlyPriceText}/month
 							</a>
 						</article>
 					</div>
 					<p class="pricing-comparison">
-						Prefer to build first? The editor and preview are free; buy lifetime access only when you publish.
+						Prefer to build first? The editor and preview are free; choose a paid plan only when you publish.
 						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
 					</p>
 					<p class="ownership-note">
@@ -431,7 +459,7 @@ const applicationLd = {
 	}
 	.pricing-options {
 		display: grid;
-		grid-template-columns: minmax(0, 32rem);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 16px;
 		margin: 0 0 28px;
 	}
@@ -443,6 +471,13 @@ const applicationLd = {
 		padding: 24px;
 		border: 1px solid var(--wall-2);
 		border-radius: 6px;
+	}
+	.pricing-option.featured {
+		border-color: var(--klein);
+	}
+	.pricing-option .upgrade-credit {
+		font-size: 13px;
+		color: var(--ink-soft);
 	}
 	.pricing-option > p {
 		margin: 0 0 18px;

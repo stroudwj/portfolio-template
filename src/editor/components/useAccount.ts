@@ -25,6 +25,9 @@ export interface AccountSession {
 	user: AccountUser | null;
 	/** Whether this ACCOUNT owns an active license (the server-side publish gate). */
 	licensed: boolean;
+	/** Active access tier. Lifetime includes downloads; monthly requires continued payment. */
+	plan: 'lifetime' | 'monthly' | null;
+	canDownload: boolean;
 	site: AccountSiteSummary | null;
 	/** Email a single-use sign-in link. Throws AccountError for the UI to show. */
 	sendMagicLink(email: string): Promise<void>;
@@ -50,12 +53,16 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 	const [status, setStatus] = useState<AccountStatus>(isAccountsConfigured() ? 'checking' : 'signed-out');
 	const [user, setUser] = useState<AccountUser | null>(null);
 	const [licensed, setLicensed] = useState(false);
+	const [plan, setPlan] = useState<'lifetime' | 'monthly' | null>(null);
+	const [canDownload, setCanDownload] = useState(false);
 	const [site, setSite] = useState<AccountSiteSummary | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const applySummary = useCallback((summary: AccountSummary) => {
 		setUser(summary.user);
 		setLicensed(summary.licensed);
+		setPlan(summary.plan ?? null);
+		setCanDownload(summary.canDownload ?? summary.plan === 'lifetime');
 		setSite(summary.site);
 		setStatus('signed-in');
 	}, []);
@@ -87,16 +94,16 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 				let summary = data;
 				if (checkoutReturn) {
 					try {
-						const checkoutStatus = await getPolarCheckoutStatus(checkoutReturn.checkoutId);
-						if (checkoutStatus === 'succeeded') {
+						const checkout = await getPolarCheckoutStatus(checkoutReturn.checkoutId);
+						if (checkout.status === 'succeeded') {
 							for (const waitMs of [0, 200, 400, 800, 1200, 1800]) {
-								if (summary.licensed) break;
+								if (summary.plan === checkout.plan) break;
 								if (waitMs) await new Promise((resolve) => window.setTimeout(resolve, waitMs));
 								const refreshed = await client.request<AccountSummary>('/auth/session');
 								summary = refreshed.data;
 								if (!alive) return;
 							}
-							if (summary.licensed) {
+							if (summary.plan === checkout.plan) {
 								maybeSendPostPurchaseEmail(checkoutReturn.checkoutId);
 							} else {
 								setError('Your payment completed. Polar is still confirming access — refresh this page in a moment.');
@@ -186,6 +193,8 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		clearSiteInfo();
 		setUser(null);
 		setLicensed(false);
+		setPlan(null);
+		setCanDownload(false);
 		setSite(null);
 		setStatus('signed-out');
 	}, []);
@@ -194,6 +203,8 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		status,
 		user,
 		licensed,
+		plan,
+		canDownload,
 		site,
 		sendMagicLink,
 		signInWithGoogle,

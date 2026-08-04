@@ -26,6 +26,9 @@ EMAIL_FROM = "Hangwork <hello@hangwork.art>"
 POLAR_SERVER = "production"
 # Lifetime $99 product.
 POLAR_PRODUCT_ID = "039844bd-e3ad-45fc-b7ad-f7c9d88fe7fa"
+# Monthly $10 product and the automatic $10 lifetime-upgrade credit.
+POLAR_MONTHLY_PRODUCT_ID = "c07df0e8-408f-42b5-afda-eee02654a475"
+POLAR_UPGRADE_DISCOUNT_ID = "d894245a-66db-400c-a4b1-05ec2cc8ba05"
 POLAR_ORGANIZATION_ID = "e0fe39bc-3fb6-44f1-9c6f-b4b0e247108d"
 
 # Google OAuth ("Continue with Google" in the editor). Create an OAuth client

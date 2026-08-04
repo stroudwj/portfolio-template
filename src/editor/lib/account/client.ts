@@ -30,11 +30,13 @@ export function friendlyMessage(status: number, code: string): string {
 		case 'invalid_session':
 			return 'Your sign-in has expired. Please sign in again.';
 		case 'license_required':
-			return 'Publishing needs a Hangwork lifetime license. Buy access or sign in with the email you bought with.';
+			return 'This action needs an active Hangwork plan. Choose a plan or sign in with the email you bought with.';
+		case 'lifetime_required':
+			return 'Downloads are included with lifetime access. Upgrade to download your site.';
 		case 'polar_unconfigured':
 			return 'Secure checkout isn’t switched on right now.';
 		case 'invalid_plan':
-			return 'That license option is not available. Choose lifetime access and try again.';
+			return 'That plan is not available. Choose monthly or lifetime access and try again.';
 		case 'polar_unreachable':
 		case 'polar_checkout_failed':
 			return 'Polar checkout couldn’t be opened. Check your connection and try again.';
@@ -89,6 +91,8 @@ export function friendlyMessage(status: number, code: string): string {
 			return 'Add a reason of at least six characters before confirming.';
 		case 'account_already_licensed':
 			return 'This account already has active access.';
+		case 'account_already_subscribed':
+			return 'This account already has active monthly access.';
 		case 'manual_entitlement_not_found':
 			return 'That manual grant no longer exists.';
 		case 'manual_entitlement_inactive':

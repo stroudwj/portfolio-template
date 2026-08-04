@@ -12,7 +12,7 @@
 import { withBase } from '../../portfolio/types';
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
 import Favicons from '../../components/Favicons.astro';
-import { currentPriceText, pricing } from '../../lib/pricing';
+import { currentPriceText, monthlyPriceText, monthlyUpgradeCreditText, pricing } from '../../lib/pricing';
 
 export function getStaticPaths() {
 	if (!IS_PRODUCT_SITE) return [];
@@ -36,6 +36,7 @@ const description =
 	'Straight answers about how Hangwork works, what you own, and what it costs.';
 const canonicalUrl = Astro.site ? new URL(withBase(base, 'faq'), Astro.site).href : undefined;
 const visiblePriceHtml = `<strong class="current-price">${currentPriceText}</strong>`;
+const visibleMonthlyPriceHtml = `<strong class="current-price">${monthlyPriceText}</strong>`;
 
 // One source of truth: `a` is the plain-text answer used for both the visible copy and
 // the JSON-LD below (so structured data always matches the page). `aHtml` overrides the
@@ -58,7 +59,7 @@ const groups: Group[] = [
 			{
 				slug: 'what-is-hangwork',
 				q: 'What is Hangwork?',
-				a: "Hangwork is a portfolio site builder for visual artists. You design your site in our editor, and it's published as a fast, plain-file website. A one-time purchase gives you lifetime access. It stays portfolio-first, with a simple product catalog when you want to sell work through your own Stripe checkout.",
+				a: "Hangwork is a portfolio site builder for visual artists. You design your site in our editor, and it's published as a fast, plain-file website. Choose monthly hosted access or pay once for lifetime access and downloads. It stays portfolio-first, with a simple product catalog when you want to sell work through your own Stripe checkout.",
 			},
 			{
 				slug: 'do-i-need-to-code',
@@ -83,22 +84,22 @@ const groups: Group[] = [
 			{
 				slug: 'if-i-stop-paying',
 				q: 'Does anything renew?',
-				a: "No. Hangwork is a one-time purchase, so there is no subscription to renew or cancel. Your lifetime publishing access, already-published site, and downloadable site files remain yours.",
+				a: "Lifetime access never renews. Monthly access renews every month until you cancel. You must keep the monthly subscription paid to use the editor and publishing tools; when paid access ends, your published site goes offline. Restart monthly access or upgrade to lifetime to restore a site paused for billing.",
 			},
 			{
 				slug: 'if-hangwork-shuts-down',
 				q: 'What happens if Hangwork shuts down?',
-				a: "You keep your site. It’s built as plain web files — the kind any host can serve — and the editor has a download button that hands you the whole thing as a folder, anytime, no permission needed. If we ever wind down, we’ve committed to sending every artist their complete site files before anything goes dark, so you can put them on any free host and nothing you’ve shared ever hits a dead link. No proprietary format, no export fee, no hostage-taking.",
+				a: "With lifetime access, you can download the site as plain web files that any host can serve. If we ever wind down, we’ll give lifetime customers a reasonable opportunity to retrieve those files before Hangwork-hosted sites go offline. Monthly access does not include downloads, but monthly customers can upgrade to lifetime while the service is operating.",
 			},
 			{
 				slug: 'who-owns-my-work',
 				q: 'Who owns my images and my site?',
-				a: "You do, entirely. We never claim rights to your work, we don’t watermark it, and we don’t train anything on it. You can download your complete site — pages, images, everything — anytime.",
+				a: "You do, entirely. We never claim rights to your work, we don’t watermark it, and we don’t train anything on it. Lifetime access includes complete site and editable-backup downloads; monthly access does not include downloads.",
 			},
 			{
 				slug: 'can-i-leave',
 				q: 'Can I leave?',
-				a: "Yes. There is no subscription to cancel. Download your site from the editor and you’re holding a folder of ordinary web files that works on any host, exactly as it is.",
+				a: "Yes. Lifetime customers can download a folder of ordinary web files that works on any host. Monthly customers can cancel future renewals, but the Hangwork-hosted site goes offline when the paid period ends; upgrade to lifetime first if you want downloadable files.",
 			},
 		],
 	},
@@ -128,18 +129,18 @@ const groups: Group[] = [
 			{
 				slug: 'what-it-costs',
 				q: 'How much does it cost?',
-				a: `${currentPriceText} once for lifetime access. That covers the editor, your yourname.hangwork.art address, publishing, and future editor updates. There is no subscription or renewal. There is a ${pricing.refundDays}-day refund, no questions asked.`,
-				aHtml: `${visiblePriceHtml} once for lifetime access. That covers the editor, your yourname.hangwork.art address, publishing, and future editor updates. There is no subscription or renewal. There is a ${pricing.refundDays}-day refund, no questions asked.`,
+				a: `${currentPriceText} once buys lifetime access with every feature, including site and backup downloads. ${monthlyPriceText} per month includes everything except downloads and requires continued payment to keep access and the published site online. Active monthly customers get ${monthlyUpgradeCreditText} off a later lifetime upgrade. There is a ${pricing.refundDays}-day refund on a lifetime purchase or first monthly payment.`,
+				aHtml: `${visiblePriceHtml} once buys lifetime access with every feature, including site and backup downloads. ${visibleMonthlyPriceHtml} per month includes everything except downloads and requires continued payment to keep access and the published site online. Active monthly customers get ${monthlyUpgradeCreditText} off a later lifetime upgrade. There is a ${pricing.refundDays}-day refund on a lifetime purchase or first monthly payment.`,
 			},
 			{
-				slug: 'why-one-payment',
-				q: 'Why one payment?',
-				a: "Because your published site is made from plain files and does not need to be trapped behind endless rent. Pay once, keep publishing, and never renew.",
+				slug: 'which-plan',
+				q: 'Which plan should I choose?',
+				a: `Choose monthly if you want the lowest starting cost and are comfortable keeping an active subscription. Choose lifetime if you want every feature, downloads, and no renewal. If you start monthly, your first ${monthlyPriceText} payment becomes a ${monthlyUpgradeCreditText} credit toward lifetime access, and the monthly subscription ends automatically when the lifetime payment succeeds.`,
 			},
 			{
 				slug: 'refund-policy',
 				q: "What's your refund policy?",
-				a: `If Hangwork isn't for you, email us within ${pricing.refundDays} days of buying for a full refund, no questions asked.`,
+				a: `If Hangwork isn't for you, email us within ${pricing.refundDays} days of a lifetime purchase or your first monthly payment for a full refund, no questions asked. Monthly renewal payments are final except where the law requires otherwise.`,
 			},
 			{
 				slug: 'getting-help',

@@ -5,7 +5,12 @@
 //
 // STARTING-POINT TEMPLATE, NOT LEGAL ADVICE. Have a lawyer skim it if you can.
 import { IS_PRODUCT_SITE } from '../../lib/productSite';
-import { currentPriceText, pricing } from '../../lib/pricing';
+import {
+	currentPriceText,
+	monthlyPriceText,
+	monthlyUpgradeCreditText,
+	pricing,
+} from '../../lib/pricing';
 import LegalPage, { type LegalSection } from '../../components/LegalPage.astro';
 
 export function getStaticPaths() {
@@ -16,7 +21,7 @@ export function getStaticPaths() {
 const operatorName = 'William Stroud'; // sole proprietor operating Hangwork
 const governingState = 'Virginia'; // US state whose law governs
 
-const lastUpdated = 'July 29, 2026';
+const lastUpdated = 'August 4, 2026';
 const abuseEmail = 'abuse@hangwork.art';
 const supportEmail = 'william.stroud100@gmail.com';
 const refundDays = pricing.refundDays;
@@ -53,11 +58,13 @@ const sections: LegalSection[] = [
 	},
 	{
 		id: 'payment',
-		heading: 'Payment, price, and refunds',
+		heading: 'Plans, payment, cancellation, and refunds',
 		html: `
-			<p>Hangwork offers one lifetime license for ${currentPriceText}. It includes the editor, your <em>yourname</em>.hangwork.art address, publishing, and future editor updates. The license is paid once and does not renew.</p>
+			<p>Hangwork offers two paid plans. <strong>Lifetime access</strong> costs ${currentPriceText} once and does not renew. It includes every feature, including downloads of your published site and editable backup files. <strong>Monthly access</strong> costs ${monthlyPriceText} per month and renews automatically until canceled. It includes the editor, your <em>yourname</em>.hangwork.art address, publishing, custom domains, hosting, and future editor updates, but it does not include site or backup downloads.</p>
+			<p>Monthly access requires an active, paid subscription. If the subscription ends, is revoked, or remains unpaid after Polar’s payment-recovery process, your editor and publishing access ends and your published site is automatically taken offline. If paid access resumes or you buy lifetime access, a site paused only for billing is restored to its previous visibility. Canceling a monthly subscription stops future renewals; access continues through any period already paid unless Polar shows an immediate end date.</p>
+			<p>An account with active monthly access receives a one-time ${monthlyUpgradeCreditText} discount when upgrading through Hangwork’s authenticated lifetime checkout. The credit is applied automatically, cannot be transferred or redeemed for cash, and cannot be combined with another discount if Polar does not permit the combination. When the lifetime payment succeeds, Hangwork immediately ends the account’s monthly subscription so it will not renew again.</p>
 			<p>Payments are processed by <strong>Polar</strong> as merchant of record. Polar handles checkout, card details, receipts, and any applicable sales tax or VAT. We don’t see or store your full card details.</p>
-			<p>If Hangwork isn’t for you, email <a href="mailto:${supportEmail}">${supportEmail}</a> within ${refundDays} days of your purchase for a full refund, no questions asked. After ${refundDays} days the purchase is non-refundable except where the law requires otherwise.</p>
+			<p>If Hangwork isn’t for you, email <a href="mailto:${supportEmail}">${supportEmail}</a> within ${refundDays} days of your lifetime purchase or first monthly payment for a full refund, no questions asked. Monthly renewal payments are non-refundable after they are charged except where the law requires otherwise. A full refund ends the related access and may take the published site offline.</p>
 		`,
 	},
 	{
@@ -101,7 +108,7 @@ const sections: LegalSection[] = [
 		heading: 'Enforcement, suspension, and termination',
 		html: `
 			<p>If content or conduct breaks these Terms, we may remove or disable the content, and suspend or terminate the account. Where we reasonably can, we’ll tell you why and give you a chance to fix it — but serious violations, legal risk, or anything involving the safety line above may mean immediate action without notice.</p>
-			<p>You can stop using Hangwork at any time. Because your site files are yours, you can download your complete site from the editor before you go — see the wind-down commitment below.</p>
+			<p>You can stop using Hangwork at any time. Lifetime customers can download their complete site and editable backup from the editor before they go. Monthly customers can upgrade to lifetime to enable downloads.</p>
 		`,
 	},
 	{
@@ -136,10 +143,10 @@ const sections: LegalSection[] = [
 	},
 	{
 		id: 'ownership-export',
-		heading: 'Your files and our wind-down commitment',
+		heading: 'Downloads and our wind-down commitment',
 		html: `
-			<p>Your site is built as plain web files — the kind any host can serve. The editor has a download button that hands you the whole site as a folder, anytime, with no permission needed and no export fee.</p>
-			<p>If we ever wind Hangwork down, we commit to sending every artist their complete site files before anything goes offline, so you can move to any host without a broken link. No proprietary format, no lock-in.</p>
+			<p>Your site is built as plain web files — the kind any host can serve. Lifetime access includes a download button that hands you the whole published site as a folder and a separate editable backup, with no export fee. Downloads are not included with monthly access.</p>
+			<p>If we ever wind Hangwork down, we commit to giving lifetime customers a reasonable opportunity to retrieve their complete site files before Hangwork-hosted sites go offline, so they can move to another host. Monthly customers may upgrade to lifetime while the Service is operating. No proprietary site format.</p>
 		`,
 	},
 	{
@@ -147,7 +154,7 @@ const sections: LegalSection[] = [
 		heading: 'Limitation of liability',
 		html: `
 			<p>To the fullest extent the law allows, Hangwork and its operator won’t be liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, data, or goodwill, arising from your use of the Service. Our total liability for any claim relating to the Service is limited to the amount you paid us for the Service.</p>
-			<p>You are responsible for keeping your own copies of Your Content. The download button exists so you always can.</p>
+			<p>You are responsible for keeping your own copies of Your Content. Download tools are available with lifetime access.</p>
 		`,
 	},
 	{
