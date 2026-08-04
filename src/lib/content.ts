@@ -574,8 +574,10 @@ export type PageBlock =
 			type: 'form';
 			heading?: string;
 			action: string;
-			/** Artist/site-owner inbox used by the no-service email fallback. */
-			recipientEmail?: string;
+			/** Artist/site-owner inbox used by the no-service email fallback, split +
+			 * encoded — never a readable address. See portfolio/contactEmail.ts. Legacy
+			 * drafts with a plain string are converted to this shape when parsed. */
+			recipientEmail?: ContactEmailParts;
 			successMessage?: string;
 			fields: FormField[];
 			/** Optional image-like placement on the section's freeform canvas. */

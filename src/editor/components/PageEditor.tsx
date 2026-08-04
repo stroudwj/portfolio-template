@@ -219,19 +219,24 @@ function CarouselCustomRatioInputs({
 }
 
 /**
- * The contact block stores its address split and encoded, so the field keeps the
- * artist's plain typing in local state and commits the encoded halves only once the
- * address is complete. A half-typed address commits as empty rather than shipping a
- * broken mailto to the published site.
+ * Shared by any block that stores an address split and encoded (the contact
+ * block's public address, the form block's private delivery inbox): the field
+ * keeps the artist's plain typing in local state and commits the encoded halves
+ * only once the address is complete. A half-typed address commits as empty
+ * rather than shipping a broken mailto to the published site.
  */
 function ContactEmailField({
 	email,
 	ariaLabel,
 	onChange,
+	label = 'Email address',
+	hint = 'Shown on the page as “name [at] example [dot] com” so address harvesters can’t read it. The button opens the visitor’s email app.',
 }: {
 	email: ContactEmailParts | undefined;
 	ariaLabel: string;
 	onChange: (email: ContactEmailParts) => void;
+	label?: string;
+	hint?: string;
 }) {
 	const stored = decodeContactEmail(email);
 	const [typed, setTyped] = useState(stored);
@@ -244,11 +249,7 @@ function ContactEmailField({
 	const invalid = !!typed.trim() && !isEmail(typed);
 
 	return (
-		<Field
-			label="Email address"
-			hint="Shown on the page as “name [at] example [dot] com” so address harvesters can’t read it. The button opens the visitor’s email app."
-			error={invalid ? 'Enter a valid email address.' : undefined}
-		>
+		<Field label={label} hint={hint} error={invalid ? 'Enter a valid email address.' : undefined}>
 			<TextInput
 				aria-label={ariaLabel}
 				value={typed}
@@ -2438,7 +2439,6 @@ export default function PageEditor({
 			}
 			case 'form': {
 				const endpointInvalid = !!block.action && (!isUrl(block.action) || !block.action.startsWith('https://'));
-				const recipientInvalid = !!block.recipientEmail && !isEmail(block.recipientEmail);
 				const updateFields = (fields: FormField[]) => editor.updateFormBlock(pageKey, block.id, { fields });
 				const formLabel = `contact form ${index + 1} on ${pageName}`;
 				const owner = sectionForBlock(block.id);
@@ -2451,13 +2451,13 @@ export default function PageEditor({
 						<Field label="Form heading">
 							<TextInput aria-label={`Heading for ${formLabel}`} value={block.heading ?? ''} placeholder="Get in touch" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { heading: event.target.value })} />
 						</Field>
-						<Field
+						<ContactEmailField
+							email={block.recipientEmail}
+							ariaLabel={`Site owner delivery email for ${formLabel}`}
 							label="Site owner delivery email"
 							hint="Private form setting: this is where a visitor's message is addressed. It is separate from the public email shown in About."
-							error={recipientInvalid ? 'Enter a valid email address.' : undefined}
-						>
-							<TextInput aria-label={`Site owner delivery email for ${formLabel}`} value={block.recipientEmail ?? ''} placeholder="you@example.com" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { recipientEmail: event.target.value || undefined })} />
-						</Field>
+							onChange={(recipientEmail) => editor.updateFormBlock(pageKey, block.id, { recipientEmail })}
+						/>
 						<Field
 							label="Optional form service address"
 							hint="Leave this blank to open the visitor’s email app with a message addressed to the site owner email above. To send directly in the page instead, paste the form address from a service such as Formspree."

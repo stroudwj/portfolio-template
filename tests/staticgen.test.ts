@@ -274,6 +274,56 @@ describe('staticgen', () => {
 		}
 	});
 
+	it('publishes a contact form block without ever writing the recipient address', async () => {
+		// The same leak as the contact block above, for the older sibling block: the
+		// form's private delivery inbox (used by ContactForm's mailto fallback) must
+		// never appear in the published bytes — markup, boot data, or _hw/content.json.
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{
+							id: 'form-1',
+							type: 'form',
+							heading: 'Commission inquiries',
+							action: '',
+							recipientEmail: encodeContactEmail('owner@example-gallery.com'),
+							successMessage: 'Thanks — your message has been sent.',
+							fields: [
+								{ id: 'name', type: 'name', label: 'Name', required: true },
+								{ id: 'message', type: 'textarea', label: 'Message', required: true },
+							],
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		// The block really rendered.
+		expect(home).toContain('contact-form');
+		expect(home).toContain('Commission inquiries');
+
+		// Nothing anywhere in the published site spells the address out, joined or not.
+		expect(home).not.toContain('owner@example-gallery.com');
+		expect(home).not.toContain('mailto:');
+		for (const file of site.files) {
+			if (!/\.(html|json|js|css|xml|txt)$/.test(file.path)) continue;
+			expect(new TextDecoder().decode(file.bytes)).not.toContain('owner@example-gallery.com');
+		}
+	});
+
 	it('leaves configured text colors untouched when automatic contrast is off', async () => {
 		const base = testBundle();
 		const content = parseAndMigrateContent({
