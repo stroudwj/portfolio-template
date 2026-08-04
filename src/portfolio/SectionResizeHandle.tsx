@@ -5,7 +5,10 @@ export type SectionBreakpoint = 'desktop' | 'phone';
 
 export function responsiveHeightVars(
 	height: ResponsiveSectionHeight | undefined,
+	allowNegativeGap = false,
 ): React.CSSProperties {
+	const gap = (value: number | undefined) =>
+		allowNegativeGap ? (value ?? 0) : Math.max(0, value ?? 0);
 	return {
 		'--section-min-desktop': height?.desktopGap !== undefined
 			? '0px'
@@ -17,8 +20,8 @@ export function responsiveHeightVars(
 			: height?.phoneVw !== undefined
 			? `${height.phoneVw}vw`
 			: `${height?.phone ?? 0}px`,
-		'--section-gap-desktop': `${height?.desktopGap ?? 0}px`,
-		'--section-gap-phone': `${height?.phoneGap ?? 0}px`,
+		'--section-gap-desktop': `${gap(height?.desktopGap)}px`,
+		'--section-gap-phone': `${gap(height?.phoneGap)}px`,
 	} as React.CSSProperties;
 }
 
@@ -30,6 +33,7 @@ export default function SectionResizeHandle({
 	label,
 	onChange,
 	useTrailingGap = false,
+	allowNegativeGap = false,
 }: {
 	breakpoint: SectionBreakpoint;
 	value?: number;
@@ -45,7 +49,11 @@ export default function SectionResizeHandle({
 	) => void;
 	/** Page sections store trailing space; footer sizing remains a minimum height. */
 	useTrailingGap?: boolean;
+	/** Only the first page edge may cross upward through the reserved header area. */
+	allowNegativeGap?: boolean;
 }) {
+	const minimumGap = allowNegativeGap ? -400 : 0;
+	const clampGap = (gap: number) => Math.max(minimumGap, Math.round(gap));
 	const handleRef = useRef<HTMLDivElement>(null);
 	const minCssVar =
 		breakpoint === 'phone' ? '--section-min-phone' : '--section-min-desktop';
@@ -75,7 +83,7 @@ export default function SectionResizeHandle({
 		const parent = handle.parentElement;
 		if (!parent) return;
 		parent.style.setProperty(minCssVar, '0px');
-		parent.style.setProperty(gapCssVar, `${Math.max(0, Math.round(gap ?? 0))}px`);
+		parent.style.setProperty(gapCssVar, `${clampGap(gap ?? 0)}px`);
 	};
 
 	// Convert legacy total minimum heights into the trailing space the artist
@@ -99,7 +107,9 @@ export default function SectionResizeHandle({
 		let lastClientY = event.clientY;
 		let draft = measuredHeight(handle);
 		let draftViewport: number | undefined;
-		let draftGap = useTrailingGap ? Math.max(0, draft - naturalHeight(handle)) : undefined;
+		let draftGap = useTrailingGap
+			? (gapValue ?? clampGap(draft - naturalHeight(handle)))
+			: undefined;
 		const update = (clientY: number) => {
 			const parentTop = handle.parentElement?.getBoundingClientRect().top;
 			if (parentTop === undefined) return;
@@ -107,7 +117,7 @@ export default function SectionResizeHandle({
 			// under the pointer when the preview scrolls during the drag.
 			draft = Math.max(0, clientY - parentTop);
 			if (useTrailingGap) {
-				draftGap = Math.max(0, draft - naturalHeight(handle));
+				draftGap = clampGap(draft - naturalHeight(handle));
 				applyGapLive(handle, draftGap);
 			} else {
 				draftViewport = undefined;
@@ -175,11 +185,10 @@ export default function SectionResizeHandle({
 				event.preventDefault();
 				const direction = event.key === 'ArrowUp' ? -1 : 1;
 				if (useTrailingGap) {
-					const current = gapValue ?? Math.max(
-						0,
+					const current = gapValue ?? clampGap(
 						measuredHeight(event.currentTarget) - naturalHeight(event.currentTarget),
 					);
-					const nextGap = Math.max(0, current + direction * 8);
+					const nextGap = clampGap(current + direction * 8);
 					applyGapLive(event.currentTarget, nextGap);
 					onChange(undefined, undefined, nextGap);
 				} else {

@@ -3356,7 +3356,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					const normalizedGap =
 						gap === undefined || !Number.isFinite(gap)
 							? undefined
-							: Math.max(0, Math.min(10000, Math.round(gap)));
+							: Math.max(-400, Math.min(10000, Math.round(gap)));
 					if (normalizedGap !== undefined) {
 						delete current[breakpoint];
 						delete current[viewportKey];

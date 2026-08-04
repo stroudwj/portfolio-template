@@ -41,13 +41,14 @@ const mobileCompositionSchema = passthrough({
 });
 
 const sectionHeightValueSchema = z.number().min(0).max(10000);
+const sectionGapValueSchema = z.number().min(-400).max(10000);
 const responsiveSectionHeightSchema = passthrough({
 	desktop: sectionHeightValueSchema.optional(),
 	phone: sectionHeightValueSchema.optional(),
 	desktopVw: sectionHeightValueSchema.optional(),
 	phoneVw: sectionHeightValueSchema.optional(),
-	desktopGap: sectionHeightValueSchema.optional(),
-	phoneGap: sectionHeightValueSchema.optional(),
+	desktopGap: sectionGapValueSchema.optional(),
+	phoneGap: sectionGapValueSchema.optional(),
 });
 
 const kineticTextSchema = passthrough({

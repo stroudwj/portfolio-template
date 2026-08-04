@@ -95,7 +95,8 @@ body.texture-concrete {
 	position: relative;
 	box-sizing: border-box;
 	min-height: var(--section-min-desktop, 0px);
-	padding-bottom: var(--section-gap-desktop, 0px);
+	padding-bottom: max(0px, var(--section-gap-desktop, 0px));
+	margin-bottom: min(0px, var(--section-gap-desktop, 0px));
 }
 .portfolio-page-heading.is-empty-page-heading .motion-section-inner,
 .empty-page-heading-band {
@@ -298,7 +299,8 @@ body.texture-concrete {
 		display: var(--phone-page-display, block);
 		order: var(--phone-page-order, initial);
 		min-height: var(--section-min-phone, 0px);
-		padding-bottom: var(--section-gap-phone, 0px);
+		padding-bottom: max(0px, var(--section-gap-phone, 0px));
+		margin-bottom: min(0px, var(--section-gap-phone, 0px));
 	}
 }
 
@@ -313,6 +315,13 @@ body.texture-concrete {
 	height: 18px;
 	cursor: ns-resize;
 	touch-action: none;
+	transform: translateY(min(0px, var(--section-gap-desktop, 0px)));
+}
+
+@media (max-width: 639px) {
+	.section-resize-handle {
+		transform: translateY(min(0px, var(--section-gap-phone, 0px)));
+	}
 }
 .section-resize-line {
 	position: absolute;

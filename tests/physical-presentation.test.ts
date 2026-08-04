@@ -160,5 +160,11 @@ describe('physical presentation controls', () => {
 			'--section-gap-desktop': '31px',
 			'--section-gap-phone': '0px',
 		});
+		expect(responsiveHeightVars({ desktopGap: -120 }, true)).toMatchObject({
+			'--section-gap-desktop': '-120px',
+		});
+		expect(responsiveHeightVars({ desktopGap: -120 })).toMatchObject({
+			'--section-gap-desktop': '0px',
+		});
 	});
 });

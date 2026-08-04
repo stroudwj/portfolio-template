@@ -583,11 +583,11 @@ export default function PortfolioPage({
 	];
 	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
 	const automaticContrast = content.theme.automaticTextContrast !== false;
-	const pagePartVars = (key: string): CSSProperties => {
+	const pagePartVars = (key: string, isFirst: boolean): CSSProperties => {
 		return {
 			'--phone-page-order': String(pageOrder.get(key) ?? pageOrder.size + (automaticPageOrder.get(key) ?? 0)),
 			'--phone-page-display': config.mobile?.items?.[key]?.hidden ? 'none' : 'flow-root',
-			...responsiveHeightVars(config.sectionHeights?.[key]),
+			...responsiveHeightVars(config.sectionHeights?.[key], isFirst),
 		} as CSSProperties;
 	};
 	const renderBlock = (block: PageBlock) => {
@@ -1145,12 +1145,12 @@ export default function PortfolioPage({
 				className={`portfolio-page-body page-${page === 'home' ? 'home' : 'inner'} ${hasPageHeading ? 'has-page-heading' : 'without-page-heading'}`}
 				data-phone-ready={isPhone ? 'true' : undefined}
 			>
-				{pageParts.map((part) => {
+				{pageParts.map((part, partIndex) => {
 					const sectionColor = config.sectionColors?.[part.key];
 					const motion = config.sectionMotion?.[part.key];
 					const strength = Math.min(Math.max(motion?.intensity ?? 45, 1), 100);
 					const partStyle = {
-						...pagePartVars(part.key),
+						...pagePartVars(part.key, partIndex === 0),
 						...backgroundBlockVars(sectionColor, automaticContrast),
 						...(motion ? { '--motion-strength': String(strength) } : {}),
 						...(part.shotsLength && part.shotsFadeStart !== undefined
@@ -1192,6 +1192,7 @@ export default function PortfolioPage({
 									}
 									label={part.key === 'page:heading' ? 'page heading' : 'page section'}
 									useTrailingGap
+									allowNegativeGap={partIndex === 0}
 									onChange={(height, viewportHeight, gap, recordHistory) =>
 										onSectionHeight(
 											page,
