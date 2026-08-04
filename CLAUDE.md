@@ -7,8 +7,9 @@ whole thing: the marketing site, the visual editor, the portfolio renderer, and 
 Cloudflare Workers that run accounts + hosting.
 
 UI/brand rules live in **[DESIGN.md](DESIGN.md)**. End-to-end verification + the runtime
-release/tag process live in the **`verify` skill** (`.agents/skills/verify/SKILL.md`). This
-file is the architecture + publishing map.
+release/tag process live in the **`verify` skill** (`.agents/skills/verify/SKILL.md`). The
+work queue of agent-ready task specs lives in **[BACKLOG.md](BACKLOG.md)**. This file is the
+architecture + publishing map.
 
 ## The two builds
 

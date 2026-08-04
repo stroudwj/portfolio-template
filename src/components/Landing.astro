@@ -5,6 +5,7 @@
 // content.json, none of which belong on a marketing page.
 import { withBase } from '../portfolio/types';
 import { currentPrice, currentPriceText, monthlyPriceText, pricing } from '../lib/pricing';
+import { exampleSites } from '../lib/examples';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
@@ -24,6 +25,9 @@ const title = 'Portfolio website builder for artists — Hangwork';
 const description =
 	`Build an art portfolio website with a visual editor. Choose ${currentPriceText} once for lifetime access or ${monthlyPriceText} per month for hosted access.`;
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
+const ogImageUrl = Astro.site
+	? new URL(withBase(base, 'assets/brand/og-card.png'), Astro.site).href
+	: undefined;
 const applicationLd = {
 	'@context': 'https://schema.org',
 	'@type': 'SoftwareApplication',
@@ -75,7 +79,13 @@ const applicationLd = {
 		<meta property="og:description" content={description} />
 		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-		<meta name="twitter:card" content="summary" />
+		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+		{ogImageUrl && <meta property="og:image:width" content="1200" />}
+		{ogImageUrl && <meta property="og:image:height" content="630" />}
+		{ogImageUrl && (
+			<meta property="og:image:alt" content="Hang your work. Own it forever. — hangwork.art" />
+		)}
+		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
 		<title>{title}</title>
 		<script type="application/ld+json" set:html={JSON.stringify(applicationLd)} is:inline />
 	</head>
@@ -137,8 +147,39 @@ const applicationLd = {
 
 			<section class="band" id="examples">
 				<h2>Examples</h2>
-				<p class="band-lede">See published portfolio sites built with Hangwork — each one shaped around the artist's own work.</p>
-				<a class="btn btn-secondary" href={examplesUrl}>Browse example sites</a>
+				<p class="band-lede">Portfolios made with Hangwork — each one shaped around the artist's own work.</p>
+				<div class="example-list">
+					{exampleSites.map((site) => (
+						<article class="example-card">
+							<div class="example-preview">
+								<iframe
+									src={site.url}
+									title={`Preview of ${site.name}'s portfolio`}
+									loading="lazy"
+									tabindex="-1"
+									aria-hidden="true"
+								/>
+								<a
+									class="preview-link"
+									href={site.url}
+									target="_blank"
+									rel="noreferrer"
+									aria-label={`Visit ${site.name}'s portfolio at ${site.domain}`}
+								/>
+							</div>
+							<div class="example-copy">
+								<div>
+									<strong>{site.name}</strong>
+									<p>{site.description}</p>
+								</div>
+								<a class="site-link" href={site.url} target="_blank" rel="noreferrer">
+									{site.domain}<span aria-hidden="true">↗</span>
+								</a>
+							</div>
+						</article>
+					))}
+				</div>
+				<p class="band-more"><a href={examplesUrl}>Browse all example sites</a></p>
 			</section>
 
 			<section class="band" id="guides">
@@ -159,11 +200,21 @@ const applicationLd = {
 				</div>
 			</section>
 
+			<section class="band" id="questions">
+				<h2>Common questions</h2>
+				<div class="faq-teaser">
+					<a href={`${faqUrl}#if-hangwork-shuts-down`}>What happens if Hangwork shuts down?</a>
+					<a href={`${faqUrl}#who-owns-my-work`}>Who owns my images and my site?</a>
+					<a href={`${faqUrl}#can-i-leave`}>Can I leave?</a>
+				</div>
+				<p class="band-more"><a href={faqUrl}>All questions</a></p>
+			</section>
+
 			<section class="band pricing" id="pricing">
 				<div class="pricing-copy">
-					<h2>Choose how you pay.</h2>
+					<h2>Choose how you pay</h2>
 					<p class="included">
-						Both plans include the editor, your yourname.hangwork.art address, publishing, custom domains,
+						Both plans include the editor, a yourname.hangwork.art address, publishing, custom domains,
 						and future editor updates.
 					</p>
 					<div class="pricing-options">
@@ -191,8 +242,10 @@ const applicationLd = {
 							</a>
 						</article>
 					</div>
+					<p class="paynow-refund">{pricing.refundDays}-day refund, no questions asked.</p>
 					<p class="pricing-comparison">
-						Prefer to build first? The editor and preview are free; choose a paid plan only when you publish.
+						Prefer to build first? <a href={editorUrl}>The editor and preview are free</a>; choose a
+						paid plan only when you publish.
 						<a href={squarespaceAlternativeUrl}> Compare the tradeoffs.</a>
 					</p>
 					<p class="ownership-note">
@@ -200,10 +253,6 @@ const applicationLd = {
 							Your site lives in an account you own — here's what that means.
 						</a>
 					</p>
-					<div class="pricing-actions">
-						<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
-					</div>
-					<p class="paynow-refund">{pricing.refundDays}-day refund, no questions asked.</p>
 				</div>
 			</section>
 		</main>
@@ -430,6 +479,110 @@ const applicationLd = {
 		line-height: 1.55;
 	}
 
+	.example-list {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 40px 32px;
+	}
+	.example-card {
+		min-width: 0;
+	}
+	.example-preview {
+		position: relative;
+		overflow: hidden;
+		aspect-ratio: 16 / 10;
+		border: 1px solid var(--wall-2);
+		background: var(--wall-3);
+	}
+	.example-preview iframe {
+		position: absolute;
+		inset: 0;
+		width: 200%;
+		height: 200%;
+		border: 0;
+		pointer-events: none;
+		transform: scale(0.5);
+		transform-origin: top left;
+	}
+	.preview-link {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+	}
+	.example-preview:has(.preview-link:hover),
+	.example-preview:has(.preview-link:focus-visible) {
+		border-color: var(--ink);
+	}
+	.example-copy {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 24px;
+		padding-top: 16px;
+	}
+	.example-copy strong {
+		display: block;
+		margin: 0 0 5px;
+		font-size: 17px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+	.example-copy p {
+		max-width: 29rem;
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+	.site-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
+		color: var(--ink);
+		font-size: 14px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.site-link:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.site-link span {
+		color: var(--klein);
+	}
+
+	.faq-teaser {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+	}
+	.faq-teaser a {
+		color: var(--ink);
+		font-size: 17px;
+		text-decoration: none;
+	}
+	.faq-teaser a:hover,
+	.faq-teaser a:focus-visible {
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+
+	.band-more {
+		margin: 32px 0 0;
+		font-size: 14px;
+	}
+	.band-more a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.band-more a:hover {
+		color: var(--ink);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
 	.steps {
 		list-style: none;
 		margin: 0;
@@ -545,34 +698,10 @@ const applicationLd = {
 		text-decoration-color: var(--wall-2);
 	}
 
-	.pricing-actions {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 12px;
-	}
 	.paynow-refund {
-		margin: 14px 0 0;
+		margin: 0 0 24px;
 		font-size: 13px;
 		color: var(--ink-soft);
-	}
-	.paynow-cta {
-		display: none;
-	}
-	.paynow-framing {
-		display: none;
-	}
-	.paynow-quiet {
-		margin: 16px 0 0;
-		font-size: 13px;
-		color: var(--ink-soft);
-	}
-	.paynow-quiet a {
-		color: var(--ink-soft);
-		text-underline-offset: 3px;
-	}
-	.paynow-quiet a:hover {
-		color: var(--ink);
 	}
 
 	.footer {
@@ -621,41 +750,6 @@ const applicationLd = {
 		.pricing-options {
 			grid-template-columns: 1fr;
 		}
-		.pricing-actions {
-			flex-direction: column;
-			align-items: stretch;
-		}
-		.pricing-actions .btn {
-			text-align: center;
-		}
-		.paynow-cta {
-			display: inline-block;
-		}
-		.build-cta {
-			background: transparent;
-			border-color: var(--wall-2);
-			color: var(--ink);
-		}
-		.build-cta:hover {
-			background: var(--wall-3);
-		}
-		.paynow-framing {
-			display: block;
-			margin-top: 14px;
-		}
-		.paynow-anchor {
-			margin: 0 0 6px;
-			font-size: 14px;
-			color: var(--ink);
-		}
-		.paynow-refund {
-			margin: 0;
-			font-size: 13px;
-			color: var(--ink-soft);
-		}
-		.paynow-quiet {
-			display: none;
-		}
 		.hero {
 			min-height: 0;
 			padding: 64px 0 40px;
@@ -667,7 +761,8 @@ const applicationLd = {
 			grid-template-columns: 1fr;
 			gap: 28px;
 		}
-		.guide-links {
+		.guide-links,
+		.example-list {
 			grid-template-columns: 1fr;
 		}
 		.footer {
