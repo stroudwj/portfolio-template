@@ -663,6 +663,7 @@ export interface EditorContextValue {
 		breakpoint: 'desktop' | 'phone',
 		height: number | undefined,
 		viewportHeight?: number,
+		gap?: number,
 		recordHistory?: boolean,
 	): void;
 	/** Responsive minimum height of the site-wide footer. */
@@ -3336,13 +3337,14 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
 				};
 			}),
-		setSectionHeight: (key, partKey, breakpoint, height, viewportHeight, recordHistory = true) =>
+		setSectionHeight: (key, partKey, breakpoint, height, viewportHeight, gap, recordHistory = true) =>
 			patchPage(
 				key,
 				(page) => {
 					const all = { ...(page.sectionHeights ?? {}) };
 					const current = { ...(all[partKey] ?? {}) };
 					const viewportKey = breakpoint === 'phone' ? 'phoneVw' : 'desktopVw';
+					const gapKey = breakpoint === 'phone' ? 'phoneGap' : 'desktopGap';
 					const normalized =
 						height === undefined || !Number.isFinite(height)
 							? undefined
@@ -3351,10 +3353,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						viewportHeight === undefined || !Number.isFinite(viewportHeight)
 							? undefined
 							: Math.max(0, Math.min(10000, Math.round(viewportHeight * 100) / 100));
-					if (normalized === undefined) delete current[breakpoint];
-					else current[breakpoint] = normalized;
-					if (normalizedViewport === undefined) delete current[viewportKey];
-					else current[viewportKey] = normalizedViewport;
+					const normalizedGap =
+						gap === undefined || !Number.isFinite(gap)
+							? undefined
+							: Math.max(0, Math.min(10000, Math.round(gap)));
+					if (normalizedGap !== undefined) {
+						delete current[breakpoint];
+						delete current[viewportKey];
+						current[gapKey] = normalizedGap;
+					} else {
+						delete current[gapKey];
+						if (normalized === undefined) delete current[breakpoint];
+						else current[breakpoint] = normalized;
+						if (normalizedViewport === undefined) delete current[viewportKey];
+						else current[viewportKey] = normalizedViewport;
+					}
 					if (Object.keys(current).length) all[partKey] = current;
 					else delete all[partKey];
 					return { ...page, sectionHeights: Object.keys(all).length ? all : undefined };

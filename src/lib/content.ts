@@ -20,6 +20,9 @@ export interface ResponsiveSectionHeight {
 	phone?: number;
 	desktopVw?: number;
 	phoneVw?: number;
+	/** Explicit trailing space. Preferred over legacy total minimum heights. */
+	desktopGap?: number;
+	phoneGap?: number;
 }
 
 export interface Site {

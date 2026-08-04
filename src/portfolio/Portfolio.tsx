@@ -50,6 +50,7 @@ export interface PortfolioProps extends PortfolioData {
 		breakpoint: SectionBreakpoint,
 		height: number | undefined,
 		viewportHeight?: number,
+		gap?: number,
 		recordHistory?: boolean,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;

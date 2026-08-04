@@ -154,9 +154,11 @@ describe('physical presentation controls', () => {
 	});
 
 	it('prefers width-relative section heights while retaining legacy pixel fallbacks', () => {
-		expect(responsiveHeightVars({ desktop: 470, desktopVw: 32.3, phone: 280 })).toMatchObject({
-			'--section-min-desktop': '32.3vw',
+		expect(responsiveHeightVars({ desktop: 470, desktopVw: 32.3, desktopGap: 31, phone: 280 })).toMatchObject({
+			'--section-min-desktop': '0px',
 			'--section-min-phone': '280px',
+			'--section-gap-desktop': '31px',
+			'--section-gap-phone': '0px',
 		});
 	});
 });

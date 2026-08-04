@@ -102,6 +102,7 @@ export interface PortfolioPageProps extends PortfolioData {
 		breakpoint: SectionBreakpoint,
 		height: number | undefined,
 		viewportHeight?: number,
+		gap?: number,
 		recordHistory?: boolean,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
@@ -1184,15 +1185,21 @@ export default function PortfolioPage({
 											resizeBreakpoint === 'phone' ? 'phoneVw' : 'desktopVw'
 										]
 									}
+									gapValue={
+										config.sectionHeights?.[part.key]?.[
+											resizeBreakpoint === 'phone' ? 'phoneGap' : 'desktopGap'
+										]
+									}
 									label={part.key === 'page:heading' ? 'page heading' : 'page section'}
-									scaleWithViewport
-									onChange={(height, viewportHeight, recordHistory) =>
+									useTrailingGap
+									onChange={(height, viewportHeight, gap, recordHistory) =>
 										onSectionHeight(
 											page,
 											part.key,
 											resizeBreakpoint,
 											height,
 											viewportHeight,
+											gap,
 											recordHistory,
 										)
 									}

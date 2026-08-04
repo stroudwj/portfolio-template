@@ -7,12 +7,18 @@ export function responsiveHeightVars(
 	height: ResponsiveSectionHeight | undefined,
 ): React.CSSProperties {
 	return {
-		'--section-min-desktop': height?.desktopVw !== undefined
+		'--section-min-desktop': height?.desktopGap !== undefined
+			? '0px'
+			: height?.desktopVw !== undefined
 			? `${height.desktopVw}vw`
 			: `${height?.desktop ?? 0}px`,
-		'--section-min-phone': height?.phoneVw !== undefined
+		'--section-min-phone': height?.phoneGap !== undefined
+			? '0px'
+			: height?.phoneVw !== undefined
 			? `${height.phoneVw}vw`
 			: `${height?.phone ?? 0}px`,
+		'--section-gap-desktop': `${height?.desktopGap ?? 0}px`,
+		'--section-gap-phone': `${height?.phoneGap ?? 0}px`,
 	} as React.CSSProperties;
 }
 
@@ -20,52 +26,69 @@ export default function SectionResizeHandle({
 	breakpoint,
 	value,
 	viewportValue,
+	gapValue,
 	label,
 	onChange,
-	scaleWithViewport = false,
+	useTrailingGap = false,
 }: {
 	breakpoint: SectionBreakpoint;
 	value?: number;
 	/** Width-relative minimum in viewport-width units. */
 	viewportValue?: number;
+	gapValue?: number;
 	label: string;
-	onChange: (height: number | undefined, viewportHeight?: number, recordHistory?: boolean) => void;
-	/** Page sections scale with freeform canvases; footer sizing remains pixel-based. */
-	scaleWithViewport?: boolean;
+	onChange: (
+		height: number | undefined,
+		viewportHeight?: number,
+		gap?: number,
+		recordHistory?: boolean,
+	) => void;
+	/** Page sections store trailing space; footer sizing remains a minimum height. */
+	useTrailingGap?: boolean;
 }) {
 	const handleRef = useRef<HTMLDivElement>(null);
-	const cssVar =
+	const minCssVar =
 		breakpoint === 'phone' ? '--section-min-phone' : '--section-min-desktop';
-	const toViewportHeight = (height: number, win: Window): number =>
-		Math.round((height * 10000) / Math.max(win.innerWidth, 1)) / 100;
-
+	const gapCssVar =
+		breakpoint === 'phone' ? '--section-gap-phone' : '--section-gap-desktop';
 	const measuredHeight = (handle: HTMLElement): number =>
 		Math.round(handle.parentElement?.getBoundingClientRect().height ?? value ?? 0);
 
-	const applyLive = (
+	const naturalHeight = (handle: HTMLElement): number =>
+		handle.parentElement?.querySelector<HTMLElement>(':scope > .motion-section-inner')
+			?.getBoundingClientRect().height ?? 0;
+
+	const applyMinimumLive = (
 		handle: HTMLElement,
 		height: number | undefined,
 		viewportHeight?: number,
 	) => {
 		const parent = handle.parentElement;
 		if (!parent) return;
-		if (height === undefined) parent.style.removeProperty(cssVar);
-		else if (scaleWithViewport && viewportHeight !== undefined)
-			parent.style.setProperty(cssVar, `${Math.max(0, viewportHeight)}vw`);
-		else parent.style.setProperty(cssVar, `${Math.max(0, Math.round(height))}px`);
+		if (height === undefined) parent.style.removeProperty(minCssVar);
+		else if (viewportHeight !== undefined)
+			parent.style.setProperty(minCssVar, `${Math.max(0, viewportHeight)}vw`);
+		else parent.style.setProperty(minCssVar, `${Math.max(0, Math.round(height))}px`);
 	};
 
-	// Documents created before width-relative section sizing only have pixels.
-	// Capture the equivalent value while the editor still has the viewport in
-	// which that edge is being displayed. This is a silent data migration: it
-	// produces no undo step and does not visually move the edge.
+	const applyGapLive = (handle: HTMLElement, gap: number | undefined) => {
+		const parent = handle.parentElement;
+		if (!parent) return;
+		parent.style.setProperty(minCssVar, '0px');
+		parent.style.setProperty(gapCssVar, `${Math.max(0, Math.round(gap ?? 0))}px`);
+	};
+
+	// Convert legacy total minimum heights into the trailing space the artist
+	// actually sees. Persisting the gap rather than the total prevents growing
+	// freeform canvases from consuming it at wider published viewports.
 	useEffect(() => {
-		if (!scaleWithViewport || value === undefined || viewportValue !== undefined) return;
+		if (!useTrailingGap || gapValue !== undefined) return;
+		if (value === undefined && viewportValue === undefined) return;
 		const handle = handleRef.current;
-		const win = handle?.ownerDocument.defaultView;
-		if (!win) return;
-		onChange(value, toViewportHeight(value, win), false);
-	}, [breakpoint, label, onChange, scaleWithViewport, value, viewportValue]);
+		if (!handle) return;
+		const gap = Math.max(0, measuredHeight(handle) - naturalHeight(handle));
+		onChange(undefined, undefined, Math.round(gap), false);
+	}, [gapValue, onChange, useTrailingGap, value, viewportValue]);
 
 	const start = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
@@ -75,15 +98,21 @@ export default function SectionResizeHandle({
 		const win = handle.ownerDocument.defaultView ?? window;
 		let lastClientY = event.clientY;
 		let draft = measuredHeight(handle);
-		let draftViewport = scaleWithViewport ? toViewportHeight(draft, win) : undefined;
+		let draftViewport: number | undefined;
+		let draftGap = useTrailingGap ? Math.max(0, draft - naturalHeight(handle)) : undefined;
 		const update = (clientY: number) => {
 			const parentTop = handle.parentElement?.getBoundingClientRect().top;
 			if (parentTop === undefined) return;
 			// Measure from the section's live viewport position. This keeps the edge
 			// under the pointer when the preview scrolls during the drag.
 			draft = Math.max(0, clientY - parentTop);
-			draftViewport = scaleWithViewport ? toViewportHeight(draft, win) : undefined;
-			applyLive(handle, draft, draftViewport);
+			if (useTrailingGap) {
+				draftGap = Math.max(0, draft - naturalHeight(handle));
+				applyGapLive(handle, draftGap);
+			} else {
+				draftViewport = undefined;
+				applyMinimumLive(handle, draft);
+			}
 		};
 		const move = (next: PointerEvent) => {
 			lastClientY = next.clientY;
@@ -101,7 +130,11 @@ export default function SectionResizeHandle({
 			} catch {
 				// Window listeners still complete the gesture when capture is unavailable.
 			}
-			onChange(Math.round(draft), draftViewport);
+			onChange(
+				useTrailingGap ? undefined : Math.round(draft),
+				draftViewport,
+				draftGap === undefined ? undefined : Math.round(draftGap),
+			);
 		};
 		try {
 			handle.setPointerCapture(event.pointerId);
@@ -115,8 +148,9 @@ export default function SectionResizeHandle({
 	};
 
 	const reset = (handle: HTMLElement) => {
-		applyLive(handle, undefined);
-		onChange(undefined, undefined);
+		if (useTrailingGap) applyGapLive(handle, undefined);
+		else applyMinimumLive(handle, undefined);
+		onChange(undefined, undefined, undefined);
 	};
 
 	return (
@@ -127,7 +161,7 @@ export default function SectionResizeHandle({
 			tabIndex={0}
 			aria-orientation="horizontal"
 			aria-label={`Resize ${label} for ${breakpoint}`}
-			aria-valuenow={value}
+			aria-valuenow={gapValue ?? value}
 			title={`Drag to resize ${label}. Double-click or press Home to reset.`}
 			onPointerDown={start}
 			onDoubleClick={(event) => reset(event.currentTarget)}
@@ -140,16 +174,19 @@ export default function SectionResizeHandle({
 				if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
 				event.preventDefault();
 				const direction = event.key === 'ArrowUp' ? -1 : 1;
-				const next = Math.max(
-					0,
-					(viewportValue !== undefined
-						? measuredHeight(event.currentTarget)
-						: value ?? measuredHeight(event.currentTarget)) + direction * 8,
-				);
-				const win = event.currentTarget.ownerDocument.defaultView ?? window;
-				const nextViewport = scaleWithViewport ? toViewportHeight(next, win) : undefined;
-				applyLive(event.currentTarget, next, nextViewport);
-				onChange(next, nextViewport);
+				if (useTrailingGap) {
+					const current = gapValue ?? Math.max(
+						0,
+						measuredHeight(event.currentTarget) - naturalHeight(event.currentTarget),
+					);
+					const nextGap = Math.max(0, current + direction * 8);
+					applyGapLive(event.currentTarget, nextGap);
+					onChange(undefined, undefined, nextGap);
+				} else {
+					const next = Math.max(0, (value ?? measuredHeight(event.currentTarget)) + direction * 8);
+					applyMinimumLive(event.currentTarget, next);
+					onChange(next);
+				}
 			}}
 		>
 			<span className="section-resize-line" aria-hidden="true" />

@@ -46,6 +46,8 @@ const responsiveSectionHeightSchema = passthrough({
 	phone: sectionHeightValueSchema.optional(),
 	desktopVw: sectionHeightValueSchema.optional(),
 	phoneVw: sectionHeightValueSchema.optional(),
+	desktopGap: sectionHeightValueSchema.optional(),
+	phoneGap: sectionHeightValueSchema.optional(),
 });
 
 const kineticTextSchema = passthrough({
