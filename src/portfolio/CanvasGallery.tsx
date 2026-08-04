@@ -39,12 +39,14 @@ import {
 	DEFAULT_AR,
 	EDGE_SNAP,
 	flowMissing,
+	formatCanvasPercent,
 	MIN_EMBED_W,
 	MIN_TEXT_W,
 	MIN_W,
 	nearestEdge,
 	nudgeCanvasLayouts,
 	pointerInCanvas,
+	resolveNudgeStep,
 	roundLayout,
 	roundTextLayout,
 	snapSpanToEdges,
@@ -53,7 +55,7 @@ import {
 	snapToEdges,
 	textBottom,
 } from './canvasLayout';
-import { guideById, useGridPrefs } from './gridPrefs';
+import { getGridPrefs, guideById, useGridPrefs } from './gridPrefs';
 import { embedKindForInput, embedKindLabel, embedSpec } from './mediaEmbed';
 import { stripePaymentLink } from './paymentEmbed';
 import { safeHref } from './safeHref';
@@ -71,6 +73,11 @@ type CanvasScopeSelectionDetail = {
 	selections: Map<Element, Set<string>>;
 	toolbarCanvas: Element | null;
 };
+
+/** How long an arrow-key nudge burst waits after the last keypress before it
+ *  commits — long enough that OS key-repeat (which fires far faster than
+ *  this) never splits one held-key move into several undo steps. */
+const NUDGE_BURST_IDLE_MS = 500;
 
 const imageClickHref = (image: ResolvedImage): string | undefined =>
 	image.clickAction === 'link' ? safeHref(image.link) : undefined;
@@ -171,6 +178,14 @@ export default function CanvasGallery({
 	const [centerGuide, setCenterGuide] = useState(false);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
 	const draggedClickRef = useRef<string | null>(null);
+	/** Live x/y of a single item mid arrow-key nudge, for the toolbar readout
+	 *  (cleared once the burst below commits). */
+	const [nudgeReadout, setNudgeReadout] = useState<{ x: number; y: number } | null>(null);
+	/** The selection items an in-progress keyboard-nudge burst will commit, and
+	 *  the idle timer that ends it — mirrors a pointer drag (live drafts, one
+	 *  commit on release) but "release" here is ~500ms of no further arrow keys. */
+	const nudgeBurstItems = useRef<ReturnType<typeof selectionItems> | null>(null);
+	const nudgeBurstTimer = useRef<number | undefined>(undefined);
 	const gridPrefs = useGridPrefs();
 
 	// Snap targets follow the chosen guide: square guides snap x AND y to the
@@ -357,45 +372,109 @@ export default function CanvasGallery({
 		);
 	};
 
-	const nudgeSelection = (dx: number, dy: number) => {
+	const clearNudgeBurstTimer = () => {
+		if (nudgeBurstTimer.current !== undefined) {
+			window.clearTimeout(nudgeBurstTimer.current);
+			nudgeBurstTimer.current = undefined;
+		}
+	};
+
+	/** Commit whatever the pending nudge burst last drafted — one
+	 *  onBulkLayoutChange/onLayoutChange call, so one undo step, exactly like a
+	 *  pointer-drag release — then clear those items' drafts so the now-committed
+	 *  props take back over. Safe to call with nothing pending (a no-op), so every
+	 *  other canvas action (select something else, resize, reorder, delete,
+	 *  escape, unmount) can call it first without checking.  */
+	const flushNudgeBurst = () => {
+		clearNudgeBurstTimer();
+		const items = nudgeBurstItems.current;
+		nudgeBurstItems.current = null;
+		setNudgeReadout(null);
+		if (!items || items.length === 0) return;
+		const updates: CanvasLayoutUpdates = {};
+		for (const item of items) {
+			if (item.kind === 'text') {
+				const layout = textDraftsRef.current[item.id];
+				if (!layout) continue;
+				const rounded = roundTextLayout(layout);
+				committedTextLayouts.current[item.id] = rounded;
+				(updates.texts ??= {})[item.id] = rounded;
+			} else {
+				const layout = draftsRef.current[item.id];
+				if (!layout) continue;
+				const rounded = roundLayout(layout);
+				if (item.kind === 'image') (updates.images ??= {})[item.id] = rounded;
+				else if (item.kind === 'embed') (updates.embeds ??= {})[item.id] = rounded;
+				else (updates.widgets ??= {})[item.id] = rounded;
+			}
+		}
+		if (updates.images || updates.texts || updates.embeds || updates.widgets) {
+			if (onBulkLayoutChange) onBulkLayoutChange(updates);
+			else {
+				for (const [id, layout] of Object.entries(updates.images ?? {})) onLayoutChange?.(id, layout);
+				for (const [id, layout] of Object.entries(updates.texts ?? {})) onTextLayout?.(id, layout);
+				for (const [id, layout] of Object.entries(updates.embeds ?? {})) onEmbedLayout?.(id, layout);
+				for (const [id, layout] of Object.entries(updates.widgets ?? {})) onWidgetLayout?.(id, layout);
+			}
+		}
+		setDrafts((current) => {
+			const next = { ...current };
+			for (const item of items) if (item.kind !== 'text') delete next[item.id];
+			return next;
+		});
+		setTextDrafts((current) => {
+			const next = { ...current };
+			for (const item of items) if (item.kind === 'text') delete next[item.id];
+			return next;
+		});
+	};
+
+	/** One arrow-key nudge. Moves the live draft immediately (same instant
+	 *  feedback as a drag) and shows the readout, but only (re)schedules the
+	 *  commit — holding the key, or tapping it repeatedly, keeps refreshing the
+	 *  same pending commit instead of writing to history every keystroke. `big`
+	 *  (Alt/Option) scales the step 10x for a faster, coarser move. */
+	const nudgeSelection = (dx: number, dy: number, big = false) => {
 		const chosen = selectionItems().filter(
 			(item) =>
 				selected.has(item.key) &&
 				!(item.kind === 'image' && (item.layout as ImageLayout).locked),
 		);
 		if (chosen.length === 0) return;
+		// The keydown listener is a long-lived closure that isn't redefined between
+		// keystrokes within a burst (nudging never changes `selected`, the effect's
+		// only relevant dependency) — so a fast key-repeat calls this SAME closure
+		// repeatedly, and `selectionItems()` above still resolves through the
+		// `drafts`/`textDrafts` STATE it originally closed over, not this burst's
+		// running position. Read the live refs instead (the same source a pointer
+		// drag's own equally long-lived handlers use) so each keystroke keeps
+		// nudging from where the burst actually left off, not from where it started.
+		const liveLayoutOf = (item: (typeof chosen)[number]): ImageLayout | TextLayout =>
+			item.kind === 'text'
+				? (textDraftsRef.current[item.id] ?? item.layout)
+				: (draftsRef.current[item.id] ?? item.layout);
+		const prefs = getGridPrefs();
+		const activeGuide = guideById(prefs.guide);
+		const stepOn = editable && prefs.snap && activeGuide.kind !== 'off';
+		const step = resolveNudgeStep(activeGuide.kind, activeGuide.n, stepOn, big);
 		const nudged = nudgeCanvasLayouts(
-			chosen.map((item) => item.layout),
-			dx,
-			dy,
+			chosen.map(liveLayoutOf),
+			dx * step,
+			dy * step,
 		);
-		const updates: CanvasLayoutUpdates = {};
+		const nextDrafts: Record<string, ImageLayout> = {};
+		const nextTextDrafts: Record<string, TextLayout> = {};
 		chosen.forEach((item, index) => {
 			const next = nudged[index];
-			if (item.kind === 'image')
-				(updates.images ??= {})[item.id] = roundLayout(next as ImageLayout);
-			else if (item.kind === 'embed')
-				(updates.embeds ??= {})[item.id] = roundLayout(next as ImageLayout);
-			else if (item.kind === 'widget')
-				(updates.widgets ??= {})[item.id] = roundLayout(next as ImageLayout);
-			else {
-				const layout = roundTextLayout(next as TextLayout);
-				committedTextLayouts.current[item.id] = layout;
-				(updates.texts ??= {})[item.id] = layout;
-			}
+			if (item.kind === 'text') nextTextDrafts[item.id] = clampTextLayout(next as TextLayout);
+			else nextDrafts[item.id] = clampLayout(next as ImageLayout);
 		});
-		if (onBulkLayoutChange) {
-			onBulkLayoutChange(updates);
-			return;
-		}
-		for (const [id, layout] of Object.entries(updates.images ?? {}))
-			onLayoutChange?.(id, layout);
-		for (const [id, layout] of Object.entries(updates.texts ?? {}))
-			onTextLayout?.(id, layout);
-		for (const [id, layout] of Object.entries(updates.embeds ?? {}))
-			onEmbedLayout?.(id, layout);
-		for (const [id, layout] of Object.entries(updates.widgets ?? {}))
-			onWidgetLayout?.(id, layout);
+		if (Object.keys(nextDrafts).length) setDrafts((d) => ({ ...d, ...nextDrafts }));
+		if (Object.keys(nextTextDrafts).length) setTextDrafts((d) => ({ ...d, ...nextTextDrafts }));
+		setNudgeReadout(chosen.length === 1 ? { x: nudged[0].x, y: nudged[0].y } : null);
+		nudgeBurstItems.current = chosen;
+		clearNudgeBurstTimer();
+		nudgeBurstTimer.current = window.setTimeout(flushNudgeBurst, NUDGE_BURST_IDLE_MS);
 	};
 
 	useEffect(() => {
@@ -412,6 +491,7 @@ export default function CanvasGallery({
 		const hostDoc = doc.defaultView?.frameElement?.ownerDocument;
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
+				flushNudgeBurst();
 				setSelected(new Set());
 				return;
 			}
@@ -423,22 +503,29 @@ export default function CanvasGallery({
 					!!target.closest('[contenteditable="true"]'))
 			) return;
 			if (doc.activeElement !== canvas && !canvas.contains(doc.activeElement)) return;
-			if (!event.metaKey && !event.ctrlKey && !event.altKey && selected.size > 0) {
-				if (selected.size === 1 && (event.key === '[' || event.key === ']')) {
+			const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key);
+			if (!event.metaKey && !event.ctrlKey && selected.size > 0) {
+				// [ / ] (reorder) and Shift+Arrow (resize) are unchanged, existing
+				// single-item shortcuts — Alt/Option is reserved below for a faster,
+				// 10x nudge, so both stay gated to !altKey exactly as before.
+				if (!event.altKey && selected.size === 1 && (event.key === '[' || event.key === ']')) {
 					event.preventDefault();
+					flushNudgeBurst();
 					moveSelectionLayer(event.key === ']' ? 'front' : 'back');
 					return;
 				}
-				if (selected.size === 1 && event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+				if (!event.altKey && selected.size === 1 && event.shiftKey && isArrow) {
 					event.preventDefault();
+					flushNudgeBurst();
 					resizeSelectionWithKeys(event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : -1);
 					return;
 				}
-				if (!event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+				if (!event.shiftKey && isArrow) {
 					event.preventDefault();
 					nudgeSelection(
 						event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
 						event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0,
+						event.altKey,
 					);
 					return;
 				}
@@ -451,6 +538,7 @@ export default function CanvasGallery({
 				!onDeleteSelection ||
 				selected.size === 0
 			) return;
+			flushNudgeBurst();
 			const selection: CanvasSelection = {};
 			for (const key of selected) {
 				const separator = key.indexOf(':');
@@ -470,6 +558,7 @@ export default function CanvasGallery({
 		doc.addEventListener('keydown', onKey);
 		if (hostDoc && hostDoc !== doc) hostDoc.addEventListener('keydown', onKey);
 		return () => {
+			flushNudgeBurst();
 			doc.removeEventListener('keydown', onKey);
 			if (hostDoc && hostDoc !== doc) hostDoc.removeEventListener('keydown', onKey);
 		};
@@ -1342,12 +1431,18 @@ export default function CanvasGallery({
 							)}
 						</>
 					)}
-					<span title="Resize selected item with Shift + arrow keys">
-						{scopedSelectionCount > 1
+					<span
+						className={nudgeReadout ? 'canvas-nudge-readout' : undefined}
+						title="Shift + arrow keys resizes · Alt/Option + arrow keys nudges 10x"
+						aria-live="polite"
+					>
+						{nudgeReadout
+							? `x ${formatCanvasPercent(nudgeReadout.x)}% · y ${formatCanvasPercent(nudgeReadout.y)}%`
+							: scopedSelectionCount > 1
 							? `${scopedSelectionCount} selected · arrows nudge`
 							: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
 							? 'Position & size locked'
-							: 'Arrows nudge · ⇧ arrows resize'}
+							: 'Arrows nudge (⌥ 10x) · ⇧ resize'}
 					</span>
 				</div>,
 				canvasRef.current.ownerDocument.body,

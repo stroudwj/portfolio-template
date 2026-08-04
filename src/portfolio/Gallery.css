@@ -405,6 +405,15 @@
 	aspect-ratio: 100 / var(--ch, 100);
 }
 
+/* The canvas itself (not just the selected item) holds DOM focus while it
+   receives arrow-key nudges — :focus-visible keeps this ring keyboard-only,
+   so a mouse click/drag (which also focuses the container) doesn't show a
+   second outline stacked on the selected item's own Klein outline below. */
+.canvas-gallery.editable:focus-visible {
+	outline: 1.5px solid #002fa7;
+	outline-offset: -1.5px;
+}
+
 .canvas-item {
 	position: absolute;
 	left: calc(var(--x, 0) * 1%);
@@ -599,6 +608,18 @@
 	background: #27324f;
 }
 .canvas-layer-toolbar span { padding: 0 4px; color: #3c4561; }
+
+/* Transient x/y readout while an arrow-key nudge is in progress, replacing
+   the toolbar's static shortcut hint until the burst commits. DESIGN.md's
+   13px/--ink-soft caption spec (#6b6963) hardcoded like the Klein accents
+   above — this stylesheet also ships to published sites, where the editor's
+   token set isn't loaded, and this text never renders there (editable-only). */
+.canvas-layer-toolbar .canvas-nudge-readout {
+	font-size: 13px;
+	font-weight: 400;
+	color: #6b6963;
+	white-space: nowrap;
+}
 
 /* Hosted players and maps pinned to the canvas fill their saved aspect-ratio box. */
 .canvas-item.canvas-embed-item iframe {
