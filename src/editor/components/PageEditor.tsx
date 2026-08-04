@@ -39,6 +39,12 @@ import {
 } from '../../portfolio/canvasLayout';
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import {
+	DEFAULT_CONTACT_BUTTON_LABEL,
+	decodeContactEmail,
+	encodeContactEmail,
+	type ContactEmailParts,
+} from '../../portfolio/contactEmail';
+import {
 	isEmail,
 	isUrl,
 	isVideoFile,
@@ -141,6 +147,7 @@ const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
 	{ value: 'divider', label: 'Divider' },
 	{ value: 'children', label: 'Sub-pages' },
 	{ value: 'about', label: 'About content' },
+	{ value: 'contact', label: 'Contact' },
 	{ value: 'form', label: 'Contact form' },
 	{ value: 'products', label: 'Products' },
 	{ value: 'project', label: 'Project fields' },
@@ -208,6 +215,51 @@ function CarouselCustomRatioInputs({
 				<input className="text-input compact-number" type="text" inputMode="decimal" value={height} onChange={(event) => setHeight(event.target.value)} onBlur={commit} onKeyDown={enterToCommit} aria-label="Custom carousel ratio height" />
 			</label>
 		</div>
+	);
+}
+
+/**
+ * The contact block stores its address split and encoded, so the field keeps the
+ * artist's plain typing in local state and commits the encoded halves only once the
+ * address is complete. A half-typed address commits as empty rather than shipping a
+ * broken mailto to the published site.
+ */
+function ContactEmailField({
+	email,
+	ariaLabel,
+	onChange,
+}: {
+	email: ContactEmailParts | undefined;
+	ariaLabel: string;
+	onChange: (email: ContactEmailParts) => void;
+}) {
+	const stored = decodeContactEmail(email);
+	const [typed, setTyped] = useState(stored);
+
+	// Undo/redo and switching pages replace the block under the field.
+	useEffect(() => {
+		setTyped(stored);
+	}, [stored]);
+
+	const invalid = !!typed.trim() && !isEmail(typed);
+
+	return (
+		<Field
+			label="Email address"
+			hint="Shown on the page as “name [at] example [dot] com” so address harvesters can’t read it. The button opens the visitor’s email app."
+			error={invalid ? 'Enter a valid email address.' : undefined}
+		>
+			<TextInput
+				aria-label={ariaLabel}
+				value={typed}
+				placeholder="you@example.com"
+				onChange={(event) => {
+					const next = event.target.value;
+					setTyped(next);
+					onChange(encodeContactEmail(next));
+				}}
+			/>
+		</Field>
 	);
 }
 
@@ -685,6 +737,7 @@ export default function PageEditor({
 			{!hasAboutBlock && (
 				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}>About content</button>
 			)}
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'contact')}>Contact</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}>Contact form</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}>Project fields</button>
 			<button
@@ -2340,6 +2393,46 @@ export default function PageEditor({
 								<button type="button" className="btn-icon" disabled={fieldIndex === order.length - 1} onClick={() => updateOrder(fieldIndex, fieldIndex + 1)}>↓</button>
 							</div>)}
 						</div>
+					</div>
+				);
+			}
+			case 'contact': {
+				const contactLabel = `contact block ${index + 1} on ${pageName}`;
+				return (
+					<div className="block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label">Contact</span>
+							{controls(index, block, true)}
+						</div>
+						<Field label="Heading">
+							<TextInput
+								aria-label={`Heading for ${contactLabel}`}
+								value={block.heading ?? ''}
+								placeholder="Get in touch"
+								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { heading: event.target.value })}
+							/>
+						</Field>
+						<Field label="Short text">
+							<TextInput
+								aria-label={`Text for ${contactLabel}`}
+								value={block.text ?? ''}
+								placeholder="Email me about commissions, prints, or studio visits."
+								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { text: event.target.value })}
+							/>
+						</Field>
+						<ContactEmailField
+							email={block.email}
+							ariaLabel={`Email address for ${contactLabel}`}
+							onChange={(email) => editor.updateContactBlock(pageKey, block.id, { email })}
+						/>
+						<Field label="Words on the button">
+							<TextInput
+								aria-label={`Button words for ${contactLabel}`}
+								value={block.buttonLabel ?? ''}
+								placeholder={DEFAULT_CONTACT_BUTTON_LABEL}
+								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { buttonLabel: event.target.value })}
+							/>
+						</Field>
 					</div>
 				);
 			}

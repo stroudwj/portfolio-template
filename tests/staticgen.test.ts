@@ -8,6 +8,7 @@ import { blankContent } from '../src/editor/lib/content-init';
 import type { PortfolioBundle } from '../src/editor/lib/exporter';
 import { generateStaticSite, servedPath, referencedAssetPaths } from '../src/editor/lib/staticgen/site';
 import { escapeHtml, scriptSafeJson } from '../src/editor/lib/staticgen/html';
+import { encodeContactEmail } from '../src/portfolio/contactEmail';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
@@ -223,6 +224,54 @@ describe('staticgen', () => {
 		expect(home).toContain('--section-min-desktop:180px');
 		expect(home).toContain('--section-min-phone:120px');
 		expect(home).not.toContain('sidebar is-stabilized');
+	});
+
+	it('publishes a contact block without ever writing the address', async () => {
+		// Published pages inline their whole Content as window.__HW__, so the address
+		// must be absent from the served bytes entirely — markup AND boot data.
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{
+							id: 'contact-1',
+							type: 'contact',
+							heading: 'Get in touch',
+							text: 'Email me about commissions.',
+							email: encodeContactEmail('jane.doe@studio-example.com'),
+							buttonLabel: 'Email me',
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		// The block really rendered.
+		expect(home).toContain('contact-block');
+		expect(home).toContain('Get in touch');
+		expect(home).toContain('Email me about commissions.');
+		// The readable no-JS fallback stands in for the address.
+		expect(home).toContain('jane.doe [at] studio-example [dot] com');
+
+		// Nothing anywhere in the published site spells the address out.
+		expect(home).not.toContain('jane.doe@studio-example.com');
+		expect(home).not.toContain('mailto:');
+		for (const file of site.files) {
+			if (!/\.(html|json|js|css|xml|txt)$/.test(file.path)) continue;
+			expect(new TextDecoder().decode(file.bytes)).not.toContain('jane.doe@studio-example.com');
+		}
 	});
 
 	it('leaves configured text colors untouched when automatic contrast is off', async () => {

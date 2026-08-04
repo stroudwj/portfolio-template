@@ -1,0 +1,70 @@
+.contact-block {
+	width: 100%;
+	max-width: 680px;
+	box-sizing: border-box;
+	margin: 3rem auto;
+	padding: 0 40px;
+	color: var(--color-text);
+	font-family: var(--font-family);
+}
+
+.contact-block-heading {
+	margin: 0 0 1rem;
+	font-family: var(--font-heading, var(--font-family));
+	font-size: clamp(1.5rem, 4vw, 1.75rem);
+	font-weight: 500;
+	line-height: 1.25;
+	letter-spacing: -0.01em;
+}
+
+.contact-block-text {
+	margin: 0 0 1.5rem;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+/* Matches .contact-form-send so both contact surfaces read as one control. */
+.contact-block-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	padding: 10px 22px;
+	border: 1px solid var(--color-accent);
+	border-radius: 4px;
+	background: var(--color-accent);
+	color: var(--color-bg);
+	font: inherit;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.contact-block-button:hover:not(:disabled) {
+	filter: brightness(0.86);
+}
+
+.contact-block-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.68;
+}
+
+.contact-block-button:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 3px;
+}
+
+.contact-block-address {
+	margin: 1rem 0 0;
+	color: var(--color-text-muted);
+	font-size: 0.875rem;
+	line-height: 1.55;
+}
+
+@media (max-width: 768px) {
+	.contact-block {
+		margin: 2rem auto;
+		padding: 0 20px;
+	}
+}

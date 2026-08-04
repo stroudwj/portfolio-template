@@ -34,6 +34,7 @@ import {
 	sectionPartKey,
 } from '../lib/pageSections';
 import { embedSpec, type EmbedKind } from '../portfolio/mediaEmbed';
+import { DEFAULT_CONTACT_BUTTON_LABEL, EMPTY_CONTACT_EMAIL } from '../portfolio/contactEmail';
 import type { CanvasSelection } from '../portfolio/types';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
@@ -566,6 +567,12 @@ export interface EditorContextValue {
 	): void;
 	/** Add the shared About content to a page; no-op when that page already has it. */
 	addAboutBlock(key: string, sectionId?: string): void;
+	addContactBlock(key: string, sectionId?: string): void;
+	updateContactBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'contact' }>, 'id' | 'type'>>,
+	): void;
 	addFormBlock(key: string, sectionId?: string): void;
 	updateFormBlock(
 		key: string,
@@ -2337,6 +2344,25 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					? page
 					: appendBlockToSection(page, { id: uid('about'), type: 'about' }, sectionId),
 			),
+		addContactBlock: (key, sectionId) =>
+			patchPage(key, (page) =>
+				appendBlockToSection(page, {
+					id: uid('contact'),
+					type: 'contact',
+					heading: 'Get in touch',
+					text: 'Email me about commissions, prints, or studio visits.',
+					email: EMPTY_CONTACT_EMAIL,
+					buttonLabel: DEFAULT_CONTACT_BUTTON_LABEL,
+				}, sectionId),
+			),
+		updateContactBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'contact'
+						? { ...block, ...patch, id: block.id, type: 'contact' }
+						: block,
+				),
+			true, `page:${key}:contact:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addFormBlock: (key, sectionId) =>
 			patchPage(key, (page) =>
 				appendBlockToSection(page, {
@@ -2409,7 +2435,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				const label =
 					current.type === 'text' ? current.text :
 					current.type === 'button' ? current.label :
-					current.type === 'form' ? current.heading ?? '' : '';
+					current.type === 'form' ? current.heading ?? '' :
+					current.type === 'contact' ? current.heading ?? '' : '';
 				let replacement: PageBlock;
 				switch (type) {
 					case 'text':
@@ -2450,6 +2477,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					case 'divider': replacement = { id: blockId, type }; break;
 					case 'products': replacement = { id: blockId, type, layout: 'grid' }; break;
 					case 'project': replacement = { id: blockId, type, project: { template: 'artwork' } }; break;
+					case 'contact': replacement = {
+						id: blockId, type,
+						heading: label || 'Get in touch',
+						text: 'Email me about commissions, prints, or studio visits.',
+						email: EMPTY_CONTACT_EMAIL,
+						buttonLabel: DEFAULT_CONTACT_BUTTON_LABEL,
+					}; break;
 					case 'form': replacement = {
 						id: blockId, type, heading: label || 'Get in touch', action: '',
 						successMessage: 'Thanks — your message has been sent.',
