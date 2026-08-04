@@ -17,8 +17,10 @@ import { collectIssues } from '../src/editor/lib/validation';
 import { automaticPhoneOrder } from '../src/portfolio/mobileOrder';
 import {
 	clampTextFlowLayout,
+	formatCanvasPercent,
 	nudgeCanvasLayouts,
 	pointerInCanvas,
+	resolveNudgeStep,
 	roundLayout,
 	snapSpanToCenter,
 	snapSpanToEdges,
@@ -135,6 +137,28 @@ describe('content compatibility', () => {
 			{ x: 11, y: 0, w: 30, ar: 1 },
 			{ x: 50, y: 6, w: 50, ar: 2 },
 		]);
+	});
+
+	it('resolves an arrow-key nudge step from the active guide, falling back to a small default', () => {
+		// Square guides with snap on: an exact grid step (100 / n).
+		expect(resolveNudgeStep('squares', 8, true, false)).toBe(12.5);
+		expect(resolveNudgeStep('squares', 25, true, false)).toBe(4);
+		// Snap off, or no guide, or column guides (which shade bands, not a
+		// uniform step): the small default, not a jump.
+		expect(resolveNudgeStep('squares', 8, false, false)).toBe(1);
+		expect(resolveNudgeStep('off', 0, false, false)).toBe(1);
+		expect(resolveNudgeStep('columns', 4, true, false)).toBe(1);
+		// The big (Alt/Option) modifier scales whichever step applies by 10x.
+		expect(resolveNudgeStep('squares', 8, true, true)).toBe(125);
+		expect(resolveNudgeStep('off', 0, false, true)).toBe(10);
+	});
+
+	it('formats a nudge readout percentage to one decimal, trimmed when exact', () => {
+		expect(formatCanvasPercent(40)).toBe('40');
+		expect(formatCanvasPercent(12.5)).toBe('12.5');
+		expect(formatCanvasPercent(12.54)).toBe('12.5');
+		expect(formatCanvasPercent(12.56)).toBe('12.6');
+		expect(formatCanvasPercent(0)).toBe('0');
 	});
 
 	it('keeps a dragged item under the pointer when its canvas scrolls', () => {

@@ -103,6 +103,7 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: '⌘/Ctrl Y', label: 'Redo' },
 	{ keys: '⇧ S', label: 'Toggle edge snap' },
 	{ keys: 'Arrow keys', label: 'Nudge selected canvas item(s)' },
+	{ keys: '⌥/Alt Arrow keys', label: 'Nudge selected canvas item(s) 10x' },
 	{ keys: '[ / ]', label: 'Send selected canvas items backward / bring them forward' },
 	{ keys: '⇧ Arrow keys', label: 'Resize selected canvas items' },
 	{ keys: 'Delete / Backspace', label: 'Remove selected canvas items' },

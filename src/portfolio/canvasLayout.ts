@@ -74,6 +74,29 @@ export function nudgeCanvasLayouts<T extends { x: number; y: number; w: number }
 	}));
 }
 
+/** How far one arrow-key press should nudge a selected canvas item, in the
+ * same canvas-width % units as x/y/w. Square guides give an exact, evenly
+ * spaced step once snap is on (matching what a drag would snap to); anything
+ * else (guides off, or column guides — which shade bands, not a uniform grid)
+ * falls back to a small step so a tap still reads as "nudge" rather than
+ * "jump". The big flag scales either case up for a faster, coarser move. */
+export function resolveNudgeStep(
+	guideKind: 'off' | 'squares' | 'columns',
+	guideN: number,
+	snapOn: boolean,
+	big: boolean,
+): number {
+	const base = snapOn && guideKind === 'squares' && guideN > 0 ? 100 / guideN : 1;
+	return big ? base * 10 : base;
+}
+
+/** Formats a canvas-width percentage for the transient nudge readout: one
+ * decimal place, trimmed to a bare integer when exact (40, not 40.0). */
+export function formatCanvasPercent(value: number): string {
+	const rounded = Math.round(value * 10) / 10;
+	return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 /** Pointer location in canvas-width units. Re-reading the live rectangle makes
  * dragging stay attached to the cursor when the page scrolls beneath it. */
 export function pointerInCanvas(
