@@ -13,6 +13,7 @@ import TextBlock from './TextBlock';
 import Embed from './Embed';
 import ScrollShots from './ScrollShots';
 import ContactForm from './ContactForm';
+import ContactBlock from './ContactBlock';
 import { PortfolioButton, PortfolioDivider } from './PageBlocks';
 import Products from './Products';
 import ChildPages from './ChildPages';
@@ -1010,6 +1011,17 @@ export default function PortfolioPage({
 						style={block.style}
 						width={block.width}
 						color={block.color}
+					/>
+				);
+			case 'contact':
+				return (
+					<ContactBlock
+						key={block.id}
+						heading={block.heading}
+						text={block.text}
+						email={block.email}
+						buttonLabel={block.buttonLabel}
+						editorPreview={editorPreview}
 					/>
 				);
 			case 'form':

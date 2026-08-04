@@ -6,6 +6,7 @@
 // the build fails loudly if the data drifts from what the pages expect.
 import data from '../data/content.json';
 import { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema';
+import type { ContactEmailParts } from '../portfolio/contactEmail';
 
 export { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema';
 
@@ -558,6 +559,15 @@ export type PageBlock =
 			fontFamily?: string;
 			fontSize?: number;
 			layout?: ImageLayout;
+		}
+	| {
+			id: string;
+			type: 'contact';
+			heading?: string;
+			text?: string;
+			/** The address, split and encoded — never a readable address. */
+			email: ContactEmailParts;
+			buttonLabel?: string;
 		}
 	| {
 			id: string;

@@ -8,7 +8,18 @@ import {
 	UnsupportedContentVersionError,
 	parseAndMigrateContent,
 } from '../src/lib/content-schema';
-import { parseAndMigrateEditorDoc, UnsupportedEditorDocVersionError } from '../src/editor/lib/doc-schema';
+import {
+	EDITOR_DOC_VERSION,
+	parseAndMigrateEditorDoc,
+	UnsupportedEditorDocVersionError,
+} from '../src/editor/lib/doc-schema';
+import {
+	contactEmailFallback,
+	contactMailtoHref,
+	decodeContactEmail,
+	encodeContactEmail,
+	encodeEmailPart,
+} from '../src/portfolio/contactEmail';
 import { buildBundle } from '../src/editor/lib/exporter';
 import { blankDoc, existingDoc } from '../src/editor/lib/content-init';
 import { registerAsset } from '../src/editor/lib/assets';
@@ -648,6 +659,82 @@ describe('browser draft compatibility', () => {
 
 		const bundle = await buildBundle(doc);
 		expect(parseAndMigrateContent(bundle.contentJson)).toEqual(bundle.contentJson);
+	});
+
+	it('parses a draft saved before the contact block existed, with no version bump', () => {
+		// The contact block is a new member of an optional union: a draft that predates
+		// it carries no such block and must still open on the same schema versions.
+		const doc = parseAndMigrateEditorDoc(fixture('editor-doc-v0.json'));
+
+		expect(doc.docVersion).toBe(EDITOR_DOC_VERSION);
+		expect(EDITOR_DOC_VERSION).toBe(4);
+		expect(doc.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
+		expect(CONTENT_SCHEMA_VERSION).toBe(5);
+		for (const page of Object.values(doc.content.pages))
+			expect(page.blocks?.some((block) => block.type === 'contact')).toBeFalsy();
+	});
+
+	it('round-trips a contact block and defaults its button label', () => {
+		const doc = blankDoc();
+		const email = encodeContactEmail('jane@example.com');
+		doc.content.pages.home.blocks = [
+			...(doc.content.pages.home.blocks ?? []),
+			{
+				id: 'contact-1',
+				type: 'contact',
+				heading: 'Get in touch',
+				text: 'Email me about commissions.',
+				email,
+			},
+		];
+
+		const parsed = parseAndMigrateEditorDoc(doc);
+		const block = parsed.content.pages.home.blocks?.find((candidate) => candidate.id === 'contact-1');
+		if (block?.type !== 'contact') throw new Error('Expected the contact block to survive parsing');
+
+		expect(block.heading).toBe('Get in touch');
+		expect(block.text).toBe('Email me about commissions.');
+		expect(block.email).toEqual(email);
+		// Omitted in the draft above; supplied by the schema default.
+		expect(block.buttonLabel).toBe('Email me');
+		// The stored halves are encoded, never the address itself.
+		expect(JSON.stringify(block.email)).not.toContain('jane');
+		expect(JSON.stringify(block.email)).not.toContain('example.com');
+		expect(decodeContactEmail(block.email)).toBe('jane@example.com');
+
+		// Parsing the parsed document again changes nothing.
+		expect(parseAndMigrateEditorDoc(parsed).content.pages.home.blocks).toEqual(
+			parsed.content.pages.home.blocks,
+		);
+	});
+
+	it('flags a contact block with no usable address before publishing', () => {
+		const doc = blankDoc();
+		doc.content.pages.home.blocks = [
+			...(doc.content.pages.home.blocks ?? []),
+			{ id: 'contact-empty', type: 'contact', email: { user: '', domain: '' } },
+		];
+
+		expect(collectIssues(doc).some((issue) => issue.includes('contact block'))).toBe(true);
+
+		const withEmail = structuredClone(doc);
+		const block = withEmail.content.pages.home.blocks?.find((c) => c.id === 'contact-empty');
+		if (block?.type === 'contact') block.email = encodeContactEmail('jane@example.com');
+		expect(collectIssues(withEmail).some((issue) => issue.includes('contact block'))).toBe(false);
+	});
+
+	it('refuses hand-edited contact halves that could smuggle mail headers', () => {
+		// content.json can arrive hand-edited, so the renderer re-validates the pair it
+		// rebuilds rather than trusting whatever the halves decode to.
+		const injected = {
+			user: encodeEmailPart('jane?bcc=harvester'),
+			domain: encodeEmailPart('example.com'),
+		};
+		expect(contactMailtoHref(injected)).toBe('mailto:jane%3Fbcc%3Dharvester@example.com');
+
+		expect(decodeContactEmail({ user: 'zz-not-hex', domain: encodeEmailPart('example.com') })).toBe('');
+		expect(contactMailtoHref({ user: '', domain: '' })).toBeUndefined();
+		expect(contactEmailFallback(encodeContactEmail('jane@example.com'))).toBe('jane [at] example [dot] com');
 	});
 
 	it('rejects future draft versions', () => {

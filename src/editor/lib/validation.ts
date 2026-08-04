@@ -5,6 +5,7 @@ import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { pageGalleryConfigs } from '../../lib/content';
 import type { EditorDoc } from './types';
 import { safeWebHref } from '../../portfolio/safeHref';
+import { decodeContactEmail } from '../../portfolio/contactEmail';
 
 export const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
@@ -139,6 +140,8 @@ export function collectIssues(doc: EditorDoc): string[] {
 				issues.push(`A button on “${page.label ?? key}” needs a valid destination.`);
 			if (block.type === 'text' && block.link && !isUrl(block.link) && !block.link.startsWith('/') && !block.link.startsWith('#'))
 				issues.push(`Linked text on “${page.label ?? key}” needs a valid destination.`);
+			if (block.type === 'contact' && !decodeContactEmail(block.email))
+				issues.push(`The contact block on “${page.label ?? key}” needs an email address.`);
 			if (block.type === 'form') {
 				if (block.recipientEmail && !isEmail(block.recipientEmail))
 					issues.push(`The site owner delivery email for the contact form on “${page.label ?? key}” is not valid.`);

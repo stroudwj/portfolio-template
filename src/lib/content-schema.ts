@@ -286,6 +286,20 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		fontSize: z.number().min(8).max(96).optional(),
 		layout: imageLayoutSchema.optional(),
 	}),
+	// A plain "email me about commissions" block. Every field except the address is
+	// optional and the address itself is stored split + encoded, so nothing here can
+	// be read out of the published page's inlined content. See portfolio/contactEmail.ts.
+	passthrough({
+		id: z.string(),
+		type: z.literal('contact'),
+		heading: z.string().optional(),
+		text: z.string().optional(),
+		email: passthrough({
+			user: z.string().default(''),
+			domain: z.string().default(''),
+		}),
+		buttonLabel: z.string().default('Email me'),
+	}),
 	passthrough({
 		id: z.string(),
 		type: z.literal('form'),
