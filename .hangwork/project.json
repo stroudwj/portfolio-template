@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "runtimeVersion": "1.2.22",
+  "runtimeVersion": "1.2.23",
   "sourceCommit": "development",
   "siteUrl": "https://stroudwj.github.io",
   "basePath": "/portfolio-template",
@@ -163,8 +163,8 @@
       "gitBlobSha": "2725bdd4242b28610cc5774caeb55be47f635b03"
     },
     "src/editor/components/PreviewPanel.tsx": {
-      "sha256": "4bbf3ccdc9cb1d4952482c6bc2254591915bca4dc5c467f4b49e54ac0fe84557",
-      "gitBlobSha": "a75d2464614edb2a4a491f2e3e5a5c99b24eaccb"
+      "sha256": "d437a3e0c16066fdc75a2803d880e26c99ff994e0ae87017cb33dd58f06e1a4a",
+      "gitBlobSha": "bbbadaa8cb1b1076e680734d79387a9dce86f07d"
     },
     "src/editor/components/PublishModal.tsx": {
       "sha256": "9081b6d7b840d45c750bd5602376543167051abc05fa37e561bfdb53b60c55b3",
@@ -447,20 +447,20 @@
       "gitBlobSha": "2ecf3b6d6b9701d1846f5b78155f6e8e0374182b"
     },
     "src/editor/store.tsx": {
-      "sha256": "afedde15acef773284642f65171353205fa1d3d648f370b9890c0a16a7001c6a",
-      "gitBlobSha": "b9ecec6b2b3f81e30785231b3fab0d450add5128"
+      "sha256": "9167e13d632a3f0cf3a784bed826581394f22a3fa7e101fd02ae60465dfba133",
+      "gitBlobSha": "c5c128add2e67569a90875069209f0498a9d9f58"
     },
     "src/layouts/Layout.astro": {
       "sha256": "48f247a943f284ebbeb5bfb96eff34628e7b90ceb02a3705f8fef726801406f1",
       "gitBlobSha": "eb1df065469ee4e8bd511ce2f5ec7f2247f4ea0c"
     },
     "src/lib/content-schema.ts": {
-      "sha256": "bf2f368be2428959306a1f519c4199287cdb6daef1b370d8c189dd7414a8a5f9",
-      "gitBlobSha": "8283821f89130f19246bf39babd72813e280b34f"
+      "sha256": "cd3f69203eaf9d2a8a9693851866bc2230815ba3814acff45afb123f1db78fe4",
+      "gitBlobSha": "bdb0136a742998e3c78cf855037aecaf2919eded"
     },
     "src/lib/content.ts": {
-      "sha256": "023f1b00a3b4824ac930f6bdbe493708068e6ea87c5e7b4b816492bf82928eab",
-      "gitBlobSha": "ddbaf12f482205e2dfeb62ba38150b508b63bd7c"
+      "sha256": "a86dcf889f18fddd2a29a1f134611b5aa7fc9080697144192b53d9e58d8cdcbf",
+      "gitBlobSha": "7334a87edad7fbf4899e5a21f797948abbb8a1ff"
     },
     "src/lib/galleries.ts": {
       "sha256": "8cc7f2227bf01b3311aede6f0b6b9a36d46c81999212dcd58725506eab7c21b4",
@@ -659,16 +659,16 @@
       "gitBlobSha": "b1a0b094f6677fff19062a873b06c39be3437201"
     },
     "src/portfolio/Portfolio.tsx": {
-      "sha256": "c4338ce720c96f71641af24bcc68cc51e72a668e24560735fb019c454eddc55e",
-      "gitBlobSha": "fb1be5afcf5977d92a215627db7de6906ef06d4a"
+      "sha256": "3add2da4d024bddc0d3e958bd759e133c10c374c5386b23807402f5adda66e3e",
+      "gitBlobSha": "0d81f5352dffe0ac280f20ee6b4d7d20da1b7d1c"
     },
     "src/portfolio/PortfolioFrame.tsx": {
       "sha256": "5636f059c2c03021ec6abb731c96906910fe95dc4e0f7858342d8ca0f2f8e6a6",
       "gitBlobSha": "c2b40d098cc17fbc71a14de9be18282be98207b1"
     },
     "src/portfolio/PortfolioPage.tsx": {
-      "sha256": "5c315dababf11e048a3f9ed098f8631318189234492f1977c8c83da773c9a3b0",
-      "gitBlobSha": "8b170cd5d6602a04a186a572c737711651c960e5"
+      "sha256": "c16a40f9bc96348b65f9d1bad0d6405bd45f308a5f6a7e97c1d20f1a656e52dc",
+      "gitBlobSha": "30361695018b51769231dbdba0bf831b3edfc769"
     },
     "src/portfolio/Products.css": {
       "sha256": "3cfb69c98e79aa4f2820db524507fbf792cd087444fcb9301d8c595c1afd78e8",
@@ -703,8 +703,8 @@
       "gitBlobSha": "4c9ed81c3c01df61e60ff310160cf614cc332ca4"
     },
     "src/portfolio/SectionResizeHandle.tsx": {
-      "sha256": "032e3382df5b00e3368b11d5842ae5b3d3dcef5f97f6c5d8b0791d6d994f11fa",
-      "gitBlobSha": "87d8d319e89ce2e79e55edb9402811cedd86adfe"
+      "sha256": "a995e024554035d1de53ee1bdb585ef0d50260f4a9c74d9e55a00065460344dc",
+      "gitBlobSha": "49ee5d06777ae09187b990e09b30640fa12b33d4"
     },
     "src/portfolio/Signature.css": {
       "sha256": "686c0aeaf192f3ae654bb0571fafb2a68616ca3ba995f9c3d5cbc5b736164db2",
@@ -799,8 +799,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "143a3bf8f3f9a71432146d2acba542d35dea18c127e1964ebe3bf49ff21eac65",
-      "gitBlobSha": "0c8fbfda4d75c7a48b4d338d15624b4a7fdf9dec"
+      "sha256": "e63692fe36fb05e9cdb20b9c31e598e77d327e21f4d51af4ffecf00dcee711c3",
+      "gitBlobSha": "c6efefafe19fa6cb2c81a8ee5c270724485011b9"
     }
   }
 }

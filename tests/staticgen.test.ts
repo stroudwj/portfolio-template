@@ -173,7 +173,7 @@ describe('staticgen', () => {
 					],
 					sectionColors: { 'page:heading': '#e0685b' },
 					sectionHeights: {
-						'page:heading': { desktop: 260, phone: 180 },
+						'page:heading': { desktop: 260, phone: 180, desktopVw: 24, phoneVw: 46.15 },
 						'block:gallery': { desktop: 720 },
 					},
 				},
@@ -216,8 +216,8 @@ describe('staticgen', () => {
 		// Per-section color: the heading band is a color-blocked part.
 		expect(home).toContain('has-section-color');
 		expect(home).toContain('--color-bg:#e0685b');
-		expect(home).toContain('--section-min-desktop:260px');
-		expect(home).toContain('--section-min-phone:180px');
+		expect(home).toContain('--section-min-desktop:24vw');
+		expect(home).toContain('--section-min-phone:46.15vw');
 		expect(home).toContain('--section-min-desktop:180px');
 		expect(home).toContain('--section-min-phone:120px');
 		expect(home).not.toContain('sidebar is-stabilized');

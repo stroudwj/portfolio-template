@@ -407,7 +407,7 @@ describe('content compatibility', () => {
 		withExtras.pages.home.background = '#101014';
 		withExtras.pages.home.sectionColors = { 'block:gallery': '#e0685b', 'page:heading': '#f7ecc9' };
 		withExtras.pages.home.sectionHeights = {
-			'page:heading': { desktop: 260, phone: 180 },
+			'page:heading': { desktop: 260, phone: 180, desktopVw: 24, phoneVw: 46.15 },
 			'block:gallery': { desktop: 720 },
 		};
 
@@ -434,7 +434,7 @@ describe('content compatibility', () => {
 			'page:heading': '#f7ecc9',
 		});
 		expect(parsed.pages.home.sectionHeights).toEqual({
-			'page:heading': { desktop: 260, phone: 180 },
+			'page:heading': { desktop: 260, phone: 180, desktopVw: 24, phoneVw: 46.15 },
 			'block:gallery': { desktop: 720 },
 		});
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed); // idempotent

@@ -7,6 +7,7 @@ import { PortfolioDivider } from '../src/portfolio/PageBlocks';
 import CreativeEffects from '../src/portfolio/CreativeEffects';
 import Signature from '../src/portfolio/Signature';
 import { themeToRootCss, themeToVars } from '../src/portfolio/theme';
+import { responsiveHeightVars } from '../src/portfolio/SectionResizeHandle';
 
 describe('physical presentation controls', () => {
 	it('renders configurable carousel arrows, frame, color, and artwork mounting', () => {
@@ -150,5 +151,12 @@ describe('physical presentation controls', () => {
 		expect(css).toContain('--color-subheading-text:#444444');
 		expect(css).toContain('--nav-offset-x:-6px');
 		expect(css).toContain('--nav-offset-y:9px');
+	});
+
+	it('prefers width-relative section heights while retaining legacy pixel fallbacks', () => {
+		expect(responsiveHeightVars({ desktop: 470, desktopVw: 32.3, phone: 280 })).toMatchObject({
+			'--section-min-desktop': '32.3vw',
+			'--section-min-phone': '280px',
+		});
 	});
 });

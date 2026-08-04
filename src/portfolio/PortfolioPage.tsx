@@ -101,6 +101,8 @@ export interface PortfolioPageProps extends PortfolioData {
 		partKey: string,
 		breakpoint: SectionBreakpoint,
 		height: number | undefined,
+		viewportHeight?: number,
+		recordHistory?: boolean,
 	) => void;
 	onFooterHeight?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
 	onFooterImageLayout?: (layout: ImageLayout) => void;
@@ -1177,9 +1179,22 @@ export default function PortfolioPage({
 								<SectionResizeHandle
 									breakpoint={resizeBreakpoint}
 									value={config.sectionHeights?.[part.key]?.[resizeBreakpoint]}
+									viewportValue={
+										config.sectionHeights?.[part.key]?.[
+											resizeBreakpoint === 'phone' ? 'phoneVw' : 'desktopVw'
+										]
+									}
 									label={part.key === 'page:heading' ? 'page heading' : 'page section'}
-									onChange={(height) =>
-										onSectionHeight(page, part.key, resizeBreakpoint, height)
+									scaleWithViewport
+									onChange={(height, viewportHeight, recordHistory) =>
+										onSectionHeight(
+											page,
+											part.key,
+											resizeBreakpoint,
+											height,
+											viewportHeight,
+											recordHistory,
+										)
 									}
 								/>
 							)}

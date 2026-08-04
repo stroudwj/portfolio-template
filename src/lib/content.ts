@@ -12,10 +12,14 @@ export { CONTENT_SCHEMA_VERSION, parseAndMigrateContent } from './content-schema
 /** Credit seeded into every new portfolio. Artists can edit or remove it in Site. */
 export const DEFAULT_FOOTER = 'Made with hangwork.art';
 
-/** Optional editor-sized minimum height for one published section breakpoint. */
+/** Optional minimum height for one published section breakpoint. Pixel values
+ * are retained for older documents; `*Vw` keeps newly resized page sections in
+ * proportion with their width-scaling freeform contents. */
 export interface ResponsiveSectionHeight {
 	desktop?: number;
 	phone?: number;
+	desktopVw?: number;
+	phoneVw?: number;
 }
 
 export interface Site {

@@ -19,7 +19,6 @@ import type {
 	PageSection,
 	ProjectDetails,
 	ProjectTemplate,
-	ResponsiveSectionHeight,
 	SavedSectionTemplate,
 	SectionMotionConfig,
 	RichTextParagraph,
@@ -661,11 +660,13 @@ export interface EditorContextValue {
 	setSectionHeight(
 		key: string,
 		partKey: string,
-		breakpoint: keyof ResponsiveSectionHeight,
+		breakpoint: 'desktop' | 'phone',
 		height: number | undefined,
+		viewportHeight?: number,
+		recordHistory?: boolean,
 	): void;
 	/** Responsive minimum height of the site-wide footer. */
-	setFooterHeight(breakpoint: keyof ResponsiveSectionHeight, height: number | undefined): void;
+	setFooterHeight(breakpoint: 'desktop' | 'phone', height: number | undefined): void;
 	// sharing / SEO
 	/** Meta description used for search results and social link previews. */
 	setSiteDescription(value: string): void;
@@ -3335,23 +3336,30 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
 				};
 			}),
-		setSectionHeight: (key, partKey, breakpoint, height) =>
+		setSectionHeight: (key, partKey, breakpoint, height, viewportHeight, recordHistory = true) =>
 			patchPage(
 				key,
 				(page) => {
 					const all = { ...(page.sectionHeights ?? {}) };
 					const current = { ...(all[partKey] ?? {}) };
+					const viewportKey = breakpoint === 'phone' ? 'phoneVw' : 'desktopVw';
 					const normalized =
 						height === undefined || !Number.isFinite(height)
 							? undefined
 							: Math.max(0, Math.min(10000, Math.round(height)));
+					const normalizedViewport =
+						viewportHeight === undefined || !Number.isFinite(viewportHeight)
+							? undefined
+							: Math.max(0, Math.min(10000, Math.round(viewportHeight * 100) / 100));
 					if (normalized === undefined) delete current[breakpoint];
 					else current[breakpoint] = normalized;
+					if (normalizedViewport === undefined) delete current[viewportKey];
+					else current[viewportKey] = normalizedViewport;
 					if (Object.keys(current).length) all[partKey] = current;
 					else delete all[partKey];
 					return { ...page, sectionHeights: Object.keys(all).length ? all : undefined };
 				},
-				true,
+				recordHistory,
 				`page:${key}:sectionheight:${partKey}:${breakpoint}`,
 			),
 		setFooterHeight: (breakpoint, height) =>

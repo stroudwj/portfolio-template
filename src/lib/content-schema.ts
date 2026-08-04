@@ -44,6 +44,8 @@ const sectionHeightValueSchema = z.number().min(0).max(10000);
 const responsiveSectionHeightSchema = passthrough({
 	desktop: sectionHeightValueSchema.optional(),
 	phone: sectionHeightValueSchema.optional(),
+	desktopVw: sectionHeightValueSchema.optional(),
+	phoneVw: sectionHeightValueSchema.optional(),
 });
 
 const kineticTextSchema = passthrough({

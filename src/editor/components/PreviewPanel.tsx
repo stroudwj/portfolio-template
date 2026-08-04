@@ -475,8 +475,15 @@ export default function PreviewPanel({
 			resizeBreakpoint={resizeBreakpoint}
 			onSectionHeight={
 				resizeBreakpoint
-					? (pageKey, partKey, breakpoint, height) =>
-							editor.setSectionHeight(pageKey, partKey, breakpoint, height)
+					? (pageKey, partKey, breakpoint, height, viewportHeight, recordHistory) =>
+							editor.setSectionHeight(
+								pageKey,
+								partKey,
+								breakpoint,
+								height,
+								viewportHeight,
+								recordHistory,
+							)
 					: undefined
 			}
 			onFooterHeight={
