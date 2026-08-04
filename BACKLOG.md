@@ -46,7 +46,13 @@ block editor's structure), `src/portfolio/` renderer (render on-theme), `src/edi
 
 ---
 
-## 2. Canvas arrow-key nudging — `running`
+## 2. Canvas arrow-key nudging — `merged`
+
+> Outcome 2026-08-04: nudging already existed in `src/portfolio/CanvasGallery.tsx` (spec
+> recon looked in the wrong directory). Improved instead of duplicated: grid-aware step,
+> one undo entry per burst, transient x/y readout, Klein focus ring — and a real stale-state
+> bug in rapid nudge bursts found and fixed. 10× is Alt/Option+Arrow (Shift+Arrow was
+> already resize).
 
 **Goal.** With a freeform-canvas element selected, arrow keys move it by one snap/grid step
 (Shift = 10×). A small position/size readout appears while nudging.
