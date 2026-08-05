@@ -29,6 +29,9 @@ async function walk(directory) {
 }
 
 function isRuntimeFile(path) {
+	// Finder droppings are gitignored, so hashing them makes the manifest pass
+	// locally but fail runtime:check on any clean checkout (e.g. Pages builds).
+	if (path.endsWith('.DS_Store')) return false;
 	if (path.startsWith('src/data/') || path.startsWith('src/assets/')) return false;
 	if (path.startsWith('public/assets/brand/')) return true;
 	if (!path.startsWith('src/')) return fixedFiles.includes(path);

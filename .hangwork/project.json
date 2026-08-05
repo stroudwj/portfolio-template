@@ -22,10 +22,6 @@
       "sha256": "0b52459a598abbf4ce8b4d1b07704ad8596b1576bd26f1791377f29ec627ea83",
       "gitBlobSha": "524ee946163d4509c3490b190e56779014ceb9d3"
     },
-    "public/assets/brand/.DS_Store": {
-      "sha256": "8812d21ffa571f17417f3c895fa38cbc678de0eb6b7c36a078caf79b983c63ae",
-      "gitBlobSha": "372b0f502bce3c5dff7837ca5e06e37101a3aa8e"
-    },
     "public/assets/brand/hangwork-lockup-dark.svg": {
       "sha256": "bced0bec00b181b78caccd8eca57d5ffefd4869bf0f096910374d1e95cd90fb5",
       "gitBlobSha": "57b47f70a7a67a4660ffd8c3ace7e268fb0e5025"
@@ -41,10 +37,6 @@
     "public/assets/brand/hangwork-mark.svg": {
       "sha256": "dabf31a6036d9f7052705b279ce36dc7fa55a330f2365a4568ccdd9b99ef8a33",
       "gitBlobSha": "e00feb614be629447d724d0de6ca09867dbf93f1"
-    },
-    "public/assets/brand/hero/.DS_Store": {
-      "sha256": "da9f581a3d168b566169eb98d81338a556c5ccca53abfdc72767f28af844ae54",
-      "gitBlobSha": "a683123c76cb34daf88f75ebb64e2652ee97c6f8"
     },
     "public/assets/brand/hero/hero-01.jpg": {
       "sha256": "0a13a9b88109501d79e23ebce42276c0550f569ce62a6102f13fb8c4f770e01b",
@@ -879,8 +871,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "2a0b0499165a4ac8b3dc98746f9e6aa422e30888014c33201d11270a31bccd77",
-      "gitBlobSha": "b79a546bd2203ef322ee9ba189ad3ac980b3a0f9"
+      "sha256": "f41df32082b46865bcbc8fe5f943b7ec250c82c83dc5751c0bacc70eeaffc0bf",
+      "gitBlobSha": "76530bcd95856caf6127282729fbaad77f54f6a6"
     }
   }
 }
