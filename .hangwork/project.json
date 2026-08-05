@@ -46,7 +46,7 @@
       "sha256": "da9f581a3d168b566169eb98d81338a556c5ccca53abfdc72767f28af844ae54",
       "gitBlobSha": "a683123c76cb34daf88f75ebb64e2652ee97c6f8"
     },
-    "public/assets/brand/hero/hero-01.jpeg": {
+    "public/assets/brand/hero/hero-01.jpg": {
       "sha256": "0a13a9b88109501d79e23ebce42276c0550f569ce62a6102f13fb8c4f770e01b",
       "gitBlobSha": "271a627e6790629e97b7fe1830398ce109896cad"
     },
@@ -879,8 +879,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "58614032329827a0345a01154d00b9c38bdadc5947ac83946a5f22182bdeb636",
-      "gitBlobSha": "ade0930a66e2f8260d3b3eefbece1cf0aab93def"
+      "sha256": "2a0b0499165a4ac8b3dc98746f9e6aa422e30888014c33201d11270a31bccd77",
+      "gitBlobSha": "b79a546bd2203ef322ee9ba189ad3ac980b3a0f9"
     }
   }
 }
