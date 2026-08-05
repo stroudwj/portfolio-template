@@ -210,7 +210,8 @@ export interface Theme {
 	pageHeadingPosition?: PageHeadingPosition;
 	/** Freeform page-heading horizontal anchor as a viewport percentage. */
 	pageHeadingX?: number;
-	/** Freeform page-heading distance from the top of its color band in pixels. */
+	/** Freeform page-heading distance from the top of its color band in pixels.
+	 * Negative values (to −120) lift the heading up toward the header area. */
 	pageHeadingY?: number;
 	/** Header logo/name placement. Absent = centered. */
 	logoPosition?: LogoPosition;

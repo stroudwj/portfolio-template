@@ -85,7 +85,7 @@ export default function LayoutEditor() {
 					</div>
 				</Field>
 				<HelpDisclosure label="About navigation behavior">
-					<p>The menu scroll behavior is independent from the header. Header size and placement live in the Header placement section below; the name or logo image itself is chosen in Site → Header.</p>
+					<p>The menu scroll behavior is independent from the header. Title size and placement live in the Title placement section below; the name or logo image itself is chosen in Site → Header.</p>
 				</HelpDisclosure>
 			</div>
 		</Section>

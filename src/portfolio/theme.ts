@@ -63,7 +63,7 @@ const pageHeadingXCss = (theme: Theme): string =>
 	`${Math.min(Math.max(theme.pageHeadingX ?? 50, 5), 95)}%`;
 
 const pageHeadingYCss = (theme: Theme): string =>
-	`${Math.min(Math.max(theme.pageHeadingY ?? 56, 0), 240)}px`;
+	`${Math.min(Math.max(theme.pageHeadingY ?? 56, -120), 240)}px`;
 
 /** Fine navigation offsets, deliberately bounded so the menu remains recoverable. */
 const navOffsetCss = (value: number | undefined): string =>

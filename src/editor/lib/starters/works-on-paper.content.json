@@ -22,10 +22,11 @@
     "accentColor": "#8c2f1f",
     "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
     "headingFontFamily": "\"American Typewriter\", \"Courier Prime\", \"Courier New\", monospace",
-    "contentGap": 28,
+    "contentGap": -24,
     "pageHeadingScale": 120,
     "pageHeadingPosition": "left",
     "navStyle": "centered",
+    "navOffsetY": -28,
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
@@ -84,7 +85,12 @@
             "wall-images"
           ]
         }
-      ]
+      ],
+      "sectionHeights": {
+        "page:heading": {
+          "desktopGap": -78
+        }
+      }
     },
     "sketchbooks": {
       "title": "Sketchbooks — {name}",

@@ -5,7 +5,6 @@
   "accentColor": "#d93421",
   "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
   "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
-  "contentGap": 16,
   "pageHeadingPosition": "left",
   "navStyle": "pill",
   "automaticTextContrast": true,

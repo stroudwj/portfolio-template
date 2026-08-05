@@ -40,7 +40,7 @@ export default function Hero({
 	const editable = position === 'freeform' && !!onPositionChange;
 	const clampPosition = (x: number, y: number) => ({
 		x: Math.min(95, Math.max(5, Math.round(x))),
-		y: Math.min(240, Math.max(0, Math.round(y))),
+		y: Math.min(240, Math.max(-120, Math.round(y))),
 	});
 	const moveWithKeyboard = (event: KeyboardEvent<HTMLHeadingElement>) => {
 		if (!editable || !onPositionChange) return;

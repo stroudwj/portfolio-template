@@ -5,7 +5,6 @@
   "accentColor": "#cc8f57",
   "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
   "headingFontFamily": "\"Palatino Linotype\", Palatino, \"Book Antiqua\", Georgia, serif",
-  "contentGap": 28,
   "pageHeadingPosition": "left",
   "navStyle": "centered",
   "automaticTextContrast": true,

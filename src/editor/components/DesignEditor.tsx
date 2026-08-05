@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CreativeEditor from './CreativeEditor';
 import HeaderLayoutEditor from './HeaderLayoutEditor';
 import LayoutEditor from './LayoutEditor';
+import PageHeadingLayoutEditor from './PageHeadingLayoutEditor';
 import ThemeEditor from './ThemeEditor';
 import { HelpDisclosure } from './ui/controls';
 
@@ -70,6 +71,7 @@ export default function DesignEditor() {
 					<>
 						<LayoutEditor />
 						<HeaderLayoutEditor />
+						<PageHeadingLayoutEditor />
 					</>
 				)}
 				{area === 'effects' && <CreativeEditor />}

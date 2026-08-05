@@ -12,6 +12,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 	const logoX = theme.logoX ?? 50;
 	const logoY = theme.logoY ?? 40;
 	const logoStabilized = theme.stabilizeLogo !== false;
+	const contentGap = theme.contentGap ?? 0;
 
 	const applyLogoScale = (value: number) => {
 		const clamped = Math.max(50, Math.min(Math.round(value), 200));
@@ -21,7 +22,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 	const fields = (
 		<>
 			<p className="muted header-layout-intro">Sizes and positions the site name or image logo chosen in Site → Header.</p>
-			<Field label="Header size">
+			<Field label="Title size">
 				<div className="gap-row">
 					<input
 						type="range"
@@ -30,7 +31,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 						step={5}
 						value={logoScale}
 						onChange={(event) => applyLogoScale(Number(event.target.value))}
-						aria-label="Header size"
+						aria-label="Title size"
 					/>
 					<span className="gap-unit">{logoScale}%</span>
 					{logoScale !== 100 && (
@@ -46,8 +47,8 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 				</div>
 			</Field>
 
-			<Field label="Header position" hint="Place the identity at the left, centered, or at your own coordinates.">
-				<div className="chip-row" role="group" aria-label="Header position">
+			<Field label="Title position" hint="Place the identity at the left, centered, or at your own coordinates.">
+				<div className="chip-row" role="group" aria-label="Title position">
 					{([
 						['left', 'Left'],
 						['center', 'Center'],
@@ -66,8 +67,39 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 				</div>
 			</Field>
 
-			<Field label="While visitors scroll" hint="This affects only the header. Navigation has its own setting in Structure above.">
-				<div className="chip-row" role="group" aria-label="Header scroll behavior">
+			<Field
+				label="Space before content"
+				hint="Desktop distance between the header area and the page content. Negative pulls the page heading up."
+			>
+				<div className="gap-row">
+					<input
+						type="range"
+						min={-72}
+						max={120}
+						step={4}
+						value={contentGap}
+						onChange={(event) => {
+							const value = Number(event.target.value);
+							setTheme({ contentGap: value === 0 ? undefined : value });
+						}}
+						aria-label="Space before content"
+					/>
+					<span className="gap-unit">{contentGap}px</span>
+					{contentGap !== 0 && (
+						<button
+							type="button"
+							className="btn-icon btn-chip"
+							onClick={() => setTheme({ contentGap: undefined })}
+							title="Back to the default spacing"
+						>
+							Reset
+						</button>
+					)}
+				</div>
+			</Field>
+
+			<Field label="While visitors scroll" hint="This affects only the title. Navigation has its own setting in Structure above.">
+				<div className="chip-row" role="group" aria-label="Title scroll behavior">
 					<button type="button" className={`btn-icon btn-chip ${logoStabilized ? 'active' : ''}`} aria-pressed={logoStabilized} onClick={() => setTheme({ stabilizeLogo: undefined })}>Stays visible</button>
 					<button type="button" className={`btn-icon btn-chip ${!logoStabilized ? 'active' : ''}`} aria-pressed={!logoStabilized} onClick={() => setTheme({ stabilizeLogo: false })}>Scrolls away</button>
 				</div>
@@ -84,7 +116,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 								step={1}
 								value={logoX}
 								onChange={(event) => setTheme({ logoX: Number(event.target.value) })}
-								aria-label="Header horizontal position"
+								aria-label="Title horizontal position"
 							/>
 							<span className="gap-unit">{logoX}%</span>
 						</div>
@@ -98,7 +130,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 								step={1}
 								value={logoY}
 								onChange={(event) => setTheme({ logoY: Number(event.target.value) })}
-								aria-label="Header distance from top"
+								aria-label="Title distance from top"
 							/>
 							<span className="gap-unit">{logoY}px</span>
 						</div>
@@ -111,6 +143,6 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 	return embedded ? (
 		<div className="header-layout-embedded">{fields}</div>
 	) : (
-		<Section title="Header placement" sectionKey="_header-layout">{fields}</Section>
+		<Section title="Title placement" sectionKey="_header-layout">{fields}</Section>
 	);
 }

@@ -7,8 +7,8 @@
     "favicon": "favicon.svg",
     "footer": "Made with hangwork.art",
     "creative": {
-      "slowReveal": true,
       "grain": 4,
+      "slowReveal": true,
       "pageTransition": "fade"
     }
   },
@@ -19,15 +19,13 @@
     "accentColor": "#48614f",
     "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
     "headingFontFamily": "Garamond, \"Apple Garamond\", \"EB Garamond\", Georgia, serif",
-    "contentGap": 20,
+    "subheadingScale": 95,
     "pageHeadingPosition": "left",
     "navStyle": "minimal",
+    "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
-    "fullscreenMobileMenu": true,
-    "logoPosition": "left",
-    "stabilizeLogo": true,
-    "subheadingScale": 95
+    "stabilizeLogo": true
   },
   "nav": [
     {
@@ -60,6 +58,8 @@
       "title": "{name} — Selected Work",
       "label": "Selected Work",
       "heading": "Selected Work",
+      "hanging": true,
+      "hangingStrength": 0.6,
       "blocks": [
         {
           "id": "selected-work-images",
@@ -111,9 +111,7 @@
             "selected-work-images"
           ]
         }
-      ],
-      "hanging": true,
-      "hangingStrength": 0.6
+      ]
     },
     "collection": {
       "title": "Collection — {name}",
@@ -298,8 +296,8 @@
           "description": "Vincent van Gogh. Shoes, 1888. The Metropolitan Museum of Art.",
           "link": "https://www.metmuseum.org/art/collection/search/436533",
           "effects": {
-            "mount": "frame",
-            "reveal": "fade"
+            "reveal": "fade",
+            "mount": "frame"
           }
         },
         "07-irises.jpg": {
@@ -310,8 +308,8 @@
           "description": "Vincent van Gogh. Irises, 1890. The Metropolitan Museum of Art.",
           "link": "https://www.metmuseum.org/art/collection/search/436528",
           "effects": {
-            "mount": "frame",
-            "reveal": "fade"
+            "reveal": "fade",
+            "mount": "frame"
           }
         },
         "08-self-portrait-straw-hat.jpg": {
@@ -322,8 +320,8 @@
           "description": "Vincent van Gogh. Self-Portrait with a Straw Hat, 1887. The Metropolitan Museum of Art.",
           "link": "https://www.metmuseum.org/art/collection/search/436532",
           "effects": {
-            "mount": "frame",
-            "reveal": "fade"
+            "reveal": "fade",
+            "mount": "frame"
           }
         },
         "09-the-dance-class.jpg": {
@@ -334,8 +332,8 @@
           "description": "Edgar Degas. The Dance Class, 1874. The Metropolitan Museum of Art.",
           "link": "https://www.metmuseum.org/art/collection/search/438817",
           "effects": {
-            "mount": "frame",
-            "reveal": "fade"
+            "reveal": "fade",
+            "mount": "frame"
           }
         },
         "10-dancer-with-a-fan.jpg": {
@@ -346,8 +344,8 @@
           "description": "Edgar Degas. Dancer with a Fan, ca. 1880. The Metropolitan Museum of Art.",
           "link": "https://www.metmuseum.org/art/collection/search/436135",
           "effects": {
-            "mount": "frame",
-            "reveal": "fade"
+            "reveal": "fade",
+            "mount": "frame"
           }
         }
       }

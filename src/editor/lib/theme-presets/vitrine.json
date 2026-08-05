@@ -5,7 +5,6 @@
   "accentColor": "#7a2e2b",
   "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
   "headingFontFamily": "Optima, Candara, \"Gill Sans\", \"Gill Sans MT\", \"Segoe UI\", sans-serif",
-  "contentGap": 40,
   "pageHeadingScale": 135,
   "pageHeadingPosition": "center",
   "navStyle": "centered",

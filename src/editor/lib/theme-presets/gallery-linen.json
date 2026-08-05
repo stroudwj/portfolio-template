@@ -5,7 +5,6 @@
   "accentColor": "#48614f",
   "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
   "headingFontFamily": "Garamond, \"Apple Garamond\", \"EB Garamond\", Georgia, serif",
-  "contentGap": 20,
   "pageHeadingPosition": "left",
   "navStyle": "minimal",
   "automaticTextContrast": true,

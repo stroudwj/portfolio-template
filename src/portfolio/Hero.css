@@ -25,7 +25,9 @@
 }
 
 .page-header.heading-position-freeform {
-	min-height: calc(var(--page-heading-y, 56px) + 56px);
+	/* Negative --page-heading-y lifts the heading toward the header; the band
+	   itself never collapses below one line of clearance. */
+	min-height: max(56px, calc(var(--page-heading-y, 56px) + 56px));
 }
 
 .page-header.heading-position-freeform .page-title {
@@ -62,6 +64,12 @@
 	}
 
 	.page-header.heading-position-freeform {
-		min-height: calc(var(--page-heading-y, 48px) + 48px);
+		min-height: max(48px, calc(var(--page-heading-y, 48px) + 48px));
+	}
+
+	/* Negative lift is a desktop move; phones pin the heading inside its band so
+	   it can never disappear behind the fixed header. */
+	.page-header.heading-position-freeform .page-title {
+		top: max(0px, var(--page-heading-y, 48px));
 	}
 }

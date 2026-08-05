@@ -6,6 +6,16 @@ import { execFileSync } from 'node:child_process';
 import react from '@astrojs/react';
 
 const project = JSON.parse(readFileSync(new URL('./.hangwork/project.json', import.meta.url), 'utf8'));
+
+// Template studio (dev-only admin tooling): also wired here so the studio works
+// on a product-config dev server. It contributes nothing to builds, and a
+// missing scripts/ folder means no studio, never a broken config.
+let templateStudio;
+try {
+	({ templateStudio } = await import('./scripts/template-studio/dev-api.mjs'));
+} catch {
+	templateStudio = undefined;
+}
 let runtimeCommit = process.env.CF_PAGES_COMMIT_SHA || process.env.HANGWORK_RUNTIME_COMMIT || project.sourceCommit;
 if (runtimeCommit === 'development') {
 	try {
@@ -28,7 +38,7 @@ if (runtimeCommit === 'development') {
 export default defineConfig({
 	site: 'https://hangwork.art',
 	// No `base`: Cloudflare Pages serves the site at the domain root.
-	integrations: [react()],
+	integrations: [react(), ...(templateStudio ? [templateStudio()] : [])],
 	vite: {
 		define: {
 			'import.meta.env.PUBLIC_HANGWORK_RUNTIME_COMMIT': JSON.stringify(runtimeCommit),

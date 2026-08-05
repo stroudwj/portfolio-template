@@ -18,6 +18,12 @@
 			"runtimeExecutable": "npx",
 			"runtimeArgs": ["astro", "dev", "--port", "4406"],
 			"port": 4406
+		},
+		{
+			"name": "hangwork-product-b",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["astro", "dev", "--config", "astro.config.product.mjs", "--port", "4412"],
+			"port": 4412
 		}
 	]
 }

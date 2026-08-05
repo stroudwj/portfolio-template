@@ -12,6 +12,7 @@
     "prebuild": "npm run runtime:check && npm run runtime:hydration",
     "prebuild:product": "npm run runtime:check && npm run runtime:hydration",
     "dev": "astro dev",
+    "studio": "astro dev --port 4406 --open /portfolio-template/template-studio",
     "build": "astro build",
     "build:product": "astro build --config astro.config.product.mjs",
     "preview": "astro preview",
