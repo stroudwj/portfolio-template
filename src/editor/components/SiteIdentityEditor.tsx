@@ -2,9 +2,9 @@ import { useEditor } from '../store';
 import { Field, Section, TextInput } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
-import HeaderLayoutEditor from './HeaderLayoutEditor';
 
-/** Global identity plus all header sizing and placement controls. */
+/** Global identity: the header's name or logo image. Sizing and placement live
+ *  with the other layout tools in Design → Structure (HeaderLayoutEditor). */
 export default function SiteIdentityEditor() {
 	const {
 		doc,
@@ -65,7 +65,9 @@ export default function SiteIdentityEditor() {
 				</Field>
 			)}
 
-			<HeaderLayoutEditor embedded />
+			<p className="muted">
+				Header size, position, and scroll behavior live in Design → Structure.
+			</p>
 		</Section>
 	);
 }

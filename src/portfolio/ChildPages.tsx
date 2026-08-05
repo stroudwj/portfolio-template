@@ -10,6 +10,8 @@ export interface ChildPageItem {
 	href: string;
 	/** Resolved thumbnail URL (explicit thumbnail, else the sub-page's first image). */
 	thumbSrc?: string;
+	/** Editor: the card's stable id inside its children block (for renames). */
+	id?: string;
 }
 
 /**
@@ -23,12 +25,15 @@ export default function ChildPages({
 	style = 'cards',
 	onNavigate,
 	pageTransition,
+	onEditLabel,
 }: {
 	items: ChildPageItem[];
 	style?: ChildrenStyle;
 	/** Editor preview: switch pages in place instead of following the link. */
 	onNavigate?: (path: string) => void;
 	pageTransition?: PageTransition;
+	/** Editor preview: card labels become editable in place. */
+	onEditLabel?: (itemId: string, label: string) => void;
 }) {
 	if (!items.length) return null;
 	return (
@@ -59,7 +64,42 @@ export default function ChildPages({
 								}
 							/>
 						) : <div className="child-thumb-empty" />)}
-					<span>{item.label}</span>
+					{onEditLabel ? (
+						<span
+							className="child-card-label-editable"
+							contentEditable
+							suppressContentEditableWarning
+							spellCheck={false}
+							role="textbox"
+							aria-label={`Card text for ${item.label}`}
+							title="Click to edit this card’s text"
+							// Editing must not follow the link or start a widget drag.
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+							}}
+							onPointerDown={(e) => e.stopPropagation()}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									(e.currentTarget as HTMLElement).blur();
+								} else if (e.key === 'Escape') {
+									e.preventDefault();
+									e.currentTarget.textContent = item.label;
+									(e.currentTarget as HTMLElement).blur();
+								}
+							}}
+							onBlur={(e) => {
+								const next = (e.currentTarget.textContent ?? '').trim();
+								if (next && next !== item.label) onEditLabel(item.id ?? item.key, next);
+								else e.currentTarget.textContent = item.label;
+							}}
+						>
+							{item.label}
+						</span>
+					) : (
+						<span>{item.label}</span>
+					)}
 				</a>
 			))}
 		</div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CreativeEditor from './CreativeEditor';
+import HeaderLayoutEditor from './HeaderLayoutEditor';
 import LayoutEditor from './LayoutEditor';
 import ThemeEditor from './ThemeEditor';
 import { HelpDisclosure } from './ui/controls';
@@ -15,7 +16,7 @@ const DESIGN_AREAS = [
 		id: 'structure',
 		icon: '▤',
 		label: 'Structure',
-		description: 'Navigation and spacing across the site. Header controls live in Site → Header.',
+		description: 'Navigation style plus the header’s size and placement. The header’s name or logo image lives in Site → Header.',
 	},
 	{
 		id: 'effects',
@@ -66,7 +67,10 @@ export default function DesignEditor() {
 			>
 				{area === 'style' && <ThemeEditor />}
 				{area === 'structure' && (
-					<LayoutEditor />
+					<>
+						<LayoutEditor />
+						<HeaderLayoutEditor />
+					</>
 				)}
 				{area === 'effects' && <CreativeEditor />}
 			</div>

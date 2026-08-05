@@ -9,11 +9,13 @@ function PageActionsMenu({
 	label,
 	menuVisibilityAvailable,
 	hidden = false,
+	onAddSubpage,
 }: {
 	pageKey: string;
 	label: string;
 	menuVisibilityAvailable: boolean;
 	hidden?: boolean;
+	onAddSubpage?: () => void;
 }) {
 	const editor = useEditor();
 	const menuRef = useRef<HTMLDetailsElement>(null);
@@ -130,7 +132,7 @@ function PageActionsMenu({
 					/>
 					<span>
 						<strong>Include when publishing</strong>
-						<small>{isHome ? 'Your home page is always live.' : 'Turn this off to keep working privately.'}</small>
+						<small>{isHome ? 'Your home page is always included.' : 'Turn this off to keep working privately.'}</small>
 					</span>
 				</label>
 				{menuVisibilityAvailable && (
@@ -170,6 +172,18 @@ function PageActionsMenu({
 					<span className="field-hint">Use {'{name}'} for your profile name.</span>
 				</label>
 				<div className="page-action-buttons">
+					{onAddSubpage && (
+						<button
+							type="button"
+							className="btn-secondary"
+							onClick={() => {
+								closeMenu();
+								onAddSubpage();
+							}}
+						>
+							Add sub-page…
+						</button>
+					)}
 					{!isHome && (
 						<button type="button" className="btn-secondary" onClick={changeAddress}>
 							Change address…
@@ -205,6 +219,7 @@ function PageRow({
 	hidden,
 	handle,
 	onEditPage,
+	onAddSubpage,
 }: {
 	pageKey: string;
 	label: string;
@@ -214,6 +229,7 @@ function PageRow({
 	hidden?: boolean;
 	handle: DragHandleProps;
 	onEditPage: (pageKey: string) => void;
+	onAddSubpage?: () => void;
 }) {
 	const editor = useEditor();
 	const page = editor.doc?.content.pages[pageKey];
@@ -248,14 +264,22 @@ function PageRow({
 					<strong>{label}</strong>
 					<span>/{pageKey === 'home' ? '' : pageKey}</span>
 				</button>
-				<span className={`page-primary-status ${page.draft ? 'draft' : 'live'}`}>
-					{page.draft ? 'Draft' : 'Live'}
+				<span
+					className={`page-primary-status ${page.draft ? 'draft' : 'live'}`}
+					title={
+						page.draft
+							? 'A private draft — left out when you publish'
+							: 'Included when you publish'
+					}
+				>
+					{page.draft ? 'Draft' : 'Included'}
 				</span>
 				<PageActionsMenu
 					pageKey={pageKey}
 					label={label}
 					menuVisibilityAvailable={menuVisibilityAvailable}
 					hidden={hidden}
+					onAddSubpage={onAddSubpage}
 				/>
 			</div>
 		</article>
@@ -293,7 +317,7 @@ export default function PageManager({
 	return (
 		<Section title="Pages">
 			<HelpDisclosure label="How pages are organized">
-				<p>Select a page to edit. Drag ⠿ to reorder it; use ••• for publishing, visibility, search, address, and delete. Sub-pages stay attached to their parent.</p>
+				<p>Select a page to edit. Drag ⠿ to reorder it; use ••• for publishing, visibility, search, address, sub-pages, and delete. Sub-pages stay attached to their parent.</p>
 			</HelpDisclosure>
 			<div className="page-manager-list" role="list" aria-label="Pages in your site menu">
 				<SortableList ids={pageIds} onReorder={movePage}>
@@ -303,7 +327,11 @@ export default function PageManager({
 						if (!page) return null;
 						const label = page.label || item.label || (pageKey === 'home' ? 'Home' : 'Untitled page');
 						const hasChildren = (page.children ?? []).length > 0;
-						const childControl = addingChildTo === pageKey ? (
+						const startAddingChild = () => {
+							setAddingChildTo(pageKey);
+							setNewChildName('');
+						};
+						const childForm = addingChildTo === pageKey && (
 							<form
 								className="page-subpage-create"
 								onSubmit={(event) => {
@@ -327,16 +355,14 @@ export default function PageManager({
 									<button type="button" className="btn-ghost" onClick={cancelAddingChild}>Cancel</button>
 								</div>
 							</form>
-						) : (
+						);
+						const childControl = childForm || (
 							<button
 								type="button"
 								className="btn-link page-add-subpage"
-								onClick={() => {
-									setAddingChildTo(pageKey);
-									setNewChildName('');
-								}}
+								onClick={startAddingChild}
 							>
-								＋ {hasChildren ? 'Add another sub-page' : `Add sub-page under ${label}`}
+								＋ Add another sub-page
 							</button>
 						);
 
@@ -353,6 +379,7 @@ export default function PageManager({
 											hidden={item.hidden}
 											handle={handle}
 											onEditPage={onEditPage}
+											onAddSubpage={startAddingChild}
 										/>
 										{hasChildren && (
 											<details className="page-children-disclosure">
@@ -398,7 +425,7 @@ export default function PageManager({
 												</div>
 											</details>
 										)}
-										{!hasChildren && childControl}
+										{!hasChildren && childForm}
 									</>
 								)}
 							</SortableItem>

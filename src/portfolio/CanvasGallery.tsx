@@ -125,6 +125,10 @@ export interface CanvasWidget {
 	id: string;
 	layout: ImageLayout;
 	freeResize?: boolean;
+	/** Content-sized box (sub-pages, products): height always hugs the rendered
+	 *  cards, resizing follows the pointer width-only with no snapping, and the
+	 *  stored aspect ratio is kept in sync with the measured content height. */
+	autoHeight?: boolean;
 	/** Editor-only map-style grip shown over widgets whose contents are interactive. */
 	dragLabel?: string;
 	/** Let pointer drags on the widget image reposition that image instead of moving the widget. */
@@ -173,10 +177,52 @@ export default function CanvasGallery({
 		{ left: number; top: number; width: number; height: number } | null
 	>(null);
 	const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number } | null>(null);
+	/** The nudge arrows and shortcut hint stay tucked away until asked for. */
+	const [toolbarToolsOpen, setToolbarToolsOpen] = useState(() => {
+		try {
+			return window.localStorage.getItem('hangwork-canvas-toolbar-tools') === 'open';
+		} catch {
+			return false;
+		}
+	});
+	const toggleToolbarTools = () =>
+		setToolbarToolsOpen((open) => {
+			const next = !open;
+			try {
+				window.localStorage.setItem('hangwork-canvas-toolbar-tools', next ? 'open' : 'closed');
+			} catch {
+				/* preference simply resets next session */
+			}
+			return next;
+		});
+	/** Artist-chosen toolbar offset (drag the ⠿ grip) so it can be moved off art. */
+	const [toolbarOffset, setToolbarOffset] = useState({ x: 0, y: 0 });
+	const toolbarOffsetRef = useRef(toolbarOffset);
+	toolbarOffsetRef.current = toolbarOffset;
+	const startToolbarDrag = (event: React.PointerEvent) => {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const win = canvasRef.current?.ownerDocument.defaultView ?? window;
+		const startX = event.clientX;
+		const startY = event.clientY;
+		const base = toolbarOffsetRef.current;
+		const move = (ev: PointerEvent) =>
+			setToolbarOffset({ x: base.x + ev.clientX - startX, y: base.y + ev.clientY - startY });
+		const up = () => {
+			win.removeEventListener('pointermove', move);
+			win.removeEventListener('pointerup', up);
+			win.removeEventListener('pointercancel', up);
+		};
+		win.addEventListener('pointermove', move);
+		win.addEventListener('pointerup', up);
+		win.addEventListener('pointercancel', up);
+	};
 	const [toolbarOwner, setToolbarOwner] = useState(true);
 	const [scopedSelectionCount, setScopedSelectionCount] = useState(0);
 	const [centerGuide, setCenterGuide] = useState(false);
 	const textEls = useRef<Record<string, HTMLDivElement | null>>({});
+	const widgetEls = useRef<Record<string, HTMLDivElement | null>>({});
 	const draggedClickRef = useRef<string | null>(null);
 	/** Live x/y of a single item mid arrow-key nudge, for the toolbar readout
 	 *  (cleared once the burst below commits). */
@@ -276,6 +322,80 @@ export default function CanvasGallery({
 	const heightRef = useRef(height);
 	heightRef.current = height;
 	const multiSelected = Math.max(selected.size, scopedSelectionCount) > 1;
+
+	/** Commits the parent hasn't echoed back yet. The editor preview renders in
+	 *  its OWN React root, so a committed layout reaches us one render later —
+	 *  deleting the draft at commit time re-renders the item at its STALE prop
+	 *  position for a frame (a visible flash back to where it was). Instead the
+	 *  draft stays until the prop echoes the committed value, or changes to
+	 *  anything else (an undo racing the echo, or the item being replaced). */
+	const pendingAcks = useRef<Record<string, {
+		kind: 'item' | 'text';
+		committed: { x: number; y: number; w: number };
+		propAt: { x: number; y: number; w: number } | null;
+	}>>({});
+	const xyw = (l: { x: number; y: number; w: number } | undefined | null) =>
+		l ? { x: l.x, y: l.y, w: l.w } : null;
+	const sameXYW = (
+		a: { x: number; y: number; w: number } | null,
+		b: { x: number; y: number; w: number } | null,
+	) => !!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w;
+	/** The committed-side layout the props currently carry for an id — null when
+	 *  the item exists but has no stored layout yet, undefined when it is gone. */
+	const propXYWOf = (id: string) => {
+		const imageIndex = images.findIndex((img, i) => keyOf(img, i) === id);
+		if (imageIndex >= 0) return xyw(images[imageIndex].layout);
+		const embed = embeds.find((candidate) => candidate.id === id);
+		if (embed) return xyw(embed.layout);
+		const widget = widgets.find((candidate) => candidate.id === id);
+		if (widget) return xyw(widget.layout);
+		const text = texts.find((candidate) => candidate.id === id);
+		if (text) return xyw(text.layout);
+		return undefined;
+	};
+	const holdDraftUntilEcho = (
+		id: string,
+		kind: 'item' | 'text',
+		committed: { x: number; y: number; w: number },
+	) => {
+		pendingAcks.current[id] = { kind, committed: xyw(committed)!, propAt: propXYWOf(id) ?? null };
+	};
+	// Resolve pending commits once the props catch up. Runs after every render;
+	// keeping an acknowledged draft one render longer is invisible (draft and
+	// echoed prop differ only by commit rounding), so this never flashes.
+	useEffect(() => {
+		const pending = pendingAcks.current;
+		const ids = Object.keys(pending);
+		if (!ids.length) return;
+		const bursting = new Set((nudgeBurstItems.current ?? []).map((item) => item.id));
+		const resolvedItems: string[] = [];
+		const resolvedTexts: string[] = [];
+		for (const id of ids) {
+			// A new gesture on the item supersedes the old pending entry — leave its
+			// draft alone until that gesture commits and re-registers.
+			if (dragId !== null || bursting.has(id)) continue;
+			const entry = pending[id];
+			const prop = propXYWOf(id);
+			const echoed = prop !== undefined && sameXYW(prop, entry.committed);
+			const untouched =
+				prop !== undefined && (prop === null ? entry.propAt === null : sameXYW(prop, entry.propAt));
+			if (prop !== undefined && !echoed && untouched) continue; // still waiting
+			delete pending[id];
+			(entry.kind === 'text' ? resolvedTexts : resolvedItems).push(id);
+		}
+		if (resolvedItems.length)
+			setDrafts((current) => {
+				const next = { ...current };
+				for (const id of resolvedItems) delete next[id];
+				return next;
+			});
+		if (resolvedTexts.length)
+			setTextDrafts((current) => {
+				const next = { ...current };
+				for (const id of resolvedTexts) delete next[id];
+				return next;
+			});
+	});
 
 	const selectionItems = () => [
 		...images.map((img, index) => {
@@ -425,16 +545,30 @@ export default function CanvasGallery({
 				for (const [id, layout] of Object.entries(updates.widgets ?? {})) onWidgetLayout?.(id, layout);
 			}
 		}
-		setDrafts((current) => {
-			const next = { ...current };
-			for (const item of items) if (item.kind !== 'text') delete next[item.id];
-			return next;
+		// Drafts stay until the parent echoes the commit (see pendingAcks) — the
+		// preview lives in another React root, so clearing now would flash the
+		// stale position for a frame. Items that committed nothing drop right away.
+		const uncommitted = items.filter((item) => {
+			const committed =
+				item.kind === 'text'
+					? updates.texts?.[item.id]
+					: updates.images?.[item.id] ?? updates.embeds?.[item.id] ?? updates.widgets?.[item.id];
+			if (!committed) return true;
+			holdDraftUntilEcho(item.id, item.kind === 'text' ? 'text' : 'item', committed);
+			return false;
 		});
-		setTextDrafts((current) => {
-			const next = { ...current };
-			for (const item of items) if (item.kind === 'text') delete next[item.id];
-			return next;
-		});
+		if (uncommitted.some((item) => item.kind !== 'text'))
+			setDrafts((current) => {
+				const next = { ...current };
+				for (const item of uncommitted) if (item.kind !== 'text') delete next[item.id];
+				return next;
+			});
+		if (uncommitted.some((item) => item.kind === 'text'))
+			setTextDrafts((current) => {
+				const next = { ...current };
+				for (const item of uncommitted) if (item.kind === 'text') delete next[item.id];
+				return next;
+			});
 	};
 
 	/** One arrow-key nudge. Moves the live draft immediately (same instant
@@ -494,6 +628,26 @@ export default function CanvasGallery({
 		nudgeBurstItems.current = chosen;
 		clearNudgeBurstTimer();
 		nudgeBurstTimer.current = window.setTimeout(flushNudgeBurst, NUDGE_BURST_IDLE_MS);
+	};
+
+	/** Remove everything selected as one undoable edit — shared by the
+	 *  Delete/Backspace shortcut and the selection toolbar's Remove button. */
+	const deleteCurrentSelection = () => {
+		if (!onDeleteSelection || selected.size === 0) return;
+		flushNudgeBurst();
+		const selection: CanvasSelection = {};
+		for (const key of selected) {
+			const separator = key.indexOf(':');
+			const kind = key.slice(0, separator);
+			const id = key.slice(separator + 1);
+			if (!id) continue;
+			if (kind === 'image') (selection.images ??= []).push(id);
+			else if (kind === 'text') (selection.texts ??= []).push(id);
+			else if (kind === 'video') (selection.embeds ??= []).push(id);
+			else if (kind === 'widget') (selection.widgets ??= []).push(id);
+		}
+		onDeleteSelection(selection);
+		setSelected(new Set());
 	};
 
 	useEffect(() => {
@@ -557,22 +711,9 @@ export default function CanvasGallery({
 				!onDeleteSelection ||
 				selected.size === 0
 			) return;
-			flushNudgeBurst();
-			const selection: CanvasSelection = {};
-			for (const key of selected) {
-				const separator = key.indexOf(':');
-				const kind = key.slice(0, separator);
-				const id = key.slice(separator + 1);
-				if (!id) continue;
-				if (kind === 'image') (selection.images ??= []).push(id);
-				else if (kind === 'text') (selection.texts ??= []).push(id);
-				else if (kind === 'video') (selection.embeds ??= []).push(id);
-				else if (kind === 'widget') (selection.widgets ??= []).push(id);
-			}
 			event.preventDefault();
 			event.stopPropagation();
-			onDeleteSelection(selection);
-			setSelected(new Set());
+			deleteCurrentSelection();
 		};
 		doc.addEventListener('keydown', onKey);
 		if (hostDoc && hostDoc !== doc) hostDoc.addEventListener('keydown', onKey);
@@ -694,6 +835,29 @@ export default function CanvasGallery({
 		}
 	});
 
+	// Editor: auto-height widgets (sub-pages, products) render at their content's
+	// height; keep the stored aspect ratio tracking that measured height so the
+	// canvas reserves the right room everywhere (published site, phone stack,
+	// section height math). The 2% tolerance stops measure->commit ping-pong.
+	useEffect(() => {
+		if (!editable || !onWidgetLayout || dragId) return;
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const width = canvas.getBoundingClientRect().width;
+		if (!width) return;
+		widgets.forEach((widget, index) => {
+			if (!widget.autoHeight) return;
+			const el = widgetEls.current[widget.id];
+			if (!el) return;
+			const layout = widgetLayouts[index];
+			const hPct = (el.offsetHeight * 100) / width;
+			if (hPct <= 0 || layout.w <= 0) return;
+			const impliedAr = layout.w / hPct;
+			if (Math.abs(layout.ar - impliedAr) / impliedAr > 0.02)
+				onWidgetLayout(widget.id, roundLayout({ ...layout, ar: impliedAr }));
+		});
+	});
+
 	/** Shared move/resize wiring for images and embeds (both use ImageLayout). */
 	const startItemDrag = (
 		e: React.PointerEvent,
@@ -705,6 +869,9 @@ export default function CanvasGallery({
 		commit: (id: string, layout: ImageLayout) => void,
 		freeResize = false,
 		corner: ResizeCorner = 'se',
+		/** Auto-height widgets: resizing changes width only, exactly following the
+		 *  pointer — no guide or neighbor-edge snapping mid-resize. */
+		widthOnly = false,
 	) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -743,6 +910,20 @@ export default function CanvasGallery({
 				next = { ...from, x, y };
 			} else {
 				setCenterGuide(false);
+				if (widthOnly) {
+					// Content-sized widgets: the pointer sets the width directly. No
+					// grid/edge snapping — snapping mid-resize made the box jump between
+					// sizes — and no height math; the box hugs its content.
+					const east = corner.endsWith('e');
+					const rightEdge = from.x + from.w;
+					const width = east
+						? Math.min(Math.max(from.w + dx, minW), 100 - from.x)
+						: Math.min(Math.max(from.w - dx, minW), rightEdge);
+					next = { ...from, x: east ? from.x : rightEdge - width, w: width };
+					finalDraft = clampLayout(next);
+					setDrafts((d) => ({ ...d, [id]: finalDraft! }));
+					return;
+				}
 				if (corner !== 'se') {
 					const east = corner.endsWith('e');
 					const south = corner.startsWith('s');
@@ -831,12 +1012,19 @@ export default function CanvasGallery({
 			setDragGesture(null);
 			setCenterGuide(false);
 			const done = finalDraft ?? draftsRef.current[id];
-			if (done) commit(id, roundLayout(done));
-			setDrafts((d) => {
-				const rest = { ...d };
-				delete rest[id];
-				return rest;
-			});
+			if (done) {
+				const rounded = roundLayout(done);
+				commit(id, rounded);
+				// Keep the draft until the parent echoes this commit — clearing now
+				// would flash the pre-drag position for a frame (separate React root).
+				holdDraftUntilEcho(id, 'item', rounded);
+			} else {
+				setDrafts((d) => {
+					const rest = { ...d };
+					delete rest[id];
+					return rest;
+				});
+			}
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
@@ -971,16 +1159,29 @@ export default function CanvasGallery({
 						onWidgetLayout?.(id, layout);
 				}
 			}
-			setDrafts((current) => {
-				const next = { ...current };
-				for (const item of chosen) if (item.kind !== 'text') delete next[item.id];
-				return next;
+			// Same echo-hold as the single-item release: committed drafts wait for
+			// the parent's next render; only uncommitted ones drop immediately.
+			const uncommitted = chosen.filter((item) => {
+				const committed =
+					item.kind === 'text'
+						? updates.texts?.[item.id]
+						: updates.images?.[item.id] ?? updates.embeds?.[item.id] ?? updates.widgets?.[item.id];
+				if (!committed) return true;
+				holdDraftUntilEcho(item.id, item.kind === 'text' ? 'text' : 'item', committed);
+				return false;
 			});
-			setTextDrafts((current) => {
-				const next = { ...current };
-				for (const item of chosen) if (item.kind === 'text') delete next[item.id];
-				return next;
-			});
+			if (uncommitted.some((item) => item.kind !== 'text'))
+				setDrafts((current) => {
+					const next = { ...current };
+					for (const item of uncommitted) if (item.kind !== 'text') delete next[item.id];
+					return next;
+				});
+			if (uncommitted.some((item) => item.kind === 'text'))
+				setTextDrafts((current) => {
+					const next = { ...current };
+					for (const item of uncommitted) if (item.kind === 'text') delete next[item.id];
+					return next;
+				});
 		};
 
 		win.addEventListener('pointermove', move);
@@ -1241,6 +1442,7 @@ export default function CanvasGallery({
 			onWidgetLayout,
 			widget.freeResize === true,
 			corner,
+			widget.autoHeight === true,
 		);
 	};
 
@@ -1332,13 +1534,18 @@ export default function CanvasGallery({
 			const done = finalDraft ?? textDraftsRef.current[id];
 			if (done && onTextLayout) {
 				committedTextLayouts.current[id] = done;
-				onTextLayout(id, roundTextLayout(done));
+				const rounded = roundTextLayout(done);
+				onTextLayout(id, rounded);
+				// Hold the draft until the parent echoes the commit (separate root) —
+				// clearing now would flash the pre-drag position for a frame.
+				holdDraftUntilEcho(id, 'text', rounded);
+			} else {
+				setTextDrafts((d) => {
+					const rest = { ...d };
+					delete rest[id];
+					return rest;
+				});
 			}
-			setTextDrafts((d) => {
-				const rest = { ...d };
-				delete rest[id];
-				return rest;
-			});
 		};
 		win.addEventListener('pointermove', move);
 		win.addEventListener('pointerup', up);
@@ -1347,6 +1554,8 @@ export default function CanvasGallery({
 	};
 	const singleSelectedItem =
 		selected.size === 1 ? selectionItems().find((item) => selected.has(item.key)) : undefined;
+	const singleLockedImage =
+		singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked === true;
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -1399,30 +1608,44 @@ export default function CanvasGallery({
 			{editable && toolbarOwner && selected.size > 0 && toolbarPosition && canvasRef.current && createPortal(
 				<div
 					className="canvas-layer-toolbar"
-					style={toolbarPosition}
+					style={{
+						top: Math.max(8, toolbarPosition.top + toolbarOffset.y),
+						left: Math.max(8, toolbarPosition.left + toolbarOffset.x),
+					}}
 					onPointerDown={(event) => event.stopPropagation()}
 				>
-					<div className="canvas-nudge-controls" role="group" aria-label="Nudge selected canvas items">
-						{([
-							['left', '←', -1, 0],
-							['up', '↑', 0, -1],
-							['down', '↓', 0, 1],
-							['right', '→', 1, 0],
-						] as const).map(([direction, label, dx, dy]) => (
-							<button
-								key={direction}
-								type="button"
-								className="canvas-nudge-button"
-								data-canvas-nudge={direction}
-								aria-label={`Nudge selected ${direction}`}
-								onClick={(event) => {
-									event.stopPropagation();
-									nudgeSelection(dx, dy);
-								}}
-								title={`Nudge ${direction} (Arrow ${direction[0].toUpperCase()}${direction.slice(1)})`}
-							>{label}</button>
-						))}
-					</div>
+					<button
+						type="button"
+						className="canvas-toolbar-grip"
+						aria-label="Drag to move this toolbar"
+						title="Drag to move this toolbar"
+						onPointerDown={startToolbarDrag}
+					>
+						<span aria-hidden="true">⠿</span>
+					</button>
+					{toolbarToolsOpen && !singleLockedImage && (
+						<div className="canvas-nudge-controls" role="group" aria-label="Nudge selected canvas items">
+							{([
+								['left', '←', -1, 0],
+								['up', '↑', 0, -1],
+								['down', '↓', 0, 1],
+								['right', '→', 1, 0],
+							] as const).map(([direction, label, dx, dy]) => (
+								<button
+									key={direction}
+									type="button"
+									className="canvas-nudge-button"
+									data-canvas-nudge={direction}
+									aria-label={`Nudge selected ${direction}`}
+									onClick={(event) => {
+										event.stopPropagation();
+										nudgeSelection(dx, dy);
+									}}
+									title={`Nudge ${direction} (Arrow ${direction[0].toUpperCase()}${direction.slice(1)})`}
+								>{label}</button>
+							))}
+						</div>
+					)}
 					{scopedSelectionCount === 1 && selected.size === 1 && (
 						<>
 							<button
@@ -1443,33 +1666,64 @@ export default function CanvasGallery({
 									className="canvas-lock-button"
 									onPointerDown={(event) => runToolbarPointerAction(event, toggleSelectedImageLock)}
 									onKeyDown={(event) => runToolbarKeyAction(event, toggleSelectedImageLock)}
-									title={(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image position and size'}
+									title={singleLockedImage ? 'Unlock image' : 'Lock image position and size'}
 								>
-									{(singleSelectedItem.layout as ImageLayout).locked ? 'Unlock image' : 'Lock image'}
+									{singleLockedImage ? 'Unlock image' : 'Lock image'}
 								</button>
 							)}
 						</>
 					)}
-					{/* The hint keeps its width (visibility, not display) while the readout
-					    overlays it, so the toolbar doesn't change size on every keypress. */}
-					<span
-						className={`canvas-nudge-hint-slot${nudgeReadout ? ' has-readout' : ''}`}
-						title="Shift + arrow keys resizes · Alt/Option + arrow keys nudges 10x"
-						aria-live="polite"
+					{onDeleteSelection && (
+						<button
+							type="button"
+							className="canvas-delete-button"
+							onPointerDown={(event) => runToolbarPointerAction(event, deleteCurrentSelection)}
+							onKeyDown={(event) => runToolbarKeyAction(event, deleteCurrentSelection)}
+							title={
+								selected.size > 1
+									? `Remove the ${selected.size} selected items from this page (Delete)`
+									: 'Remove from this page (Delete)'
+							}
+						>
+							Remove
+						</button>
+					)}
+					<button
+						type="button"
+						className="canvas-toolbar-tools-toggle"
+						aria-expanded={toolbarToolsOpen}
+						aria-label={toolbarToolsOpen ? 'Hide nudge arrows and shortcuts' : 'Show nudge arrows and shortcuts'}
+						title={toolbarToolsOpen ? 'Hide nudge arrows and shortcuts' : 'Show nudge arrows and shortcuts'}
+						onClick={(event) => {
+							event.stopPropagation();
+							toggleToolbarTools();
+						}}
 					>
-						<span className="canvas-nudge-hint-text">
-							{scopedSelectionCount > 1
-								? `${scopedSelectionCount} selected · arrows nudge`
-								: singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked
-								? 'Position & size locked'
-								: 'Arrows nudge (⌥ 10x) · ⇧ resize'}
-						</span>
-						{nudgeReadout && (
-							<span className="canvas-nudge-readout">
-								{`x ${formatCanvasPercent(nudgeReadout.x)}% · y ${formatCanvasPercent(nudgeReadout.y)}%`}
+						{toolbarToolsOpen ? '«' : '»'}
+					</button>
+					{/* The hint keeps its width (visibility, not display) while the readout
+					    overlays it, so the toolbar doesn't change size on every keypress.
+					    Collapsed toolbars still surface the readout during a nudge. */}
+					{(toolbarToolsOpen || nudgeReadout) && (
+						<span
+							className={`canvas-nudge-hint-slot${nudgeReadout ? ' has-readout' : ''}`}
+							title="Shift + arrow keys resizes · Alt/Option + arrow keys nudges 10x"
+							aria-live="polite"
+						>
+							<span className="canvas-nudge-hint-text">
+								{scopedSelectionCount > 1
+									? `${scopedSelectionCount} selected · arrows nudge`
+									: singleLockedImage
+									? 'Position & size locked'
+									: 'Arrows nudge (⌥ 10x) · ⇧ resize'}
 							</span>
-						)}
-					</span>
+							{nudgeReadout && (
+								<span className="canvas-nudge-readout">
+									{`x ${formatCanvasPercent(nudgeReadout.x)}% · y ${formatCanvasPercent(nudgeReadout.y)}%`}
+								</span>
+							)}
+						</span>
+					)}
 				</div>,
 				canvasRef.current.ownerDocument.body,
 			)}
@@ -1658,8 +1912,9 @@ export default function CanvasGallery({
 							key={item.key}
 							data-canvas-selection-key={item.key}
 							data-preview-block={widget.id}
+							ref={(el) => { widgetEls.current[widget.id] = el; }}
 							onPointerDownCapture={() => onSelectBlock?.(widget.id.split('::', 1)[0])}
-							className={`canvas-item canvas-widget-item ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`}
+							className={`canvas-item canvas-widget-item ${widget.autoHeight ? 'canvas-auto-height' : ''} ${dragging ? 'dragging' : ''} ${selected.has(item.key) ? 'selected' : ''}`}
 							style={vars}
 							onPointerDown={(event) => {
 								onSelectBlock?.(widget.id.split('::', 1)[0]);

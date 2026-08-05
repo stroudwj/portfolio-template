@@ -124,7 +124,7 @@ export default function ThemeEditor() {
 					})}
 				</div>
 				<p className="theme-preset-note">
-					Applying a theme changes only its design tokens. Your pages, words, images, uploads, and custom font files stay put.
+					Applying a theme changes colors, type, and the navigation style. Your pages, words, images, uploads, and custom font files stay put — and one undo brings the old look back.
 				</p>
 			</div>
 			<div className="design-control-heading">

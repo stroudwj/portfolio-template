@@ -51,6 +51,7 @@ export const blankContent: Content = {
 		},
 		art: {
 			title: 'Art — {name}',
+			heading: 'Art',
 			blocks: [{
 				id: 'art-images',
 				type: 'images',
@@ -61,6 +62,7 @@ export const blankContent: Content = {
 		},
 		photography: {
 			title: 'Photography — {name}',
+			heading: 'Photography',
 			blocks: [{
 				id: 'photography-images',
 				type: 'images',
@@ -71,6 +73,7 @@ export const blankContent: Content = {
 		},
 		about: {
 			title: 'About — {name}',
+			heading: 'About',
 			blocks: [{ id: 'about', type: 'about' }],
 			sections: [{ id: 'main', name: 'Main section', blockIds: ['about'] }],
 		},

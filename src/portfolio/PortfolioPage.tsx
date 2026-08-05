@@ -87,6 +87,8 @@ export interface PortfolioPageProps extends PortfolioData {
 	onCarouselFrame?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onChildItemLayout?: (page: string, blockId: string, itemId: string, layout: ImageLayout) => void;
+	/** Editor preview: rename a sub-page card by editing its label in place. */
+	onChildCardLabel?: (page: string, blockId: string, itemId: string, label: string) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -292,6 +294,7 @@ export default function PortfolioPage({
 	onCarouselFrame,
 	onWidgetLayout,
 	onChildItemLayout,
+	onChildCardLabel,
 	onCarouselHost,
 	onCarouselFocus,
 	onCarouselZoom,
@@ -462,19 +465,28 @@ export default function PortfolioPage({
 		canvasWidgetsBySection.set(
 			section.id,
 			sectionBlocks.flatMap((block): CanvasWidget[] => {
-				if (block.type === 'children' && block.canvasLayout && !block.items)
-					return [{
-						id: block.id,
-						layout: block.canvasLayout,
-						freeResize: true,
-						dragLabel: 'Click and drag sub-pages',
-						content: <ChildPages items={childItemsFor(block)} style={block.style} onNavigate={onNavigate} pageTransition={content.site.creative?.pageTransition} />,
-					}];
-				if (block.type === 'children')
-					return childItemsFor(block).flatMap((item) => item.layout ? [{
+				if (block.type === 'children') {
+					const childItems = childItemsFor(block);
+					// The whole block hangs on the canvas as one widget unless individual
+					// cards have their own layouts. (This must not require the legacy
+					// no-`items` shape — modern children blocks always carry items.)
+					const editCardLabel = onChildCardLabel
+						? (itemId: string, label: string) => onChildCardLabel(page, block.id, itemId, label)
+						: undefined;
+					if (block.canvasLayout && !childItems.some((item) => item.layout))
+						return [{
+							id: block.id,
+							layout: block.canvasLayout,
+							freeResize: true,
+							autoHeight: true,
+							dragLabel: 'Click and drag sub-pages',
+							content: <ChildPages items={childItems} style={block.style} onNavigate={onNavigate} pageTransition={content.site.creative?.pageTransition} onEditLabel={editCardLabel} />,
+						}];
+					return childItems.flatMap((item) => item.layout ? [{
 						id: `${block.id}::${item.id}`,
 						layout: item.layout,
 						freeResize: true,
+						autoHeight: true,
 						dragLabel: `Click and drag ${item.label}`,
 						content: (
 							<ChildPages
@@ -482,9 +494,11 @@ export default function PortfolioPage({
 								style={block.style}
 								onNavigate={onNavigate}
 								pageTransition={content.site.creative?.pageTransition}
+								onEditLabel={editCardLabel}
 							/>
 						),
 					}] : []);
+				}
 				if (block.type === 'divider' && block.layout)
 					return [{
 						id: block.id,
@@ -504,6 +518,7 @@ export default function PortfolioPage({
 						id: block.id,
 						layout: block.canvasLayout,
 						freeResize: true,
+						autoHeight: true,
 						content: (
 							<Products
 								store={content.store}
@@ -813,8 +828,12 @@ export default function PortfolioPage({
 				);
 			}
 			case 'children': {
-				if (hasCanvas && block.canvasLayout && !block.items) return null;
-				const flowingItems = childItemsFor(block).filter((item) => !item.layout);
+				const childItems = childItemsFor(block);
+				// Rendered as one whole-block canvas widget instead (see
+				// canvasWidgetsBySection) — nothing left for the page flow.
+				if (hasCanvas && block.canvasLayout && !childItems.some((item) => item.layout))
+					return null;
+				const flowingItems = childItems.filter((item) => !item.layout);
 				if (!flowingItems.length) return null;
 				return (
 					<ChildPages
@@ -823,6 +842,11 @@ export default function PortfolioPage({
 						style={block.style}
 						onNavigate={onNavigate}
 						pageTransition={content.site.creative?.pageTransition}
+						onEditLabel={
+							onChildCardLabel
+								? (itemId, label) => onChildCardLabel(page, block.id, itemId, label)
+								: undefined
+						}
 					/>
 				);
 			}
@@ -1103,17 +1127,44 @@ export default function PortfolioPage({
 				? sectionBlocks.findIndex((block) => block.id === canvasHostId)
 				: -1;
 			const canvasRendered = canvasHostIndex >= 0 ? renderedByBlock.find((node) => node.key === canvasHostId) : undefined;
+			// Collection blocks (sub-pages, products) that are NOT pinned to the
+			// canvas render AFTER the composition: the mixed grid stacks its flow
+			// layer over the canvas, which composits text fine but leaves card
+			// collections unreadably overlapping the art.
+			const belowCanvasIds = canvasRendered
+				? new Set(
+						sectionBlocks
+							.filter(
+								(block) =>
+									(block.type === 'children' || block.type === 'products') &&
+									!block.canvasLayout,
+							)
+							.map((block) => block.id),
+					)
+				: new Set<string>();
 			const flowRendered = canvasRendered
-				? renderedByBlock.filter((node) => node !== canvasRendered)
+				? renderedByBlock.filter(
+						(node) => node !== canvasRendered && !belowCanvasIds.has(String(node.key)),
+					)
 				: renderedByBlock;
-			const rendered = canvasRendered && flowRendered.length ? (
-				<div className="section-mixed-composition">
-					<div className="section-flow-layer">{flowRendered}</div>
-					<div
-						className="section-canvas-layer"
-						style={{ zIndex: sectionBlocks.length - canvasHostIndex }}
-					>{canvasRendered}</div>
-				</div>
+			const belowRendered = canvasRendered
+				? renderedByBlock.filter((node) => belowCanvasIds.has(String(node.key)))
+				: [];
+			const rendered = canvasRendered && (flowRendered.length || belowRendered.length) ? (
+				<>
+					{flowRendered.length ? (
+						<div className="section-mixed-composition">
+							<div className="section-flow-layer">{flowRendered}</div>
+							<div
+								className="section-canvas-layer"
+								style={{ zIndex: sectionBlocks.length - canvasHostIndex }}
+							>{canvasRendered}</div>
+						</div>
+					) : (
+						canvasRendered
+					)}
+					{belowRendered}
+				</>
 			) : <>{renderedByBlock}</>;
 			const shots = sectionBlocks.find(
 				(block): block is Extract<PageBlock, { type: 'shots' }> =>

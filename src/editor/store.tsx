@@ -68,6 +68,7 @@ import {
 } from '../portfolio/canvasLayout';
 import { entryWithSampleSuccessor } from './lib/sample-lifecycle';
 import { contentWithThemePreset } from './lib/templates';
+import { collectionLayoutAtCanvasBottom } from './lib/canvas-placement';
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 	const next = arr.slice();
@@ -109,6 +110,55 @@ function appendBlockToSection(
 				: section,
 		),
 	};
+}
+
+/** When the block's destination section hosts a freeform canvas, the lowest
+ *  occupied canvas line (in canvas-width % units); null when the section has no
+ *  free canvas. A canvas section composits in-flow blocks OVER the art, so new
+ *  collection blocks there must land ON the canvas, below everything else. */
+function freeCanvasBottomInSection(
+	doc: EditorDoc,
+	page: PageConfig,
+	requestedSectionId?: string,
+): number | null {
+	if (requestedSectionId === NEW_SECTION_ID) return null;
+	const sections = pageSections(page);
+	const section =
+		sections.find((candidate) => candidate.id === requestedSectionId) ??
+		sections.find((candidate) => candidate.id === MAIN_SECTION_ID) ??
+		sections[0];
+	if (!section) return null;
+	const blockById = new Map((page.blocks ?? []).map((block) => [block.id, block]));
+	const sectionBlocks = section.blockIds
+		.map((id) => blockById.get(id))
+		.filter((block): block is PageBlock => !!block);
+	const host = sectionBlocks.find(
+		(block) =>
+			(block.type === 'gallery' && !!page.gallery && page.gallery.layout !== 'grid') ||
+			(block.type === 'images' && block.gallery.carousel !== true && block.gallery.layout !== 'grid'),
+	);
+	if (!host) return null;
+	const config = host.type === 'gallery' ? page.gallery : host.type === 'images' ? host.gallery : undefined;
+	if (!config) return null;
+	const entries = doc.galleries[config.folder] ?? [];
+	const flowed = flowMissing(
+		entries.map((entry) => ({ layout: entry.meta.layout, ar: entry.meta.layout?.ar ?? DEFAULT_AR })),
+	);
+	const imageLayouts = entries.flatMap((entry, index) => {
+		const layout = entry.meta.layout ?? flowed.get(index);
+		return layout ? [layout] : [];
+	});
+	let bottom = canvasHeight(imageLayouts);
+	for (const candidate of sectionBlocks) {
+		if (candidate.type === 'text' && candidate.layout) bottom = Math.max(bottom, textBottom(candidate.layout));
+		if (candidate.type === 'embed' && candidate.layout) bottom = Math.max(bottom, bottomOf(candidate.layout));
+		if ((candidate.type === 'children' || candidate.type === 'products') && candidate.canvasLayout)
+			bottom = Math.max(bottom, bottomOf(candidate.canvasLayout));
+		if (candidate.type === 'project' && candidate.layout) bottom = Math.max(bottom, bottomOf(candidate.layout));
+		if (candidate.type === 'form' && candidate.layout) bottom = Math.max(bottom, bottomOf(candidate.layout));
+		if (candidate.type === 'divider' && candidate.layout) bottom = Math.max(bottom, bottomOf(candidate.layout));
+	}
+	return bottom;
 }
 
 function targetSectionId(page: PageConfig, requestedSectionId?: string): string {
@@ -410,8 +460,9 @@ export interface EditorContextValue {
 	removeSocial(index: number): void;
 	moveSocial(from: number, to: number): void;
 	// store
-	/** Initialize a USD catalog and add a visible, collision-safe Shop page. */
-	setupStore(): void;
+	/** Initialize a USD catalog and add a visible, collision-safe Shop page.
+	 *  Returns the new Shop page's key so callers can reveal it. */
+	setupStore(): string | undefined;
 	setStoreCurrency(currency: string): void;
 	addProduct(): void;
 	updateProduct(
@@ -524,6 +575,8 @@ export interface EditorContextValue {
 		blockId: string,
 		patch: Partial<Pick<Extract<PageBlock, { type: 'children' }>, 'items' | 'style' | 'canvasLayout'>>,
 	): void;
+	/** Rename one sub-page card — used by editing the label in the preview. */
+	renameChildCard(key: string, blockId: string, itemId: string, label: string): void;
 	/** Place a sub-page or product collection on its section canvas, or return it to flow. */
 	setWidgetLayout(key: string, blockId: string, layout: ImageLayout | undefined): void;
 	/** Store the hand-drawn signature (undefined clears it off the site). */
@@ -698,7 +751,8 @@ export interface EditorContextValue {
 	historyPageKey: string | null;
 	/** Travel to a page (or the page overview) as a history action. */
 	navigateHistoryPage(pageKey: string | null, recordHistory?: boolean): void;
-	/** Undo the last document change or page travel (Cmd+Z). */
+	/** Undo the last document change (Cmd+Z); the editor returns to the page the
+	 *  change happened on. */
 	undo(): void;
 	/** Redo an undone document change (Cmd+Y / Cmd+Shift+Z). */
 	redo(): void;
@@ -1119,10 +1173,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 		moveSocial: (from, to) => patchContent((c) => ({ ...c, social: arrayMove(c.social, from, to) })),
 
 		// ---- store ----
-		setupStore: () =>
+		setupStore: () => {
+			const current = docRef.current;
+			if (!current || current.content.store) return undefined;
+			const key = uniquePageKey('shop', current.content.pages);
 			commitDoc((prev) => {
 				if (prev.content.store) return prev;
-				const key = uniquePageKey('shop', prev.content.pages);
 				const block: Extract<PageBlock, { type: 'products' }> = {
 					id: uid('products'),
 					type: 'products',
@@ -1146,7 +1202,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						pages: { ...prev.content.pages, [key]: page },
 					},
 				};
-			}),
+			});
+			return key;
+		},
 		setStoreCurrency: (currency) => {
 			const normalized = currency.trim().toUpperCase();
 			patchContent((content) =>
@@ -1506,8 +1564,19 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 						),
 					});
 				} else {
-					const childrenBlock: PageBlock = { id: uid('children'), type: 'children', items: [item] };
-					parentWithChildren = appendBlockToSection({ ...parent, blocks: parentBlocks }, childrenBlock, sectionId);
+					const parentDraft = { ...parent, blocks: parentBlocks };
+					const canvasBottom = freeCanvasBottomInSection(prev, parentDraft, sectionId);
+					const childrenBlock: PageBlock = {
+						id: uid('children'),
+						type: 'children',
+						items: [item],
+						// In a freeform-canvas section the sub-page cards go straight onto
+						// the canvas (below the art) — in-flow they would overlap it.
+						...(canvasBottom !== null
+							? { canvasLayout: collectionLayoutAtCanvasBottom('children', canvasBottom) }
+							: {}),
+					};
+					parentWithChildren = appendBlockToSection(parentDraft, childrenBlock, sectionId);
 				}
 				return {
 					...prev,
@@ -2102,6 +2171,23 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			true,
 			`page:${key}:sub-pages:${blockId}`,
 		),
+		renameChildCard: (key, blockId, itemId, label) =>
+			patchPage(key, (page) => ({
+				...page,
+				blocks: (page.blocks ?? []).map((block) => {
+					if (block.id !== blockId || block.type !== 'children') return block;
+					// Legacy blocks derive their cards from page.children — materialize
+					// them so the rename has an item to live on. Cards left without a
+					// label keep falling back to their page's name at render time.
+					const items =
+						block.items ??
+						(page.children ?? []).map((childKey) => ({ id: childKey, page: childKey }));
+					return {
+						...block,
+						items: items.map((item) => (item.id === itemId ? { ...item, label } : item)),
+					};
+				}),
+			}), true, `page:${key}:sub-pages:${blockId}:label:${itemId}`),
 		setWidgetLayout: (key, blockId, canvasLayout) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((block) =>
@@ -2385,13 +2471,24 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 				),
 			true, `page:${key}:form:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addProductsBlock: (key, sectionId) =>
-			patchPage(key, (page) =>
-				appendBlockToSection(
+			patchPage(key, (page) => {
+				// Same canvas parity as sub-pages: in a freeform section the product
+				// cards hang on the canvas below the art instead of overlapping it.
+				const current = docRef.current;
+				const canvasBottom = current ? freeCanvasBottomInSection(current, page, sectionId) : null;
+				return appendBlockToSection(
 					page,
-					{ id: uid('products'), type: 'products', layout: 'grid' },
+					{
+						id: uid('products'),
+						type: 'products',
+						layout: 'grid',
+						...(canvasBottom !== null
+							? { canvasLayout: collectionLayoutAtCanvasBottom('products', canvasBottom) }
+							: {}),
+					},
 					sectionId,
-				),
-			),
+				);
+			}),
 		updateProductsBlock: (key, blockId, patch) =>
 			patchBlocks(key, (blocks) => {
 				const knownProductIds = new Set(

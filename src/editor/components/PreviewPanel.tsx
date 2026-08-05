@@ -456,6 +456,12 @@ export default function PreviewPanel({
 						}
 					: undefined
 			}
+			onChildCardLabel={
+				editable
+					? (pageKey, blockId, itemId, label) =>
+							editor.renameChildCard(pageKey, blockId, itemId, label)
+					: undefined
+			}
 			onCarouselHost={
 				editable
 					? (pageKey, blockId, hostId, layout) =>

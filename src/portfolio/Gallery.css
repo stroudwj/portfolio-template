@@ -446,6 +446,22 @@
 	height: auto;
 }
 
+/* Collection widgets (sub-pages, products): the box hugs its content. Width is
+   the only authored dimension — height follows the cards, so resizing never
+   fights an aspect-ratio box or scrolls cards inside a too-short frame. */
+.canvas-item.canvas-widget-item.canvas-auto-height {
+	aspect-ratio: auto;
+	height: auto;
+}
+.canvas-auto-height .canvas-widget-content {
+	height: auto;
+	overflow: visible;
+}
+.canvas-auto-height .canvas-widget-content > .child-pages,
+.canvas-auto-height .canvas-widget-content > .products-block {
+	min-height: 0;
+}
+
 .canvas-widget-content {
 	position: relative;
 	width: 100%;
@@ -474,6 +490,26 @@
 	box-sizing: border-box;
 	margin: 0;
 	padding: clamp(8px, 3cqw, 24px);
+}
+/* Inside a widget the cards FILL the frame (auto-fit collapses empty tracks) —
+   otherwise one card in a wide box leaves a large dead area and the frame looks
+   arbitrarily bigger than its content. */
+.canvas-widget-content > .child-pages.child-style-cards {
+	grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+/* In-place card label editing (editor only). */
+.child-card-label-editable {
+	cursor: text;
+	border-radius: 3px;
+	outline: 1px dashed transparent;
+	outline-offset: 2px;
+	transition: outline-color 0.15s ease;
+}
+.child-card:hover .child-card-label-editable {
+	outline-color: rgba(0, 47, 167, 0.35);
+}
+.child-card-label-editable:focus {
+	outline: 1.5px solid rgba(0, 47, 167, 0.65);
 }
 .canvas-widget-content > .products-block,
 .portfolio-page-part:first-child .canvas-widget-content > .products-block {
@@ -513,6 +549,16 @@
 .canvas-text-empty {
 	color: var(--color-text-muted);
 	font-size: 0.85rem;
+}
+
+/* An empty text box is invisible content-wise; in the editor give it a real
+   footprint so a just-added block is findable and clickable. Editable-only —
+   published sites never render empty texts. */
+.canvas-gallery.editable .canvas-text-item:has(.canvas-text-empty) .canvas-text {
+	display: block;
+	padding: 0.5rem 0.75rem;
+	border: 1.5px dashed color-mix(in srgb, var(--color-text-muted, #888) 60%, transparent);
+	border-radius: 6px;
 }
 
 /* Editor grid overlay: --gn columns across, --gh (precomputed) per cell down.
@@ -606,6 +652,36 @@
 }
 .canvas-layer-toolbar .canvas-lock-button {
 	background: #27324f;
+}
+.canvas-layer-toolbar .canvas-delete-button {
+	background: #fff;
+	color: #a1272c;
+	box-shadow: inset 0 0 0 1px rgba(161, 39, 44, 0.45);
+}
+.canvas-layer-toolbar .canvas-delete-button:hover {
+	background: #a1272c;
+	color: #fff;
+}
+.canvas-layer-toolbar .canvas-toolbar-grip {
+	background: transparent;
+	color: #3c4561;
+	padding: 5px 4px;
+	font-size: 12px;
+	cursor: grab;
+	touch-action: none;
+}
+.canvas-layer-toolbar .canvas-toolbar-grip:active {
+	cursor: grabbing;
+}
+.canvas-layer-toolbar .canvas-toolbar-tools-toggle {
+	background: transparent;
+	color: #3c4561;
+	box-shadow: inset 0 0 0 1px rgba(0, 47, 167, 0.25);
+	min-width: 24px;
+	font-size: 12px;
+}
+.canvas-layer-toolbar .canvas-toolbar-tools-toggle:hover {
+	background: rgba(0, 47, 167, 0.08);
 }
 .canvas-layer-toolbar span { padding: 0 4px; color: #3c4561; }
 

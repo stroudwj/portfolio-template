@@ -17,6 +17,7 @@ import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
 import { ImageDrop } from './ui/ImageDrop';
+import { BlockIcon } from './ui/block-icons';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
 import {
 	embedKindForInput,
@@ -705,42 +706,63 @@ export default function PageEditor({
 	const collectionCanvasControl = (
 		block: Extract<PageBlock, { type: 'children' | 'products' }>,
 		label: string,
-	) => (
-		<div className={`collection-canvas-control${block.canvasLayout ? ' active' : ''}`}>
-			<span>
-				<strong>{block.canvasLayout ? 'Freeform canvas placement' : 'Page flow placement'}</strong>
-				<small>
-					{block.canvasLayout
-						? `Drag or resize the complete ${label} block in the preview.`
-						: `Place the complete ${label} block anywhere, like text or images.`}
-				</small>
-			</span>
-			<button
-				type="button"
-				className={block.canvasLayout ? 'btn-secondary' : 'btn-primary'}
-				onClick={() => setCollectionCanvasPlacement(block)}
-			>
-				{block.canvasLayout ? 'Return to page flow' : 'Freeform'}
-			</button>
-		</div>
-	);
+	) => {
+		const owner = sectionForBlock(block.id);
+		const canvasSection = owner ? sectionHasFreeCanvas(owner.id) : false;
+		// Inside a freeform-canvas section the block lives ON the canvas — page
+		// flow there renders below the art, so no return toggle is offered. Use
+		// "Move to another section" to take it off the canvas entirely.
+		if (block.canvasLayout && canvasSection)
+			return (
+				<div className="collection-canvas-control active">
+					<span>
+						<strong>On the freeform canvas</strong>
+						<small>
+							Drag or resize the complete {label} block in the preview. Move it to
+							another section to take it off this canvas.
+						</small>
+					</span>
+				</div>
+			);
+		return (
+			<div className={`collection-canvas-control${block.canvasLayout ? ' active' : ''}`}>
+				<span>
+					<strong>{block.canvasLayout ? 'Freeform canvas placement' : 'Page flow placement'}</strong>
+					<small>
+						{block.canvasLayout
+							? `Drag or resize the complete ${label} block in the preview.`
+							: canvasSection
+								? `This section is a freeform canvas — put the ${label} block on it so the cards sit below your art instead of over it.`
+								: `Place the complete ${label} block anywhere, like text or images.`}
+					</small>
+				</span>
+				<button
+					type="button"
+					className={block.canvasLayout ? 'btn-secondary' : 'btn-primary'}
+					onClick={() => setCollectionCanvasPlacement(block)}
+				>
+					{block.canvasLayout ? 'Return to page flow' : 'Freeform'}
+				</button>
+			</div>
+		);
+	};
 
 	const addBlockMenuItems = (sectionId?: string) => (
 		<>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addTextBlock(pageKey, target), sectionId, 'text')}>Text</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addImagesBlock(pageKey, target), sectionId, 'image group')}>Image group</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'video', target), sectionId, 'video')}>Video</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addShotsBlock(pageKey, target), sectionId, 'Shots video')}>Shots / scroll video</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'audio', target), sectionId, 'music player')}>Music player</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'map', target), sectionId, 'Google Map')}>Google Map</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addButtonBlock(pageKey, target), sectionId, 'button')}>Button</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addDividerBlock(pageKey, target), sectionId, 'divider')}>Divider</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addTextBlock(pageKey, target), sectionId, 'text')}><BlockIcon type="text" />Text</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addImagesBlock(pageKey, target), sectionId, 'image group')}><BlockIcon type="images" />Image group</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'video', target), sectionId, 'video')}><BlockIcon type="video" />Video</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addShotsBlock(pageKey, target), sectionId, 'Shots video')}><BlockIcon type="shots" />Shots / scroll video</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'audio', target), sectionId, 'music player')}><BlockIcon type="audio" />Music player</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'map', target), sectionId, 'Google Map')}><BlockIcon type="map" />Google Map</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addButtonBlock(pageKey, target), sectionId, 'button')}><BlockIcon type="button" />Button</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addDividerBlock(pageKey, target), sectionId, 'divider')}><BlockIcon type="divider" />Divider</button>
 			{!hasAboutBlock && (
-				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}>About content</button>
+				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}><BlockIcon type="about" />About content</button>
 			)}
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'email button')}>Email button</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}>Contact form</button>
-			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}>Project fields</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'email button')}><BlockIcon type="contact" />Email button</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}><BlockIcon type="form" />Contact form</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}><BlockIcon type="project" />Project fields</button>
 			<button
 				type="button"
 				onClick={() => {
@@ -754,6 +776,7 @@ export default function PageEditor({
 					);
 				}}
 			>
+				<BlockIcon type="products" />
 				{doc.content.store ? 'Products' : 'Set up products…'}
 			</button>
 			{!nested && (
@@ -767,6 +790,7 @@ export default function PageEditor({
 						)
 					}
 				>
+					<BlockIcon type="children" />
 					Sub-page
 				</button>
 			)}
@@ -949,14 +973,15 @@ export default function PageEditor({
 						else event.target.value = block.type;
 					}}
 				>
-					{BLOCK_TYPE_OPTIONS.map((option) => (
+					{BLOCK_TYPE_OPTIONS.filter(
+						// "Main gallery" is the legacy single-gallery model — keep it out of
+						// the menu except on a block that already is one.
+						(option) => option.value !== 'gallery' || block.type === 'gallery',
+					).map((option) => (
 						<option
 							key={option.value}
 							value={option.value}
-							disabled={
-								(option.value === 'about' && hasAboutBlock && block.type !== 'about') ||
-								(option.value === 'gallery' && blocks.some((candidate) => candidate.id !== block.id && candidate.type === 'gallery'))
-							}
+							disabled={option.value === 'about' && hasAboutBlock && block.type !== 'about'}
 						>
 							{option.label}
 						</option>
@@ -1054,7 +1079,7 @@ export default function PageEditor({
 				return (
 					<div className="block text-box-editor-block" key={block.id}>
 						<div className="block-head text-block-head">
-							<span className="block-label">Text box</span>
+							<span className="block-label"><BlockIcon type="text" />Text box</span>
 							{controls(index, block, true)}
 						</div>
 						<RichTextEditor
@@ -1324,7 +1349,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">{moduleLabel}</span>
+							<span className="block-label"><BlockIcon type={embedKindOf(block)} />{moduleLabel}</span>
 							{controls(index, block, true)}
 						</div>
 						<input
@@ -1493,7 +1518,7 @@ export default function PageEditor({
 				return (
 					<div className="block shots-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Shots / scroll video</span>
+							<span className="block-label"><BlockIcon type="shots" />Shots / scroll video</span>
 							{controls(index, block, true)}
 						</div>
 						<p className="muted shots-editor-intro">
@@ -1668,7 +1693,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Images</span>
+							<span className="block-label"><BlockIcon type="images" />Images</span>
 							{controls(index, block, true)}
 						</div>
 						{page.gallery && (
@@ -2067,7 +2092,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Button</span>
+							<span className="block-label"><BlockIcon type="button" />Button</span>
 							{controls(index, block, true)}
 						</div>
 						<div className="block-field-grid">
@@ -2107,7 +2132,7 @@ export default function PageEditor({
 				return (
 					<div className="block divider-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Divider</span>
+							<span className="block-label"><BlockIcon type="divider" />Divider</span>
 							{controls(index, block, true)}
 						</div>
 						<div className="block-choice-row">
@@ -2244,7 +2269,7 @@ export default function PageEditor({
 				return (
 					<div className="block products-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Products shown on this page</span>
+							<span className="block-label"><BlockIcon type="products" />Products shown on this page</span>
 							<select
 								className="select-input products-layout-select"
 								value={block.layout ?? 'grid'}
@@ -2373,7 +2398,7 @@ export default function PageEditor({
 				};
 				return (
 					<div className="block project-editor-block" key={block.id}>
-						<div className="block-head"><span className="block-label">Project fields</span>{controls(index, block, true)}</div>
+						<div className="block-head"><span className="block-label"><BlockIcon type="project" />Project fields</span>{controls(index, block, true)}</div>
 						<div className="block-choice-row">
 							<label>Template<select className="select-input" value={block.project.template} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { project: { ...block.project, template: event.target.value as ProjectTemplate } })}><option value="artwork">Artwork</option><option value="collaboration">Collaboration</option><option value="exhibition">Exhibition</option></select></label>
 							<label>Font<select className="select-input" value={block.fontFamily ?? ''} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { fontFamily: event.target.value || undefined })}><option value="">Page font</option>{textFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
@@ -2402,7 +2427,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Email button</span>
+							<span className="block-label"><BlockIcon type="contact" />Email button</span>
 							{controls(index, block, true)}
 						</div>
 						<Field label="Heading">
@@ -2445,7 +2470,7 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Contact form</span>
+							<span className="block-label"><BlockIcon type="form" />Contact form</span>
 							{controls(index, block, true)}
 						</div>
 						<Field label="Form heading">
@@ -2516,7 +2541,7 @@ export default function PageEditor({
 				return (
 					<div className="block about-editor-block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">About content</span>
+							<span className="block-label"><BlockIcon type="about" />About content</span>
 							{controls(index, block, true)}
 						</div>
 						<p className="muted about-editor-intro">Everything below appears in this section and updates in the preview as you type.</p>
@@ -2533,30 +2558,24 @@ export default function PageEditor({
 					const updateItems = (next: typeof items) =>
 						editor.updateChildrenBlock(pageKey, block.id, { items: next });
 					const owner = sectionForBlock(block.id);
-					const setItemFreeform = (itemId: string) => {
-						const itemIndex = items.findIndex((item) => item.id === itemId);
-						const item = items[itemIndex];
-						if (!item) return;
-						if (!item.layout && owner && !sectionHasFreeCanvas(owner.id))
+					const hasLegacyCardLayouts = items.some((item) => item.layout);
+					// One placement model: the block hangs as a single widget. Older
+					// docs with individually placed cards get a one-click migration.
+					const gatherCardsIntoBlock = () => {
+						if (owner && !sectionHasFreeCanvas(owner.id))
 							editor.addFreeformGallery(pageKey, block.id, owner.id);
-						updateItems(items.map((candidate, index) =>
-							candidate.id === itemId
-								? {
-									...candidate,
-									layout: candidate.layout ? undefined : {
-										x: 8 + (index % 2) * 43,
-										y: canvasBottomForBlock(block.id) + Math.floor(index / 2) * 26 + 2,
-										w: 38,
-										ar: 4 / 3,
-									},
-								}
-								: candidate,
-						));
+						editor.updateChildrenBlock(pageKey, block.id, {
+							items: items.map((item) => ({ ...item, layout: undefined })),
+							canvasLayout: collectionLayoutAtCanvasBottom(
+								'children',
+								canvasBottomForBlock(block.id),
+							),
+						});
 					};
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<span className="block-label">Sub-pages</span>
+							<span className="block-label"><BlockIcon type="children" />Sub-pages</span>
 							<select
 								className="select-input children-style-select"
 								value={block.style ?? 'cards'}
@@ -2572,6 +2591,19 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, true)}
 						</div>
+						{hasLegacyCardLayouts ? (
+							<div className="collection-canvas-control">
+								<span>
+									<strong>Cards placed one by one (older layout)</strong>
+									<small>Gather them into a single sub-pages block you can drag and resize as one.</small>
+								</span>
+								<button type="button" className="btn-secondary" onClick={gatherCardsIntoBlock}>
+									Gather into one block
+								</button>
+							</div>
+						) : (
+							collectionCanvasControl(block, 'sub-pages')
+						)}
 						<div className="subpage-card-list">
 							{items.map((item, childIndex, childList) => {
 								const child = doc.content.pages[item.page];
@@ -2603,8 +2635,8 @@ export default function PageEditor({
 										</div>
 										<details className="subpage-card-details">
 											<summary>
-												<span>Link &amp; placement</span>
-												<small>{targetName} · {item.layout ? 'Freeform' : 'Page flow'}</small>
+												<span>Linked page</span>
+												<small>{targetName}</small>
 											</summary>
 											<div className="subpage-card-details-body">
 												<label>
@@ -2613,9 +2645,6 @@ export default function PageEditor({
 														{Object.entries(doc.content.pages).map(([targetKey, targetPage]) => <option key={targetKey} value={targetKey}>{targetPage.label || (targetKey === 'home' ? 'Home' : targetKey)}</option>)}
 													</select>
 												</label>
-												<button type="button" className={item.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => setItemFreeform(item.id)}>
-													{item.layout ? 'Return card to page flow' : 'Place card freeform'}
-												</button>
 											</div>
 										</details>
 									</article>
@@ -2634,7 +2663,7 @@ export default function PageEditor({
 							<button type="button" className="btn-primary" onClick={() => addChild(pageKey, owner?.id)}>＋ Create new sub-page</button>
 						</div>
 						<HelpDisclosure label="How sub-page cards work">
-							<p>Each card has independent display text, destination, thumbnail, and placement. Freeform cards can be moved and resized one at a time in the preview.</p>
+							<p>Each card has its own display text, destination, and thumbnail. The block hangs on the canvas as one piece — drag it to move it, or drag a corner to set its width; its height follows the cards.</p>
 						</HelpDisclosure>
 					</div>
 				);

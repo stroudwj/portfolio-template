@@ -20,7 +20,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 
 	const fields = (
 		<>
-			<p className="muted header-layout-intro">Sizes and positions the site name or image logo chosen in Site.</p>
+			<p className="muted header-layout-intro">Sizes and positions the site name or image logo chosen in Site → Header.</p>
 			<Field label="Header size">
 				<div className="gap-row">
 					<input
@@ -66,7 +66,7 @@ export default function HeaderLayoutEditor({ embedded = false }: { embedded?: bo
 				</div>
 			</Field>
 
-			<Field label="While visitors scroll" hint="This affects only the header. Navigation has its own setting in Design → Structure.">
+			<Field label="While visitors scroll" hint="This affects only the header. Navigation has its own setting in Structure above.">
 				<div className="chip-row" role="group" aria-label="Header scroll behavior">
 					<button type="button" className={`btn-icon btn-chip ${logoStabilized ? 'active' : ''}`} aria-pressed={logoStabilized} onClick={() => setTheme({ stabilizeLogo: undefined })}>Stays visible</button>
 					<button type="button" className={`btn-icon btn-chip ${!logoStabilized ? 'active' : ''}`} aria-pressed={!logoStabilized} onClick={() => setTheme({ stabilizeLogo: false })}>Scrolls away</button>

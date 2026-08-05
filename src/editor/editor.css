@@ -2710,9 +2710,10 @@ select.select-input {
 	background: var(--klein-dark);
 }
 .btn-primary:disabled {
-	opacity: 0.55;
+	/* Unmistakably inert: washed toward the wall color, not just dimmed. */
+	opacity: 0.45;
 	cursor: default;
-	background: var(--klein);
+	background: color-mix(in srgb, var(--klein) 45%, var(--wall-2));
 }
 .btn-secondary {
 	background: transparent;
@@ -4852,6 +4853,16 @@ a.live-url:hover {
 	margin-bottom: 1px;
 	white-space: nowrap;
 }
+/* A narrow sidebar leaves the currency hint a sliver-wide column beside the
+   button — stack the row instead of squeezing it. */
+@container (max-width: 360px) {
+	.store-currency-row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.store-currency-row .btn-secondary {
+		justify-self: start;
+	}
+}
 .store-stripe-help {
 	margin-top: 16px;
 	border-top: 1px solid var(--wall-2);
@@ -5581,6 +5592,9 @@ a.live-url:hover {
 	padding: 6px;
 }
 .page-add-block-menu button {
+	display: flex;
+	align-items: center;
+	gap: 7px;
 	border: 0;
 	border-radius: 4px;
 	background: transparent;
@@ -5590,6 +5604,10 @@ a.live-url:hover {
 	font-size: 12px;
 	text-align: left;
 	cursor: pointer;
+}
+.page-add-block-menu button .block-icon {
+	width: 15px;
+	height: 15px;
 }
 .page-add-block-menu button:hover {
 	background: var(--wall-1);
@@ -6056,6 +6074,16 @@ a.live-url:hover {
 	gap: 8px;
 	margin-top: 9px;
 }
+/* At narrow sidebar widths the status pill and link crush the font select
+   down to a few letters — give the select its own row instead. */
+@container (max-width: 340px) {
+	.text-box-font-row {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+	.text-box-font-row label {
+		grid-column: 1 / -1;
+	}
+}
 .text-box-font-row label {
 	display: grid;
 	gap: 4px;
@@ -6088,11 +6116,17 @@ a.live-url:hover {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 10px;
+	/* Wrap instead of squeezing the hint into a one-word-per-line column when
+	   the sidebar is at its minimum width. */
+	flex-wrap: wrap;
+	gap: 6px 10px;
 	margin-top: 9px;
 	color: var(--ink-soft);
 	font-size: 11px;
 	line-height: 1.4;
+}
+.text-box-canvas-status > span {
+	flex: 1 1 170px;
 }
 .text-box-canvas-status .btn-secondary {
 	flex: none;
@@ -6238,9 +6272,23 @@ a.live-url:hover {
 	}
 }
 .block-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	font-size: 13px;
 	font-weight: 500;
 	color: var(--ink-soft);
+}
+/* Outline block icons (DESIGN.md): 16px, --ink-soft at rest, --ink on hover. */
+.block-icon {
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+	color: var(--ink-soft);
+}
+.page-add-block-menu button:hover .block-icon,
+.block-head:hover .block-icon {
+	color: var(--ink);
 }
 .block-controls {
 	display: flex;

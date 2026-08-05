@@ -35,6 +35,7 @@ export interface PortfolioProps extends PortfolioData {
 	/** Editor preview: reports a complete sub-page/product block moved on a canvas. */
 	onWidgetLayout?: (page: string, blockId: string, layout: ImageLayout) => void;
 	onChildItemLayout?: (page: string, blockId: string, itemId: string, layout: ImageLayout) => void;
+	onChildCardLabel?: (page: string, blockId: string, itemId: string, label: string) => void;
 	onCarouselHost?: (
 		page: string,
 		blockId: string,
@@ -68,7 +69,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onChildCardLabel, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	// `text` is retained in the schema for older sites, but the editor now has one
 	// canonical header text value: the site name.
@@ -183,6 +184,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onCarouselFrame={onCarouselFrame}
 					onWidgetLayout={onWidgetLayout}
 					onChildItemLayout={onChildItemLayout}
+					onChildCardLabel={onChildCardLabel}
 					onCarouselHost={onCarouselHost}
 					onCarouselFocus={onCarouselFocus}
 					onCarouselZoom={onCarouselZoom}

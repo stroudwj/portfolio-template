@@ -3,7 +3,7 @@ import type { StoreOffer, StoreProduct } from '../../lib/content';
 import { isTestStripePaymentLink, normalizeStripePaymentLink } from '../../lib/stripe-payment-link';
 import { useEditor } from '../store';
 import { getAssetPreviewUrl } from '../lib/assets';
-import { Field, Section, TextArea, TextInput } from './ui/controls';
+import { Field, Section, TextArea, TextInput, showPreviewPage } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 
 type StripeLinkState = 'empty' | 'invalid' | 'test' | 'live';
@@ -457,7 +457,17 @@ export default function StoreEditor() {
 						Create a simple catalog for prints and originals. Buyers choose an option here, then
 						pay securely on Stripe’s hosted checkout.
 					</p>
-					<button type="button" className="btn-primary" onClick={editor.setupStore}>
+					<button
+						type="button"
+						className="btn-primary"
+						onClick={() => {
+							// Show the freshly created Shop page in the live preview right away —
+							// with menu styles like the hamburger there is otherwise no visible
+							// sign that the page was added.
+							const shopKey = editor.setupStore();
+							if (shopKey) showPreviewPage(shopKey);
+						}}
+					>
 						Set up store
 					</button>
 					<p className="muted">

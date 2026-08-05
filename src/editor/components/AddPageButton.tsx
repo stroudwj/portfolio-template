@@ -9,11 +9,21 @@ export default function AddPageButton() {
 	};
 	return (
 		<div className="add-page-actions">
-			<button type="button" className="btn-secondary add-content-action" onClick={() => add()}>
+			<button
+				type="button"
+				className="btn-secondary add-content-action"
+				title="An empty page with its own image group"
+				onClick={() => add()}
+			>
 				＋ Add page
 			</button>
 			<details className="add-project-menu">
-				<summary className="btn-secondary add-content-action">＋ Add project</summary>
+				<summary
+					className="btn-secondary add-content-action"
+					title="A page that starts with project fields — year, medium, dimensions, collaborators, exhibition history"
+				>
+					＋ Add project
+				</summary>
 				<div>
 					<button type="button" onClick={() => add('artwork')}>Artwork</button>
 					<button type="button" onClick={() => add('collaboration')}>Collaboration</button>

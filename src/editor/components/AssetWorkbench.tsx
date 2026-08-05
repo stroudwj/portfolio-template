@@ -382,7 +382,10 @@ export default function AssetWorkbench() {
 			title="Image workbench"
 			sectionKey="_image-workbench"
 			action={<span className="count">{entries.length}</span>}
-			defaultCollapsed={entries.length > 0}
+			// Collapsed by default even when empty: the workbench sits above the page
+			// list, and an expanded empty Finder window pushes the actual page editing
+			// below the fold on every visit to Pages.
+			defaultCollapsed
 			onCollapsedChange={setSectionCollapsed}
 		>
 			{expanded && (
@@ -404,7 +407,7 @@ export default function AssetWorkbench() {
 					onClick={() => setWindowClosed(false)}
 				>
 					<span aria-hidden="true">▰</span>
-					Open Finder
+					Open the photo window
 				</button>
 			) : (
 				<div
@@ -414,7 +417,7 @@ export default function AssetWorkbench() {
 					aria-label={expanded ? 'Full-screen image workbench' : undefined}
 				>
 					<div className="workbench-window-bar">
-						<div className="workbench-window-dots" role="group" aria-label="Finder window controls">
+						<div className="workbench-window-dots" role="group" aria-label="Photo window controls">
 							<button
 								type="button"
 								className="workbench-dot workbench-dot-close"
@@ -422,8 +425,8 @@ export default function AssetWorkbench() {
 									setExpanded(false);
 									setWindowClosed(true);
 								}}
-								aria-label="Close Finder"
-								title="Close Finder"
+								aria-label="Close the photo window"
+								title="Close the photo window"
 							/>
 							<button
 								type="button"
@@ -432,8 +435,8 @@ export default function AssetWorkbench() {
 									setExpanded(false);
 									setMinimized((value) => !value);
 								}}
-								aria-label={minimized ? 'Restore Finder' : 'Minimize Finder'}
-								title={minimized ? 'Restore Finder' : 'Minimize Finder'}
+								aria-label={minimized ? 'Restore the photo window' : 'Minimize the photo window'}
+								title={minimized ? 'Restore the photo window' : 'Minimize the photo window'}
 							/>
 							<button
 								type="button"

@@ -447,14 +447,17 @@ function Shell({ base }: { base: string }) {
 
 	const openPageWorkspace = (pageKey: string) => {
 		if (!doc.content.pages[pageKey]) return;
-		navigateHistoryPage(pageKey);
+		// Pure navigation stays out of the undo history — Cmd+Z should revert the
+		// last CHANGE, not retrace page visits. Edits still return you to the page
+		// they happened on, because every history snapshot carries its page key.
+		navigateHistoryPage(pageKey, false);
 		setLastSelectedPage(pageKey);
 		pickTab('pages');
 		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 	};
 
 	const closePageWorkspace = () => {
-		navigateHistoryPage(null);
+		navigateHistoryPage(null, false);
 		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 	};
 
