@@ -1,0 +1,249 @@
+---
+// Dev-only template dashboard: the repo owner's map of every starter and theme
+// preset, each opening in the real editor's template studio mode. The route is
+// emitted in NO build — getStaticPaths yields paths only on the dev server —
+// and saves go through the dev API, so production carries no trace of this.
+import Favicons from '../../components/Favicons.astro';
+import { STARTER_RECIPES, THEME_PRESETS } from '../../editor/lib/templates';
+import { sampleArtworkUrl } from '../../editor/lib/sample-artwork';
+import { withBase } from '../../portfolio/types';
+
+export function getStaticPaths() {
+	if (!import.meta.env.DEV) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const editorUrl = withBase(base, 'editor/');
+
+const starters = STARTER_RECIPES.map((recipe) => ({
+	id: recipe.id,
+	name: recipe.name,
+	discipline: recipe.discipline,
+	tagline: recipe.tagline,
+	ready: recipe.readiness === 'ready' && !!recipe.content,
+	readiness: recipe.readiness,
+	pageCount: recipe.content ? Object.keys(recipe.content.pages).length : 0,
+	imageCount: recipe.gallerySpecs.reduce((total, spec) => total + spec.exactImageCount, 0),
+	cover: recipe.coverSampleAssetId ? (sampleArtworkUrl(recipe.coverSampleAssetId) ?? null) : null,
+	href: `${editorUrl}?template-studio=starter:${recipe.id}`,
+}));
+
+const presets = THEME_PRESETS.map((preset) => ({
+	id: preset.id,
+	name: preset.name,
+	description: preset.description,
+	navStyle: preset.tokens.navStyle ?? 'dock',
+	swatches: [
+		preset.tokens.backgroundColor,
+		preset.tokens.textColor,
+		preset.tokens.mutedTextColor,
+		preset.tokens.accentColor,
+	],
+	href: `${editorUrl}?template-studio=preset:${preset.id}`,
+}));
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow, noarchive" />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<title>Template studio</title>
+	</head>
+	<body>
+		<main class="studio">
+			<header class="studio-head">
+				<h1>Template studio</h1>
+				<p>
+					Open a template in the editor, shape it with the normal tools, and save it back to its
+					source file. Saves write into this project — review them with git and commit when happy.
+					Image rosters stay code-side (the rights contract); everything else is editable here.
+				</p>
+			</header>
+
+			<section aria-labelledby="starters-heading">
+				<h2 id="starters-heading">Starters</h2>
+				<div class="card-grid">
+					{starters.map((starter) => (
+						<article class={`card ${starter.ready ? '' : 'card-waiting'}`}>
+							{starter.cover ? (
+								<img class="card-cover" src={starter.cover} alt="" loading="lazy" />
+							) : (
+								<div class="card-cover card-cover-empty" aria-hidden="true" />
+							)}
+							<div class="card-body">
+								<h3>{starter.name}</h3>
+								<p class="card-meta">
+									{starter.discipline}
+									{starter.ready
+										? ` · ${starter.pageCount} pages · ${starter.imageCount} images`
+										: ` · ${starter.readiness.replace('-', ' ')}`}
+								</p>
+								<p class="card-tagline">{starter.tagline}</p>
+								{starter.ready && <a class="card-open" href={starter.href}>Open in editor</a>}
+							</div>
+						</article>
+					))}
+				</div>
+			</section>
+
+			<section aria-labelledby="presets-heading">
+				<h2 id="presets-heading">Theme presets</h2>
+				<div class="card-grid">
+					{presets.map((preset) => (
+						<article class="card">
+							<div class="card-swatches" aria-hidden="true">
+								{preset.swatches.map((color) => (
+									<i style={`background:${color}`} />
+								))}
+							</div>
+							<div class="card-body">
+								<h3>{preset.name}</h3>
+								<p class="card-meta">nav: {preset.navStyle}</p>
+								<p class="card-tagline">{preset.description}</p>
+								<a class="card-open" href={preset.href}>Open in editor</a>
+							</div>
+						</article>
+					))}
+				</div>
+			</section>
+		</main>
+	</body>
+</html>
+
+<style>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--wall-1: #edeae4;
+		--wall-2: #ddd9d0;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	body {
+		margin: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		font-size: 15px;
+		line-height: 1.6;
+	}
+	.studio {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 48px 32px 96px;
+		display: flex;
+		flex-direction: column;
+		gap: 48px;
+	}
+	.studio-head {
+		max-width: 640px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	h1 {
+		font-size: 28px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		margin: 0;
+	}
+	h2 {
+		font-size: 18px;
+		font-weight: 500;
+		margin: 0 0 16px;
+	}
+	h3 {
+		font-size: 15px;
+		font-weight: 500;
+		margin: 0;
+	}
+	p {
+		margin: 0;
+	}
+	.card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		gap: 16px;
+	}
+	.card {
+		background: var(--wall-1);
+		border: 1px solid var(--wall-2);
+		border-radius: 6px;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	.card-waiting {
+		opacity: 0.65;
+	}
+	.card-cover {
+		display: block;
+		width: 100%;
+		height: 150px;
+		object-fit: cover;
+		border-bottom: 1px solid var(--wall-2);
+	}
+	.card-cover-empty {
+		background: var(--wall-2);
+	}
+	.card-swatches {
+		display: flex;
+		height: 150px;
+		border-bottom: 1px solid var(--wall-2);
+	}
+	.card-swatches i {
+		flex: 1;
+	}
+	.card-body {
+		padding: 14px 16px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.card-meta {
+		font-size: 13px;
+		color: var(--ink-soft);
+	}
+	.card-tagline {
+		font-size: 13px;
+		color: var(--ink-soft);
+	}
+	.card-open {
+		margin-top: 6px;
+		align-self: flex-start;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--ink);
+		text-decoration: none;
+		border: 1px solid var(--wall-2);
+		border-radius: 4px;
+		padding: 7px 14px;
+		background: transparent;
+	}
+	.card-open:hover {
+		background: var(--paper);
+	}
+	.card-open:focus-visible {
+		outline: none;
+		border-color: var(--klein);
+		box-shadow: 0 0 0 3px rgba(0, 47, 167, 0.12);
+	}
+	@media (max-width: 520px) {
+		.studio {
+			padding: 32px 20px 64px;
+		}
+	}
+</style>

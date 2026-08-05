@@ -56,6 +56,8 @@ describe('discipline-led starter catalog', () => {
 		expect(AVAILABLE_STARTERS.map((starter) => starter.id)).toEqual([
 			'painter',
 			'photographer',
+			'works-on-paper',
+			'sculptor',
 		]);
 		const photographer = STARTER_RECIPES.find(
 			(recipe) => recipe.id === 'photographer',
@@ -245,6 +247,75 @@ describe('discipline-led starter catalog', () => {
 		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
 			'gallery-linen',
 			'night-gallery',
+		]);
+	});
+
+	it('keeps the new starter media byte-for-byte tied to the rights manifest', () => {
+		const expectedCounts = { 'works-on-paper': 10, sculptor: 8 } as const;
+		for (const starterId of ['works-on-paper', 'sculptor'] as const) {
+			const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === starterId)!;
+			const sampleIds = starter.gallerySpecs.flatMap((spec) =>
+				spec.slots.map((slot) => slot.sampleAssetId!),
+			);
+			expect(sampleIds).toHaveLength(expectedCounts[starterId]);
+			for (const id of sampleIds) {
+				const artwork = SAMPLE_ARTWORK.get(id)!;
+				const bytes = readFileSync(`public/${artwork.url}`);
+				expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
+				expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
+				expect(artwork.source).toBe('The Metropolitan Museum of Art');
+				expect(artwork.rightsProof).toMatch(/^https:\/\//);
+				expect(artwork.objectUrl).toMatch(/^https:\/\//);
+				expect(artwork.accessionNumber).not.toBe('');
+				expect(artwork.status).toBe('active');
+			}
+		}
+	});
+
+	// The inverse of the Painter separation test: the pinboard concept REQUIRES
+	// overlap, explicit layering, and a mount on every drawing.
+	it('keeps the Works on paper wall overlapping and layered on purpose', () => {
+		const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === 'works-on-paper')!;
+		const doc = initDocFromContent(starter.content);
+		const entries = doc.galleries.wall;
+		const layouts = entries.map((entry) => entry.meta.layout!);
+		let overlappingPairs = 0;
+		for (let first = 0; first < layouts.length; first += 1) {
+			for (let second = first + 1; second < layouts.length; second += 1) {
+				const a = layouts[first];
+				const b = layouts[second];
+				const overlap =
+					a.x < b.x + b.w &&
+					a.x + a.w > b.x &&
+					a.y < b.y + b.w / b.ar &&
+					a.y + a.w / a.ar > b.y;
+				if (overlap) overlappingPairs += 1;
+			}
+		}
+		expect(overlappingPairs).toBeGreaterThanOrEqual(2);
+		expect(new Set(layouts.map((layout) => layout.z)).size).toBe(layouts.length);
+		expect(entries.every((entry) => !!entry.meta.effects?.mount)).toBe(true);
+		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
+			'studio-corkboard',
+			'vitrine',
+		]);
+	});
+
+	it('keeps the Sculptor halls color-blocked with sparse grids', () => {
+		const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === 'sculptor')!;
+		const doc = initDocFromContent(starter.content);
+		const home = doc.content.pages.home;
+		expect(home.sections).toHaveLength(4);
+		expect(Object.keys(home.sectionColors ?? {}).length).toBeGreaterThanOrEqual(2);
+		expect(Object.keys(home.sectionMotion ?? {})).toHaveLength(4);
+		// dense-grid must never be detected, or the vitrine preset stops matching.
+		for (const page of Object.values(doc.content.pages))
+			for (const block of page.blocks ?? [])
+				if (block.type === 'images' && block.gallery.layout === 'grid')
+					expect(block.gallery.columns ?? 3).toBeLessThanOrEqual(2);
+		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
+			'studio-corkboard',
+			'vitrine',
 		]);
 	});
 

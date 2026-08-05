@@ -1,0 +1,15 @@
+{
+  "backgroundColor": "#ece9e2",
+  "textColor": "#1c1b18",
+  "mutedTextColor": "#6e6a61",
+  "accentColor": "#7a2e2b",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Optima, Candara, \"Gill Sans\", \"Gill Sans MT\", \"Segoe UI\", sans-serif",
+  "contentGap": 40,
+  "pageHeadingScale": 135,
+  "pageHeadingPosition": "center",
+  "navStyle": "centered",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

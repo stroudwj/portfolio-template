@@ -1,0 +1,15 @@
+{
+  "backgroundColor": "#f7f7f2",
+  "textColor": "#101010",
+  "mutedTextColor": "#66645f",
+  "accentColor": "#d93421",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+  "contentGap": 16,
+  "pageHeadingPosition": "left",
+  "navStyle": "pill",
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true,
+  "pageHeadingScale": 140,
+  "fullscreenMobileMenu": true
+}

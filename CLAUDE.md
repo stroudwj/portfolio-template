@@ -37,6 +37,16 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
   `components/Publish*.tsx`, `components/*Modal.tsx`, `components/useAccount.ts`.
 - `src/editor/lib/account/` — the **accounts + publishing client** (the current path):
   sign-in session, publish, site store, license binding.
+- `src/editor/lib/starters/*.content.json` + `theme-presets/*.json` — **template data**
+  (starter content docs + preset tokens), deliberately JSON so the manifest never hashes it.
+  Registry/metadata/rights validation stay in `lib/templates.ts`; sample rights catalog in
+  `lib/sample-artwork.ts`. **Template studio** (dev-only admin): `/template-studio` dashboard
+  (route emitted in no build) → `/editor?template-studio=starter:<id>` opens a template in the
+  editor with memory-only persistence; "Save to template" POSTs to a dev-server API
+  (`scripts/template-studio/dev-api.mjs`, wired via `astro.config.mjs`) that validates through
+  `validateStarterCatalog` and writes the JSON back. Serializer contract:
+  `lib/template-studio.ts` (`docToTemplateContent` inverts `initDocFromContent`;
+  locked by `tests/template-studio.test.ts`).
 - `oauth-proxy/worker.js` — the **API Worker**: accounts, publish, export, site status,
   custom domains, Polar checkout/webhook. Setup in [oauth-proxy/README.md](oauth-proxy/README.md).
 - `site-server/worker.js` — the **serving Worker**: serves every published site from R2 via a

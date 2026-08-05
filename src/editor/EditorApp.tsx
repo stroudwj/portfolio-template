@@ -16,6 +16,12 @@ import MobileDoor from './components/MobileDoor';
 import OnboardingTour from './components/OnboardingTour';
 import AssetWorkbench from './components/AssetWorkbench';
 import {
+	TemplateStudioBar,
+	TemplateStudioUnavailable,
+	useTemplateStudio,
+} from './components/TemplateStudioBar';
+import { parseStudioIntent, type TemplateStudioIntent } from './lib/template-studio';
+import {
 	expandSection,
 	onPreviewTypeMotion,
 	onShowEditorTab,
@@ -110,6 +116,15 @@ const SHORTCUTS: Array<{ keys: string; label: string }> = [
 	{ keys: 'Esc', label: 'Leave fullscreen preview' },
 ];
 
+/** Dev-only template studio entry: /editor?template-studio=starter:painter.
+ * The param survives reloads on purpose — a browser refresh re-enters the same
+ * studio session. Production builds dead-code this to null via import.meta.env,
+ * and the missing dev API is the hard backstop. */
+function studioIntentFromLocation(): TemplateStudioIntent | null {
+	if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+	return parseStudioIntent(new URL(window.location.href).searchParams.get('template-studio'));
+}
+
 /** Keep infrequent help and destructive actions out of the primary top-bar path. */
 function TopbarMoreMenu({
 	onReset,
@@ -119,7 +134,7 @@ function TopbarMoreMenu({
 	uiCustom,
 	onUiCustom,
 }: {
-	onReset: () => void;
+	onReset?: () => void;
 	onShowTour: () => void;
 	uiTheme: UiTheme;
 	onUiTheme: (theme: UiTheme) => void;
@@ -231,16 +246,18 @@ function TopbarMoreMenu({
 							Reset custom appearance
 						</button>
 					</details>
-					<button
-						type="button"
-						className="topbar-more-action danger"
-						onClick={() => {
-							setOpen(false);
-							onReset();
-						}}
-					>
-						Reset editor…
-					</button>
+					{onReset && (
+						<button
+							type="button"
+							className="topbar-more-action danger"
+							onClick={() => {
+								setOpen(false);
+								onReset();
+							}}
+						>
+							Reset editor…
+						</button>
+					)}
 				</div>
 			)}
 		</div>
@@ -270,7 +287,7 @@ function useUndoShortcuts(undo: () => void, redo: () => void) {
 	}, [undo, redo]);
 }
 
-function Shell({ base }: { base: string }) {
+function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | null }) {
 	const {
 		doc,
 		reset,
@@ -307,7 +324,8 @@ function Shell({ base }: { base: string }) {
 	});
 	const [tab, setTab] = useState<EditorTab>(() => {
 		const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(TAB_STORE);
-		return normalizeEditorTab(saved);
+		const initial = normalizeEditorTab(saved);
+		return studio && initial === 'publish' ? 'pages' : initial;
 	});
 	const issues = useMemo(() => (doc ? collectIssues(doc) : []), [doc]);
 	const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
@@ -317,7 +335,7 @@ function Shell({ base }: { base: string }) {
 		setTab(next);
 		if (controlsRef.current) controlsRef.current.scrollTop = 0;
 		try {
-			window.localStorage.setItem(TAB_STORE, next);
+			if (!studio) window.localStorage.setItem(TAB_STORE, next);
 		} catch {
 			/* storage blocked — the choice still holds this session */
 		}
@@ -402,6 +420,8 @@ function Shell({ base }: { base: string }) {
 
 	useUndoShortcuts(undo, redo);
 
+	const templateStudio = useTemplateStudio(studio);
+
 	// Removing/resetting the page currently open in the workspace returns to the
 	// overview instead of leaving an empty editor panel behind.
 	useEffect(() => {
@@ -437,6 +457,23 @@ function Shell({ base }: { base: string }) {
 	// and the auto-unlock-after-purchase flow above all still run on a phone — only
 	// BUILDING is desktop work. Tablets pass straight through.
 	if (phone) return <MobileDoor base={base} brandLockup={brandLockup} />;
+
+	if (studio) {
+		if (templateStudio?.status === 'unavailable' || templateStudio?.status === 'unknown')
+			return (
+				<div className="editor">
+					<TemplateStudioUnavailable base={base} reason={templateStudio.status} />
+				</div>
+			);
+		if (!doc || !templateStudio)
+			return (
+				<div className="editor">
+					<div className="template-studio-empty">
+						<p>Opening template…</p>
+					</div>
+				</div>
+			);
+	}
 
 	if (!doc) return <StartScreen brandLockup={brandLockup} />;
 
@@ -512,16 +549,18 @@ function Shell({ base }: { base: string }) {
 					</button>
 				</div>
 				<div className="topbar-spacer" />
-				<div
-					className={`save-status save-status-${saveStatus}`}
-					role="status"
-					aria-live="polite"
-					aria-label={saveError ?? (saveStatus === 'saving' ? 'Saving draft' : 'Draft saved')}
-					title={saveError ?? (saveStatus === 'saving' ? 'Saving your draft in this browser' : 'Draft saved in this browser')}
-				>
-					<span className="save-status-dot" aria-hidden="true" />
-					{saveStatus === 'saving' ? 'Saving…' : saveStatus === 'failed' ? 'Couldn’t save' : 'Saved'}
-				</div>
+				{!studio && (
+					<div
+						className={`save-status save-status-${saveStatus}`}
+						role="status"
+						aria-live="polite"
+						aria-label={saveError ?? (saveStatus === 'saving' ? 'Saving draft' : 'Draft saved')}
+						title={saveError ?? (saveStatus === 'saving' ? 'Saving your draft in this browser' : 'Draft saved in this browser')}
+					>
+						<span className="save-status-dot" aria-hidden="true" />
+						{saveStatus === 'saving' ? 'Saving…' : saveStatus === 'failed' ? 'Couldn’t save' : 'Saved'}
+					</div>
+				)}
 				<div className="history-actions" role="group" aria-label="Undo and redo">
 					<button
 						type="button"
@@ -542,9 +581,9 @@ function Shell({ base }: { base: string }) {
 						Redo
 					</button>
 				</div>
-				<AccountControls />
+				{!studio && <AccountControls />}
 				<TopbarMoreMenu
-					onReset={resetAll}
+					onReset={studio ? undefined : resetAll}
 					onShowTour={() => setTourReplayToken((token) => token + 1)}
 					uiTheme={uiTheme}
 					onUiTheme={pickUiTheme}
@@ -553,13 +592,15 @@ function Shell({ base }: { base: string }) {
 				/>
 			</header>
 
+			{studio && templateStudio && <TemplateStudioBar studio={templateStudio} base={base} />}
+
 			<div
 				className={`editor-body view-${mobileView}`}
 				style={{ '--editor-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
 			>
 				<div className="editor-controls" ref={controlsRef}>
 					<nav className="editor-tabs" aria-label="Editor categories">
-						{EDITOR_TABS.map((t) => (
+						{(studio ? EDITOR_TABS.filter((t) => t.id !== 'publish') : EDITOR_TABS).map((t) => (
 							<button
 								key={t.id}
 								type="button"
@@ -634,9 +675,11 @@ function Shell({ base }: { base: string }) {
 						<FooterEditor />
 						<SharingEditor />
 					</div>
-					<div className={`editor-tab-pane ${tab === 'publish' ? 'active' : ''}`}>
-						<PublishPanel />
-					</div>
+					{!studio && (
+						<div className={`editor-tab-pane ${tab === 'publish' ? 'active' : ''}`}>
+							<PublishPanel />
+						</div>
+					)}
 				</div>
 				<div
 					className="editor-sidebar-resizer"
@@ -670,6 +713,7 @@ function Shell({ base }: { base: string }) {
 					/>
 				</div>
 			</div>
+			{!studio && (
 			<OnboardingTour
 				replayToken={tourReplayToken}
 				onSelectTab={pickTab}
@@ -691,15 +735,19 @@ function Shell({ base }: { base: string }) {
 					else pickTab('pages');
 				}}
 			/>
+			)}
 		</div>
 	);
 }
 
 export default function EditorApp({ base = '' }: { base?: string }) {
+	// Resolved once per page load; the query param stays in the URL so a reload
+	// re-enters the same studio session.
+	const [studio] = useState(studioIntentFromLocation);
 	return (
-		<EditorProvider>
-			<CheckoutIntent />
-			<Shell base={base} />
+		<EditorProvider persistence={studio ? 'memory' : 'browser'}>
+			{!studio && <CheckoutIntent />}
+			<Shell base={base} studio={studio} />
 		</EditorProvider>
 	);
 }

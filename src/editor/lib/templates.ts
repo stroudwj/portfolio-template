@@ -1,6 +1,23 @@
-import { DEFAULT_FOOTER, pageGalleryConfigs, type Content, type PageConfig, type Theme } from '../../lib/content';
+import { pageGalleryConfigs, type Content, type Theme } from '../../lib/content';
+import { parseAndMigrateContent, themeSchema } from '../../lib/content-schema';
 import type { EditorDoc } from './types';
-import { SAMPLE_ARTWORK, aspectDifference, getSampleArtwork, type SampleArtwork } from './sample-artwork';
+import { SAMPLE_ARTWORK, aspectDifference, getSampleArtwork, sampleArtworkIdForUrl, type SampleArtwork } from './sample-artwork';
+import galleryLinenTokens from './theme-presets/gallery-linen.json';
+import nightGalleryTokens from './theme-presets/night-gallery.json';
+import caseStudyPaperTokens from './theme-presets/case-study-paper.json';
+import graphicIndexTokens from './theme-presets/graphic-index.json';
+import studioCorkboardTokens from './theme-presets/studio-corkboard.json';
+import vitrineTokens from './theme-presets/vitrine.json';
+import painterContentRaw from './starters/painter.content.json';
+import photographerContentRaw from './starters/photographer.content.json';
+import worksOnPaperContentRaw from './starters/works-on-paper.content.json';
+import sculptorContentRaw from './starters/sculptor.content.json';
+
+// Template data lives in JSON files beside this module so the dev-only template
+// studio can save edits without touching hashed runtime source. Both parsers run
+// at module scope: a malformed file fails loudly at import time, in dev and tests.
+const presetTokens = (raw: unknown): Theme => themeSchema.parse(raw) as Theme;
+const starterContent = (raw: unknown): Content => parseAndMigrateContent(raw);
 
 export type RecipeTrait =
 	| 'full-bleed-media'
@@ -38,7 +55,7 @@ export interface StarterGallerySpec {
 export type StarterReadiness = 'ready' | 'awaiting-permission' | 'awaiting-media';
 
 export interface StarterRecipe {
-	id: 'painter' | 'photographer' | 'illustrator-designer';
+	id: 'painter' | 'photographer' | 'illustrator-designer' | 'works-on-paper' | 'sculptor';
 	name: string;
 	discipline: string;
 	tagline: string;
@@ -56,19 +73,7 @@ const galleryLinen: ThemePreset = {
 	id: 'gallery-linen',
 	name: 'Gallery Linen',
 	description: 'Warm canvas, editorial serif headings, and quiet moss details.',
-	tokens: {
-		backgroundColor: '#f3efe7',
-		textColor: '#201f1c',
-		mutedTextColor: '#746f65',
-		accentColor: '#48614f',
-		fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-		headingFontFamily: 'Garamond, "Apple Garamond", "EB Garamond", Georgia, serif',
-		contentGap: 20,
-		pageHeadingPosition: 'left',
-		navStyle: 'minimal',
-		automaticTextContrast: true,
-		stabilizeNavigation: true,
-	},
+	tokens: presetTokens(galleryLinenTokens),
 	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
 };
 
@@ -76,19 +81,7 @@ const nightGallery: ThemePreset = {
 	id: 'night-gallery',
 	name: 'Night Gallery',
 	description: 'Near-black walls, warm type, and copper accents for image-led work.',
-	tokens: {
-		backgroundColor: '#141413',
-		textColor: '#f1eee7',
-		mutedTextColor: '#aaa59b',
-		accentColor: '#cc8f57',
-		fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-		headingFontFamily: '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
-		contentGap: 20,
-		pageHeadingPosition: 'left',
-		navStyle: 'minimal',
-		automaticTextContrast: true,
-		stabilizeNavigation: true,
-	},
+	tokens: presetTokens(nightGalleryTokens),
 	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
 };
 
@@ -96,19 +89,7 @@ const caseStudyPaper: ThemePreset = {
 	id: 'case-study-paper',
 	name: 'Case Study Paper',
 	description: 'A structured reading theme for long-form projects and process notes.',
-	tokens: {
-		backgroundColor: '#fbfaf7',
-		textColor: '#171717',
-		mutedTextColor: '#6d6a64',
-		accentColor: '#264c8b',
-		fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-		headingFontFamily: 'Georgia, "Times New Roman", serif',
-		contentGap: 32,
-		pageHeadingPosition: 'left',
-		navStyle: 'topbar',
-		automaticTextContrast: true,
-		stabilizeNavigation: true,
-	},
+	tokens: presetTokens(caseStudyPaperTokens),
 	supportedTraits: ['full-bleed-media', 'longform-case-study'],
 };
 
@@ -116,23 +97,37 @@ const graphicIndex: ThemePreset = {
 	id: 'graphic-index',
 	name: 'Graphic Index',
 	description: 'Compact typography and a crisp grid for visual systems and case studies.',
-	tokens: {
-		backgroundColor: '#f7f7f2',
-		textColor: '#101010',
-		mutedTextColor: '#66645f',
-		accentColor: '#d93421',
-		fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-		headingFontFamily: 'Futura, "Century Gothic", "Trebuchet MS", sans-serif',
-		contentGap: 24,
-		pageHeadingPosition: 'left',
-		navStyle: 'topbar',
-		automaticTextContrast: true,
-		stabilizeNavigation: true,
-	},
+	tokens: presetTokens(graphicIndexTokens),
 	supportedTraits: ['dense-grid', 'longform-case-study'],
 };
 
-export const THEME_PRESETS: ThemePreset[] = [galleryLinen, nightGallery, caseStudyPaper, graphicIndex];
+// The two studio-wall presets deliberately do NOT support 'dense-grid': their
+// starters keep every grid at two columns or fewer, and leaving the trait off
+// keeps them out of painter/photographer's compatible-preset lists.
+const studioCorkboard: ThemePreset = {
+	id: 'studio-corkboard',
+	name: 'Studio Corkboard',
+	description: 'A pinboard wall — cork texture, taped drawings, typewriter headings.',
+	tokens: presetTokens(studioCorkboardTokens),
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+};
+
+const vitrine: ThemePreset = {
+	id: 'vitrine',
+	name: 'Vitrine',
+	description: 'Museum-hall color blocking, centered headings, stone quiet.',
+	tokens: presetTokens(vitrineTokens),
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+};
+
+export const THEME_PRESETS: ThemePreset[] = [
+	galleryLinen,
+	nightGallery,
+	caseStudyPaper,
+	graphicIndex,
+	studioCorkboard,
+	vitrine,
+];
 
 const painterSelectedIds = [
 	'painter-aic-14655-v1',
@@ -209,106 +204,7 @@ function contractSlots(
 	}));
 }
 
-function galleryItems(
-	ids: readonly string[],
-	layouts?: Array<{ x: number; y: number; w: number }>,
-): Content['galleries'][string] {
-	return {
-		items: Object.fromEntries(
-			ids.map((id, index) => {
-				const artwork = artworkOrThrow(id);
-				const filename = artwork.url.split('/').pop() ?? `${id}.jpg`;
-				return [
-					filename,
-					{
-						id: `sample-${id}`,
-						sampleAssetId: id,
-						title: artwork.title,
-						alt: artwork.alt,
-						description: artwork.credit,
-						link: artwork.objectUrl,
-						layout: layouts?.[index]
-							? { ...layouts[index], ar: artwork.aspectRatio }
-							: undefined,
-					},
-				];
-			}),
-		),
-	};
-}
-
-const painterPages: Record<string, PageConfig> = {
-	home: {
-		title: '{name} — Selected Work',
-		heading: 'Selected Work',
-		blocks: [
-			{
-				id: 'selected-work-images',
-				type: 'images',
-				name: 'Selected Work',
-				gallery: { folder: 'selected-work', alt: 'Selected paintings', order: 'asc', layout: 'freeform' },
-			},
-		],
-	},
-	collection: {
-		title: 'Collection — {name}',
-		heading: 'Collection',
-		blocks: [
-			{
-				id: 'collection-intro',
-				type: 'text',
-				style: 'subheading',
-				text: 'A focused group of recent paintings. Replace every sample with your own work before publishing.',
-			},
-			{
-				id: 'collection-images',
-				type: 'images',
-				name: 'Collection',
-				gallery: { folder: 'collection', alt: 'Painting collection', order: 'asc', layout: 'grid', columns: 3 },
-			},
-		],
-	},
-	about: {
-		title: 'About — {name}',
-		heading: 'About',
-		blocks: [{ id: 'about', type: 'about' }],
-	},
-};
-
-const painterContent: Content = {
-	schemaVersion: 5,
-	site: {
-		name: 'Your Name',
-		headerMode: 'name',
-		description: 'Painter portfolio',
-		favicon: 'favicon.svg',
-		footer: DEFAULT_FOOTER,
-	},
-	theme: galleryLinen.tokens,
-	nav: [
-		{ path: '', label: 'Selected Work' },
-		{ path: 'collection', label: 'Collection' },
-		{ path: 'about', label: 'About' },
-	],
-	profile: {
-		image: 'assets/starters/painter/11-claude-monet-self-portrait.jpg',
-		bio: 'Write a short introduction to your practice, materials, and current interests. The paintings in this starter are museum-owned Open Access samples and cannot be published as your work.',
-	},
-	contact: { email: '' },
-	social: [],
-	resume: { label: 'Résumé', url: '' },
-	pages: painterPages,
-	galleries: {
-		'selected-work': galleryItems(painterSelectedIds, [
-			{ x: 4, y: 4, w: 25 },
-			{ x: 34, y: 4, w: 38 },
-			{ x: 78, y: 4, w: 18 },
-			{ x: 4, y: 44, w: 44 },
-			{ x: 58, y: 44, w: 22 },
-		]),
-		collection: galleryItems(painterCollectionIds),
-	},
-};
+const painterContent: Content = starterContent(painterContentRaw);
 
 const painterRecipe: StarterRecipe = {
 	id: 'painter',
@@ -340,123 +236,7 @@ const painterRecipe: StarterRecipe = {
 	coverSampleAssetId: painterSelectedIds[0],
 };
 
-const photographerPages: Record<string, PageConfig> = {
-	home: {
-		title: '{name} — Yosemite Valley',
-		heading: 'Yosemite Valley',
-		description: 'Four landscape studies from Carleton Watkins’s Yosemite photographs.',
-		blocks: [
-			{
-				id: 'valley-intro',
-				type: 'text',
-				style: 'subheading',
-				text: 'A four-image series. Replace every public-domain sample with your own photographs before publishing.',
-			},
-			{
-				id: 'yosemite-valley-images',
-				type: 'images',
-				name: 'Yosemite Valley',
-				gallery: {
-					folder: 'yosemite-valley',
-					alt: 'Yosemite Valley photographs',
-					order: 'asc',
-					layout: 'freeform',
-				},
-			},
-		],
-	},
-	'falls-stone': {
-		title: 'Falls & Stone — {name}',
-		heading: 'Falls & Stone',
-		description: 'Water, granite, and forest in four historical landscape photographs.',
-		blocks: [
-			{
-				id: 'falls-intro',
-				type: 'text',
-				style: 'subheading',
-				text: 'Use this page for a tightly edited series, assignment, or location study.',
-			},
-			{
-				id: 'falls-stone-images',
-				type: 'images',
-				name: 'Falls & Stone',
-				gallery: {
-					folder: 'falls-stone',
-					alt: 'Waterfalls and granite photographs',
-					order: 'asc',
-					layout: 'grid',
-					columns: 3,
-				},
-			},
-		],
-	},
-	'western-horizons': {
-		title: 'Western Horizons — {name}',
-		heading: 'Western Horizons',
-		description: 'Four views of the nineteenth-century American West.',
-		blocks: [
-			{
-				id: 'horizons-intro',
-				type: 'text',
-				style: 'subheading',
-				text: 'A second visual rhythm for a distinct body of work, with covers derived from the series itself.',
-			},
-			{
-				id: 'western-horizons-images',
-				type: 'images',
-				name: 'Western Horizons',
-				gallery: {
-					folder: 'western-horizons',
-					alt: 'Western landscape photographs',
-					order: 'asc',
-					layout: 'grid',
-					columns: 2,
-				},
-			},
-		],
-	},
-	about: {
-		title: 'About — {name}',
-		heading: 'About',
-		blocks: [{ id: 'about', type: 'about' }],
-	},
-};
-
-const photographerContent: Content = {
-	schemaVersion: 5,
-	site: {
-		name: 'Your Name',
-		headerMode: 'name',
-		description: 'Photographer portfolio',
-		favicon: 'favicon.svg',
-		footer: DEFAULT_FOOTER,
-	},
-	theme: nightGallery.tokens,
-	nav: [
-		{ path: '', label: 'Yosemite Valley' },
-		{ path: 'falls-stone', label: 'Falls & Stone' },
-		{ path: 'western-horizons', label: 'Western Horizons' },
-		{ path: 'about', label: 'About' },
-	],
-	profile: {
-		image: '',
-		bio: 'Write a short introduction to your photographic practice, subjects, and commissions. The photographs in this starter are public-domain museum samples and cannot be published as your work.',
-	},
-	contact: { email: '' },
-	social: [],
-	resume: { label: 'Résumé', url: '' },
-	pages: photographerPages,
-	galleries: {
-		'yosemite-valley': galleryItems(photographerValleyIds, [
-			{ x: 4, y: 4, w: 43 },
-			{ x: 53, y: 4, w: 43 },
-			{ x: 4, y: 44, w: 43 },
-			{ x: 53, y: 44, w: 43 },
-		]),
-		'falls-stone': galleryItems(photographerFallsIds),
-		'western-horizons': galleryItems(photographerHorizonsIds),
-	},
-};
+const photographerContent: Content = starterContent(photographerContentRaw);
 
 /** This starter uses a complete institutional Open Access image pack. */
 const photographerRecipe: StarterRecipe = {
@@ -527,7 +307,123 @@ const illustratorRecipe: StarterRecipe = {
 	}),
 };
 
-export const STARTER_RECIPES: StarterRecipe[] = [painterRecipe, photographerRecipe, illustratorRecipe];
+const worksOnPaperWallIds = [
+	'works-on-paper-met-337497-v1',
+	'works-on-paper-met-344210-v1',
+	'works-on-paper-met-335537-v1',
+	'works-on-paper-met-335536-v1',
+] as const;
+
+const worksOnPaperFigureIds = [
+	'works-on-paper-met-333943-v1',
+	'works-on-paper-met-333942-v1',
+	'works-on-paper-met-334326-v1',
+] as const;
+
+const worksOnPaperFieldIds = [
+	'works-on-paper-met-337491-v1',
+	'works-on-paper-met-336318-v1',
+	'works-on-paper-met-336481-v1',
+] as const;
+
+const worksOnPaperContent: Content = starterContent(worksOnPaperContentRaw);
+
+/** The studio pinboard: drawings taped and nailed to a cork wall, deliberately
+ * overlapping, with two sketchbook sub-pages behind an index. */
+const worksOnPaperRecipe: StarterRecipe = {
+	id: 'works-on-paper',
+	name: 'Works on paper',
+	discipline: 'Drawing',
+	tagline: 'A studio pinboard — drawings taped and nailed to a cork wall.',
+	description: 'Ten Open Access drawings pinned to a corkboard wall, with two sketchbook sub-pages.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['studio-corkboard', 'vitrine'],
+	defaultThemeId: 'studio-corkboard',
+	readiness: 'ready',
+	gallerySpecs: [
+		{
+			id: 'works-on-paper-wall',
+			folder: 'wall',
+			label: 'Wall',
+			exactImageCount: 4,
+			slots: slots(worksOnPaperWallIds, 'selected-work', 'wall'),
+		},
+		{
+			id: 'works-on-paper-figure-studies',
+			folder: 'figure-studies',
+			label: 'Figure studies',
+			exactImageCount: 3,
+			slots: slots(worksOnPaperFigureIds, 'series', 'figure-studies'),
+		},
+		{
+			id: 'works-on-paper-field-notes',
+			folder: 'field-notes',
+			label: 'Field notes',
+			exactImageCount: 3,
+			slots: slots(worksOnPaperFieldIds, 'series', 'field-notes'),
+		},
+	],
+	content: worksOnPaperContent,
+	coverSampleAssetId: worksOnPaperWallIds[0],
+};
+
+const sculptorWorkIds = [
+	'sculptor-met-544227-v1',
+	'sculptor-met-254587-v1',
+	'sculptor-met-255417-v1',
+	'sculptor-met-251838-v1',
+] as const;
+
+const sculptorStudioIds = [
+	'sculptor-met-257603-v1',
+	'sculptor-met-248579-v1',
+	'sculptor-met-248268-v1',
+	'sculptor-met-255275-v1',
+] as const;
+
+const sculptorContent: Content = starterContent(sculptorContentRaw);
+
+/** The museum walk: one work per full-height color-blocked section with scroll
+ * motion, plus a case-study Studio page. Grids stay at two columns so the
+ * starter never detects the dense-grid trait. */
+const sculptorRecipe: StarterRecipe = {
+	id: 'sculptor',
+	name: 'Sculptor',
+	discipline: 'Sculpture',
+	tagline: 'A museum walk — one work per color-blocked hall.',
+	description: 'Eight Open Access sculptures in full-height vitrine sections with scroll motion.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['vitrine', 'studio-corkboard'],
+	defaultThemeId: 'vitrine',
+	readiness: 'ready',
+	gallerySpecs: [
+		// One-work-per-hall: each home section binds its own single-image folder.
+		...sculptorWorkIds.map((id, index) => ({
+			id: `sculptor-work-${index + 1}`,
+			folder: `work-${index + 1}`,
+			label: `Hall ${index + 1}`,
+			exactImageCount: 1,
+			slots: slots([id], 'selected-work', `work-${index + 1}`),
+		})),
+		{
+			id: 'sculptor-studio',
+			folder: 'studio',
+			label: 'Studio',
+			exactImageCount: 4,
+			slots: slots(sculptorStudioIds, 'series', 'studio'),
+		},
+	],
+	content: sculptorContent,
+	coverSampleAssetId: sculptorWorkIds[0],
+};
+
+export const STARTER_RECIPES: StarterRecipe[] = [
+	painterRecipe,
+	photographerRecipe,
+	illustratorRecipe,
+	worksOnPaperRecipe,
+	sculptorRecipe,
+];
 
 /** Only cleared recipes enter marketing or the chooser. */
 export const AVAILABLE_STARTERS = STARTER_RECIPES.filter(
@@ -581,6 +477,63 @@ export function contentWithThemePreset(content: Content, theme: Theme): Content 
 			customFonts: content.theme.customFonts,
 		},
 	};
+}
+
+/** Starter content is repo data with a rights contract: every image must be a
+ * catalog sample shown with its required credit, and nothing may depend on files
+ * that exist only in a browser session (uploads) or outside the sample folders. */
+function starterContentIssues(
+	recipe: StarterRecipe,
+	content: Content,
+	artworkCatalog: ReadonlyMap<string, SampleArtwork>,
+): string[] {
+	const issues: string[] = [];
+	for (const [folder, gallery] of Object.entries(content.galleries)) {
+		for (const [filename, item] of Object.entries(gallery.items)) {
+			const where = `${recipe.name} / ${folder} / ${filename}`;
+			if (!item.sampleAssetId) {
+				issues.push(`${where} is not a catalog sample.`);
+				continue;
+			}
+			const artwork = artworkCatalog.get(item.sampleAssetId);
+			if (!artwork) {
+				issues.push(`${where} references missing sample ${item.sampleAssetId}.`);
+				continue;
+			}
+			if (recipe.readiness === 'ready' && artwork.status !== 'active')
+				issues.push(`${where} references ${artwork.status} media.`);
+			if (item.layout && Math.abs(item.layout.ar - artwork.aspectRatio) / artwork.aspectRatio > 0.005)
+				issues.push(`${where} layout aspect ratio drifts from the catalog image.`);
+			if ((item.description ?? '') !== artwork.credit)
+				issues.push(`${where} must keep the catalog credit line.`);
+			if ((item.link ?? '') !== artwork.objectUrl)
+				issues.push(`${where} must keep the catalog object link.`);
+		}
+	}
+	if (content.profile.image !== '' && !sampleArtworkIdForUrl(content.profile.image))
+		issues.push(`${recipe.name} profile image must be empty or a catalog sample.`);
+	const fileDependencies: Array<[label: string, value: unknown]> = [
+		['site.logoImage', content.site.logoImage],
+		['site.footerImage', content.site.footerImage],
+		['site.ogImage', content.site.ogImage],
+		['site.signature.image', content.site.signature?.image],
+		['site.creative.cursorImage', content.site.creative?.cursorImage],
+	];
+	for (const [label, value] of fileDependencies)
+		if (value) issues.push(`${recipe.name} ${label} depends on a file the template cannot ship.`);
+	if (content.theme.customFonts?.length)
+		issues.push(`${recipe.name} uses custom font files the template cannot ship.`);
+	if (content.resume?.url && !/^https?:/i.test(content.resume.url))
+		issues.push(`${recipe.name} résumé must be empty or an absolute link.`);
+	for (const [key, page] of Object.entries(content.pages)) {
+		if (page.thumbnail) issues.push(`${recipe.name} page “${key}” thumbnail depends on a repo file.`);
+		for (const block of page.blocks ?? [])
+			if (block.type === 'shots' && (block.src || block.assetId))
+				issues.push(`${recipe.name} page “${key}” shots block depends on an uploaded clip.`);
+	}
+	for (const product of content.store?.products ?? [])
+		if (product.image) issues.push(`${recipe.name} product “${product.name}” image depends on a repo file.`);
+	return issues;
 }
 
 export function validateStarterCatalog(
@@ -665,6 +618,7 @@ export function validateStarterCatalog(
 			!artworkCatalog.has(recipe.coverSampleAssetId)
 		)
 			issues.push(`${recipe.name} references a missing cover sample.`);
+		if (recipe.content) issues.push(...starterContentIssues(recipe, recipe.content, artworkCatalog));
 	}
 	return issues;
 }

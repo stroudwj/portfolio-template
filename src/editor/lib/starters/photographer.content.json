@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Photographer portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "slowReveal": true,
+      "pageTransition": "gallery",
+      "film": {
+        "preset": "fine-grain",
+        "intensity": 8
+      }
+    }
+  },
+  "theme": {
+    "backgroundColor": "#141413",
+    "textColor": "#f1eee7",
+    "mutedTextColor": "#aaa59b",
+    "accentColor": "#cc8f57",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "\"Palatino Linotype\", Palatino, \"Book Antiqua\", Georgia, serif",
+    "contentGap": 28,
+    "pageHeadingPosition": "left",
+    "navStyle": "centered",
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "fullscreenMobileMenu": true,
+    "pageHeadingScale": 115
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Yosemite Valley"
+    },
+    {
+      "path": "falls-stone",
+      "label": "Falls & Stone"
+    },
+    {
+      "path": "western-horizons",
+      "label": "Western Horizons"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Write a short introduction to your photographic practice, subjects, and commissions. The photographs in this starter are public-domain museum samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Yosemite Valley",
+      "label": "Yosemite Valley",
+      "description": "Four landscape studies from Carleton Watkins’s Yosemite photographs.",
+      "heading": "Yosemite Valley",
+      "blocks": [
+        {
+          "id": "valley-intro",
+          "type": "text",
+          "text": "Four studies of one valley — light moving through a single day.",
+          "style": "subheading"
+        },
+        {
+          "id": "yosemite-valley-images",
+          "type": "images",
+          "gallery": {
+            "folder": "yosemite-valley",
+            "alt": "Yosemite Valley photographs",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [
+                "image:sample-photographer-met-285861-v1",
+                "image:sample-photographer-met-286426-v1",
+                "image:sample-photographer-met-286457-v1",
+                "image:sample-photographer-met-286049-v1"
+              ],
+              "items": {
+                "image:sample-photographer-met-285861-v1": {
+                  "width": 100
+                },
+                "image:sample-photographer-met-286426-v1": {
+                  "width": 88,
+                  "align": "right"
+                },
+                "image:sample-photographer-met-286457-v1": {
+                  "width": 88,
+                  "align": "left"
+                },
+                "image:sample-photographer-met-286049-v1": {
+                  "width": 100
+                }
+              }
+            }
+          },
+          "name": "Yosemite Valley"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "valley-intro"
+          ]
+        },
+        {
+          "id": "section-yosemite-valley-images",
+          "name": "Section 2",
+          "blockIds": [
+            "yosemite-valley-images"
+          ]
+        }
+      ],
+      "sectionColors": {
+        "page:heading": "#1f1e1b"
+      }
+    },
+    "falls-stone": {
+      "title": "Falls & Stone — {name}",
+      "label": "Falls & Stone",
+      "description": "Water, granite, and forest in four historical landscape photographs.",
+      "heading": "Falls & Stone",
+      "blocks": [
+        {
+          "id": "falls-intro",
+          "type": "text",
+          "text": "Water and granite — a tightly edited location study.",
+          "style": "subheading"
+        },
+        {
+          "id": "falls-stone-images",
+          "type": "images",
+          "gallery": {
+            "folder": "falls-stone",
+            "alt": "Waterfalls and granite photographs",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 3
+          },
+          "name": "Falls & Stone"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "falls-intro"
+          ]
+        },
+        {
+          "id": "section-falls-stone-images",
+          "name": "Section 2",
+          "blockIds": [
+            "falls-stone-images"
+          ]
+        }
+      ],
+      "project": {
+        "template": "artwork",
+        "year": "1861",
+        "medium": "Albumen silver prints from mammoth-plate negatives"
+      },
+      "sectionMotion": {
+        "section:section-falls-stone-images": {
+          "effect": "drift",
+          "intensity": 20
+        }
+      }
+    },
+    "western-horizons": {
+      "title": "Western Horizons — {name}",
+      "label": "Western Horizons",
+      "description": "Four views of the nineteenth-century American West.",
+      "heading": "Western Horizons",
+      "blocks": [
+        {
+          "id": "horizons-intro",
+          "type": "text",
+          "text": "A slower rhythm — one image at a time.",
+          "style": "subheading"
+        },
+        {
+          "id": "western-horizons-images",
+          "type": "images",
+          "gallery": {
+            "folder": "western-horizons",
+            "alt": "Western landscape photographs",
+            "order": "asc",
+            "carousel": true,
+            "carouselFit": "fit",
+            "carouselShowCount": true,
+            "carouselShowTitle": true,
+            "carouselFrameStyle": "line",
+            "carouselArrowStyle": "chevron"
+          },
+          "name": "Western Horizons"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "horizons-intro"
+          ]
+        },
+        {
+          "id": "section-western-horizons-images",
+          "name": "Section 2",
+          "blockIds": [
+            "western-horizons-images"
+          ]
+        }
+      ],
+      "project": {
+        "template": "artwork",
+        "year": "1860s–1870s",
+        "medium": "Albumen silver prints"
+      }
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "yosemite-valley": {
+      "items": {
+        "01-river-view-down-valley.jpg": {
+          "id": "sample-photographer-met-285861-v1",
+          "sampleAssetId": "photographer-met-285861-v1",
+          "title": "River View Down Valley, Cathedral Rock on Left",
+          "alt": "Still water reflects tall pines while pale Yosemite cliffs recede into haze.",
+          "description": "Carleton E. Watkins. River View Down Valley, Cathedral Rock on Left, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285861",
+          "layout": {
+            "x": 4,
+            "y": 4,
+            "w": 43,
+            "ar": 1.2549019607843137
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        },
+        "02-yosemite-falls-river-view.jpg": {
+          "id": "sample-photographer-met-286426-v1",
+          "sampleAssetId": "photographer-met-286426-v1",
+          "title": "Yosemite Falls, River View, 2637 Feet",
+          "alt": "A broad granite ridge rises beyond a riverbank crowded with dark conifers.",
+          "description": "Carleton E. Watkins. Yosemite Falls, River View, 2637 Feet, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286426",
+          "layout": {
+            "x": 53,
+            "y": 4,
+            "w": 43,
+            "ar": 1.2364760432766615
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        },
+        "03-el-capitan-4000-feet.jpg": {
+          "id": "sample-photographer-met-286457-v1",
+          "sampleAssetId": "photographer-met-286457-v1",
+          "title": "Tutucanula, El Capitan, 4000 Feet",
+          "alt": "El Capitan towers above a quiet river and a low band of pine trees.",
+          "description": "Carleton E. Watkins. Tutucanula, El Capitan, 4000 Feet, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286457",
+          "layout": {
+            "x": 4,
+            "y": 44,
+            "w": 43,
+            "ar": 1.2345679012345678
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        },
+        "04-domes-sentinel-dome.jpg": {
+          "id": "sample-photographer-met-286049-v1",
+          "sampleAssetId": "photographer-met-286049-v1",
+          "title": "The Domes from Sentinel Dome",
+          "alt": "A sunlit granite dome rises beyond forested slopes viewed from a high ridge.",
+          "description": "Carleton E. Watkins. The Domes from Sentinel Dome, 1866. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286049",
+          "layout": {
+            "x": 53,
+            "y": 44,
+            "w": 43,
+            "ar": 1.3289036544850499
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "falls-stone": {
+      "items": {
+        "05-cascade-nevada-fall.jpg": {
+          "id": "sample-photographer-met-285860-v1",
+          "sampleAssetId": "photographer-met-285860-v1",
+          "title": "Cascade, Nevada Fall on Left, View above Vernal Fall",
+          "alt": "White water runs through smooth granite shelves beneath a dense stand of pines.",
+          "description": "Carleton E. Watkins. Cascade, Nevada Fall on Left, View above Vernal Fall, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285860",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "06-nevada-fall.jpg": {
+          "id": "sample-photographer-met-286459-v1",
+          "sampleAssetId": "photographer-met-286459-v1",
+          "title": "Nevada Fall, 700 Feet",
+          "alt": "A waterfall drops between dark trees into a rock-lined pool crossed by fallen trunks.",
+          "description": "Carleton E. Watkins. Nevada Fall, 700 Feet, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286459",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "07-lower-yosemite-falls.jpg": {
+          "id": "sample-photographer-met-286511-v1",
+          "sampleAssetId": "photographer-met-286511-v1",
+          "title": "Lower Yosemite Falls",
+          "alt": "A bright vertical waterfall cuts through a shadowed wall of rock and trees.",
+          "description": "Carleton E. Watkins. Lower Yosemite Falls, 1860s. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286511",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "08-cathedral-rock.jpg": {
+          "id": "sample-photographer-met-286425-v1",
+          "sampleAssetId": "photographer-met-286425-v1",
+          "title": "Cathedral Rock",
+          "alt": "The sheer face of Cathedral Rock fills the frame above a line of conifers.",
+          "description": "Carleton E. Watkins. Cathedral Rock, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286425",
+          "effects": {
+            "reveal": "fade"
+          }
+        }
+      }
+    },
+    "western-horizons": {
+      "items": {
+        "09-view-columbia-cascades.jpg": {
+          "id": "sample-photographer-met-262612-v1",
+          "sampleAssetId": "photographer-met-262612-v1",
+          "title": "View on the Columbia, Cascades",
+          "alt": "The Columbia River bends past wooded banks toward faint mountains on the horizon.",
+          "description": "Carleton E. Watkins. View on the Columbia, Cascades, 1867. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/262612",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "10-cape-horn-celilo.jpg": {
+          "id": "sample-photographer-met-283222-v1",
+          "sampleAssetId": "photographer-met-283222-v1",
+          "title": "Cape Horn near Celilo",
+          "alt": "A massive column of rock rises beside a river and a straight rail line.",
+          "description": "Carleton E. Watkins. Cape Horn near Celilo, 1867. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/283222",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "11-mount-shasta-north.jpg": {
+          "id": "sample-photographer-met-285772-v1",
+          "sampleAssetId": "photographer-met-285772-v1",
+          "title": "Mount Shasta from the North",
+          "alt": "Snow-covered Mount Shasta rises above a dark open plain and distant tree line.",
+          "description": "Carleton E. Watkins. Mount Shasta from the North, 1870. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285772",
+          "effects": {
+            "reveal": "fade"
+          }
+        },
+        "12-devils-canyon.jpg": {
+          "id": "sample-photographer-met-266132-v1",
+          "sampleAssetId": "photographer-met-266132-v1",
+          "title": "Devil's Canyon, Geysers, Looking Down",
+          "alt": "A rugged canyon descends between brushy slopes, cut by pale mineral channels.",
+          "description": "Carleton E. Watkins. Devil's Canyon, Geysers, Looking Down, 1868–70. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/266132",
+          "effects": {
+            "reveal": "fade"
+          }
+        }
+      }
+    }
+  }
+}

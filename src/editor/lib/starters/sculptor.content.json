@@ -1,0 +1,408 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Sculpture portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "slowReveal": true,
+      "pageTransition": "gallery"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#ece9e2",
+    "textColor": "#1c1b18",
+    "mutedTextColor": "#6e6a61",
+    "accentColor": "#7a2e2b",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "Optima, Candara, \"Gill Sans\", \"Gill Sans MT\", \"Segoe UI\", sans-serif",
+    "contentGap": 40,
+    "pageHeadingScale": 135,
+    "pageHeadingPosition": "center",
+    "navStyle": "centered",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Works"
+    },
+    {
+      "path": "studio",
+      "label": "Studio"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Introduce your practice in three dimensions — material, process, and where the work wants to stand. The objects in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Works",
+      "label": "Works",
+      "description": "One work per hall — a walk through the collection.",
+      "heading": "Works",
+      "blocks": [
+        {
+          "id": "work-1-images",
+          "type": "images",
+          "gallery": {
+            "folder": "work-1",
+            "alt": "William",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "William"
+        },
+        {
+          "id": "work-1-caption",
+          "type": "text",
+          "text": "Hippopotamus (“William”) — Egyptian faience, ca. 1961–1878 BCE.",
+          "align": "center",
+          "style": "body"
+        },
+        {
+          "id": "work-2-images",
+          "type": "images",
+          "gallery": {
+            "folder": "work-2",
+            "alt": "Harp player",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Harp player"
+        },
+        {
+          "id": "work-2-caption",
+          "type": "text",
+          "text": "Marble seated harp player — Cycladic, 2800–2700 BCE.",
+          "align": "center",
+          "style": "body"
+        },
+        {
+          "id": "work-3-images",
+          "type": "images",
+          "gallery": {
+            "folder": "work-3",
+            "alt": "Standing figure",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Standing figure"
+        },
+        {
+          "id": "work-3-caption",
+          "type": "text",
+          "text": "Marble female figure — Cycladic, 4500–4000 BCE.",
+          "align": "center",
+          "style": "body"
+        },
+        {
+          "id": "work-4-images",
+          "type": "images",
+          "gallery": {
+            "folder": "work-4",
+            "alt": "Diadoumenos",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Diadoumenos"
+        },
+        {
+          "id": "work-4-caption",
+          "type": "text",
+          "text": "Fragments of the Diadoumenos — after Polykleitos, ca. 69–96 CE.",
+          "align": "center",
+          "style": "body"
+        }
+      ],
+      "sections": [
+        {
+          "id": "work-1",
+          "name": "William",
+          "blockIds": [
+            "work-1-images",
+            "work-1-caption"
+          ]
+        },
+        {
+          "id": "work-2",
+          "name": "Harp player",
+          "blockIds": [
+            "work-2-images",
+            "work-2-caption"
+          ]
+        },
+        {
+          "id": "work-3",
+          "name": "Standing figure",
+          "blockIds": [
+            "work-3-images",
+            "work-3-caption"
+          ]
+        },
+        {
+          "id": "work-4",
+          "name": "Diadoumenos",
+          "blockIds": [
+            "work-4-images",
+            "work-4-caption"
+          ]
+        }
+      ],
+      "sectionColors": {
+        "section:work-2": "#232019",
+        "section:work-4": "#33231f"
+      },
+      "sectionHeights": {
+        "section:work-1": {
+          "desktopVw": 74
+        },
+        "section:work-2": {
+          "desktopVw": 74
+        },
+        "section:work-3": {
+          "desktopVw": 78
+        },
+        "section:work-4": {
+          "desktopVw": 74
+        }
+      },
+      "sectionMotion": {
+        "section:work-1": {
+          "effect": "reveal",
+          "intensity": 40
+        },
+        "section:work-2": {
+          "effect": "reveal",
+          "intensity": 40
+        },
+        "section:work-3": {
+          "effect": "pin",
+          "intensity": 30
+        },
+        "section:work-4": {
+          "effect": "reveal",
+          "intensity": 45
+        }
+      }
+    },
+    "studio": {
+      "title": "Studio — {name}",
+      "label": "Studio",
+      "description": "Process, materials, and the pieces that stay close.",
+      "heading": "Studio",
+      "blocks": [
+        {
+          "id": "studio-intro",
+          "type": "text",
+          "text": "Smaller works and studies — the pieces that keep the studio honest between the large commissions.",
+          "style": "body"
+        },
+        {
+          "id": "studio-images",
+          "type": "images",
+          "gallery": {
+            "folder": "studio",
+            "alt": "Studio works",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Studio"
+        },
+        {
+          "id": "project",
+          "type": "project",
+          "project": {
+            "template": "artwork",
+            "year": "ca. 4500 BCE – 190 CE",
+            "medium": "Marble and faience",
+            "exhibitionHistory": "The Metropolitan Museum of Art, Open Access"
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "studio-intro"
+          ]
+        },
+        {
+          "id": "section-studio-images",
+          "name": "Section 2",
+          "blockIds": [
+            "studio-images"
+          ]
+        },
+        {
+          "id": "section-project",
+          "name": "Section 3",
+          "blockIds": [
+            "project"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "work-1": {
+      "items": {
+        "01-william-the-hippopotamus.jpg": {
+          "id": "sample-sculptor-met-544227-v1",
+          "sampleAssetId": "sculptor-met-544227-v1",
+          "title": "Hippopotamus (William)",
+          "alt": "Bright blue faience hippopotamus decorated with painted lotus flowers.",
+          "description": "Egyptian, Middle Kingdom. Hippopotamus (William), ca. 1961–1878 B.C.. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/544227",
+          "layout": {
+            "x": 28,
+            "y": 6,
+            "w": 44,
+            "ar": 0.74875
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "work-2": {
+      "items": {
+        "02-seated-harp-player.jpg": {
+          "id": "sample-sculptor-met-254587-v1",
+          "sampleAssetId": "sculptor-met-254587-v1",
+          "title": "Marble seated harp player",
+          "alt": "Smooth white marble figure of a seated musician tilting back a frame harp.",
+          "description": "Cycladic. Marble seated harp player, 2800–2700 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/254587",
+          "layout": {
+            "x": 33,
+            "y": 4,
+            "w": 34,
+            "ar": 0.7575
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "work-3": {
+      "items": {
+        "03-marble-female-figure.jpg": {
+          "id": "sample-sculptor-met-255417-v1",
+          "sampleAssetId": "sculptor-met-255417-v1",
+          "title": "Marble female figure",
+          "alt": "Abstract marble female figure with folded arms, worn smooth by millennia.",
+          "description": "Cycladic. Marble female figure, 4500–4000 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/255417",
+          "layout": {
+            "x": 41,
+            "y": 4,
+            "w": 18,
+            "ar": 0.80625
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "work-4": {
+      "items": {
+        "04-diadoumenos.jpg": {
+          "id": "sample-sculptor-met-251838-v1",
+          "sampleAssetId": "sculptor-met-251838-v1",
+          "title": "Fragments of the Diadoumenos",
+          "alt": "Fragmentary marble youth tying a victory fillet around his head.",
+          "description": "After Polykleitos. Fragments of the Diadoumenos, ca. 69–96 CE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/251838",
+          "layout": {
+            "x": 31,
+            "y": 4,
+            "w": 38,
+            "ar": 0.734375
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "studio": {
+      "items": {
+        "05-ptolemaic-queen.jpg": {
+          "id": "sample-sculptor-met-257603-v1",
+          "sampleAssetId": "sculptor-met-257603-v1",
+          "title": "Marble head of a Ptolemaic queen",
+          "alt": "Marble head of a queen with softly carved features and traces of a diadem.",
+          "description": "Greek. Marble head of a Ptolemaic queen, ca. 270–250 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/257603"
+        },
+        "06-head-of-an-athlete.jpg": {
+          "id": "sample-sculptor-met-248579-v1",
+          "sampleAssetId": "sculptor-met-248579-v1",
+          "title": "Marble head of an athlete",
+          "alt": "Marble head of a young athlete with tightly curled hair.",
+          "description": "Roman. Marble head of an athlete, ca. 138–192 CE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/248579"
+        },
+        "07-head-of-a-goddess.jpg": {
+          "id": "sample-sculptor-met-248268-v1",
+          "sampleAssetId": "sculptor-met-248268-v1",
+          "title": "Marble head of a goddess",
+          "alt": "Weathered marble head of a goddess with a calm, level gaze.",
+          "description": "Greek. Marble head of a goddess, 4th century BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/248268"
+        },
+        "08-bastis-female-figure.jpg": {
+          "id": "sample-sculptor-met-255275-v1",
+          "sampleAssetId": "sculptor-met-255275-v1",
+          "title": "Marble female figure",
+          "alt": "Slender Cycladic marble figure with folded arms and a lifted oval face.",
+          "description": "Bastis Master. Marble female figure, 2600–2400 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/255275"
+        }
+      }
+    }
+  }
+}

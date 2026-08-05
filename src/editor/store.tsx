@@ -766,7 +766,15 @@ export function useEditor(): EditorContextValue {
 	return ctx;
 }
 
-export function EditorProvider({ children }: { children: React.ReactNode }) {
+export function EditorProvider({
+	children,
+	persistence = 'browser',
+}: {
+	children: React.ReactNode;
+	/** 'memory' (template studio) keeps the document out of localStorage entirely,
+	 * so the owner's real draft, saved versions, and assets are never touched. */
+	persistence?: 'browser' | 'memory';
+}) {
 	const [doc, setDocState] = useState<EditorDoc | null>(null);
 	// Event handlers can make more than one change before React renders. Keep the
 	// latest committed document in a ref so the second change builds on the first.
@@ -848,6 +856,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 	const autosaveGeneration = useRef(0);
 	useEffect(() => {
 		if (!doc) return;
+		if (persistence === 'memory') return;
 		if (timer.current) window.clearTimeout(timer.current);
 		const generation = autosaveGeneration.current;
 		setSaveStatus('saving');
@@ -878,7 +887,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 			}
 		}, 400);
 		return () => window.clearTimeout(timer.current);
-	}, [doc, assetsVersion]);
+	}, [doc, assetsVersion, persistence]);
 
 	// --- helpers to update nested content immutably ---
 	const patchContent = useCallback((fn: (c: Content) => Content, recordHistory = true, actionKey?: string) => {

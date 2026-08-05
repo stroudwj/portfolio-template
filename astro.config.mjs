@@ -9,6 +9,16 @@ const project = JSON.parse(readFileSync(new URL('./.hangwork/project.json', impo
 const isProductSite = process.env.HANGWORK_IS_PRODUCT_SITE
 	? process.env.HANGWORK_IS_PRODUCT_SITE === 'true'
 	: project.isProductSite;
+// The template studio (dev-only admin tooling) lives outside src/ and may be
+// absent from a user's runtime install — a missing module means no studio,
+// never a broken config.
+let templateStudio;
+try {
+	({ templateStudio } = await import('./scripts/template-studio/dev-api.mjs'));
+} catch {
+	templateStudio = undefined;
+}
+
 let runtimeCommit = process.env.HANGWORK_RUNTIME_COMMIT || project.sourceCommit;
 if (runtimeCommit === 'development') {
 	try {
@@ -26,7 +36,7 @@ if (runtimeCommit === 'development') {
 export default defineConfig({
 	site: project.siteUrl,
 	base: project.basePath,
-	integrations: [react()],
+	integrations: [react(), ...(templateStudio ? [templateStudio()] : [])],
 	vite: {
 		define: {
 			'import.meta.env.PUBLIC_HANGWORK_RUNTIME_COMMIT': JSON.stringify(runtimeCommit),

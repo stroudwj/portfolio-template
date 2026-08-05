@@ -1,0 +1,17 @@
+{
+  "backgroundColor": "#f3efe7",
+  "textColor": "#201f1c",
+  "mutedTextColor": "#746f65",
+  "accentColor": "#48614f",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Garamond, \"Apple Garamond\", \"EB Garamond\", Georgia, serif",
+  "contentGap": 20,
+  "pageHeadingPosition": "left",
+  "navStyle": "minimal",
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true,
+  "logoPosition": "left",
+  "stabilizeLogo": true,
+  "subheadingScale": 95,
+  "fullscreenMobileMenu": true
+}

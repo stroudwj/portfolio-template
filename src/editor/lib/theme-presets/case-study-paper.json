@@ -1,0 +1,15 @@
+{
+  "backgroundColor": "#fbfaf7",
+  "textColor": "#171717",
+  "mutedTextColor": "#6d6a64",
+  "accentColor": "#264c8b",
+  "fontFamily": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+  "headingFontFamily": "Georgia, \"Times New Roman\", serif",
+  "contentGap": 36,
+  "pageHeadingPosition": "center",
+  "navStyle": "topbar",
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true,
+  "subheadingTextColor": "#4c4a44",
+  "fullscreenMobileMenu": true
+}

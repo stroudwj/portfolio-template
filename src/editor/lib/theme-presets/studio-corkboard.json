@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#d8c5a5",
+  "textColor": "#241c12",
+  "mutedTextColor": "#6a5c48",
+  "accentColor": "#8c2f1f",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "\"American Typewriter\", \"Courier Prime\", \"Courier New\", monospace",
+  "contentGap": 28,
+  "pageHeadingScale": 120,
+  "pageHeadingPosition": "left",
+  "navStyle": "centered",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true,
+  "backgroundTexture": "corkboard"
+}

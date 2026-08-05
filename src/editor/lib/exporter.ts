@@ -55,7 +55,7 @@ export interface PublishTarget {
 	publish(bundle: PortfolioBundle, onProgress?: (p: PublishProgress) => void): Promise<PublishResult>;
 }
 
-function metaObject(meta: ImageMeta): Partial<ImageMeta> | null {
+export function metaObject(meta: ImageMeta): Partial<ImageMeta> | null {
 	const out: Partial<ImageMeta> = { ...meta };
 	if (!meta.id) delete out.id;
 	if (!meta.title) delete out.title;

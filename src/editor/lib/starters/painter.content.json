@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Painter portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "slowReveal": true,
+      "grain": 4,
+      "pageTransition": "fade"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#f3efe7",
+    "textColor": "#201f1c",
+    "mutedTextColor": "#746f65",
+    "accentColor": "#48614f",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "Garamond, \"Apple Garamond\", \"EB Garamond\", Georgia, serif",
+    "contentGap": 20,
+    "pageHeadingPosition": "left",
+    "navStyle": "minimal",
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "fullscreenMobileMenu": true,
+    "logoPosition": "left",
+    "stabilizeLogo": true,
+    "subheadingScale": 95
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Selected Work"
+    },
+    {
+      "path": "collection",
+      "label": "Collection"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "assets/starters/painter/11-claude-monet-self-portrait.jpg",
+    "bio": "Write a short introduction to your practice, materials, and current interests. The paintings in this starter are museum-owned Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Selected Work",
+      "label": "Selected Work",
+      "heading": "Selected Work",
+      "blocks": [
+        {
+          "id": "selected-work-images",
+          "type": "images",
+          "gallery": {
+            "folder": "selected-work",
+            "alt": "Selected paintings",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [
+                "image:sample-painter-aic-14655-v1",
+                "image:sample-painter-aic-16571-v1",
+                "image:sample-painter-aic-15468-v1",
+                "image:sample-painter-aic-100829-v1",
+                "image:sample-painter-aic-16551-v1"
+              ],
+              "items": {
+                "image:sample-painter-aic-14655-v1": {
+                  "width": 100
+                },
+                "image:sample-painter-aic-16571-v1": {
+                  "width": 84,
+                  "align": "right"
+                },
+                "image:sample-painter-aic-15468-v1": {
+                  "width": 92,
+                  "align": "left"
+                },
+                "image:sample-painter-aic-100829-v1": {
+                  "width": 100
+                },
+                "image:sample-painter-aic-16551-v1": {
+                  "width": 78,
+                  "align": "right"
+                }
+              }
+            }
+          },
+          "name": "Selected Work"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "selected-work-images"
+          ]
+        }
+      ],
+      "hanging": true,
+      "hangingStrength": 0.6
+    },
+    "collection": {
+      "title": "Collection — {name}",
+      "label": "Collection",
+      "heading": "Collection",
+      "blocks": [
+        {
+          "id": "collection-intro",
+          "type": "text",
+          "text": "A focused group of recent paintings — one wall, kept together.",
+          "style": "subheading"
+        },
+        {
+          "id": "collection-divider",
+          "type": "divider",
+          "style": "line",
+          "width": "short"
+        },
+        {
+          "id": "collection-images",
+          "type": "images",
+          "gallery": {
+            "folder": "collection",
+            "alt": "Painting collection",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 3
+          },
+          "name": "Collection"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "collection-intro",
+            "collection-divider"
+          ]
+        },
+        {
+          "id": "section-collection-images",
+          "name": "Section 2",
+          "blockIds": [
+            "collection-images"
+          ]
+        }
+      ],
+      "sectionColors": {
+        "page:heading": "#3e5344"
+      },
+      "sectionMotion": {
+        "section:section-collection-images": {
+          "effect": "reveal",
+          "intensity": 30
+        }
+      }
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "selected-work": {
+      "items": {
+        "01-two-sisters.jpg": {
+          "id": "sample-painter-aic-14655-v1",
+          "sampleAssetId": "painter-aic-14655-v1",
+          "title": "Two Sisters (On the Terrace)",
+          "alt": "Two girls sit on a terrace above a river; one wears a bright red hat and holds a basket of yarn.",
+          "description": "Pierre-Auguste Renoir. Two Sisters (On the Terrace), 1881. Art Institute of Chicago.",
+          "link": "https://www.artic.edu/artworks/14655",
+          "layout": {
+            "x": 4,
+            "y": 4,
+            "w": 25,
+            "ar": 0.8059273422562141
+          },
+          "effects": {
+            "hover": "lift",
+            "reveal": "fade"
+          }
+        },
+        "02-arrival-at-saint-lazare.jpg": {
+          "id": "sample-painter-aic-16571-v1",
+          "sampleAssetId": "painter-aic-16571-v1",
+          "title": "Arrival of the Normandy Train, Gare Saint-Lazare",
+          "alt": "A steam train enters a glass-roofed station, filling the tracks and waiting crowd with pale smoke.",
+          "description": "Claude Monet. Arrival of the Normandy Train, Gare Saint-Lazare, 1877. Art Institute of Chicago.",
+          "link": "https://www.artic.edu/artworks/16571",
+          "layout": {
+            "x": 34,
+            "y": 4,
+            "w": 38,
+            "ar": 1.332806324110672
+          },
+          "effects": {
+            "hover": "lift",
+            "reveal": "fade"
+          }
+        },
+        "03-saint-george-and-the-dragon.jpg": {
+          "id": "sample-painter-aic-15468-v1",
+          "sampleAssetId": "painter-aic-15468-v1",
+          "title": "Saint George and the Dragon",
+          "alt": "Saint George, in patterned armor on a white horse, drives a lance toward a green dragon.",
+          "description": "Bernat Martorell. Saint George and the Dragon, 1434–35. Art Institute of Chicago.",
+          "link": "https://www.artic.edu/artworks/15468",
+          "layout": {
+            "x": 78,
+            "y": 4,
+            "w": 18,
+            "ar": 0.6239822353811991
+          },
+          "effects": {
+            "hover": "lift",
+            "reveal": "fade"
+          }
+        },
+        "04-magnolias.jpg": {
+          "id": "sample-painter-aic-100829-v1",
+          "sampleAssetId": "painter-aic-100829-v1",
+          "title": "Magnolias on Light Blue Velvet Cloth",
+          "alt": "Four white magnolia blossoms and glossy leaves rest across folded blue velvet.",
+          "description": "Martin Johnson Heade. Magnolias on Light Blue Velvet Cloth, 1885–95. Art Institute of Chicago.",
+          "link": "https://www.artic.edu/artworks/100829",
+          "layout": {
+            "x": 4,
+            "y": 44,
+            "w": 44,
+            "ar": 1.6274131274131274
+          },
+          "effects": {
+            "hover": "lift",
+            "reveal": "fade"
+          }
+        },
+        "05-beata-beatrix.jpg": {
+          "id": "sample-painter-aic-16551-v1",
+          "sampleAssetId": "painter-aic-16551-v1",
+          "title": "Beata Beatrix",
+          "alt": "A red-haired woman sits with closed eyes as a red bird approaches through a hazy golden light.",
+          "description": "Dante Gabriel Rossetti. Beata Beatrix, 1871–72. Art Institute of Chicago.",
+          "link": "https://www.artic.edu/artworks/16551",
+          "layout": {
+            "x": 58,
+            "y": 44,
+            "w": 22,
+            "ar": 0.6831442463533225
+          },
+          "effects": {
+            "hover": "lift",
+            "reveal": "fade"
+          }
+        }
+      }
+    },
+    "collection": {
+      "items": {
+        "06-shoes.jpg": {
+          "id": "sample-painter-met-436533-v1",
+          "sampleAssetId": "painter-met-436533-v1",
+          "title": "Shoes",
+          "alt": "A worn pair of brown leather shoes rests against a mottled blue-green ground.",
+          "description": "Vincent van Gogh. Shoes, 1888. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/436533",
+          "effects": {
+            "mount": "frame",
+            "reveal": "fade"
+          }
+        },
+        "07-irises.jpg": {
+          "id": "sample-painter-met-436528-v1",
+          "sampleAssetId": "painter-met-436528-v1",
+          "title": "Irises",
+          "alt": "White and violet irises spill from a green vase on a yellow tabletop.",
+          "description": "Vincent van Gogh. Irises, 1890. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/436528",
+          "effects": {
+            "mount": "frame",
+            "reveal": "fade"
+          }
+        },
+        "08-self-portrait-straw-hat.jpg": {
+          "id": "sample-painter-met-436532-v1",
+          "sampleAssetId": "painter-met-436532-v1",
+          "title": "Self-Portrait with a Straw Hat",
+          "alt": "The artist, with a red beard and straw hat, faces the viewer against a stippled green background.",
+          "description": "Vincent van Gogh. Self-Portrait with a Straw Hat, 1887. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/436532",
+          "effects": {
+            "mount": "frame",
+            "reveal": "fade"
+          }
+        },
+        "09-the-dance-class.jpg": {
+          "id": "sample-painter-met-438817-v1",
+          "sampleAssetId": "painter-met-438817-v1",
+          "title": "The Dance Class",
+          "alt": "Ballet dancers gather in a pale studio around a seated teacher holding a long staff.",
+          "description": "Edgar Degas. The Dance Class, 1874. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/438817",
+          "effects": {
+            "mount": "frame",
+            "reveal": "fade"
+          }
+        },
+        "10-dancer-with-a-fan.jpg": {
+          "id": "sample-painter-met-436135-v1",
+          "sampleAssetId": "painter-met-436135-v1",
+          "title": "Dancer with a Fan",
+          "alt": "A dancer in an orange-yellow skirt raises a fan amid loose green and blue strokes.",
+          "description": "Edgar Degas. Dancer with a Fan, ca. 1880. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/436135",
+          "effects": {
+            "mount": "frame",
+            "reveal": "fade"
+          }
+        }
+      }
+    }
+  }
+}
