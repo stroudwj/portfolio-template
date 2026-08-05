@@ -26,6 +26,7 @@ import {
 	SITES_ROOT_DOMAIN,
 } from '../lib/github/subdomain';
 import { ProgressList, appendStep } from './ui/ProgressList';
+import ConfettiBurst from './ui/ConfettiBurst';
 import CustomDomainModal from './CustomDomainModal';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
@@ -144,6 +145,7 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 	if (phase === 'success' && result) {
 		return (
 			<Modal title="Published" onClose={onClose} footer={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
+				<ConfettiBurst />
 				<div className="publish-success">
 					<h3>Your site is live.</h3>
 					<a className="live-url" href={result.url} target="_blank" rel="noopener noreferrer">
@@ -168,7 +170,22 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 	// ---- Progress screen ----
 	if (phase === 'publishing') {
 		return (
-			<Modal title="Publishing…" onClose={onClose} dismissable={false}>
+			<Modal title="Hang tight" onClose={onClose} dismissable={false}>
+				<div className="hang-tight" role="status">
+					<svg className="hang-tight-mark" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+						<circle cx="60" cy="30" r="4" fill="var(--klein)" />
+						<g className="hang-tight-swing">
+							<path
+								d="M60 30 L36 52 M60 30 L84 52"
+								stroke="var(--ink)"
+								strokeWidth="1.75"
+								strokeLinecap="round"
+							/>
+							<rect x="20" y="52" width="80" height="52" stroke="var(--ink)" strokeWidth="5" />
+						</g>
+					</svg>
+					<p>Your work is going up.</p>
+				</div>
 				<ProgressList log={log} />
 			</Modal>
 		);

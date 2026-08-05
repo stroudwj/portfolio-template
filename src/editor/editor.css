@@ -3339,6 +3339,24 @@ a.resume-name:hover {
 	max-width: 680px;
 	text-align: center;
 }
+/* Entrance: the wall — selector and all — settles onto its hook in one motion:
+   a short drop that overshoots a few px and springs back while fading in.
+   One-shot on mount (sanctioned motion — see DESIGN.md). */
+@media (prefers-reduced-motion: no-preference) {
+	.start-card {
+		animation: wall-settle 0.5s cubic-bezier(0.3, 1.45, 0.45, 1) both;
+	}
+}
+@keyframes wall-settle {
+	from {
+		opacity: 0;
+		transform: translateY(-26px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
 .start-brand {
 	margin: 0 0 10px;
 	line-height: 0;
@@ -4773,6 +4791,47 @@ a.resume-name:hover {
 	to {
 		transform: rotate(360deg);
 	}
+}
+
+/* ---- "Hang tight" publishing screen ---- */
+/* The logo mark waits with the artist: the nail holds still while the wire and
+   frame sway gently (sanctioned motion — see DESIGN.md). */
+.hang-tight {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	margin: 2px 0 20px;
+}
+.hang-tight-mark {
+	width: 96px;
+	height: 96px;
+}
+.hang-tight-swing {
+	transform-box: view-box;
+	transform-origin: 60px 30px;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.hang-tight-swing {
+		animation: hang-tight-sway 2.6s ease-in-out infinite;
+	}
+}
+@keyframes hang-tight-sway {
+	0%,
+	100% {
+		transform: rotate(0deg);
+	}
+	25% {
+		transform: rotate(3deg);
+	}
+	75% {
+		transform: rotate(-3deg);
+	}
+}
+.hang-tight p {
+	margin: 0;
+	font-size: 14px;
+	color: var(--ink-soft);
 }
 
 /* ---- Publish success / error ---- */

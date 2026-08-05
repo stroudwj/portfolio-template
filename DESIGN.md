@@ -8,7 +8,7 @@ The design system for hangwork.art (landing page) and the Hangwork editor. Every
 
 Test for every screen: *"Does anything here compete with an artwork placed beside it?"* Whatever does, remove.
 
-Forbidden outright: gradients, glassmorphism, drop shadows (except the functional focus ring), decorative illustrations, stock photography, emoji in UI, animated flourishes, confetti, dark patterns of any kind.
+Forbidden outright: gradients, glassmorphism, drop shadows (except the functional focus ring), decorative illustrations, stock photography, emoji in UI, dark patterns of any kind. Motion is forbidden outside the three sanctioned moments in **Motion** below — no other animated flourishes, and confetti only at the single moment named there.
 
 ## Color
 
@@ -53,6 +53,16 @@ One family: **Inter** (variable font, self-hosted or Google Fonts). No second ty
 - Border radius: 4px on buttons/inputs, 3–6px on cards. Nothing pill-shaped.
 - Elevation via borders (1px solid --wall-2) and background steps (--paper vs --wall-1), never shadows.
 - Artwork/previews get zero decoration: no frames, no hover-zoom, radius ≤3px. Work is presented flat, as on a wall.
+
+## Motion
+
+Motion is rare and physical: things on a wall hang, sway, drop, and settle. Nothing slides, zooms, pulses, or parallaxes. Exactly three moments are sanctioned; anything beyond them is a violation, not a variation.
+
+1. **Landing hero frame.** The logo mark at wall scale — Klein nail, ink wire and frame — sways slowly around the nail (≤2.5°, ~9s period) while artworks crossfade inside on a paper mat. Pure CSS, no script.
+2. **Start screen entrance.** The wall — the start card with its selector content — settles onto its hook in one motion: a ~26px drop that overshoots a few pixels and springs back while fading in (~0.5s). Plays once per mount.
+3. **Publishing.** While a publish runs, the mark sways gently under "Hang tight" (nail still, wire + frame swing). When the site goes live, one confetti burst — brand colors only, ~2.5s, once. This is the celebratory spirit of the all-Klein variant: launch moments only.
+
+Rules that keep it quiet: rotation never exceeds 3°, nothing loops except the two sways and the hero crossfade, and every motion above is disabled under `prefers-reduced-motion` (sways stop, the wall simply appears, confetti is skipped). The functional spinner in progress lists stays as is.
 
 ## Components
 
