@@ -10,6 +10,7 @@ import {
 	type AccountSummary,
 	type AccountUser,
 	type AccountSiteSummary,
+	SESSION_STORAGE_KEY,
 } from '../lib/account/session';
 import { AccountClient, AccountError } from '../lib/account/client';
 import { completeAuthRedirect, startGoogleOAuth, startMagicLink } from '../lib/account/flow';
@@ -133,6 +134,37 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 		return () => {
 			alive = false;
 		};
+	}, [applySummary]);
+
+	// A sign-in finished in ANOTHER tab (magic links open the emailed link in a
+	// fresh tab) writes the session to localStorage — pick it up here so this
+	// tab's "Sign in" chip flips without a reload.
+	useEffect(() => {
+		if (!isAccountsConfigured()) return;
+		const onStorage = (event: StorageEvent) => {
+			if (event.key !== SESSION_STORAGE_KEY) return;
+			const stored = getSession();
+			if (!stored) {
+				setUser(null);
+				setLicensed(false);
+				setPlan(null);
+				setCanDownload(false);
+				setSite(null);
+				setStatus('signed-out');
+				return;
+			}
+			void (async () => {
+				try {
+					const { data } = await new AccountClient(stored.token).request<AccountSummary>('/auth/session');
+					applySummary(data);
+				} catch {
+					setUser(stored.user);
+					setStatus('signed-in');
+				}
+			})();
+		};
+		window.addEventListener('storage', onStorage);
+		return () => window.removeEventListener('storage', onStorage);
 	}, [applySummary]);
 
 	const sendMagicLink = useCallback(async (email: string) => {

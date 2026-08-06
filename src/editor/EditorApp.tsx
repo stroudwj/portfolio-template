@@ -34,7 +34,7 @@ import {
 	showPreviewPage,
 } from './components/ui/controls';
 import { shouldResumePublish } from './lib/polar-checkout';
-import { consumeReturnToEditorAfterAuth } from './lib/account/flow';
+import { consumeReturnToEditorAfterAuth, hasSignInReturnParams } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
 import { collectIssues } from './lib/validation';
 import { withBase } from '../portfolio/types';
@@ -334,6 +334,10 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 	const [intakeWorkbench, setIntakeWorkbench] = useState(false);
 	const [showSaveSetup, setShowSaveSetup] = useState(false);
 	const account = useAccount({ returnToEditorAfterGoogle: true });
+	/** True when this page load IS a sign-in return (magic link / Google). */
+	const [signInReturn] = useState(hasSignInReturnParams);
+	const [signInToast, setSignInToast] = useState<string | null>(null);
+	const signInToastShownRef = useRef(false);
 	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
 	const [tourReplayToken, setTourReplayToken] = useState(0);
 	const [uiTheme, setUiTheme] = useState<UiTheme>(() =>
@@ -495,13 +499,27 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 		if (shouldResumePublish()) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
 
-	// Google leaves the page to authenticate. If that trip began from the live
-	// editor, reopen the autosaved draft automatically instead of dropping the
-	// artist onto the template picker.
+	// Sign-in round-trips reopen the autosaved draft automatically instead of
+	// dropping the artist onto the template picker: Google leaves the page and
+	// returns (session flag), and a magic link opens the emailed link as a fresh
+	// page load carrying ?magic_token (captured before the redirect handler
+	// strips it).
 	useEffect(() => {
 		if (doc || !hasDraft) return;
-		if (consumeReturnToEditorAfterAuth()) void resumeDraft();
-	}, [doc, hasDraft, resumeDraft]);
+		if (consumeReturnToEditorAfterAuth() || signInReturn) void resumeDraft();
+	}, [doc, hasDraft, resumeDraft, signInReturn]);
+
+	// One quiet confirmation once that sign-in lands, so "did it work?" never
+	// hangs in the air.
+	useEffect(() => {
+		if (!signInReturn || account.status !== 'signed-in' || signInToastShownRef.current) return;
+		signInToastShownRef.current = true;
+		setSignInToast(
+			`Signed in as ${account.user?.email ?? 'your account'} — your site is saved to this account.`,
+		);
+		const timer = window.setTimeout(() => setSignInToast(null), 6000);
+		return () => window.clearTimeout(timer);
+	}, [signInReturn, account.status, account.user?.email]);
 
 	// Phones get the door + a read-only preview, never the canvas. Browsing, checkout,
 	// and the auto-unlock-after-purchase flow above all still run on a phone — only
@@ -775,6 +793,11 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 					/>
 				</div>
 			</div>
+			{signInToast && (
+				<div className="editor-toast" role="status" aria-live="polite">
+					{signInToast}
+				</div>
+			)}
 			{/* Post-intake account door: one gentle ask, easy to defer. */}
 			{!studio && showSaveSetup && account.status === 'signed-out' && (
 				<SignInModal

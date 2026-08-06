@@ -5,6 +5,8 @@
 import { readJson, writeJson, removeKey } from '../storage';
 
 const SESSION_KEY = 'portfolio-editor:account';
+/** Exported so hooks can watch cross-tab `storage` events for this key. */
+export const SESSION_STORAGE_KEY = SESSION_KEY;
 
 export interface AccountUser {
 	id: string;

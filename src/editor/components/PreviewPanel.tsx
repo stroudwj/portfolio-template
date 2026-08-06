@@ -386,9 +386,15 @@ export default function PreviewPanel({
 	const [workbenchOpen, setWorkbenchOpen] = useState(false);
 	/** Floating chooser filling a new solo-image block from the workbench. */
 	const [workbenchPickFolder, setWorkbenchPickFolder] = useState<string | null>(null);
+	/** First-run guidance: the intake's "sort it here" answer opens the
+	 * workbench big and centered, with one clear instruction. */
+	const [workbenchIntro, setWorkbenchIntro] = useState(false);
 	// A "sort it here" intake answer opens the workbench with the editor.
 	useEffect(() => {
-		if (openWorkbenchOnLaunch) setWorkbenchOpen(true);
+		if (openWorkbenchOnLaunch) {
+			setWorkbenchOpen(true);
+			setWorkbenchIntro(true);
+		}
 	}, [openWorkbenchOnLaunch]);
 	const gridPrefs = useGridPrefs();
 
@@ -663,9 +669,21 @@ export default function PreviewPanel({
 					{fullscreen && 'Back to editor'}
 				</button>
 			</div>
-			{/* Floating workbench: the same organizer, in a window over the page. */}
+			{/* Floating workbench: the same organizer, in a window over the page.
+			    In intro mode it takes center stage with one clear instruction. */}
+			{workbenchOpen && workbenchIntro && !fullscreen && (
+				<div
+					className="floating-panel-backdrop"
+					aria-hidden="true"
+					onClick={() => setWorkbenchIntro(false)}
+				/>
+			)}
 			{workbenchOpen && !fullscreen && (
-				<div className="floating-panel floating-workbench" role="dialog" aria-label="Image workbench">
+				<div
+					className={`floating-panel floating-workbench${workbenchIntro ? ' floating-workbench-guided' : ''}`}
+					role="dialog"
+					aria-label="Image workbench"
+				>
 					<header className="floating-panel-head">
 						<strong>
 							<PanelIcon type="workbench" />
@@ -676,14 +694,37 @@ export default function PreviewPanel({
 							className="pv-icon-button"
 							aria-label="Close the workbench"
 							title="Close"
-							onClick={() => setWorkbenchOpen(false)}
+							onClick={() => {
+								setWorkbenchOpen(false);
+								setWorkbenchIntro(false);
+							}}
 						>
 							<PanelIcon type="close" />
 						</button>
 					</header>
+					{workbenchIntro && (
+						<div className="floating-panel-guide">
+							<strong>Drop everything in here</strong>
+							<p>
+								Upload your photos, then sort them into folders — one folder per series
+								hangs beautifully. Cropping and light live on every photo's Edit.
+							</p>
+						</div>
+					)}
 					<div className="floating-panel-body">
-						<AssetWorkbench />
+						<AssetWorkbench chrome="floating" />
 					</div>
+					{workbenchIntro && (
+						<footer className="floating-panel-guide-foot">
+							<button
+								type="button"
+								className="btn-primary"
+								onClick={() => setWorkbenchIntro(false)}
+							>
+								Done sorting — start hanging
+							</button>
+						</footer>
+					)}
 				</div>
 			)}
 			{workbenchPickFolder && !fullscreen && (

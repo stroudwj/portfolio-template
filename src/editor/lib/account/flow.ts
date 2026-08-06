@@ -45,6 +45,18 @@ export function startGoogleOAuth(returnToEditor = false): void {
 	window.location.assign(`${GOOGLE_AUTHORIZE_URL}?${params.toString()}`);
 }
 
+/** True while the address bar still carries sign-in return params (magic link
+ * or Google). Read it in a render initializer — completing the redirect strips
+ * the params moments later. */
+export function hasSignInReturnParams(): boolean {
+	if (typeof window === 'undefined') return false;
+	const url = new URL(window.location.href);
+	return Boolean(
+		url.searchParams.get('magic_token') ||
+			(url.searchParams.get('code') && url.searchParams.get('state')?.startsWith('g-')),
+	);
+}
+
 /** Restore the live editor after an OAuth round-trip that began from an open draft. */
 export function consumeReturnToEditorAfterAuth(): boolean {
 	try {

@@ -8984,3 +8984,68 @@ label.block-more-item .select-input {
 	justify-content: space-between;
 	margin-top: 4px;
 }
+
+/* Guided workbench: front and center on first run, one instruction, one exit. */
+.floating-panel-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: 318;
+	background: color-mix(in srgb, var(--ink) 32%, transparent);
+}
+.floating-workbench-guided {
+	left: 50%;
+	right: auto;
+	transform: translateX(-50%);
+	top: 44px;
+	width: min(780px, calc(100% - 32px));
+	max-height: calc(100% - 60px);
+}
+.floating-panel-guide {
+	padding: 14px 16px 4px;
+	flex-shrink: 0;
+}
+.floating-panel-guide strong {
+	display: block;
+	font-size: 17px;
+	font-weight: 500;
+	margin-bottom: 4px;
+}
+.floating-panel-guide p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--ink-soft);
+}
+.floating-panel-guide-foot {
+	display: flex;
+	justify-content: flex-end;
+	padding: 10px 12px;
+	border-top: 1px solid var(--wall-2);
+	flex-shrink: 0;
+}
+
+/* The floating panel already titles the window — no nested chrome inside. */
+.workbench-chrome-floating .workbench-window {
+	border: 0;
+	box-shadow: none;
+	margin: 0;
+}
+.workbench-chrome-floating .workbench-window-dots {
+	display: none;
+}
+
+/* Quiet sign-in confirmation, bottom center, gone in a few seconds. */
+.editor-toast {
+	position: fixed;
+	left: 50%;
+	bottom: 26px;
+	transform: translateX(-50%);
+	z-index: 400;
+	max-width: min(560px, calc(100vw - 32px));
+	padding: 10px 16px;
+	border-radius: 6px;
+	background: var(--ink);
+	color: var(--paper);
+	font-size: 13.5px;
+	box-shadow: 0 8px 24px rgba(31, 27, 23, 0.24);
+}

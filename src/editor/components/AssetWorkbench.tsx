@@ -52,7 +52,14 @@ function TrashIcon() {
 }
 
 /** A private, browser-saved image bucket with Finder-like folders and selection. */
-export default function AssetWorkbench() {
+export default function AssetWorkbench({
+	chrome = 'sidebar',
+}: {
+	/** 'sidebar' wraps the window in the collapsible section with its intro
+	 * line; 'floating' renders just the window — the floating panel that hosts
+	 * it already provides the title bar, so no nested chrome. */
+	chrome?: 'sidebar' | 'floating';
+} = {}) {
 	const {
 		doc,
 		addGalleryImages,
@@ -67,7 +74,7 @@ export default function AssetWorkbench() {
 	const [expanded, setExpanded] = useState(false);
 	const [minimized, setMinimized] = useState(false);
 	const [windowClosed, setWindowClosed] = useState(false);
-	const [sectionCollapsed, setSectionCollapsed] = useState(true);
+	const [sectionCollapsed, setSectionCollapsed] = useState(chrome !== 'floating');
 	const [marquee, setMarquee] = useState<Marquee | null>(null);
 	const [gridDropOver, setGridDropOver] = useState(false);
 	const [folderDropTarget, setFolderDropTarget] = useState<string | null>(null);
@@ -377,17 +384,8 @@ export default function AssetWorkbench() {
 		setMarquee(null);
 	};
 
-	return (
-		<Section
-			title="Image workbench"
-			sectionKey="_image-workbench"
-			action={<span className="count">{entries.length}</span>}
-			// Collapsed by default even when empty: the workbench sits above the page
-			// list, and an expanded empty Finder window pushes the actual page editing
-			// below the fold on every visit to Pages.
-			defaultCollapsed
-			onCollapsedChange={setSectionCollapsed}
-		>
+	const windowBody = (
+		<>
 			{expanded && (
 				<button
 					type="button"
@@ -396,10 +394,6 @@ export default function AssetWorkbench() {
 					onClick={() => setExpanded(false)}
 				/>
 			)}
-			<p className="workbench-intro">
-				Your private photo folder. Upload once, organize here, then copy or drag photos
-				into any image group without finding the files again.
-			</p>
 			{windowClosed ? (
 				<button
 					type="button"
@@ -748,6 +742,26 @@ export default function AssetWorkbench() {
 					</div>}
 				</div>
 			)}
+		</>
+	);
+	if (chrome === 'floating')
+		return <div className="workbench-chrome-floating">{windowBody}</div>;
+	return (
+		<Section
+			title="Image workbench"
+			sectionKey="_image-workbench"
+			action={<span className="count">{entries.length}</span>}
+			// Collapsed by default even when empty: the workbench sits above the page
+			// list, and an expanded empty Finder window pushes the actual page editing
+			// below the fold on every visit to Pages.
+			defaultCollapsed
+			onCollapsedChange={setSectionCollapsed}
+		>
+			<p className="workbench-intro">
+				Your private photo folder. Upload once, organize here, then copy or drag photos
+				into any image group without finding the files again.
+			</p>
+			{windowBody}
 		</Section>
 	);
 }
