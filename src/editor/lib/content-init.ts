@@ -104,6 +104,8 @@ function entriesFromContent(content: Content): Record<string, ImageEntry[]> {
 					focusY: meta.focusY,
 					cropAspect: meta.cropAspect,
 					cropZoom: meta.cropZoom,
+				brightness: meta.brightness,
+				contrast: meta.contrast,
 				},
 				assetId: null,
 				sampleAssetId: sampleAssetId ?? null,
@@ -248,6 +250,8 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 			focusY: e.meta.focusY,
 			cropAspect: e.meta.cropAspect,
 			cropZoom: e.meta.cropZoom,
+			brightness: e.meta.brightness,
+			contrast: e.meta.contrast,
 			effects: e.meta.effects,
 		}));
 	}

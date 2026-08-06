@@ -63,6 +63,16 @@
 	rotate: var(--artwork-skew) !important;
 }
 
+/* Non-destructive light adjustments: the variable rides the same per-artwork
+   style object as skew, so every gallery mode picks it up on its own <img>. */
+.canvas-item img,
+.masonry-item img,
+.uniform-item img,
+.inline-carousel-stage img,
+.inline-carousel-image {
+	filter: var(--artwork-adjust, none);
+}
+
 .artwork-mount-frame > img,
 .artwork-mount-frame > .canvas-artwork-frame > img,
 .artwork-mount-frame .inline-carousel-stage {

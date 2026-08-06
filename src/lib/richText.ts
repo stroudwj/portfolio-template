@@ -189,12 +189,17 @@ const appendRun = (runs: RichTextRun[], text: string, format: InlineFormat) => {
 	else runs.push(run);
 };
 
+/** Realm-safe element check: editing can happen inside the preview iframe,
+ * whose nodes are NOT instances of this realm's HTMLElement constructor. */
+const isElementNode = (node: Node): node is HTMLElement =>
+	node.nodeType === Node.ELEMENT_NODE;
+
 const parseInlineNode = (node: Node, inherited: InlineFormat, runs: RichTextRun[]) => {
 	if (node.nodeType === Node.TEXT_NODE) {
 		appendRun(runs, node.textContent ?? '', inherited);
 		return;
 	}
-	if (!(node instanceof HTMLElement)) return;
+	if (!isElementNode(node)) return;
 	if (node.tagName === 'BR') {
 		appendRun(runs, '\n', inherited);
 		return;
@@ -274,10 +279,10 @@ export function richTextFromElement(root: HTMLElement): RichTextParagraph[] {
 	};
 
 	root.childNodes.forEach((node) => {
-		if (node instanceof HTMLElement && BLOCK_TAGS.has(node.tagName)) {
+		if (isElementNode(node) && BLOCK_TAGS.has(node.tagName)) {
 			flushLoose();
 			paragraphs.push(paragraphFromElement(node));
-		} else if (node instanceof HTMLBRElement) {
+		} else if (isElementNode(node) && node.tagName === 'BR') {
 			flushLoose();
 			paragraphs.push({ runs: [] });
 		} else {

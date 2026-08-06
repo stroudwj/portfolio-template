@@ -484,7 +484,7 @@ export interface EditorContextValue {
 	removeProductOffer(productId: string, offerId: string): void;
 	moveProductOffer(productId: string, from: number, to: number): void;
 	// pages
-	addPage(label: string, projectTemplate?: ProjectTemplate): void;
+	addPage(label: string, projectTemplate?: ProjectTemplate, options?: { hidden?: boolean }): void;
 	addChildPage(parentKey: string, label: string, sectionId?: string): void;
 	removePage(key: string): void;
 	movePage(from: number, to: number): void;
@@ -645,6 +645,13 @@ export interface EditorContextValue {
 		patch: Partial<Omit<Extract<PageBlock, { type: 'project' }>, 'id' | 'type'>>,
 	): void;
 	removeBlock(key: string, blockId: string): void;
+	/** Copy a block right after itself — image blocks get their own copied
+	 * gallery folder so the two evolve independently. About, sub-page, and the
+	 * legacy main-gallery blocks are not duplicable. */
+	duplicateBlock(key: string, blockId: string): void;
+	/** Remove a whole section: its blocks, per-section styling, and any image
+	 * folders nothing else references. Refused for the page's only section. */
+	removeSection(key: string, sectionId: string): void;
 	/** Replace a block's module type while keeping its place in the page and section. */
 	changeBlockType(key: string, blockId: string, type: PageBlock['type']): void;
 	moveBlock(key: string, from: number, to: number): void;
@@ -1503,7 +1510,7 @@ export function EditorProvider({
 			}),
 
 		// ---- pages ----
-		addPage: (label, projectTemplate) =>
+		addPage: (label, projectTemplate, options) =>
 			commitDoc((prev) => {
 				const key = uniquePageKey(slugify(label), prev.content.pages);
 				const folder = uniqueFolder(key, prev);
@@ -1524,7 +1531,7 @@ export function EditorProvider({
 					...prev,
 					content: {
 						...prev.content,
-						nav: [...prev.content.nav, { path: key, label: name }],
+						nav: [...prev.content.nav, { path: key, label: name, ...(options?.hidden ? { hidden: true } : {}) }],
 						pages: { ...prev.content.pages, [key]: page },
 						galleries: { ...prev.content.galleries, [folder]: { items: {} } },
 					},
@@ -2678,6 +2685,150 @@ export function EditorProvider({
 						next.content = { ...next.content, galleries: contentGalleries };
 						const docGalleries = { ...prev.galleries };
 						delete docGalleries[removedFolder];
+						next.galleries = docGalleries;
+					}
+				}
+				return next;
+			}),
+		duplicateBlock: (key, blockId) =>
+			commitDoc((prev) => {
+				const page = prev.content.pages[key];
+				const source = (page?.blocks ?? []).find((b) => b.id === blockId);
+				if (!page || !source) return prev;
+				// About is one-per-page, sub-page cards mirror real child pages, and
+				// the legacy main gallery is single by definition.
+				if (source.type === 'about' || source.type === 'children' || source.type === 'gallery')
+					return prev;
+				let block = cloneReusableBlock(source);
+				let next = prev;
+				if (block.type === 'images' && source.type === 'images') {
+					const folder = uniqueFolder(`${key.replace(/\//g, '-')}-set`, prev);
+					const entries = (prev.galleries[source.gallery.folder] ?? []).map((entry) => ({
+						...(JSON.parse(JSON.stringify(entry)) as (typeof prev.galleries)[string][number]),
+						id: uid('e'),
+					}));
+					// Fresh entry ids invalidate any phone-order keys; drop the
+					// customization so the copy starts from the automatic order.
+					block = { ...block, gallery: { ...block.gallery, folder, mobile: undefined } };
+					next = {
+						...prev,
+						content: {
+							...prev.content,
+							galleries: {
+								...prev.content.galleries,
+								[folder]: JSON.parse(
+									JSON.stringify(prev.content.galleries[source.gallery.folder] ?? { items: {} }),
+								),
+							},
+						},
+						galleries: { ...prev.galleries, [folder]: entries },
+					};
+				}
+				// Canvas-pinned copies nudge down-right so they never cover the original.
+				const nudge = <L extends { x: number; y: number }>(layout: L): L => ({
+					...layout,
+					x: Math.min(layout.x + 2, 94),
+					y: layout.y + 2,
+				});
+				if (block.type === 'text' && block.layout) block = { ...block, layout: nudge(block.layout) };
+				else if (block.type === 'embed' && block.layout) block = { ...block, layout: nudge(block.layout) };
+				else if (block.type === 'divider' && block.layout) block = { ...block, layout: nudge(block.layout) };
+				else if (block.type === 'project' && block.layout) block = { ...block, layout: nudge(block.layout) };
+				else if (block.type === 'form' && block.layout) block = { ...block, layout: nudge(block.layout) };
+				else if (block.type === 'products' && block.canvasLayout)
+					block = { ...block, canvasLayout: nudge(block.canvasLayout) };
+				const blocks = [...(page.blocks ?? [])];
+				const at = blocks.findIndex((b) => b.id === blockId);
+				blocks.splice(at + 1, 0, block);
+				const owner = blockSection(page, blockId);
+				const sections = pageSections(page).map((section) =>
+					section.id === owner?.id
+						? {
+								...section,
+								blockIds: section.blockIds.flatMap((id) =>
+									id === blockId ? [id, block.id] : [id],
+								),
+							}
+						: section,
+				);
+				return {
+					...next,
+					content: {
+						...next.content,
+						pages: {
+							...next.content.pages,
+							[key]: { ...page, blocks, sections },
+						},
+					},
+				};
+			}),
+		removeSection: (key, sectionId) =>
+			commitDoc((prev) => {
+				const page = prev.content.pages[key];
+				if (!page) return prev;
+				const allSections = pageSections(page);
+				if (allSections.length <= 1) return prev;
+				const section = allSections.find((candidate) => candidate.id === sectionId);
+				if (!section) return prev;
+				const removedIds = new Set(section.blockIds);
+				const targets = (page.blocks ?? []).filter((b) => removedIds.has(b.id));
+				const blocks = (page.blocks ?? []).filter((b) => !removedIds.has(b.id));
+				const sections = allSections.filter((candidate) => candidate.id !== sectionId);
+				const partKey = sectionPartKey(sectionId);
+				const sectionColors = { ...(page.sectionColors ?? {}) };
+				const sectionHeights = { ...(page.sectionHeights ?? {}) };
+				const sectionMotion = { ...(page.sectionMotion ?? {}) };
+				delete sectionColors[partKey];
+				delete sectionHeights[partKey];
+				delete sectionMotion[partKey];
+				const removedLegacyGallery = targets.some((b) => b.type === 'gallery');
+				const nextPage = {
+					...page,
+					blocks,
+					sections,
+					sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
+					sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
+					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+					mobile: page.mobile
+						? {
+								...page.mobile,
+								order: page.mobile.order.filter((item) => item !== partKey),
+								items: Object.fromEntries(
+									Object.entries(page.mobile.items ?? {}).filter(([item]) => item !== partKey),
+								),
+							}
+						: page.mobile,
+					gallery: removedLegacyGallery ? undefined : page.gallery,
+				};
+				const next = {
+					...prev,
+					content: { ...prev.content, pages: { ...prev.content.pages, [key]: nextPage } },
+				};
+				const candidateFolders = new Set(
+					targets.flatMap((b) =>
+						b.type === 'images'
+							? [b.gallery.folder]
+							: b.type === 'gallery' && page.gallery
+								? [page.gallery.folder]
+								: [],
+					),
+				);
+				if (candidateFolders.size) {
+					const stillUsed = referencedGalleryFolders(
+						next.content.pages,
+						next.content.sectionLibrary,
+					);
+					const contentGalleries = { ...next.content.galleries };
+					const docGalleries = { ...prev.galleries };
+					let changed = false;
+					for (const folder of candidateFolders)
+						if (!stillUsed.has(folder)) {
+							delete contentGalleries[folder];
+							delete docGalleries[folder];
+							changed = true;
+						}
+					if (changed) {
+						next.content = { ...next.content, galleries: contentGalleries };
 						next.galleries = docGalleries;
 					}
 				}

@@ -10,6 +10,7 @@ import Hero from './Hero';
 import Gallery, { type CarouselWidget } from './Gallery';
 import About from './About';
 import TextBlock from './TextBlock';
+import { type InlineTextEditing } from './InlineTextEditor';
 import Embed from './Embed';
 import ScrollShots from './ScrollShots';
 import ContactForm from './ContactForm';
@@ -114,6 +115,8 @@ export interface PortfolioPageProps extends PortfolioData {
 	onPageHeadingPosition?: (x: number, y: number) => void;
 	/** Show editor-only guidance for empty portfolio content. */
 	editorPreview?: boolean;
+	/** Editor preview: the text block currently being edited in place. */
+	inlineTextEditing?: InlineTextEditing;
 	onSelectBlock?: (pageKey: string, blockId: string) => void;
 }
 
@@ -304,6 +307,7 @@ export default function PortfolioPage({
 	onFooterImageLayout,
 	onPageHeadingPosition,
 	editorPreview = false,
+	inlineTextEditing,
 	onSelectBlock,
 }: PortfolioPageProps) {
 	const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
@@ -629,6 +633,7 @@ export default function PortfolioPage({
 							<Gallery
 								images={[]}
 								texts={canvasTexts}
+							inlineTextEditing={inlineTextEditing}
 								embeds={canvasEmbeds}
 								editable={!!textLayoutChange}
 								onTextLayout={textLayoutChange}
@@ -639,7 +644,9 @@ export default function PortfolioPage({
 						</div>
 					);
 				}
-				return textLayoutChange && hasCanvas ? (
+				// While its words are edited in place, the block leaves the
+				// drag-to-canvas wrapper so the caret owns every pointer event.
+				return textLayoutChange && hasCanvas && inlineTextEditing?.blockId !== block.id ? (
 					<DraggableFlowBlock
 						key={block.id}
 						boxSelector=".text-block-content"
@@ -676,6 +683,7 @@ export default function PortfolioPage({
 						kinetic={block.kinetic}
 						flowLayout={block.flowLayout}
 						kineticTarget={`block:${block.id}`}
+						editing={inlineTextEditing?.blockId === block.id ? inlineTextEditing : undefined}
 					/>
 				);
 			case 'embed':
@@ -693,6 +701,7 @@ export default function PortfolioPage({
 							<Gallery
 								images={[]}
 								texts={canvasTexts}
+							inlineTextEditing={inlineTextEditing}
 								embeds={canvasEmbeds}
 								editable={!!embedLayoutChange}
 								onTextLayout={textLayoutChange}
@@ -878,6 +887,7 @@ export default function PortfolioPage({
 						settings={gallery}
 						autoFlowFloor={autoFlowFloorByHost.get(block.id)}
 						texts={canvasHostId === block.id ? canvasTexts : undefined}
+						inlineTextEditing={inlineTextEditing}
 						embeds={canvasHostId === block.id ? canvasEmbeds : undefined}
 						carouselWidgets={hostedCarousels.get(block.id)}
 						canvasWidgets={canvasHostId === block.id ? canvasWidgets : undefined}
@@ -945,6 +955,7 @@ export default function PortfolioPage({
 							settings={block.gallery}
 							autoFlowFloor={autoFlowFloorByHost.get(block.id)}
 							texts={canvasHostId === block.id ? canvasTexts : undefined}
+						inlineTextEditing={inlineTextEditing}
 							embeds={canvasHostId === block.id ? canvasEmbeds : undefined}
 							carouselWidgets={hostedCarousels.get(block.id)}
 							canvasWidgets={canvasHostId === block.id ? canvasWidgets : undefined}
@@ -1231,6 +1242,7 @@ export default function PortfolioPage({
 							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
 							style={partStyle}
 							key={part.key}
+							data-preview-part={part.key}
 							data-motion-effect={motion?.effect}
 							data-motion-strength={motion ? strength : undefined}
 							data-motion-phone={motion?.phone ? 'true' : 'false'}

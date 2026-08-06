@@ -59,7 +59,7 @@ type WorkbenchPickerMarquee = {
 };
 
 /** Pull reusable photos into the current group without leaving the block editor. */
-function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
+export function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 	const { doc, transferGalleryImage } = useEditor();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [marquee, setMarquee] = useState<WorkbenchPickerMarquee | null>(null);
@@ -923,6 +923,8 @@ export default function ImageCollectionEditor({
 				focusX: cropEntry.meta.focusX ?? 50,
 				focusY: cropEntry.meta.focusY ?? 50,
 				zoom: cropEntry.meta.cropZoom ?? 1,
+				brightness: cropEntry.meta.brightness,
+				contrast: cropEntry.meta.contrast,
 			}}
 			onClose={() => setCropEntryId(null)}
 			onSave={(settings: ImageCropSettings) => {
@@ -935,6 +937,8 @@ export default function ImageCollectionEditor({
 					cropZoom: settings.zoom > 1.001 ? settings.zoom : undefined,
 					focusX: settings.focusX,
 					focusY: settings.focusY,
+					brightness: settings.brightness,
+					contrast: settings.contrast,
 					layout:
 						cropEntry.meta.layout && ratio
 							? { ...cropEntry.meta.layout, ar: ratio }

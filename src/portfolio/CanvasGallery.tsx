@@ -28,6 +28,61 @@ import type {
 	ResolvedImage,
 	TextLayout,
 } from './types';
+
+/** Editor-only toolbar glyphs, inlined so the shared renderer stays free of
+ * editor imports. Same outline language as the editor's panel icons. */
+const CANVAS_TOOL_ICONS = {
+	front: (
+		<>
+			<path d="M12 13V3.5M8.5 7 12 3.5 15.5 7" />
+			<rect x="4.5" y="15.5" width="15" height="5" rx="1.5" />
+		</>
+	),
+	back: (
+		<>
+			<path d="M12 11v9.5M8.5 17 12 20.5 15.5 17" />
+			<rect x="4.5" y="3.5" width="15" height="5" rx="1.5" />
+		</>
+	),
+	lock: (
+		<>
+			<rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
+			<path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+		</>
+	),
+	unlock: (
+		<>
+			<rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
+			<path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.8-1.1" />
+		</>
+	),
+	trash: (
+		<>
+			<path d="M4.5 7h15" />
+			<path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7" />
+			<path d="m6.5 7 .7 12.1A2 2 0 0 0 9.2 21h5.6a2 2 0 0 0 2-1.9L17.5 7" />
+			<path d="M10 11v6M14 11v6" />
+		</>
+	),
+} as const;
+
+function CanvasToolIcon({ type }: { type: keyof typeof CANVAS_TOOL_ICONS }) {
+	return (
+		<svg
+			className="canvas-tool-icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			focusable="false"
+		>
+			{CANVAS_TOOL_ICONS[type]}
+		</svg>
+	);
+}
 import type { MobileComposition } from '../lib/content';
 import {
 	bottomOf,
@@ -52,7 +107,6 @@ import {
 	snapSpanToEdges,
 	snapSpanToCenter,
 	snapTo,
-	snapToEdges,
 	textBottom,
 } from './canvasLayout';
 import { getGridPrefs, guideById, useGridPrefs } from './gridPrefs';
@@ -61,6 +115,7 @@ import { stripePaymentLink } from './paymentEmbed';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
+import InlineTextEditor, { type InlineTextEditing } from './InlineTextEditor';
 import { automaticPhoneOrder } from './mobileOrder';
 import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
@@ -119,6 +174,8 @@ export interface CanvasGalleryProps {
 	/** Editor preview: keep internal image links inside the preview router. */
 	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
 	onSelectBlock?: (blockId: string) => void;
+	/** Editor preview: the pinned text currently being edited in place. */
+	inlineTextEditing?: InlineTextEditing;
 }
 
 export interface CanvasWidget {
@@ -155,6 +212,7 @@ export default function CanvasGallery({
 	onOpen,
 	onImageLink,
 	onSelectBlock,
+	inlineTextEditing,
 }: CanvasGalleryProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	/** Live position of the item being dragged, keyed by id (committed on release). */
@@ -239,13 +297,16 @@ export default function CanvasGallery({
 	const gridPrefs = useGridPrefs();
 
 	// Snap targets follow the chosen guide: square guides snap x AND y to the
-	// cell size; column guides snap x (and the resized right edge) to column
-	// edges, leaving y free. Identity functions when guides/snap are off.
+	// cell size; column guides ATTRACT x (and the resized right edge) toward a
+	// column edge only when it's already close — a magnet, never a teleport,
+	// so wide-column guides don't yank items across half the page.
 	const guide = guideById(gridPrefs.guide);
 	const snapOn = editable && gridPrefs.snap && guide.kind !== 'off';
 	const squareStep = snapOn && guide.kind === 'squares' ? 100 / guide.n : 0;
 	const xEdges = snapOn && guide.kind === 'columns' ? columnEdges(guide.n) : [];
-	const snapX = (v: number): number => (xEdges.length ? snapToEdges(v, xEdges) : snapTo(v, squareStep));
+	const COLUMN_SNAP = 2.5;
+	const snapX = (v: number): number =>
+		xEdges.length ? (nearestEdge(v, xEdges, COLUMN_SNAP) ?? v) : snapTo(v, squareStep);
 	const snapY = (v: number): number => snapTo(v, squareStep);
 
 	// On by default in the editor, guides or not; a neighbor edge within EDGE_SNAP wins
@@ -260,8 +321,10 @@ export default function CanvasGallery({
 	 */
 	const neighborEdges = (excluded: ReadonlySet<string>): { xs: number[]; ys: number[] } => {
 		if (!edgeSnapOn) return { xs: [], ys: [] };
-		const xs: number[] = [];
-		const ys: number[] = [];
+		// The canvas's own edges are snap targets too, so a moved OR resized item
+		// can land flush with the page sides and top.
+		const xs: number[] = [0, 100];
+		const ys: number[] = [0];
 		images.forEach((img, i) => {
 			if (excluded.has(`image:${img.id ?? keyOf(img, i)}`)) return;
 			const l = layouts[i];
@@ -1650,25 +1713,35 @@ export default function CanvasGallery({
 						<>
 							<button
 								type="button"
+								className="canvas-tool-button"
 								onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('front'))}
 								onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('front'))}
 								title="Bring to front (])"
-							>Bring to front</button>
+								aria-label="Bring to front"
+							>
+								<CanvasToolIcon type="front" />
+							</button>
 							<button
 								type="button"
+								className="canvas-tool-button"
 								onPointerDown={(event) => runToolbarPointerAction(event, () => moveSelectionLayer('back'))}
 								onKeyDown={(event) => runToolbarKeyAction(event, () => moveSelectionLayer('back'))}
 								title="Send to back ([)"
-							>Send to back</button>
+								aria-label="Send to back"
+							>
+								<CanvasToolIcon type="back" />
+							</button>
 							{singleSelectedItem?.kind === 'image' && (
 								<button
 									type="button"
-									className="canvas-lock-button"
+									className={`canvas-tool-button canvas-lock-button${singleLockedImage ? ' locked' : ''}`}
 									onPointerDown={(event) => runToolbarPointerAction(event, toggleSelectedImageLock)}
 									onKeyDown={(event) => runToolbarKeyAction(event, toggleSelectedImageLock)}
 									title={singleLockedImage ? 'Unlock image' : 'Lock image position and size'}
+									aria-label={singleLockedImage ? 'Unlock image' : 'Lock image position and size'}
+									aria-pressed={singleLockedImage}
 								>
-									{singleLockedImage ? 'Unlock image' : 'Lock image'}
+									<CanvasToolIcon type={singleLockedImage ? 'lock' : 'unlock'} />
 								</button>
 							)}
 						</>
@@ -1676,7 +1749,7 @@ export default function CanvasGallery({
 					{onDeleteSelection && (
 						<button
 							type="button"
-							className="canvas-delete-button"
+							className="canvas-tool-button canvas-delete-button"
 							onPointerDown={(event) => runToolbarPointerAction(event, deleteCurrentSelection)}
 							onKeyDown={(event) => runToolbarKeyAction(event, deleteCurrentSelection)}
 							title={
@@ -1684,8 +1757,13 @@ export default function CanvasGallery({
 									? `Remove the ${selected.size} selected items from this page (Delete)`
 									: 'Remove from this page (Delete)'
 							}
+							aria-label={
+								selected.size > 1
+									? `Remove the ${selected.size} selected items from this page`
+									: 'Remove from this page'
+							}
 						>
-							Remove
+							<CanvasToolIcon type="trash" />
 						</button>
 					)}
 					<button
@@ -1962,18 +2040,31 @@ export default function CanvasGallery({
 							? DRAG_Z
 							: textZ(i),
 				} as CSSProperties;
+				// Text being edited in place: the caret owns the pointer, so drag
+				// and resize handles step aside until editing ends.
+				const editingHere = inlineTextEditing?.blockId === text.id;
 				return (
 					<div key={item.key} data-canvas-selection-key={item.key} data-preview-block={text.id} onPointerDownCapture={() => onSelectBlock?.(text.id)} className={`canvas-item canvas-text-item ${
 						dragId === text.id || (dragId === '__group__' && selected.has(item.key))
 							? 'dragging'
 							: ''
-					} ${selected.has(item.key) ? 'selected' : ''}`} style={vars}
+					} ${selected.has(item.key) ? 'selected' : ''}${editingHere ? ' inline-editing' : ''}`} style={vars}
 						ref={(el) => { textEls.current[text.id] = el; }} onPointerDown={(event) => {
 							onSelectBlock?.(text.id);
-							if (editable) startTextDrag(event, text, i, 'move');
+							if (editable && !editingHere) startTextDrag(event, text, i, 'move');
 						}}>
 						<div className={`canvas-text align-${text.align ?? 'left'}`}>
-							{text.text.trim() ? (
+							{editingHere && inlineTextEditing ? (
+								<InlineTextEditor
+									text={text.text}
+									richText={text.richText}
+									legacyStyle={text.style}
+									legacyAlign={text.align}
+									fontFamily={text.fontFamily}
+									onChange={inlineTextEditing.onChange}
+									onDone={inlineTextEditing.onDone}
+								/>
+							) : text.text.trim() ? (
 								<TextContent
 									text={text.text}
 									richText={text.richText}
@@ -1983,9 +2074,9 @@ export default function CanvasGallery({
 									kinetic={text.kinetic}
 									kineticTarget={text.kineticTarget}
 								/>
-							) : <em className="canvas-text-empty">Empty text — write in the panel</em>}
+							) : <em className="canvas-text-empty">Empty text — double-click to write</em>}
 						</div>
-						{editable && !multiSelected && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+						{editable && !multiSelected && !editingHere && (['nw', 'ne', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
 							<span key={corner} className={`canvas-resize corner-${corner}`} title={`Resize from ${corner.toUpperCase()} corner`} onPointerDown={(e) => startTextDrag(e, text, i, 'resize', corner)} aria-hidden="true" />
 						))}
 					</div>

@@ -23,6 +23,7 @@ import type {
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import CanvasGallery, { type CanvasWidget } from './CanvasGallery';
+import { type InlineTextEditing } from './InlineTextEditor';
 import {
 	bottomOf,
 	clampLayout,
@@ -38,7 +39,7 @@ import {
 	snapToEdges,
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
-import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
+import { artworkAdjustFilter, artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
@@ -149,6 +150,8 @@ export interface GalleryProps {
 	/** Editor preview: keep internal image links inside the preview router. */
 	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
 	onSelectBlock?: (blockId: string) => void;
+	/** Editor preview: the pinned text currently being edited in place. */
+	inlineTextEditing?: InlineTextEditing;
 }
 
 export interface CarouselWidget {
@@ -176,6 +179,7 @@ export default function Gallery({
 	embeds,
 	autoFlowFloor,
 	editable = false,
+	inlineTextEditing,
 	onLayoutChange,
 	onTextLayout,
 	onEmbedLayout,
@@ -791,6 +795,7 @@ export default function Gallery({
 				<img
 					src={open.full ?? open.src}
 					alt={open.decorative ? '' : open.alt || open.title || 'Full resolution portfolio piece'}
+					style={artworkAdjustFilter(open) ? { filter: artworkAdjustFilter(open) } : undefined}
 					className={lightboxIndices.length > 1 ? 'lightbox-clickable' : undefined}
 					role={lightboxIndices.length > 1 ? 'button' : undefined}
 					tabIndex={lightboxIndices.length > 1 ? 0 : undefined}
@@ -1103,6 +1108,7 @@ export default function Gallery({
 					onOpen={editable ? undefined : openLightbox}
 					onImageLink={onImageLink}
 					onSelectBlock={onSelectBlock}
+					inlineTextEditing={inlineTextEditing}
 				/>
 			) : (
 				<div className="masonry-grid">

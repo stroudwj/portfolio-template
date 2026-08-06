@@ -31,6 +31,9 @@ export interface ImageMeta {
 	cropAspect?: string;
 	/** Non-destructive crop magnification. */
 	cropZoom?: number;
+	/** Non-destructive light adjustments, in percent (100 = as shot). */
+	brightness?: number;
+	contrast?: number;
 	effects?: ArtworkEffectConfig;
 	/** Private organizer used only by the editor's image workbench. */
 	workbenchFolder?: string;

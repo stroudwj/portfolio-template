@@ -345,6 +345,8 @@ const imageMetaSchema = passthrough({
 	focusY: z.number().min(0).max(100).optional(),
 	cropAspect: z.string().regex(/^\d+(?:\.\d+)?\s*[:/]\s*\d+(?:\.\d+)?$/).optional(),
 	cropZoom: z.number().min(1).max(6).optional(),
+	brightness: z.number().min(50).max(150).optional(),
+	contrast: z.number().min(50).max(150).optional(),
 	workbenchFolder: z.string().max(80).optional(),
 	effects: artworkEffectSchema.optional(),
 });

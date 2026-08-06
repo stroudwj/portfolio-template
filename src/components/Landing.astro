@@ -254,10 +254,14 @@ const applicationLd = {
 								<strong>{monthlyPriceText}</strong>
 								<span>per month</span>
 							</p>
-							<p>Everything except downloads. Keep paying to retain access; your published site goes offline if the subscription ends.</p>
+							<p>
+								First {pricing.monthlyTrialDays} days free — cancel before they end and pay nothing.
+								Then everything except downloads; your published site goes offline if the
+								subscription ends.
+							</p>
 							<p class="upgrade-credit">Upgrade later and get your first {monthlyPriceText} payment off lifetime access.</p>
 							<a class="btn btn-secondary" href={monthlyCheckoutEntryUrl}>
-								Start monthly — {monthlyPriceText}/month
+								Go live free for {pricing.monthlyTrialDays} days
 							</a>
 						</article>
 					</div>

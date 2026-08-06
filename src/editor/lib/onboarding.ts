@@ -65,3 +65,42 @@ export function completeEditorTour() {
 	write(local(), TOUR_COMPLETE_KEY, '1');
 	remove(session(), TOUR_PENDING_KEY);
 }
+
+/* ---- Intake intent: the Start questionnaire's routing answers, consumed
+   once by the editor shell right after the new document opens. ---- */
+
+const INTAKE_INTENT_KEY = 'portfolio-editor:intake-intent-v1';
+
+export interface IntakeIntent {
+	/** 'pile' = sort in the workbench first; 'organized' = straight to the wall. */
+	workflow?: 'pile' | 'organized';
+	/** The artist said some photos still need a crop or light pass. */
+	finishing?: boolean;
+	/** Offer the "Save your setup" account door once the editor opens. */
+	promptSignup?: boolean;
+}
+
+let intakeInMemory: IntakeIntent | null = null;
+
+export function writeIntakeIntent(intent: IntakeIntent) {
+	intakeInMemory = intent;
+	write(session(), INTAKE_INTENT_KEY, JSON.stringify(intent));
+}
+
+export function consumeIntakeIntent(): IntakeIntent | null {
+	const raw = read(session(), INTAKE_INTENT_KEY);
+	const intent =
+		intakeInMemory ??
+		(raw
+			? (() => {
+					try {
+						return JSON.parse(raw) as IntakeIntent;
+					} catch {
+						return null;
+					}
+				})()
+			: null);
+	intakeInMemory = null;
+	remove(session(), INTAKE_INTENT_KEY);
+	return intent;
+}

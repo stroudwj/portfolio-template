@@ -14,7 +14,8 @@ import {
 } from '../lib/persistence';
 import { parseAndMigrateEditorDoc } from '../lib/doc-schema';
 import { Modal } from './ui/Modal';
-import { requestFirstRunEditorTour } from '../lib/onboarding';
+import { requestFirstRunEditorTour, writeIntakeIntent } from '../lib/onboarding';
+import StartIntake, { type IntakeAnswers } from './StartIntake';
 
 type ReadyStarter = StarterRecipe & { content: NonNullable<StarterRecipe['content']> };
 
@@ -56,10 +57,12 @@ interface PendingStart {
 }
 
 export default function StartScreen({ brandLockup }: { brandLockup: string }) {
-	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError } = useEditor();
+	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError, setName, addPage } = useEditor();
 	const account = useAccount();
 	const [showSignIn, setShowSignIn] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
+	/** The classic starter grid stays reachable behind the intake's first Back. */
+	const [classicPicker, setClassicPicker] = useState(false);
 	const [pending, setPending] = useState<PendingStart | null>(null);
 	const [versionName, setVersionName] = useState('');
 	const [confirmEviction, setConfirmEviction] = useState(false);
@@ -99,6 +102,24 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 		requestStart(starter.name, true, () =>
 			startWithTour(() => startTemplate(starter.content)),
 		);
+	/** The intake already oriented the artist, so no auto-tour: build the site
+	 * from the answers, then let the editor open into the chosen workflow. */
+	const completeIntake = (answers: IntakeAnswers) =>
+		requestStart(
+			answers.starter ? answers.starter.name : 'a blank portfolio',
+			!!answers.starter,
+			() => {
+				if (answers.starter) startTemplate(answers.starter.content);
+				else startBlank();
+				if (answers.name) setName(answers.name);
+				for (const series of answers.series) addPage(series);
+				writeIntakeIntent({
+					workflow: answers.workflow,
+					finishing: answers.finishing,
+					promptSignup: true,
+				});
+			},
+		);
 
 	const saveAndSwitch = async () => {
 		if (!pending || pending.versionsError) return;
@@ -127,7 +148,7 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 		void resumeDraft();
 	};
 
-	const starterPicker = (
+	const starterPicker = classicPicker ? (
 		<>
 			<div className="template-grid starter-grid">
 				{AVAILABLE_STARTERS.map((starter) => (
@@ -137,7 +158,18 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 			<p className="starter-offline-note">
 				Uploaded work and document changes stay browser-local. Starter samples require a connection and may not appear offline; browser caching is best-effort.
 			</p>
+			<div className="start-links">
+				<button type="button" className="btn-link" onClick={() => setClassicPicker(false)}>
+					← Back to the guided start
+				</button>
+			</div>
 		</>
+	) : (
+		<StartIntake
+			starters={AVAILABLE_STARTERS}
+			onComplete={completeIntake}
+			onCancel={() => setClassicPicker(true)}
+		/>
 	);
 
 	return (
@@ -170,7 +202,7 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 								</button>
 							)}
 						</div>
-						<p className="template-lead">Or begin with a discipline-led starter:</p>
+						<p className="template-lead">Or build a new site:</p>
 						{starterPicker}
 						<div className="start-links">
 							<button type="button" className="btn-link" onClick={startOver}>
@@ -189,7 +221,7 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 								Continue editing <span className="btn-sub">(this browser)</span>
 							</button>
 						</div>
-						<p className="template-lead">Or begin with a discipline-led starter:</p>
+						<p className="template-lead">Or build a new site:</p>
 						{starterPicker}
 						<div className="start-links">
 							<button
@@ -211,9 +243,8 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 				) : (
 					<>
 						<p>
-							Build your portfolio in the browser, beginning with a structure made for your discipline or with a blank site.
+							A portfolio built the way artists work — four quick questions and your first wall is hung.
 						</p>
-						<p className="template-lead">Choose a starter:</p>
 						{starterPicker}
 						<div className="start-actions start-actions-after-starters">
 							<button type="button" className="btn-primary" onClick={startFresh}>

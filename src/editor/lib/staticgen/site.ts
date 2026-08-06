@@ -146,6 +146,8 @@ function resolveGalleries(content: Content, assetPaths: Set<string>, ratios: Map
 					focusY: meta.focusY,
 					cropAspect: meta.cropAspect,
 					cropZoom: meta.cropZoom,
+					brightness: meta.brightness,
+					contrast: meta.contrast,
 					effects: meta.effects,
 					ar: ratios.get(`assets/${config.folder}/${name}`),
 				} satisfies ResolvedImage;

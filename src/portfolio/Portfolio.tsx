@@ -1,5 +1,6 @@
 import PortfolioFrame from './PortfolioFrame';
 import PortfolioPage from './PortfolioPage';
+import { type InlineTextEditing } from './InlineTextEditor';
 import CreativeEffects from './CreativeEffects';
 import { useEffect, useRef, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
@@ -62,6 +63,8 @@ export interface PortfolioProps extends PortfolioData {
 	/** Published static runtime only: record privacy-light page totals. */
 	analytics?: boolean;
 	onSelectBlock?: (pageKey: string, blockId: string) => void;
+	/** Editor preview: the text block currently being edited in place. */
+	inlineTextEditing?: InlineTextEditing;
 }
 
 /**
@@ -69,7 +72,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onChildCardLabel, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onChildCardLabel, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock, inlineTextEditing }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	// `text` is retained in the schema for older sites, but the editor now has one
 	// canonical header text value: the site name.
@@ -195,6 +198,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					onPageHeadingPosition={onPageHeadingPosition}
 					editorPreview={editorPreview}
 					onSelectBlock={onSelectBlock}
+					inlineTextEditing={inlineTextEditing}
 				/>
 			</PortfolioFrame>
 		</div>

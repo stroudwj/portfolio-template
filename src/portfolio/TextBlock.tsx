@@ -10,6 +10,7 @@ import type {
 import { richTextPlainText } from '../lib/richText';
 import { clampTextFlowLayout } from './canvasLayout';
 import { safeHref } from './safeHref';
+import InlineTextEditor, { type InlineTextEditing } from './InlineTextEditor';
 import {
 	KineticInline,
 	KineticMarquee,
@@ -185,7 +186,9 @@ export function TextContent({
 	}
 }
 
-/** A free-text page block. */
+/** A free-text page block. `editing` (editor preview only) swaps the words for
+ * an in-place contenteditable with the same classes, so typing happens right
+ * on the page; kinetic motion pauses while the caret is active. */
 export default function TextBlock({
 	text,
 	richText,
@@ -196,6 +199,7 @@ export default function TextBlock({
 	kinetic,
 	flowLayout,
 	kineticTarget,
+	editing,
 }: {
 	text: string;
 	richText?: RichTextParagraph[];
@@ -206,8 +210,9 @@ export default function TextBlock({
 	kinetic?: KineticTextConfig;
 	flowLayout?: TextFlowLayout;
 	kineticTarget?: string;
+	editing?: InlineTextEditing;
 }) {
-	if (!(richText ? richTextPlainText(richText) : text).trim()) return null;
+	if (!editing && !(richText ? richTextPlainText(richText) : text).trim()) return null;
 	const safeFlowLayout = flowLayout ? clampTextFlowLayout(flowLayout) : undefined;
 	const flowStyle = safeFlowLayout
 		? ({
@@ -220,15 +225,27 @@ export default function TextBlock({
 			className={`text-block align-${richText ? 'left' : align ?? 'left'} style-${style}${kinetic?.effect === 'marquee' ? ' kinetic-marquee' : ''}`}
 			style={flowStyle}
 		>
-			<TextContent
-				text={text}
-				richText={richText}
-				fontFamily={fontFamily}
-				style={style}
-				link={link}
-				kinetic={kinetic}
-				kineticTarget={kineticTarget}
-			/>
+			{editing ? (
+				<InlineTextEditor
+					text={text}
+					richText={richText}
+					legacyStyle={style}
+					legacyAlign={align}
+					fontFamily={fontFamily}
+					onChange={editing.onChange}
+					onDone={editing.onDone}
+				/>
+			) : (
+				<TextContent
+					text={text}
+					richText={richText}
+					fontFamily={fontFamily}
+					style={style}
+					link={link}
+					kinetic={kinetic}
+					kineticTarget={kineticTarget}
+				/>
+			)}
 		</div>
 	);
 }

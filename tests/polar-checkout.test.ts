@@ -346,6 +346,57 @@ describe('Polar webhook entitlement', () => {
 		});
 	});
 
+	it('grants access while a monthly subscription is still in its free trial', async () => {
+		const db = new PolarDb();
+		const response = await signedWebhook(
+			{
+				type: 'subscription.created',
+				timestamp: new Date().toISOString(),
+				data: {
+					id: 'subscription-trial',
+					status: 'trialing',
+					product_id: MONTHLY_PRODUCT_ID,
+					customer_id: 'customer-1',
+					checkout_id: CHECKOUT_ID,
+					customer: { email: 'BUYER@example.com', external_id: USER_ID },
+				},
+			},
+			'polar-webhook-test-secret',
+			db,
+			{ POLAR_MONTHLY_PRODUCT_ID: MONTHLY_PRODUCT_ID },
+		);
+		expect(response.status).toBe(200);
+		expect(db.order).toMatchObject({
+			id: 'sub-subscription-trial',
+			userId: 'buyer-user',
+			subscriptionId: 'subscription-trial',
+			productId: MONTHLY_PRODUCT_ID,
+			email: 'buyer@example.com',
+			status: 'active',
+		});
+	});
+
+	it('ignores subscriptions that are neither trialing nor active', async () => {
+		const db = new PolarDb();
+		const response = await signedWebhook(
+			{
+				type: 'subscription.updated',
+				timestamp: new Date().toISOString(),
+				data: {
+					id: 'subscription-lapsed',
+					status: 'past_due',
+					product_id: MONTHLY_PRODUCT_ID,
+					customer: { email: 'buyer@example.com', external_id: USER_ID },
+				},
+			},
+			'polar-webhook-test-secret',
+			db,
+			{ POLAR_MONTHLY_PRODUCT_ID: MONTHLY_PRODUCT_ID },
+		);
+		expect(response.status).toBe(200);
+		expect(db.order).toBeNull();
+	});
+
 	it('revokes the monthly subscription immediately after a lifetime upgrade', async () => {
 		const db = new PolarDb();
 		db.orders.push({

@@ -6,6 +6,10 @@ export const pricing = Object.freeze({
 	monthlyPrice: 10,
 	monthlyUpgradeCredit: 10,
 	refundDays: 14,
+	/** Free days on the monthly plan before the first charge. The Polar monthly
+	 * product must carry the same trial length — this constant only drives copy
+	 * and the worker's trialing-subscription entitlement. */
+	monthlyTrialDays: 3,
 });
 
 export const currentPrice = pricing.lifetimePrice;

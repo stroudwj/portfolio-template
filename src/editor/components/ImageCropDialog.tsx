@@ -7,6 +7,9 @@ export interface ImageCropSettings {
 	focusY: number;
 	zoom: number;
 	naturalAspect?: number;
+	/** Non-destructive light adjustments, percent (100 = as shot). */
+	brightness?: number;
+	contrast?: number;
 }
 
 const ASPECTS = [
@@ -54,6 +57,12 @@ export default function ImageCropDialog({
 	const [focusY, setFocusY] = useState(initial.focusY ?? 50);
 	const [zoom, setZoom] = useState(clamp(initial.zoom ?? 1, 1, 6));
 	const [naturalAspect, setNaturalAspect] = useState(initial.naturalAspect);
+	const [brightness, setBrightness] = useState(initial.brightness ?? 100);
+	const [contrast, setContrast] = useState(initial.contrast ?? 100);
+	const lightFilter =
+		brightness !== 100 || contrast !== 100
+			? `brightness(${brightness / 100}) contrast(${contrast / 100})`
+			: undefined;
 	const viewportAspect = ratioOf(aspect) ?? naturalAspect ?? 4 / 3;
 
 	const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -110,7 +119,7 @@ export default function ImageCropDialog({
 
 	return (
 		<Modal
-			title={`Crop ${name}`}
+			title={`Crop & light — ${name}`}
 			onClose={onClose}
 			footer={
 				<>
@@ -125,10 +134,12 @@ export default function ImageCropDialog({
 								focusY: Math.round(focusY * 10) / 10,
 								zoom: Math.round(zoom * 100) / 100,
 								naturalAspect,
+								brightness: brightness !== 100 ? Math.round(brightness) : undefined,
+								contrast: contrast !== 100 ? Math.round(contrast) : undefined,
 							})
 						}
 					>
-						Save crop
+						Save
 					</button>
 				</>
 			}
@@ -172,6 +183,7 @@ export default function ImageCropDialog({
 									objectPosition: `${focusX}% ${focusY}%`,
 									transform: `scale(${zoom})`,
 									transformOrigin: `${focusX}% ${focusY}%`,
+									filter: lightFilter,
 								} as CSSProperties
 							}
 						/>
@@ -190,6 +202,30 @@ export default function ImageCropDialog({
 					<span>Zoom <output>{zoom.toFixed(2)}×</output></span>
 					<input type="range" min={1} max={6} step={0.01} value={zoom} onChange={(event) => setZoom(Number(event.target.value))} />
 				</label>
+				<div className="crop-light-controls" role="group" aria-label="Light adjustments">
+					<label className="crop-zoom-control">
+						<span>Brightness <output>{Math.round(brightness)}%</output></span>
+						<input
+							type="range"
+							min={50}
+							max={150}
+							step={1}
+							value={brightness}
+							onChange={(event) => setBrightness(Number(event.target.value))}
+						/>
+					</label>
+					<label className="crop-zoom-control">
+						<span>Contrast <output>{Math.round(contrast)}%</output></span>
+						<input
+							type="range"
+							min={50}
+							max={150}
+							step={1}
+							value={contrast}
+							onChange={(event) => setContrast(Number(event.target.value))}
+						/>
+					</label>
+				</div>
 				<button
 					type="button"
 					className="btn-link crop-reset"
@@ -198,6 +234,8 @@ export default function ImageCropDialog({
 						setFocusX(50);
 						setFocusY(50);
 						setZoom(1);
+						setBrightness(100);
+						setContrast(100);
 					}}
 				>
 					Reset to original

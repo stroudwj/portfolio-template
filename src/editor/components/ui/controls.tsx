@@ -168,6 +168,32 @@ export function onPreviewTypeMotion(
 	return () => window.removeEventListener(PREVIEW_TYPE_MOTION_EVENT, handler);
 }
 
+const REVEAL_EDITOR_SECTION_EVENT = 'editor-reveal-section';
+
+export interface EditorSectionReveal {
+	pageKey: string;
+	sectionId: string;
+}
+
+/** Scroll the editing column to a section's card and expand it — the floating
+ *  preview controls' "Edit section" lands here. */
+export function revealEditorSection(pageKey: string, sectionId: string) {
+	window.dispatchEvent(
+		new CustomEvent<EditorSectionReveal>(REVEAL_EDITOR_SECTION_EVENT, {
+			detail: { pageKey, sectionId },
+		}),
+	);
+}
+
+export function onRevealEditorSection(
+	fn: (reveal: EditorSectionReveal) => void,
+): () => void {
+	const handler = (event: Event) =>
+		fn((event as CustomEvent<EditorSectionReveal>).detail);
+	window.addEventListener(REVEAL_EDITOR_SECTION_EVENT, handler);
+	return () => window.removeEventListener(REVEAL_EDITOR_SECTION_EVENT, handler);
+}
+
 const SELECT_PREVIEW_BLOCK_EVENT = 'editor-select-preview-block';
 
 export interface PreviewBlockSelection {

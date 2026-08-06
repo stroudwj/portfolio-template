@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
+import PreviewEditLayer from './PreviewEditLayer';
+import AssetWorkbench from './AssetWorkbench';
+import { WorkbenchPicker } from './ImageCollectionEditor';
+import { PanelIcon } from './ui/panel-icons';
 import { docToPortfolioData } from '../lib/content-init';
 import { pageGalleryConfigs } from '../../lib/content';
-import { GUIDE_OPTIONS, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
+import { GUIDE_OPTIONS, guideById, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
 	onPreviewTypeMotion,
 	selectPreviewBlock,
 	onShowPreviewPage,
+	showEditorTab,
 	type TypeMotionPreviewRequest,
 } from './ui/controls';
 
@@ -18,15 +23,16 @@ import {
 function GuideTools() {
 	const gridPrefs = useGridPrefs();
 	const off = gridPrefs.guide === 'off';
-	const activeGuide = GUIDE_OPTIONS.find((option) => option.id === gridPrefs.guide)?.label ?? 'Off';
+	const activeOption = guideById(gridPrefs.guide);
+	const activeGuide = off ? 'Off' : activeOption.label;
 	return (
 		<details className="canvas-tools">
 			<summary
-				className="btn-ghost canvas-tools-toggle"
+				className={`preview-tool-button canvas-tools-toggle${off ? '' : ' active'}`}
 				aria-label={`Canvas guides, currently ${activeGuide}`}
-				title="Guides and snapping for the selected page's freeform canvas"
+				title={`Guides & snapping — currently ${activeGuide}`}
 			>
-				Guides: {activeGuide}
+				<PanelIcon type="guides" />
 			</summary>
 			<div className="canvas-tools-popover">
 				<div className="canvas-tools-heading">
@@ -46,6 +52,25 @@ function GuideTools() {
 							{option.label}
 						</button>
 					))}
+					<label
+						className={`guide-custom-columns${activeOption.kind === 'columns' ? ' active' : ''}`}
+						title="Column guides with your own column count (2–12)"
+					>
+						<input
+							type="number"
+							min={2}
+							max={12}
+							placeholder="n"
+							value={activeOption.kind === 'columns' ? activeOption.n : ''}
+							aria-label="Custom column-guide count"
+							onChange={(event) => {
+								const n = Number(event.target.value);
+								if (Number.isInteger(n) && n >= 2 && n <= 12)
+									setGridPrefs({ guide: `col-${n}` });
+							}}
+						/>
+						col
+					</label>
 				</div>
 				<div className="canvas-snap-options">
 					<label className={`grid-snap ${off ? 'disabled' : ''}`}>
@@ -333,10 +358,18 @@ export default function PreviewPanel({
 	base,
 	canvasEditingEnabled,
 	onEditPage,
+	sidebarHidden,
+	onToggleSidebar,
+	openWorkbenchOnLaunch,
 }: {
 	base: string;
 	canvasEditingEnabled: boolean;
 	onEditPage: (pageKey: string) => void;
+	/** The editing column can step aside; the toggle lives in this toolbar. */
+	sidebarHidden?: boolean;
+	onToggleSidebar?: () => void;
+	/** Start-intake answer: open the floating workbench as the editor appears. */
+	openWorkbenchOnLaunch?: boolean;
 }) {
 	const editor = useEditor();
 	const { doc } = editor;
@@ -347,7 +380,29 @@ export default function PreviewPanel({
 	const [fullscreen, setFullscreen] = useState(false);
 	const [typeMotionPreview, setTypeMotionPreview] =
 		useState<TypeMotionPreviewRequest>();
+	/** The text block currently being edited in place on the page, if any. */
+	const [inlineTextId, setInlineTextId] = useState<string | null>(null);
+	/** Floating workbench window (organize/upload), toggled from the toolbar. */
+	const [workbenchOpen, setWorkbenchOpen] = useState(false);
+	/** Floating chooser filling a new solo-image block from the workbench. */
+	const [workbenchPickFolder, setWorkbenchPickFolder] = useState<string | null>(null);
+	// A "sort it here" intake answer opens the workbench with the editor.
+	useEffect(() => {
+		if (openWorkbenchOnLaunch) setWorkbenchOpen(true);
+	}, [openWorkbenchOnLaunch]);
 	const gridPrefs = useGridPrefs();
+
+	// In-place editing is per page and per editing mode; leaving either ends it,
+	// as does the block disappearing (undo, delete).
+	useEffect(() => {
+		setInlineTextId(null);
+	}, [page, device, fullscreen, canvasEditingEnabled]);
+	useEffect(() => {
+		if (!inlineTextId) return;
+		const currentPage = doc?.content.pages[doc.content.pages[page] ? page : 'home'];
+		if (!currentPage?.blocks?.some((block) => block.id === inlineTextId))
+			setInlineTextId(null);
+	}, [doc, page, inlineTextId]);
 
 	useEdgeSnapShortcut();
 
@@ -506,60 +561,153 @@ export default function PreviewPanel({
 			}
 			editorPreview={!fullscreen}
 			onSelectBlock={(pageKey, blockId) => selectPreviewBlock(pageKey, blockId)}
+			inlineTextEditing={
+				editable && inlineTextId
+					? {
+							blockId: inlineTextId,
+							onChange: (plain, rich) =>
+								editor.updateRichTextBlock(currentKey, inlineTextId, plain, rich),
+							onDone: () => setInlineTextId(null),
+						}
+					: undefined
+			}
 		/>
 	);
 
 	return (
 		<div className={`preview ${fullscreen ? 'preview-fullscreen' : ''}`}>
 			<div className="preview-toolbar" data-tour="preview-toolbar">
+				{onToggleSidebar && !fullscreen && (
+					<button
+						type="button"
+						className={`preview-tool-button${sidebarHidden ? ' active' : ''}`}
+						aria-pressed={sidebarHidden}
+						aria-label={sidebarHidden ? 'Show the editing panel' : 'Hide the editing panel'}
+						title={
+							sidebarHidden
+								? 'Show the editing panel'
+								: 'Hide the editing panel — keep editing right on the page'
+						}
+						onClick={onToggleSidebar}
+					>
+						<PanelIcon type={sidebarHidden ? 'forward' : 'back'} />
+					</button>
+				)}
 				<div className="device-toggle" role="group" aria-label="Preview device">
 					<button
 						type="button"
-							className={device === 'desktop' ? 'active' : ''}
-							aria-pressed={device === 'desktop'}
+						className={`preview-tool-button ${device === 'desktop' ? 'active' : ''}`}
+						aria-pressed={device === 'desktop'}
+						aria-label="Desktop preview"
+						title="Desktop preview"
 						onClick={() => setDevice('desktop')}
 					>
-						Desktop
+						<PanelIcon type="monitor" />
 					</button>
-						<button type="button" aria-pressed={device === 'phone'} className={device === 'phone' ? 'active' : ''} onClick={() => setDevice('phone')}>
-						Phone
+					<button
+						type="button"
+						className={`preview-tool-button ${device === 'phone' ? 'active' : ''}`}
+						aria-pressed={device === 'phone'}
+						aria-label="Phone preview"
+						title="Phone preview"
+						onClick={() => setDevice('phone')}
+					>
+						<PanelIcon type="phone" />
 					</button>
 				</div>
 				{editable && hasFreeformCanvas && <GuideTools />}
 				{!fullscreen && (
-					<label className="preview-option-toggle" title="Show section boundaries and resize handles in the editor preview">
-						<input
-							type="checkbox"
-							checked={gridPrefs.sectionEdges}
-							onChange={(event) => setGridPrefs({ sectionEdges: event.target.checked })}
-						/>
-						Section edges
-					</label>
+					<button
+						type="button"
+						className={`preview-tool-button${gridPrefs.sectionEdges ? ' active' : ''}`}
+						aria-pressed={gridPrefs.sectionEdges}
+						aria-label="Section edges and resize handles"
+						title="Show section boundaries and resize handles in the preview"
+						onClick={() => setGridPrefs({ sectionEdges: !gridPrefs.sectionEdges })}
+					>
+						<PanelIcon type="edges" />
+					</button>
 				)}
-				<span className="preview-hint">
-					{editable && hasFreeformCanvas
-						? gridPrefs.sectionEdges
-							? 'Drag or resize items; press Delete or Backspace to remove the selection. Players and maps stay interactive.'
-							: 'Drag items or blank space to select several; Delete or Backspace removes the selection.'
-						: editable
-							? gridPrefs.sectionEdges
-								? 'Automatic layout — drag a section edge to resize, or edit the blocks beside this preview.'
-								: 'Automatic layout — edit the fields and blocks beside this preview.'
-							: device === 'phone' && resizeBreakpoint
-								? 'Drag section edges to adjust the phone layout.'
-							: fullscreen
-								? 'Exactly how your published site will look.'
-								: 'Live site preview. Canvas tools appear while you edit a page in Pages.'}
-				</span>
+				{!fullscreen && (
+					<button
+						type="button"
+						className={`preview-tool-button${workbenchOpen ? ' active' : ''}`}
+						aria-pressed={workbenchOpen}
+						aria-label="Image workbench"
+						title="Image workbench — upload and organize photos in a floating window"
+						onClick={() => setWorkbenchOpen((open) => !open)}
+					>
+						<PanelIcon type="workbench" />
+					</button>
+				)}
+				{sidebarHidden && !fullscreen && (
+					<button
+						type="button"
+						className="preview-tool-button"
+						aria-label="Open Design"
+						title="Design — colors, fonts & effects"
+						onClick={() => showEditorTab('design')}
+					>
+						<PanelIcon type="design" />
+					</button>
+				)}
+				<span className="preview-toolbar-spacer" />
 				<button
 					type="button"
-					className="btn-ghost preview-expand"
+					className={`preview-tool-button preview-expand${fullscreen ? ' preview-expand-labeled' : ''}`}
 					onClick={() => setFullscreen((f) => !f)}
+					aria-label={fullscreen ? 'Back to the editor' : 'Preview your published site fullscreen'}
 					title={fullscreen ? 'Back to the editor (Esc)' : 'Preview your published site fullscreen'}
 				>
-					{fullscreen ? 'Back to editor' : 'Fullscreen'}
+					<PanelIcon type={fullscreen ? 'close' : 'expand'} />
+					{fullscreen && 'Back to editor'}
 				</button>
 			</div>
+			{/* Floating workbench: the same organizer, in a window over the page. */}
+			{workbenchOpen && !fullscreen && (
+				<div className="floating-panel floating-workbench" role="dialog" aria-label="Image workbench">
+					<header className="floating-panel-head">
+						<strong>
+							<PanelIcon type="workbench" />
+							Image workbench
+						</strong>
+						<button
+							type="button"
+							className="pv-icon-button"
+							aria-label="Close the workbench"
+							title="Close"
+							onClick={() => setWorkbenchOpen(false)}
+						>
+							<PanelIcon type="close" />
+						</button>
+					</header>
+					<div className="floating-panel-body">
+						<AssetWorkbench />
+					</div>
+				</div>
+			)}
+			{workbenchPickFolder && !fullscreen && (
+				<div className="floating-panel floating-workbench" role="dialog" aria-label="Choose an image from the workbench">
+					<header className="floating-panel-head">
+						<strong>
+							<PanelIcon type="workbench" />
+							Choose from the workbench
+						</strong>
+						<button
+							type="button"
+							className="pv-icon-button"
+							aria-label="Done choosing images"
+							title="Done"
+							onClick={() => setWorkbenchPickFolder(null)}
+						>
+							<PanelIcon type="close" />
+						</button>
+					</header>
+					<div className="floating-panel-body">
+						<WorkbenchPicker targetFolder={workbenchPickFolder} />
+					</div>
+				</div>
+			)}
 			{device === 'phone' ? (
 				<div className="preview-surface phone-surface">
 					<div className="phone-frame">
@@ -584,7 +732,21 @@ export default function PreviewPanel({
 						openTextLinksInNewTab={!fullscreen}
 						typeMotionPreview={typeMotionPreview}
 					>
-						{portfolio}
+						<>
+							{portfolio}
+							{editable && (
+								<PreviewEditLayer
+									doc={doc}
+									pageKey={currentKey}
+									editor={editor}
+									onEditBlock={(blockId) => selectPreviewBlock(currentKey, blockId)}
+									inlineTextId={inlineTextId}
+									onInlineTextEdit={setInlineTextId}
+									onInlineTextDone={() => setInlineTextId(null)}
+									onPickFromWorkbench={(folder) => setWorkbenchPickFolder(folder)}
+								/>
+							)}
+						</>
 					</DesktopDeviceFrame>
 				</div>
 			)}

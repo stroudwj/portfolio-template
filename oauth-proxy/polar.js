@@ -203,6 +203,38 @@ function paidOrder(payload) {
 	};
 }
 
+/** A monthly subscription in its free-trial window (or newly active) earns the
+ * same ledger row as a paid order, so the site can go live before the first
+ * charge. The synthetic `sub-` id keeps one upsert-idempotent row per
+ * subscription; Polar's subscription.revoked webhook (fired when a canceled
+ * trial actually ends) clears it through the existing revocation path. */
+function trialingSubscription(payload) {
+	if (
+		payload?.type !== 'subscription.created' &&
+		payload?.type !== 'subscription.active' &&
+		payload?.type !== 'subscription.updated'
+	)
+		return null;
+	const subscription = payload?.data;
+	const status = subscription?.status;
+	if (status !== 'trialing' && status !== 'active') return null;
+	const email =
+		typeof subscription.customer?.email === 'string'
+			? subscription.customer.email.trim().toLowerCase()
+			: '';
+	if (!subscription.id || !subscription.product_id || !email) return null;
+	return {
+		id: `sub-${subscription.id}`,
+		customerId: subscription.customer_id || subscription.customer?.id || null,
+		externalCustomerId: subscription.customer?.external_id || null,
+		checkoutId: subscription.checkout_id || null,
+		subscriptionId: subscription.id,
+		productId: subscription.product_id,
+		email,
+		paidAt: payload.timestamp || new Date().toISOString(),
+	};
+}
+
 async function recordPaidOrder(env, order) {
 	if (!acceptsProduct(env, order.productId)) return;
 	const user = order.externalCustomerId
@@ -343,7 +375,7 @@ export async function polarWebhook(request, env) {
 	}
 
 	try {
-		const order = paidOrder(payload);
+		const order = paidOrder(payload) ?? trialingSubscription(payload);
 		if (order) await recordPaidOrder(env, order);
 		else await revokeOrder(env, payload);
 	} catch {

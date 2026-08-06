@@ -69,7 +69,7 @@ export default function LicenseGateModal({
 							: currentPlan === 'monthly'
 								? `Upgrade for $${upgradePrice} — ${monthlyUpgradeCreditText} off`
 								: selectedPlan === 'monthly'
-									? `Start for ${monthlyPriceText}/month`
+									? `Go live free for ${pricing.monthlyTrialDays} days`
 									: `Pay ${currentPriceText} once`}
 					</button>
 				</>
@@ -106,7 +106,11 @@ export default function LicenseGateModal({
 							<small>/ month</small>
 						</span>
 					</span>
-					<span>Everything except downloads. Keep paying to retain access; your site goes offline if the subscription ends.</span>
+					<span>
+						{currentPlan === 'monthly'
+							? 'Everything except downloads. Keep paying to retain access; your site goes offline if the subscription ends.'
+							: `First ${pricing.monthlyTrialDays} days free — cancel before they end and pay nothing. Then ${monthlyPriceText}/month; everything except downloads, and your site goes offline if the subscription ends.`}
+					</span>
 				</button>
 			</div>
 			<p className="modal-lead">

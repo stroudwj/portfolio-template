@@ -11,9 +11,11 @@ import {
 	Section,
 	previewTypeMotion,
 	onSelectPreviewBlock,
+	onRevealEditorSection,
 	showEditorTab,
 } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
+import { PanelIcon } from './ui/panel-icons';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
 import { ImageDrop } from './ui/ImageDrop';
@@ -75,6 +77,7 @@ import {
 	NEW_SECTION_ID,
 	pageSections,
 	sectionEditorColor,
+	sectionForBlock as sectionForBlockIn,
 	sectionPartKey,
 } from '../../lib/pageSections';
 
@@ -435,8 +438,10 @@ export default function PageEditor({
 	includeChildren?: boolean;
 }) {
 	const editor = useEditor();
+	/** Latest editor for long-lived event subscriptions (they outlive renders). */
+	const editorRef = useRef(editor);
+	editorRef.current = editor;
 	const addMenuRef = useRef<HTMLDetailsElement>(null);
-	const floatingAddMenuRef = useRef<HTMLDetailsElement>(null);
 	const pageContentRef = useRef<HTMLDivElement>(null);
 	const [pendingSectionAdd, setPendingSectionAdd] = useState<{
 		label: string;
@@ -465,20 +470,30 @@ export default function PageEditor({
 		kind: 'saved-blocks' | 'section' | 'block',
 		id: string,
 	) => `${pageKey}:${kind}:${id}`;
+	// Blocks AND sections rest collapsed so the column reads as the page's
+	// structure; the preview's floating controls (or a row click) open the one
+	// being worked on.
 	const itemIsCollapsed = (
 		kind: 'saved-blocks' | 'section' | 'block',
 		id: string,
-	) => collapsedEditorItems[collapseItemKey(kind, id)] === true;
+	) =>
+		collapsedEditorItems[collapseItemKey(kind, id)] ??
+		(kind === 'block' || kind === 'section');
 	const toggleEditorItem = (
 		kind: 'saved-blocks' | 'section' | 'block',
 		id: string,
 	) => {
 		const key = collapseItemKey(kind, id);
 		setCollapsedEditorItems((current) => {
-			const collapsed = current[key] !== true;
+			const collapsed = !(current[key] ?? (kind === 'block' || kind === 'section'));
 			storePageItemCollapse(key, collapsed);
 			return { ...current, [key]: collapsed };
 		});
+	};
+	const expandEditorBlock = (blockId: string) => {
+		const key = collapseItemKey('block', blockId);
+		storePageItemCollapse(key, false);
+		setCollapsedEditorItems((current) => ({ ...current, [key]: false }));
 	};
 	useEffect(
 		() =>
@@ -489,6 +504,17 @@ export default function PageEditor({
 					const blockKey = collapseItemKey('block', selection.blockId);
 					const next = { ...current, [blockKey]: false };
 					storePageItemCollapse(blockKey, false);
+					// The block card only renders inside an open section — reveal
+					// its section in the same pass.
+					const selectedPage = editorRef.current.doc?.content.pages[pageKey];
+					const owner = selectedPage
+						? sectionForBlockIn(selectedPage, selection.blockId)
+						: undefined;
+					if (owner) {
+						const sectionKey = collapseItemKey('section', owner.id);
+						next[sectionKey] = false;
+						storePageItemCollapse(sectionKey, false);
+					}
 					return next;
 				});
 				if (!autoScrollSelected) return;
@@ -509,6 +535,24 @@ export default function PageEditor({
 				});
 			}),
 		[autoScrollSelected, pageKey],
+	);
+	// The preview's floating "Edit section" lands on the section's card here.
+	useEffect(
+		() =>
+			onRevealEditorSection((reveal) => {
+				if (reveal.pageKey !== pageKey) return;
+				const key = collapseItemKey('section', reveal.sectionId);
+				storePageItemCollapse(key, false);
+				setCollapsedEditorItems((current) => ({ ...current, [key]: false }));
+				requestAnimationFrame(() => {
+					pageContentRef.current
+						?.querySelector<HTMLElement>(
+							`[data-editor-section="${CSS.escape(reveal.sectionId)}"]`,
+						)
+						?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				});
+			}),
+		[pageKey],
 	);
 	const { doc } = editor;
 	if (!doc) return null;
@@ -642,7 +686,6 @@ export default function PageEditor({
 	const runAdd = (action: () => void, scrollToNewBlock = true) => {
 		const before = new Set(blocks.map((block) => block.id));
 		addMenuRef.current?.removeAttribute('open');
-		floatingAddMenuRef.current?.removeAttribute('open');
 		action();
 		if (!scrollToNewBlock) return;
 		requestAnimationFrame(() =>
@@ -650,6 +693,8 @@ export default function PageEditor({
 				const added = Array.from(
 					pageContentRef.current?.querySelectorAll<HTMLElement>('[data-editor-block]') ?? [],
 				).find((element) => !before.has(element.dataset.editorBlock ?? ''));
+				// New blocks open ready to edit even though blocks rest collapsed.
+				if (added?.dataset.editorBlock) expandEditorBlock(added.dataset.editorBlock);
 				added?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			}),
 		);
@@ -657,7 +702,6 @@ export default function PageEditor({
 
 	const closeBlockMenus = () => {
 		addMenuRef.current?.removeAttribute('open');
-		floatingAddMenuRef.current?.removeAttribute('open');
 		pageContentRef.current
 			?.querySelectorAll<HTMLDetailsElement>('details.section-add-block[open]')
 			.forEach((menu) => menu.removeAttribute('open'));
@@ -959,102 +1003,130 @@ export default function PageEditor({
 				<span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 			</button>
 			<div className="block-controls" role="group" aria-label={`Actions for ${blockLabel}`}>
-			<label className="block-type-control" title="Change this block’s type without removing its place in the section">
-				<span className="sr-only">Change type of {blockLabel}</span>
-				<select
-					className="select-input"
-					value={block.type}
-					aria-label={`Change type of ${blockLabel}`}
-					onChange={(event) => {
-						const next = event.target.value as PageBlock['type'];
-						if (
-							confirm(`Change this ${name} block to ${BLOCK_TYPE_OPTIONS.find((option) => option.value === next)?.label ?? next}? Its current type-specific settings will be replaced.`)
-						) editor.changeBlockType(pageKey, block.id, next);
-						else event.target.value = block.type;
-					}}
-				>
-					{BLOCK_TYPE_OPTIONS.filter(
-						// "Main gallery" is the legacy single-gallery model — keep it out of
-						// the menu except on a block that already is one.
-						(option) => option.value !== 'gallery' || block.type === 'gallery',
-					).map((option) => (
-						<option
-							key={option.value}
-							value={option.value}
-							disabled={option.value === 'about' && hasAboutBlock && block.type !== 'about'}
-						>
-							{option.label}
-						</option>
-					))}
-				</select>
-			</label>
-			<button
-				type="button"
-				className="btn-secondary save-section-button"
-				title="Save this block so you can reuse it on any page"
-				onClick={() => {
-					const savedName = prompt('Name this reusable block:', `${name} block`);
-					if (savedName?.trim())
-						editor.saveSectionTemplate(pageKey, block.id, savedName.trim());
-				}}
-				aria-label={`Save ${blockLabel} for reuse`}
-			>
-				☆ Save block
-			</button>
-			<button
-				type="button"
-				className="btn-secondary block-section-toggle"
-				data-tour="section-control"
-				title="Move this block to another section or a new section"
-				onClick={() => {
-					if (!owner) return;
-					setPendingSectionMove({
-						blockId: block.id,
-						label: name,
-						sourceSectionId: owner.id,
-					});
-					closeBlockMenus();
-				}}
-				aria-label={`Move ${blockLabel} to another section`}
-			>
-				▣ Move section…
-			</button>
 			<span className="block-order-controls">
 				<button
 					type="button"
 					className="btn-icon"
+					title="Move this block earlier"
 					disabled={!owner || position <= 0}
 					onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position - 1)}
 					aria-label={`Move ${blockLabel} earlier`}
 				>
-					↑
+					<PanelIcon type="up" />
 				</button>
 				<button
 					type="button"
 					className="btn-icon"
+					title="Move this block later"
 					disabled={!owner || position < 0 || position === owner.blockIds.length - 1}
 					onClick={() => owner && editor.moveBlockInSection(pageKey, owner.id, position, position + 1)}
 					aria-label={`Move ${blockLabel} later`}
 				>
-					↓
+					<PanelIcon type="down" />
 				</button>
-				{removable && (
+			</span>
+			<details className="block-more">
+				<summary
+					className="btn-icon"
+					title="More block actions"
+					aria-label={`More actions for ${blockLabel}`}
+				>
+					<PanelIcon type="more" />
+				</summary>
+				<div className="block-more-menu">
+					<label className="block-more-item block-type-control" title="Change this block’s type without removing its place in the section">
+						<span>Change type</span>
+						<select
+							className="select-input"
+							value={block.type}
+							aria-label={`Change type of ${blockLabel}`}
+							onChange={(event) => {
+								const next = event.target.value as PageBlock['type'];
+								if (
+									confirm(`Change this ${name} block to ${BLOCK_TYPE_OPTIONS.find((option) => option.value === next)?.label ?? next}? Its current type-specific settings will be replaced.`)
+								) {
+									editor.changeBlockType(pageKey, block.id, next);
+									event.target.closest('details')?.removeAttribute('open');
+								} else event.target.value = block.type;
+							}}
+						>
+							{BLOCK_TYPE_OPTIONS.filter(
+								// "Main gallery" is the legacy single-gallery model — keep it out of
+								// the menu except on a block that already is one.
+								(option) => option.value !== 'gallery' || block.type === 'gallery',
+							).map((option) => (
+								<option
+									key={option.value}
+									value={option.value}
+									disabled={option.value === 'about' && hasAboutBlock && block.type !== 'about'}
+								>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</label>
+					{block.type !== 'about' && block.type !== 'children' && block.type !== 'gallery' && (
+						<button
+							type="button"
+							className="block-more-item"
+							title="Copy this block right after itself"
+							onClick={(event) => {
+								event.currentTarget.closest('details')?.removeAttribute('open');
+								editor.duplicateBlock(pageKey, block.id);
+							}}
+						>
+							Duplicate
+						</button>
+					)}
 					<button
 						type="button"
-						className="btn-icon danger"
-						onClick={() => {
-							if (
-								block.type === 'about' &&
-								!confirm('Remove the About content from this page? You can add it again later from Add block.')
-							) return;
-							editor.removeBlock(pageKey, block.id);
+						className="block-more-item"
+						title="Save this block so you can reuse it on any page"
+						onClick={(event) => {
+							event.currentTarget.closest('details')?.removeAttribute('open');
+							const savedName = prompt('Name this reusable block:', `${name} block`);
+							if (savedName?.trim())
+								editor.saveSectionTemplate(pageKey, block.id, savedName.trim());
 						}}
-						aria-label={`Delete ${blockLabel}`}
 					>
-						✕
+						Save for reuse
 					</button>
-				)}
-			</span>
+					<button
+						type="button"
+						className="block-more-item"
+						title="Move this block to another section or a new section"
+						onClick={(event) => {
+							if (!owner) return;
+							event.currentTarget.closest('details')?.removeAttribute('open');
+							setPendingSectionMove({
+								blockId: block.id,
+								label: name,
+								sourceSectionId: owner.id,
+							});
+							closeBlockMenus();
+						}}
+					>
+						Move to another section…
+					</button>
+				</div>
+			</details>
+			{removable && (
+				<button
+					type="button"
+					className="btn-icon danger"
+					title="Remove this block"
+					onClick={() => {
+						if (
+							block.type === 'about' &&
+							!confirm('Remove the About content from this page? You can add it again later from Add block.')
+						) return;
+						editor.removeBlock(pageKey, block.id);
+					}}
+					aria-label={`Delete ${blockLabel}`}
+				>
+					<PanelIcon type="trash" />
+				</button>
+			)}
 			</div>
 		</>;
 	};
@@ -1777,14 +1849,17 @@ export default function PageEditor({
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
-							<input
-								className="block-name-input"
-								value={block.name ?? ''}
-								placeholder="Image group"
-								title="Name this group (only shown here in the editor)"
-								aria-label={`Name for ${groupLabel}`}
-								onChange={(e) => editor.renameImagesBlock(pageKey, block.id, e.target.value)}
-							/>
+							<span className="block-label block-label-named">
+								<BlockIcon type="images" />
+								<input
+									className="block-name-input"
+									value={block.name ?? ''}
+									placeholder="Image group"
+									title="Name this group (only shown here in the editor)"
+									aria-label={`Name for ${groupLabel}`}
+									onChange={(e) => editor.renameImagesBlock(pageKey, block.id, e.target.value)}
+								/>
+							</span>
 							{controls(index, block, true)}
 						</div>
 						<div className="image-group-layout-bar" data-tour="image-group-layout">
@@ -2834,23 +2909,17 @@ export default function PageEditor({
 					＋ Add another sub-page
 				</button>
 			)}
-			{hasAboutBlock ? (
-				<details className="page-settings-disclosure">
-					<summary>
-						<span>
-							<strong>Page settings</strong>
-							<small>Name and heading</small>
-						</span>
-						<span className="page-editor-advanced-chevron" aria-hidden="true">⌄</span>
-					</summary>
-					<div className="page-settings-body">{pageDetailsFields}</div>
-				</details>
-			) : (
-				<div className="page-editor-group page-details-group">
-					<h3>Page details</h3>
-					{pageDetailsFields}
-				</div>
-			)}
+			{/* Details stay tucked away — the column leads with the page's blocks. */}
+			<details className="page-settings-disclosure">
+				<summary>
+					<span>
+						<strong>Page details</strong>
+						<small>Name, heading &amp; hangpieces</small>
+					</span>
+					<span className="page-editor-advanced-chevron" aria-hidden="true">⌄</span>
+				</summary>
+				<div className="page-settings-body">{pageDetailsFields}</div>
+			</details>
 
 			<div
 				className="page-editor-group page-content-group"
@@ -3069,18 +3138,6 @@ export default function PageEditor({
 					})}
 				</div>
 			</div>
-			{
-				<details className="page-add-block floating-add-block" ref={floatingAddMenuRef}>
-					<summary className="floating-add-button" aria-label={`Add a block to ${pageName}`} title="Add block">
-						<span aria-hidden="true">＋</span>
-						<strong>Add block</strong>
-					</summary>
-					<div className="page-add-block-menu">
-						{addBlockMenuItems()}
-					</div>
-				</details>
-			}
-
 			<details className="page-editor-advanced">
 				<summary>
 					<span>

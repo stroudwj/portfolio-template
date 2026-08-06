@@ -10,11 +10,19 @@ export default function SignInModal({
 	sendMagicLink,
 	signInWithGoogle,
 	googleEnabled,
+	title,
+	lead,
+	closeLabel,
 }: {
 	onClose: () => void;
 	sendMagicLink: (email: string) => Promise<void>;
 	signInWithGoogle: () => void;
 	googleEnabled: boolean;
+	/** Context-specific framing (the post-intake "Save your setup" door reuses
+	 * this same modal); defaults keep the plain sign-in wording. */
+	title?: string;
+	lead?: string;
+	closeLabel?: string;
 }) {
 	const [email, setEmail] = useState('');
 	const [busy, setBusy] = useState(false);
@@ -66,13 +74,13 @@ export default function SignInModal({
 
 	return (
 		<Modal
-			title="Claim your space"
+			title={title ?? 'Claim your space'}
 			onClose={onClose}
 			dismissable={!busy}
 			footer={
 				<>
 					<button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>
-						Cancel
+						{closeLabel ?? 'Cancel'}
 					</button>
 					<button type="button" className="btn-primary" onClick={submit} disabled={busy || !emailLooksValid}>
 						{busy ? 'Sending…' : 'Email me a sign-in link'}
@@ -81,8 +89,8 @@ export default function SignInModal({
 			}
 		>
 			<p className="modal-lead">
-				A free account is where your site lives — publish from any device, come back anytime. No password:
-				we email you a link that signs you in.
+				{lead ??
+					'A free account is where your site lives — publish from any device, come back anytime. No password: we email you a link that signs you in.'}
 			</p>
 
 			{googleEnabled && (

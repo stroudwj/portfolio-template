@@ -28,7 +28,31 @@ export const GUIDE_OPTIONS: readonly GuideOption[] = [
 	{ id: 'col-4', label: '4col', title: 'Column guides matching a 4-column Grid (image edges and margins)', kind: 'columns', n: 4 },
 ] as const;
 
-export const guideById = (id: string): GuideOption => GUIDE_OPTIONS.find((o) => o.id === id) ?? GUIDE_OPTIONS[0];
+/** Any `sq-N` / `col-N` id resolves, so artists can type their own column
+ * count beyond the preset buttons. */
+const CUSTOM_GUIDE = /^(sq|col)-(\d{1,2})$/;
+
+export const guideById = (id: string): GuideOption => {
+	const preset = GUIDE_OPTIONS.find((o) => o.id === id);
+	if (preset) return preset;
+	const match = CUSTOM_GUIDE.exec(id);
+	if (match) {
+		const n = Math.min(Math.max(Number(match[2]), 2), 32);
+		return match[1] === 'sq'
+			? { id, label: String(n), title: `Guide squares — ${n} across`, kind: 'squares', n }
+			: {
+					id,
+					label: `${n}col`,
+					title: `Column guides matching a ${n}-column Grid (image edges and margins)`,
+					kind: 'columns',
+					n,
+				};
+	}
+	return GUIDE_OPTIONS[0];
+};
+
+export const isGuideId = (id: string): boolean =>
+	GUIDE_OPTIONS.some((o) => o.id === id) || CUSTOM_GUIDE.test(id);
 
 const GRID_PREFS_KEY = 'portfolio-editor.canvas-grid';
 
@@ -56,7 +80,7 @@ function load(): GridPrefs {
 		const legacy = typeof parsed.cols === 'number' ? (parsed.cols > 0 ? `sq-${parsed.cols}` : 'off') : undefined;
 		const guide = parsed.guide ?? legacy ?? 'off';
 		return {
-			guide: GUIDE_OPTIONS.some((o) => o.id === guide) ? guide : 'off',
+			guide: isGuideId(guide) ? guide : 'off',
 			snap: parsed.snap !== false,
 			edgeSnap: parsed.edgeSnap !== false,
 			centerSnap: parsed.centerSnap !== false,

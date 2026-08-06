@@ -193,3 +193,56 @@
 	position: relative;
 	z-index: 20;
 }
+
+/* ---- In-place editing (editor preview only; published sites never render
+   this class). Klein + sizes hardcoded because this stylesheet ships to
+   published sites without the editor token set. The size rules mirror
+   .rich-text-run.text-size-* above so editing is what publishing shows. ---- */
+.inline-text-editor {
+	outline: 1.5px dashed rgba(0, 47, 167, 0.4);
+	outline-offset: 4px;
+	cursor: text;
+	min-height: 1.4em;
+	min-width: 3ch;
+	white-space: pre-wrap;
+	caret-color: #002fa7;
+}
+.inline-text-editor:focus {
+	outline-color: #002fa7;
+}
+.inline-text-editor > div {
+	margin: 0 0 0.6em;
+	white-space: pre-wrap;
+}
+.inline-text-editor > div:last-child {
+	margin-bottom: 0;
+}
+.inline-text-editor [data-text-size='body'] {
+	font-size: 1rem;
+	line-height: 1.75;
+}
+.inline-text-editor [data-text-size='subheading'] {
+	font-size: clamp(
+		calc(1.2rem * var(--subheading-scale, 1)),
+		calc(3vw * var(--subheading-scale, 1)),
+		calc(1.5rem * var(--subheading-scale, 1))
+	);
+	line-height: 1.3;
+}
+.inline-text-editor [data-text-size='heading'] {
+	font-size: clamp(1.75rem, 5vw, 3rem);
+	line-height: 1.12;
+	letter-spacing: -0.015em;
+}
+/* While editing, linked words are just words — no accidental navigation. */
+.inline-text-editor a {
+	pointer-events: none;
+}
+/* A canvas text being edited rises above its neighbors and reads as text. */
+.canvas-item.inline-editing {
+	z-index: 2147470000 !important;
+	cursor: text;
+}
+.canvas-item.inline-editing .canvas-text {
+	cursor: text;
+}

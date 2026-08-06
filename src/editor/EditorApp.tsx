@@ -5,12 +5,16 @@ import SiteIdentityEditor from './components/SiteIdentityEditor';
 import PageEditor from './components/PageEditor';
 import PageManager from './components/PageManager';
 import StoreEditor from './components/StoreEditor';
+import PageSettingsModal from './components/PageSettingsModal';
+import { PanelIcon } from './components/ui/panel-icons';
 import FooterEditor from './components/FooterEditor';
 import DesignEditor from './components/DesignEditor';
 import SharingEditor from './components/SharingEditor';
 import PublishPanel from './components/PublishPanel';
 import PreviewPanel from './components/PreviewPanel';
 import AccountControls from './components/AccountControls';
+import SignInModal from './components/SignInModal';
+import { useAccount } from './components/useAccount';
 import CheckoutIntent from './components/CheckoutIntent';
 import MobileDoor from './components/MobileDoor';
 import OnboardingTour from './components/OnboardingTour';
@@ -21,9 +25,11 @@ import {
 	useTemplateStudio,
 } from './components/TemplateStudioBar';
 import { parseStudioIntent, type TemplateStudioIntent } from './lib/template-studio';
+import { consumeIntakeIntent } from './lib/onboarding';
 import {
 	expandSection,
 	onPreviewTypeMotion,
+	onRevealEditorSection,
 	onShowEditorTab,
 	showPreviewPage,
 } from './components/ui/controls';
@@ -37,11 +43,11 @@ import './editor.css';
 /** The editing column's five stable work areas. Panes stay mounted (CSS-hidden)
  * so each area's collapse state survives category changes. */
 const EDITOR_TABS = [
-	{ id: 'pages', icon: '🖼️', label: 'Pages', title: 'Your pages — images, text, videos & page settings' },
-	{ id: 'design', icon: '🎨', label: 'Design', title: 'Layout, colors, fonts & visual effects' },
-	{ id: 'store', icon: '🛍️', label: 'Store', title: 'Products, prices & Stripe checkout links' },
-	{ id: 'site', icon: '⚙️', label: 'Site', title: 'Site identity, footer, search & sharing' },
-	{ id: 'publish', icon: '🚀', label: 'Publish', title: 'Your web address, domain & license' },
+	{ id: 'pages', icon: 'pages', label: 'Pages', title: 'Your pages — images, text, videos & page settings' },
+	{ id: 'design', icon: 'design', label: 'Design', title: 'Layout, colors, fonts & visual effects' },
+	{ id: 'store', icon: 'store', label: 'Store', title: 'Products, prices & Stripe checkout links' },
+	{ id: 'site', icon: 'site', label: 'Site', title: 'Site identity, footer, search & sharing' },
+	{ id: 'publish', icon: 'publish', label: 'Publish', title: 'Your web address, domain & license' },
 ] as const;
 
 type EditorTab = (typeof EDITOR_TABS)[number]['id'];
@@ -303,8 +309,32 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 		saveError,
 	} = useEditor();
 	const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
+	// The whole editing column can step aside — the page plus its floating
+	// controls carry most day-to-day editing.
+	const [sidebarHidden, setSidebarHidden] = useState<boolean>(
+		() =>
+			typeof window !== 'undefined' &&
+			window.localStorage.getItem('portfolio-editor.sidebar-hidden') === 'true',
+	);
+	const toggleSidebar = () =>
+		setSidebarHidden((hidden) => {
+			try {
+				window.localStorage.setItem('portfolio-editor.sidebar-hidden', String(!hidden));
+			} catch {
+				/* storage blocked — the choice still holds this session */
+			}
+			return !hidden;
+		});
 	const controlsRef = useRef<HTMLDivElement>(null);
 	const [lastSelectedPage, setLastSelectedPage] = useState<string | null>(null);
+	/** Routing answers from the Start intake, honored once the document opens:
+	 * "organized" jumps to the wall, "pile"/finishing opens the workbench, and
+	 * the "Save your setup" account door appears once for signed-out artists. */
+	const intakeConsumedRef = useRef(false);
+	const [intakeWorkbench, setIntakeWorkbench] = useState(false);
+	const [showSaveSetup, setShowSaveSetup] = useState(false);
+	const account = useAccount({ returnToEditorAfterGoogle: true });
+	const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
 	const [tourReplayToken, setTourReplayToken] = useState(0);
 	const [uiTheme, setUiTheme] = useState<UiTheme>(() =>
 		typeof window === 'undefined'
@@ -344,7 +374,10 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 	// Cross-panel actions can switch to the closest new top-level category.
 	useEffect(() => onShowEditorTab((next) => {
 		pickTab(normalizeEditorTab(next));
+		// A jump into the editing column reopens it if it was stepped aside.
+		setSidebarHidden(false);
 	}), []);
+	useEffect(() => onRevealEditorSection(() => setSidebarHidden(false)), []);
 	// On narrower editor layouts the live preview is a separate view. A motion
 	// preview request should reveal it automatically instead of animating offscreen.
 	useEffect(() => onPreviewTypeMotion(() => setMobileView('preview')), []);
@@ -422,12 +455,29 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 
 	const templateStudio = useTemplateStudio(studio);
 
+	// Honor the Start intake's workflow answer exactly once per fresh document.
+	useEffect(() => {
+		if (!doc || intakeConsumedRef.current) return;
+		intakeConsumedRef.current = true;
+		const intent = consumeIntakeIntent();
+		if (!intent) return;
+		if (intent.workflow === 'organized') openPageWorkspace('home');
+		if (intent.workflow === 'pile' || intent.finishing) setIntakeWorkbench(true);
+		if (intent.promptSignup) setShowSaveSetup(true);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [doc]);
+
 	// Removing/resetting the page currently open in the workspace returns to the
 	// overview instead of leaving an empty editor panel behind.
 	useEffect(() => {
 		if (selectedPage && !doc?.content.pages[selectedPage]) navigateHistoryPage(null, false);
 		if (lastSelectedPage && !doc?.content.pages[lastSelectedPage]) setLastSelectedPage(null);
 	}, [doc, selectedPage, lastSelectedPage, navigateHistoryPage]);
+
+	// The workspace settings dialog is about one page; leaving that page closes it.
+	useEffect(() => {
+		setPageSettingsOpen(false);
+	}, [selectedPage]);
 
 	// Undo/redo can change page travel without going through openPageWorkspace.
 	// Keep the live preview and expanded page group synchronized with that history.
@@ -564,21 +614,23 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 				<div className="history-actions" role="group" aria-label="Undo and redo">
 					<button
 						type="button"
-						className="btn-ghost"
+						className="btn-ghost history-button"
 						onClick={undo}
 						disabled={!canUndo}
+						aria-label="Undo the last change"
 						title="Undo the last change (Command or Ctrl + Z)"
 					>
-						Undo
+						<PanelIcon type="undo" />
 					</button>
 					<button
 						type="button"
-						className="btn-ghost"
+						className="btn-ghost history-button"
 						onClick={redo}
 						disabled={!canRedo}
+						aria-label="Redo the last undone change"
 						title="Redo the last undone change (Command or Ctrl + Shift + Z)"
 					>
-						Redo
+						<PanelIcon type="redo" />
 					</button>
 				</div>
 				{!studio && <AccountControls />}
@@ -595,7 +647,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 			{studio && templateStudio && <TemplateStudioBar studio={templateStudio} base={base} />}
 
 			<div
-				className={`editor-body view-${mobileView}`}
+				className={`editor-body view-${mobileView}${sidebarHidden ? ' sidebar-hidden' : ''}`}
 				style={{ '--editor-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
 			>
 				<div className="editor-controls" ref={controlsRef}>
@@ -611,7 +663,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 								onClick={() => pickTab(t.id)}
 							>
 								<span className="editor-tab-icon" aria-hidden="true">
-									{t.icon}
+									<PanelIcon type={t.icon} />
 								</span>
 								{t.label}
 							</button>
@@ -630,38 +682,45 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 						</details>
 					)}
 					<div className={`editor-tab-pane ${tab === 'pages' ? 'active' : ''}`}>
-						<AssetWorkbench />
 						{selectedPage && selectedChoice ? (
-							<div className="page-workspace">
-								<div className="page-workspace-nav" aria-label="Current page workspace">
-									<button type="button" className="btn-link page-workspace-back" onClick={closePageWorkspace}>
-										← All pages
-									</button>
-									<label className="page-workspace-switcher">
-										<span className="sr-only">Switch page</span>
-										<select
-											className="select-input"
-											aria-label="Switch page"
-											value={selectedPage}
-											onChange={(event) => openPageWorkspace(event.target.value)}
+							<>
+								<div className="page-workspace">
+									<div className="page-workspace-nav" aria-label="Current page workspace">
+										<button type="button" className="page-workspace-back" onClick={closePageWorkspace}>
+											<PanelIcon type="back" />
+											Pages
+										</button>
+										<strong className="page-workspace-title">{selectedChoice.label}</strong>
+										<button
+											type="button"
+											className="pm-action page-workspace-settings"
+											title="Page settings"
+											aria-label={`Settings for ${selectedChoice.label}`}
+											onClick={() => setPageSettingsOpen(true)}
 										>
-											{pageChoices.map((choice) => (
-												<option key={choice.key} value={choice.key}>
-													{choice.nested ? `↳ ${choice.label}` : choice.label}
-												</option>
-											))}
-										</select>
-									</label>
+											<PanelIcon type="settings" />
+										</button>
+									</div>
+									<AssetWorkbench />
+									<PageEditor
+										key={selectedPage}
+										pageKey={selectedPage}
+										nested={selectedChoice.nested}
+										includeChildren={false}
+									/>
+									{pageSettingsOpen && (
+										<PageSettingsModal
+											pageKey={selectedPage}
+											onClose={() => setPageSettingsOpen(false)}
+										/>
+									)}
 								</div>
-								<PageEditor
-									key={selectedPage}
-									pageKey={selectedPage}
-									nested={selectedChoice.nested}
-									includeChildren={false}
-								/>
-							</div>
+							</>
 						) : (
-							<PageManager onEditPage={openPageWorkspace} selectedPageKey={lastSelectedPage} />
+							<>
+								<PageManager onEditPage={openPageWorkspace} selectedPageKey={lastSelectedPage} />
+								<AssetWorkbench />
+							</>
 						)}
 					</div>
 					<div className={`editor-tab-pane ${tab === 'store' ? 'active' : ''}`}>
@@ -708,11 +767,26 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 				<div className="editor-preview">
 					<PreviewPanel
 						base={base}
-						canvasEditingEnabled={tab === 'pages' && selectedPage !== null}
+						canvasEditingEnabled={selectedPage !== null}
 						onEditPage={openPageWorkspace}
+						sidebarHidden={sidebarHidden}
+						onToggleSidebar={toggleSidebar}
+						openWorkbenchOnLaunch={intakeWorkbench}
 					/>
 				</div>
 			</div>
+			{/* Post-intake account door: one gentle ask, easy to defer. */}
+			{!studio && showSaveSetup && account.status === 'signed-out' && (
+				<SignInModal
+					title="Save your setup"
+					lead="Your site and answers live in this browser for now. A free account keeps them yours — publish when you're ready and pick up from any device. No password: Google, or a link we email you."
+					closeLabel="Later"
+					onClose={() => setShowSaveSetup(false)}
+					sendMagicLink={account.sendMagicLink}
+					signInWithGoogle={account.signInWithGoogle}
+					googleEnabled={account.googleEnabled}
+				/>
+			)}
 			{!studio && (
 			<OnboardingTour
 				replayToken={tourReplayToken}

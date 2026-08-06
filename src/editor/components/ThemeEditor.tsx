@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useEditor } from '../store';
 import { Field, Section } from './ui/controls';
+import { PanelIcon } from './ui/panel-icons';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
 import type { PageHeadingPosition, Theme } from '../../lib/content';
 import { compatibleThemePresets } from '../lib/templates';
@@ -16,13 +17,13 @@ type ColorKey =
 	| 'mutedTextColor'
 	| 'accentColor';
 
-const COLOR_FIELDS: Array<{ key: ColorKey; label: string }> = [
-	{ key: 'backgroundColor', label: 'Background' },
-	{ key: 'headingTextColor', label: 'Headers' },
-	{ key: 'subheadingTextColor', label: 'Subheaders' },
-	{ key: 'bodyTextColor', label: 'Body text' },
-	{ key: 'mutedTextColor', label: 'Muted text' },
-	{ key: 'accentColor', label: 'Accent (hover, links)' },
+const COLOR_FIELDS: Array<{ key: ColorKey; label: string; title: string }> = [
+	{ key: 'backgroundColor', label: 'Background', title: 'Site background' },
+	{ key: 'headingTextColor', label: 'Headers', title: 'Header text' },
+	{ key: 'subheadingTextColor', label: 'Subheads', title: 'Subheader text' },
+	{ key: 'bodyTextColor', label: 'Body', title: 'Body text' },
+	{ key: 'mutedTextColor', label: 'Muted', title: 'Muted text (captions, hints)' },
+	{ key: 'accentColor', label: 'Accent', title: 'Accent — hover states and links' },
 ];
 
 const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
@@ -43,6 +44,7 @@ export default function ThemeEditor() {
 	const { doc, setTheme, applyThemePreset, addCustomFont, removeCustomFont } = useEditor();
 	const fontInputRef = useRef<HTMLInputElement>(null);
 	const [fontError, setFontError] = useState<string | null>(null);
+	const [copiedColor, setCopiedColor] = useState<ColorKey | null>(null);
 	if (!doc) return null;
 	const theme = doc.content.theme;
 	const customFonts = theme.customFonts ?? [];
@@ -78,8 +80,7 @@ export default function ThemeEditor() {
 		<Section title="Site style" sectionKey="_theme">
 			<div className="theme-preset-section">
 				<div className="theme-preset-heading">
-					<strong>1. Choose a starting theme</strong>
-					<span>Only themes that support this site’s page and gallery features appear.</span>
+					<strong>1. Theme</strong>
 				</div>
 				<div className="theme-preset-grid">
 					{presets.map((preset) => {
@@ -115,20 +116,16 @@ export default function ThemeEditor() {
 					})}
 				</div>
 				<p className="theme-preset-note">
-					Applying a theme changes colors, type, and the navigation style. Your pages, words, images, uploads, and custom font files stay put — and one undo brings the old look back.
+					Themes restyle everything; your work stays put. One undo brings the old look back.
 				</p>
 			</div>
 			<div className="design-control-heading">
 				<span>2</span>
 				<div>
 					<strong>Surface & color</strong>
-					<small>Set the wall first, then tune the palette and contrast.</small>
 				</div>
 			</div>
-			<Field
-				label="Wall material"
-				hint="Puts a physical studio surface behind your work. Page and section colors still layer above it."
-			>
+			<Field label="Wall material">
 				<div className="chip-row wall-material-options" role="group" aria-label="Site wall material">
 					{BACKGROUND_TEXTURES.map((texture) => (
 						<button
@@ -150,28 +147,43 @@ export default function ThemeEditor() {
 					))}
 				</div>
 			</Field>
-			{COLOR_FIELDS.map(({ key, label }) => (
-				<Field key={key} label={label} hint={key.endsWith('TextColor') ? 'This can be changed independently from the other text levels.' : undefined}>
-					<div className="color-field">
-						<input
-							type="color"
-							value={isHex(theme[key] ?? theme.textColor) ? (theme[key] ?? theme.textColor) : '#000000'}
-							onChange={(e) => setTheme({ [key]: e.target.value })}
-							aria-label={`${label} color`}
-						/>
-						<input
-							className="text-input"
-							value={theme[key] ?? theme.textColor}
-							onChange={(e) => setTheme({ [key]: e.target.value })}
-							placeholder="#111111"
-						/>
-					</div>
-				</Field>
-			))}
-			<Field
-				label="Automatic readable text"
-				hint="Adjust text, your logo/name, and navigation over colored page sections. Turn this off to keep your exact theme colors everywhere."
-			>
+			{/* One quiet bar: click a color to change it, copy takes the hex. */}
+			<div className="color-bar" role="group" aria-label="Site colors">
+				{COLOR_FIELDS.map(({ key, label, title }) => {
+					const value = theme[key] ?? theme.textColor;
+					return (
+						<div className="color-bar-cell" key={key}>
+							<label className="color-bar-chip" title={`${title} — click to change`}>
+								<span style={{ background: value }} aria-hidden="true" />
+								<input
+									type="color"
+									value={isHex(value) ? value : '#000000'}
+									onChange={(e) => setTheme({ [key]: e.target.value })}
+									aria-label={`${title} color`}
+								/>
+							</label>
+							<button
+								type="button"
+								className="color-bar-copy"
+								title={copiedColor === key ? 'Copied' : `Copy ${value}`}
+								aria-label={`Copy the ${label} color's hex code`}
+								onClick={() => {
+									void navigator.clipboard?.writeText(value);
+									setCopiedColor(key);
+									window.setTimeout(
+										() => setCopiedColor((current) => (current === key ? null : current)),
+										1400,
+									);
+								}}
+							>
+								<PanelIcon type={copiedColor === key ? 'sparkle' : 'duplicate'} />
+							</button>
+							<span className="color-bar-label">{label}</span>
+						</div>
+					);
+				})}
+			</div>
+			<Field label="Automatic readable text" hint="Keeps words legible over colored sections.">
 				<div className="chip-row" role="group" aria-label="Automatic readable text">
 					<button
 						type="button"
@@ -192,15 +204,10 @@ export default function ThemeEditor() {
 			<div className="design-control-heading">
 				<span>3</span>
 				<div>
-					<strong>Typography & page titles</strong>
-					<small>Choose the type system, then size and place recurring headings.</small>
+					<strong>Typography</strong>
 				</div>
 			</div>
-			<Field
-				label="Upload your own font"
-				hint={`Upload a ${FONT_EXTENSIONS.join('/')} file — it appears immediately in both font lists and publishes with your site.`}
-				error={fontError ?? undefined}
-			>
+			<Field label="Upload your own font" error={fontError ?? undefined}>
 				<div>
 					<input
 						ref={fontInputRef}
@@ -233,7 +240,7 @@ export default function ThemeEditor() {
 					{!fontKnown && <option value="__custom">Custom ({theme.fontFamily})</option>}
 				</select>
 			</Field>
-			<Field label="Heading font" hint="Used for page titles and your name in the header.">
+			<Field label="Heading font">
 				<select
 					className="text-input"
 					value={headingKnown ? headingFont : '__custom'}
