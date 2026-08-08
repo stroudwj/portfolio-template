@@ -515,6 +515,16 @@ body.workbench-window-open .floating-add-block {
 .workbench-fullscreen .workbench-list {
 	display: flex;
 }
+/* Match the list header's edges to the fullscreen grid's inner padding. */
+.workbench-fullscreen .workbench-list-head {
+	margin: 0 5px 2px 1px;
+}
+.workbench-fullscreen .workbench-folder-draft {
+	padding: 2px 9px;
+}
+.workbench-fullscreen .workbench-folder-draft input {
+	font-size: 12px;
+}
 .workbench-fullscreen .workbench-actions {
 	padding: 11px 13px;
 }
@@ -723,29 +733,206 @@ body.workbench-window-open .floating-add-block {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+/* Finder-style list: one column template (--wb-cols) shared by the header row
+ * and every item row keeps the columns aligned; container queries drop the
+ * trailing columns as the panel narrows (the sidebar is far skinnier than the
+ * floating or fullscreen window). */
+.workbench-contents {
+	container-type: inline-size;
+}
+.workbench-contents[data-view='list'] {
+	--wb-thumb: 26px;
+	--wb-row-h: 30px;
+}
+.workbench-contents[data-view='compact'] {
+	--wb-thumb: 15px;
+	--wb-row-h: 21px;
+}
+.workbench-list-head,
+.workbench-grid.workbench-list {
+	--wb-cols: 18px calc(var(--wb-thumb) + 4px) minmax(0, 1fr) minmax(48px, 76px) 44px 52px;
+}
+.workbench-list-head {
+	display: grid;
+	grid-template-columns: var(--wb-cols);
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 2px;
+	padding: 0 6px 3px;
+	border-bottom: 1px solid var(--wall-2);
+	color: var(--ink-soft);
+	font-size: 9px;
+}
+.workbench-list-head .wb-head-name {
+	grid-column: 3;
+}
 .workbench-list {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
 }
 .workbench-list .workbench-card {
-	grid-template-columns: 42px minmax(0, 1fr);
-	padding-left: 27px;
+	grid-template-columns: var(--wb-cols);
+	gap: 6px;
+	min-height: var(--wb-row-h);
+	padding: 1px 6px;
+	border: 0;
+	border-radius: 4px;
+}
+.workbench-list label.workbench-card:nth-of-type(even) {
+	background: color-mix(in srgb, var(--wall-1) 55%, var(--paper));
+}
+.workbench-list label.workbench-card:hover {
+	background: var(--wall-3);
+}
+.workbench-list label.workbench-card.selected {
+	background: color-mix(in srgb, var(--klein) 10%, var(--paper));
+	box-shadow: none;
 }
 .workbench-list .workbench-card > input {
-	top: 50%;
-	left: 7px;
-	transform: translateY(-50%);
+	position: static;
+	margin: 0;
 }
 .workbench-list .workbench-card img {
-	grid-column: 1;
-	grid-row: 1 / span 2;
-	height: 34px;
+	grid-column: auto;
+	width: var(--wb-thumb);
+	height: var(--wb-thumb);
 	aspect-ratio: 1;
+	border-radius: 2px;
 }
-.workbench-list .workbench-card > span,
-.workbench-list .workbench-card > small {
-	grid-column: 2;
+.workbench-list .workbench-card > span {
+	grid-column: auto;
+	font-size: 10.5px;
+}
+.workbench-compact .workbench-card > span {
+	font-size: 10px;
+}
+.wb-col-folder,
+.wb-col-kind,
+.wb-col-size {
+	overflow: hidden;
+	color: var(--ink-soft);
+	font-size: 9.5px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.wb-col-size {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+@container (max-width: 400px) {
+	.workbench-list-head,
+	.workbench-grid.workbench-list {
+		--wb-cols: 18px calc(var(--wb-thumb) + 4px) minmax(0, 1fr) minmax(48px, 76px);
+	}
+	.wb-col-kind,
+	.wb-col-size {
+		display: none;
+	}
+}
+@container (max-width: 290px) {
+	.workbench-list-head,
+	.workbench-grid.workbench-list {
+		--wb-cols: 18px calc(var(--wb-thumb) + 4px) minmax(0, 1fr);
+	}
+	.wb-col-folder {
+		display: none;
+	}
+}
+/* Inline naming row for a new folder (replaces the old window.prompt). */
+.workbench-folder-draft {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: center;
+	gap: 4px;
+	padding: 2px 2px 2px 6px;
+	color: var(--ink-soft);
+	font-size: 10px;
+}
+.workbench-folder-draft input {
+	min-width: 0;
+	padding: 3px 5px;
+	border: 1px solid var(--klein);
+	border-radius: 4px;
+	background: var(--paper);
+	color: var(--ink);
+	font: inherit;
+	font-size: 10px;
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(0, 47, 167, 0.12);
+}
+/* Right-click menu (Finder parity). Portaled to <body>, clamped to the viewport. */
+.workbench-menu {
+	position: fixed;
+	z-index: 480;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 172px;
+	padding: 5px;
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
+	background: var(--paper);
+	box-shadow: 0 8px 24px rgba(31, 27, 23, 0.12);
+}
+.workbench-menu button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+	padding: 6px 9px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	font-size: 11px;
+	text-align: left;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.workbench-menu button:hover {
+	background: var(--wall-3);
+}
+.workbench-menu button:focus-visible {
+	outline: 2px solid var(--klein);
+	outline-offset: -2px;
+}
+.workbench-menu button.danger {
+	color: var(--error);
+}
+.workbench-menu hr {
+	margin: 4px 6px;
+	border: 0;
+	border-top: 1px solid var(--wall-2);
+}
+.workbench-menu-arrow {
+	color: var(--ink-soft);
+	font-size: 9px;
+}
+.workbench-menu-subwrap {
+	position: relative;
+}
+.workbench-menu-sub {
+	position: absolute;
+	top: -6px;
+	left: calc(100% + 1px);
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 140px;
+	max-height: min(320px, 60vh);
+	overflow-y: auto;
+	padding: 5px;
+	border: 1px solid var(--wall-2);
+	border-radius: 6px;
+	background: var(--paper);
+	box-shadow: 0 8px 24px rgba(31, 27, 23, 0.12);
+}
+.workbench-menu-sub.flip {
+	left: auto;
+	right: calc(100% + 1px);
 }
 .workbench-marquee {
 	position: absolute;
