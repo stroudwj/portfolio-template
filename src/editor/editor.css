@@ -4129,6 +4129,64 @@ a.resume-name:hover {
 }
 .crop-reset { justify-self: start; }
 
+/* The crop & light practice run: four short steps on a bundled sample shot.
+   Its wrapper lifts the modal above the floating workbench panel (z 320). */
+.crop-demo-layer {
+	position: relative;
+	z-index: 340;
+}
+.crop-demo {
+	display: grid;
+	gap: 12px;
+}
+.crop-demo-head {
+	display: grid;
+	gap: 4px;
+}
+.crop-demo-progress {
+	font-size: 12px;
+	color: var(--ink-soft);
+}
+.crop-demo-head strong {
+	font-size: 17px;
+	font-weight: 500;
+}
+.crop-demo-head p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--ink-soft);
+}
+.crop-demo-hint {
+	margin: -4px 0 0;
+	font-size: 13px;
+	color: var(--ink-soft);
+}
+.crop-demo-still { cursor: default; }
+.crop-demo-compare {
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+.crop-demo-compare figure {
+	margin: 0;
+	display: grid;
+	gap: 6px;
+	justify-items: center;
+	min-width: 0;
+}
+.crop-demo-compare .crop-viewport {
+	width: min(100%, 210px);
+}
+.crop-demo-compare figcaption {
+	font-size: 13px;
+	color: #fff;
+}
+.crop-demo-credit {
+	margin: 0;
+	font-size: 12px;
+	color: var(--ink-soft);
+}
+
 .page-workspace {
 	display: flex;
 	flex-direction: column;
@@ -9022,6 +9080,33 @@ label.block-more-item .select-input {
 	padding: 10px 12px;
 	border-top: 1px solid var(--wall-2);
 	flex-shrink: 0;
+}
+
+/* Crop & light practice run: its offer card (or quiet link) in the intro. */
+.floating-panel-demo-offer {
+	margin-top: 12px;
+	padding: 10px 12px;
+	display: grid;
+	gap: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	background: var(--wall-1);
+}
+.floating-panel-demo-offer p {
+	color: var(--ink);
+}
+.floating-panel-demo-offer strong {
+	display: inline;
+	font-size: inherit;
+	font-weight: 500;
+	margin: 0;
+}
+.floating-panel-demo-offer-actions {
+	display: flex;
+	gap: 8px;
+}
+.floating-panel-demo-link {
+	margin-top: 8px;
 }
 
 /* The floating panel already titles the window — no nested chrome inside. */

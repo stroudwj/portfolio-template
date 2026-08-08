@@ -332,6 +332,9 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 	 * the "Save your setup" account door appears once for signed-out artists. */
 	const intakeConsumedRef = useRef(false);
 	const [intakeWorkbench, setIntakeWorkbench] = useState(false);
+	/** The intake's finishing answer: this artist said some photos still need
+	 * a crop or light pass, so the workbench leads with the practice offer. */
+	const [intakeFinishing, setIntakeFinishing] = useState(false);
 	const [showSaveSetup, setShowSaveSetup] = useState(false);
 	const account = useAccount({ returnToEditorAfterGoogle: true });
 	/** True when this page load IS a sign-in return (magic link / Google). */
@@ -467,6 +470,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 		if (!intent) return;
 		if (intent.workflow === 'organized') openPageWorkspace('home');
 		if (intent.workflow === 'pile' || intent.finishing) setIntakeWorkbench(true);
+		if (intent.finishing) setIntakeFinishing(true);
 		if (intent.promptSignup) setShowSaveSetup(true);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [doc]);
@@ -790,6 +794,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 						sidebarHidden={sidebarHidden}
 						onToggleSidebar={toggleSidebar}
 						openWorkbenchOnLaunch={intakeWorkbench}
+						offerCropLightDemo={intakeFinishing}
 					/>
 				</div>
 			</div>

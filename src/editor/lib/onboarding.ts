@@ -66,6 +66,23 @@ export function completeEditorTour() {
 	remove(session(), TOUR_PENDING_KEY);
 }
 
+/* ---- Crop & light demo: the workbench first-run's practice offer. Opening,
+   finishing, or declining it all count as seen — the prominent offer card
+   gives way to the quiet link and the demo itself never auto-opens. ---- */
+
+const CROP_LIGHT_DEMO_KEY = 'portfolio-editor:crop-light-demo-v1-seen';
+
+let cropLightDemoSeenInMemory = false;
+
+export function hasSeenCropLightDemo(): boolean {
+	return cropLightDemoSeenInMemory || read(local(), CROP_LIGHT_DEMO_KEY) === '1';
+}
+
+export function markCropLightDemoSeen() {
+	cropLightDemoSeenInMemory = true;
+	write(local(), CROP_LIGHT_DEMO_KEY, '1');
+}
+
 /* ---- Intake intent: the Start questionnaire's routing answers, consumed
    once by the editor shell right after the new document opens. ---- */
 
