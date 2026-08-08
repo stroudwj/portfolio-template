@@ -40,6 +40,9 @@ const privacyUrl = withBase(base, 'privacy');
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
 const supportEmail = 'william.stroud100@gmail.com';
 const canonicalUrl = Astro.site ? new URL(withBase(base, slug), Astro.site).href : undefined;
+const ogImageUrl = Astro.site
+	? new URL(withBase(base, 'assets/brand/og-card.png'), Astro.site).href
+	: undefined;
 ---
 
 <!doctype html>
@@ -62,7 +65,10 @@ const canonicalUrl = Astro.site ? new URL(withBase(base, slug), Astro.site).href
 		<meta property="og:description" content={description} />
 		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-		<meta name="twitter:card" content="summary" />
+		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+		{ogImageUrl && <meta property="og:image:width" content="1200" />}
+		{ogImageUrl && <meta property="og:image:height" content="630" />}
+		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
 		<title>{title}</title>
 	</head>
 	<body>
