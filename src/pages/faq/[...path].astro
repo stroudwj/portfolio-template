@@ -35,6 +35,9 @@ const title = 'Common questions — Hangwork';
 const description =
 	'Straight answers about how Hangwork works, what you own, and what it costs.';
 const canonicalUrl = Astro.site ? new URL(withBase(base, 'faq'), Astro.site).href : undefined;
+const ogImageUrl = Astro.site
+	? new URL(withBase(base, 'assets/brand/og-card.png'), Astro.site).href
+	: undefined;
 const visiblePriceHtml = `<strong class="current-price">${currentPriceText}</strong>`;
 const visibleMonthlyPriceHtml = `<strong class="current-price">${monthlyPriceText}</strong>`;
 
@@ -185,7 +188,10 @@ const faqLd = {
 		<meta property="og:description" content={description} />
 		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-		<meta name="twitter:card" content="summary" />
+		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+		{ogImageUrl && <meta property="og:image:width" content="1200" />}
+		{ogImageUrl && <meta property="og:image:height" content="630" />}
+		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
 		<title>{title}</title>
 		<script type="application/ld+json" set:html={JSON.stringify(faqLd)} is:inline />
 	</head>

@@ -87,8 +87,8 @@
       "gitBlobSha": "09406feca60e4dbadf03fad1d1d4dbedc20d25f8"
     },
     "src/components/LegalPage.astro": {
-      "sha256": "ca13cdd9c504c43271c650276efce57877b63b52207c200253e3100f121a7b62",
-      "gitBlobSha": "075712611145a1049d252a8861d0ba5836c0f3ba"
+      "sha256": "d0e27daac150bddf1ff664c60751aefb05e0a8d0ec4bf49690f76c6a344b8852",
+      "gitBlobSha": "682a561e57a1bc6e899f1a1527bb1ab8278f8422"
     },
     "src/editor/EditorApp.tsx": {
       "sha256": "c333aa8c86dc007da2f5d95c2e5e34fc3ff66438580de6018025dd4e6e78a83f",
@@ -587,20 +587,20 @@
       "gitBlobSha": "26a64559bfa27cb09b6e6399831596a6081ed27a"
     },
     "src/pages/faq/[...path].astro": {
-      "sha256": "cbd2053bddd665b34e59e1e737cd8a2de7042625b88295a0b075e295190ad036",
-      "gitBlobSha": "eb26dee56f9f2291cd28abeae77258eec22c604b"
+      "sha256": "e9e03e5146ca9ca563ec448ce598b11b0f6357b957f72028cd365bb0d7eb63e1",
+      "gitBlobSha": "7b67c2e9ed81ced39130a0d7316424283939e71e"
     },
     "src/pages/guide/[...path].astro": {
-      "sha256": "1bf4f87029f0d5595457a0b78e10a9b2ad5c7a4cbab6aa489cb88e97d4d843e8",
-      "gitBlobSha": "95d4f3b5cd1aeee7bfff94bb42cad94adc515879"
+      "sha256": "3bc6868630a7abc85b10e67bed55aa3329c273f091f9649eb59a928bfd25081c",
+      "gitBlobSha": "475e89fa68d270e9db5ba2f64f88a7f1a56b2c24"
     },
     "src/pages/index.astro": {
       "sha256": "6f147e9c64478370a6ea0c63a32d9f3cb8cd7042551dc282270a315c01388d61",
       "gitBlobSha": "cbdc88e0b75b8a6dfa1bf2d558b7796581dbd749"
     },
     "src/pages/learn/[slug].astro": {
-      "sha256": "264e8f69f7cfb8fabcc80269ea2dde89500c6ab1ec992f783ec9fdcd5a49796a",
-      "gitBlobSha": "54843a901c480607a38e0118a713c7aaabe34040"
+      "sha256": "72948d0321c2c2fe488ac717d4a8e2f6363c6a0f37e69a2ad2ca26504ebe5f0b",
+      "gitBlobSha": "4488bfcad6c569976ef19b1da949839ca490f3be"
     },
     "src/pages/privacy/[...path].astro": {
       "sha256": "b20dc5452b6a6f61b48aac9e09e21a1f6af9b4528998ceaa417573025798470a",
