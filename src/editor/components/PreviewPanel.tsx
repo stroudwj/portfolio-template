@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditor } from '../store';
 import Portfolio from '../../portfolio/Portfolio';
+import { withBase } from '../../portfolio/types';
 import PreviewEditLayer from './PreviewEditLayer';
 import AssetWorkbench from './AssetWorkbench';
+import CropLightDemo from './CropLightDemo';
 import { WorkbenchPicker } from './ImageCollectionEditor';
 import { PanelIcon } from './ui/panel-icons';
 import { docToPortfolioData } from '../lib/content-init';
+import { hasSeenCropLightDemo, markCropLightDemoSeen } from '../lib/onboarding';
 import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, guideById, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
@@ -361,6 +364,7 @@ export default function PreviewPanel({
 	sidebarHidden,
 	onToggleSidebar,
 	openWorkbenchOnLaunch,
+	offerCropLightDemo,
 }: {
 	base: string;
 	canvasEditingEnabled: boolean;
@@ -370,6 +374,9 @@ export default function PreviewPanel({
 	onToggleSidebar?: () => void;
 	/** Start-intake answer: open the floating workbench as the editor appears. */
 	openWorkbenchOnLaunch?: boolean;
+	/** Start-intake answer: photos need a crop or light pass, so the workbench
+	 * first run leads with the practice-run offer instead of the quiet link. */
+	offerCropLightDemo?: boolean;
 }) {
 	const editor = useEditor();
 	const { doc } = editor;
@@ -389,6 +396,19 @@ export default function PreviewPanel({
 	/** First-run guidance: the intake's "sort it here" answer opens the
 	 * workbench big and centered, with one clear instruction. */
 	const [workbenchIntro, setWorkbenchIntro] = useState(false);
+	/** The crop & light practice run. Opens only from its offer or the quiet
+	 * link — never on its own — and one look (or one decline) retires the
+	 * prominent offer for good. */
+	const [cropDemoOpen, setCropDemoOpen] = useState(false);
+	const [cropDemoSeen, setCropDemoSeen] = useState(hasSeenCropLightDemo);
+	const retireCropDemoOffer = () => {
+		markCropLightDemoSeen();
+		setCropDemoSeen(true);
+	};
+	const closeCropDemo = () => {
+		setCropDemoOpen(false);
+		retireCropDemoOffer();
+	};
 	// A "sort it here" intake answer opens the workbench with the editor.
 	useEffect(() => {
 		if (openWorkbenchOnLaunch) {
@@ -709,6 +729,34 @@ export default function PreviewPanel({
 								Upload your photos, then sort them into folders — one folder per series
 								hangs beautifully. Cropping and light live on every photo's Edit.
 							</p>
+							{offerCropLightDemo && !cropDemoSeen ? (
+								<div className="floating-panel-demo-offer">
+									<p>
+										<strong>Photos need a finishing pass?</strong> Practice the
+										one-minute fix — crop and light — on a sample shot first.
+									</p>
+									<div className="floating-panel-demo-offer-actions">
+										<button
+											type="button"
+											className="btn-secondary"
+											onClick={() => setCropDemoOpen(true)}
+										>
+											Try it on a sample
+										</button>
+										<button type="button" className="btn-ghost" onClick={retireCropDemoOffer}>
+											No thanks
+										</button>
+									</div>
+								</div>
+							) : (
+								<button
+									type="button"
+									className="btn-link floating-panel-demo-link"
+									onClick={() => setCropDemoOpen(true)}
+								>
+									See how crop &amp; light works
+								</button>
+							)}
 						</div>
 					)}
 					<div className="floating-panel-body">
@@ -726,6 +774,12 @@ export default function PreviewPanel({
 						</footer>
 					)}
 				</div>
+			)}
+			{cropDemoOpen && (
+				<CropLightDemo
+					src={withBase(base, 'assets/demo/crop-light-sample.jpg')}
+					onClose={closeCropDemo}
+				/>
 			)}
 			{workbenchPickFolder && !fullscreen && (
 				<div className="floating-panel floating-workbench" role="dialog" aria-label="Choose an image from the workbench">
