@@ -9296,6 +9296,58 @@ label.block-more-item .select-input {
 	margin-top: 8px;
 }
 
+/* "OK — build my pages": the intake session's one-time build footer. */
+.workbench-build-foot {
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+}
+.workbench-build-hint {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--ink-soft);
+}
+.workbench-build-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+/* Post-build quick guide: one screen of core moves, centered over the page. */
+.workbench-build-guide {
+	left: 50%;
+	right: auto;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(560px, calc(100% - 32px));
+	max-height: calc(100% - 48px);
+}
+.workbench-build-guide-body {
+	padding: 14px 16px;
+	display: grid;
+	gap: 10px;
+	font-size: 13px;
+	line-height: 1.55;
+	overflow-y: auto;
+}
+.workbench-build-guide-body p {
+	margin: 0;
+}
+.workbench-build-moves {
+	margin: 0;
+	padding: 10px 12px;
+	list-style: none;
+	display: grid;
+	gap: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	background: var(--wall-1);
+}
+.workbench-build-moves strong {
+	font-weight: 500;
+}
+
 /* The floating panel already titles the window — no nested chrome inside. */
 .workbench-chrome-floating .workbench-window {
 	border: 0;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useEditor } from '../store';
+import { SELECTED_WORKS_FOLDER, useEditor } from '../store';
 import { useAccount } from './useAccount';
 import SignInModal from './SignInModal';
 import LoadPublishedModal from './LoadPublishedModal';
@@ -57,7 +57,7 @@ interface PendingStart {
 }
 
 export default function StartScreen({ brandLockup }: { brandLockup: string }) {
-	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError, setName, addPage } = useEditor();
+	const { startBlank, startExisting, startTemplate, resumeDraft, openDoc, hasDraft, draftError, setName, addPage, createWorkbenchFolder } = useEditor();
 	const account = useAccount();
 	const [showSignIn, setShowSignIn] = useState(false);
 	const [showLoad, setShowLoad] = useState(false);
@@ -113,10 +113,18 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 				else startBlank();
 				if (answers.name) setName(answers.name);
 				for (const series of answers.series) addPage(series);
+				// The workbench route gets its sorting folders up front: Selected
+				// works (fills home) plus one per named series, so sorting and the
+				// page structure meet at "OK — build my pages".
+				if (answers.workflow === 'pile' || answers.finishing) {
+					createWorkbenchFolder(SELECTED_WORKS_FOLDER);
+					for (const series of answers.series) createWorkbenchFolder(series);
+				}
 				writeIntakeIntent({
 					workflow: answers.workflow,
 					finishing: answers.finishing,
 					promptSignup: true,
+					starterId: answers.starter?.id ?? null,
 				});
 			},
 		);

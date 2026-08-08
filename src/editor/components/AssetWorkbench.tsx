@@ -11,7 +11,7 @@ import {
 	type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useEditor } from '../store';
+import { SELECTED_WORKS_FOLDER, useEditor } from '../store';
 import { getAssetFileInfo, getAssetPreviewUrl } from '../lib/assets';
 import {
 	imageGroupTargets,
@@ -257,18 +257,21 @@ export default function AssetWorkbench({
 	const selectionAnchor = useRef<string | null>(null);
 	const draggedIds = useRef<string[]>([]);
 	const entries = doc?.galleries[WORKBENCH_FOLDER] ?? [];
-	const folders = useMemo(
-		() =>
-			[
-				...new Set(
-					[
-						...(doc?.workbenchFolders ?? []),
-						...entries.map((entry) => entry.meta.workbenchFolder?.trim()),
-					].filter((value): value is string => !!value),
-				),
-			].sort((a, b) => a.localeCompare(b)),
-		[doc?.workbenchFolders, entries],
-	);
+	const folders = useMemo(() => {
+		const named = [
+			...new Set(
+				[
+					...(doc?.workbenchFolders ?? []),
+					...entries.map((entry) => entry.meta.workbenchFolder?.trim()),
+				].filter((value): value is string => !!value),
+			),
+		]
+			.filter((name) => name !== SELECTED_WORKS_FOLDER)
+			.sort((a, b) => a.localeCompare(b));
+		// Selected works is a fixture: always listed, pinned first, no rename or
+		// delete — what lands in it fills the home page when pages are built.
+		return [SELECTED_WORKS_FOLDER, ...named];
+	}, [doc?.workbenchFolders, entries]);
 	const visible =
 		folder === null
 			? entries
@@ -342,9 +345,14 @@ export default function AssetWorkbench({
 		setFolderDraft(null);
 		const clean = draft.name.trim().slice(0, 80);
 		if (!clean) return;
-		createWorkbenchFolder(clean);
-		if (draft.assign && selectedEntries.length) assignFolder(clean);
-		else setFolder(clean);
+		// Case variants of the pinned folder fold into it instead of shadowing it.
+		const name =
+			clean.toLowerCase() === SELECTED_WORKS_FOLDER.toLowerCase()
+				? SELECTED_WORKS_FOLDER
+				: clean;
+		createWorkbenchFolder(name);
+		if (draft.assign && selectedEntries.length) assignFolder(name);
+		else setFolder(name);
 	};
 	const closeMenu = () => {
 		setMenu(null);
@@ -722,6 +730,11 @@ export default function AssetWorkbench({
 									type="button"
 									key={name}
 									className={`${folder === name ? 'active' : ''}${folderDropTarget === name ? ' drop-target' : ''}`}
+									title={
+										name === SELECTED_WORKS_FOLDER
+											? 'Your best pieces — this folder fills the home page when pages are built'
+											: undefined
+									}
 									onClick={() => setFolder(name)}
 									onDragOver={(event) => {
 										event.preventDefault();

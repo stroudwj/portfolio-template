@@ -67,8 +67,10 @@ import {
 	textBottom,
 } from '../portfolio/canvasLayout';
 import { entryWithSampleSuccessor } from './lib/sample-lifecycle';
-import { contentWithThemePreset } from './lib/templates';
+import { contentWithThemePreset, starterSampleFallbackIds } from './lib/templates';
 import { collectionLayoutAtCanvasBottom } from './lib/canvas-placement';
+import { WORKBENCH_FOLDER } from './lib/image-transfer';
+import { getSampleArtwork } from './lib/sample-artwork';
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
 	const next = arr.slice();
@@ -303,6 +305,194 @@ function uniqueFolder(desired: string, doc: EditorDoc): string {
 	let folder = desired;
 	for (let n = 2; taken.has(folder); n++) folder = `${desired}-${n}`;
 	return folder;
+}
+
+/** The one workbench folder every artist has: what lands here fills the home
+ * page when pages are built. The workbench UI pins it and offers no rename or
+ * delete for it. */
+export const SELECTED_WORKS_FOLDER = 'Selected works';
+
+/** Pure core of addPage: the next document plus the new page's key. */
+function withGalleryPage(
+	prev: EditorDoc,
+	label: string,
+	projectTemplate?: ProjectTemplate,
+	options?: { hidden?: boolean },
+): { doc: EditorDoc; key: string } {
+	const key = uniquePageKey(slugify(label), prev.content.pages);
+	const folder = uniqueFolder(key, prev);
+	const name = label.trim() || 'New page';
+	const page: PageConfig = {
+		title: `${name} — {name}`,
+		label: name,
+		heading: projectTemplate ? name : undefined,
+		gallery: { folder, alt: name, order: 'asc' },
+		blocks: [
+			...(projectTemplate ? [{ id: uid('project'), type: 'project' as const, project: { template: projectTemplate } }] : []),
+			{ id: 'gallery', type: 'gallery' as const },
+		],
+		sections: [],
+	};
+	page.sections = [{ id: MAIN_SECTION_ID, name: 'Main section', blockIds: (page.blocks ?? []).map((block) => block.id) }];
+	return {
+		doc: {
+			...prev,
+			content: {
+				...prev.content,
+				nav: [...prev.content.nav, { path: key, label: name, ...(options?.hidden ? { hidden: true } : {}) }],
+				pages: { ...prev.content.pages, [key]: page },
+				galleries: { ...prev.content.galleries, [folder]: { items: {} } },
+			},
+			galleries: { ...prev.galleries, [folder]: [] },
+		},
+		key,
+	};
+}
+
+/** Clone an image entry for another image group: fresh id, workbench folder
+ * assignment dropped (unless the copy stays in the workbench), crop, light,
+ * and layout kept. */
+function cloneEntryForGroup(source: ImageEntry, keepWorkbenchFolder = false): ImageEntry {
+	return {
+		...source,
+		id: uid('e'),
+		meta: {
+			...source.meta,
+			workbenchFolder: keepWorkbenchFolder ? source.meta.workbenchFolder : undefined,
+			layout: source.meta.layout ? { ...source.meta.layout } : undefined,
+			effects: source.meta.effects ? { ...source.meta.effects } : undefined,
+		},
+	};
+}
+
+/** The image group that "fills" a page: its main gallery, else its first images block. */
+function pageMainImageFolder(page: PageConfig): string | null {
+	if (page.gallery) return page.gallery.folder;
+	const imagesBlock = (page.blocks ?? []).find(
+		(block): block is Extract<PageBlock, { type: 'images' }> => block.type === 'images',
+	);
+	return imagesBlock ? imagesBlock.gallery.folder : null;
+}
+
+function pageDisplayLabel(page: PageConfig, key: string): string {
+	return page.label || (key === 'home' ? 'Home' : key);
+}
+
+/** The page a workbench folder name refers to: label match first, slug second. */
+function pageKeyForFolderName(pages: Record<string, PageConfig>, folderName: string): string | null {
+	const wanted = folderName.trim().toLowerCase();
+	for (const [key, page] of Object.entries(pages))
+		if ((page.label ?? '').trim().toLowerCase() === wanted) return key;
+	const slug = slugify(folderName);
+	return pages[slug] ? slug : null;
+}
+
+function sampleEntryFor(sampleAssetId: string): ImageEntry | null {
+	const artwork = getSampleArtwork(sampleAssetId);
+	if (!artwork) return null;
+	return {
+		id: uid('e'),
+		filename: artwork.url.slice(artwork.url.lastIndexOf('/') + 1),
+		meta: { title: artwork.title, alt: artwork.alt, description: '', link: '' },
+		assetId: null,
+		sampleAssetId,
+	};
+}
+
+export interface WorkbenchBuildReport {
+	/** Folders whose photos were hung on a page this run. */
+	built: Array<{ folder: string; pageKey: string; pageLabel: string; count: number }>;
+	/** Folders left alone because their page already holds the artist's own images. */
+	skipped: Array<{ folder: string; pageKey: string; pageLabel: string }>;
+	/** Pages dressed with rights-cleared samples (the zero-photo head start). */
+	sampled: Array<{ pageKey: string; pageLabel: string; count: number }>;
+	/** Pages created because no existing page matched the folder name. */
+	createdPages: string[];
+}
+
+const SAMPLE_FILL_COUNT = 4;
+
+/** The one-time "OK — build my pages" event. Pure: each workbench folder is
+ * matched to a page by name (created when no page matches), its photos are
+ * COPIED into that page's image group, and Selected works fills the home page.
+ * A workbench with no photos at all instead dresses empty matched pages with
+ * rights-cleared samples for the artist's discipline. Nothing records the
+ * folder→page link afterward — pages already holding the artist's own images
+ * are reported and left untouched, which is also what makes a second run a
+ * no-op. Starter samples in a target group give way to the artist's photos. */
+export function buildWorkbenchPages(
+	prev: EditorDoc,
+	sampleStarterId?: string | null,
+): { doc: EditorDoc; report: WorkbenchBuildReport } {
+	const report: WorkbenchBuildReport = { built: [], skipped: [], sampled: [], createdPages: [] };
+	const entries = prev.galleries[WORKBENCH_FOLDER] ?? [];
+	const folderNames = [
+		...new Set(
+			[
+				SELECTED_WORKS_FOLDER,
+				...(prev.workbenchFolders ?? []),
+				...entries.map((entry) => entry.meta.workbenchFolder?.trim()),
+			].filter((value): value is string => !!value),
+		),
+	];
+	const photosByFolder = new Map<string, ImageEntry[]>();
+	for (const entry of entries) {
+		const name = entry.meta.workbenchFolder?.trim();
+		if (!name) continue;
+		photosByFolder.set(name, [...(photosByFolder.get(name) ?? []), entry]);
+	}
+	const sampleMode = entries.length === 0;
+	const samplePool = sampleMode ? starterSampleFallbackIds(sampleStarterId) : [];
+	let sampleCursor = 0;
+
+	let doc = prev;
+	for (const folder of folderNames) {
+		const isSelectedWorks = folder === SELECTED_WORKS_FOLDER;
+		// The zero-photo head start keeps the "a page for each series" promise;
+		// it never hangs placeholder art on the home page.
+		if (sampleMode && isSelectedWorks) continue;
+		let pageKey = isSelectedWorks ? 'home' : pageKeyForFolderName(doc.content.pages, folder);
+		if (!pageKey) {
+			const created = withGalleryPage(doc, folder);
+			doc = created.doc;
+			pageKey = created.key;
+			report.createdPages.push(pageKey);
+		}
+		const page = doc.content.pages[pageKey];
+		if (!page) continue;
+		const pageLabel = pageDisplayLabel(page, pageKey);
+		const targetFolder = pageMainImageFolder(page);
+		const photos = photosByFolder.get(folder) ?? [];
+		if (!targetFolder) {
+			if (photos.length) report.skipped.push({ folder, pageKey, pageLabel });
+			continue;
+		}
+		const existing = doc.galleries[targetFolder] ?? [];
+
+		if (sampleMode) {
+			if (existing.length || !samplePool.length) continue;
+			const fills: ImageEntry[] = [];
+			for (let index = 0; index < SAMPLE_FILL_COUNT; index += 1) {
+				const entry = sampleEntryFor(samplePool[sampleCursor % samplePool.length]);
+				sampleCursor += 1;
+				if (entry) fills.push(entry);
+			}
+			if (!fills.length) continue;
+			doc = { ...doc, galleries: { ...doc.galleries, [targetFolder]: fills } };
+			report.sampled.push({ pageKey, pageLabel, count: fills.length });
+			continue;
+		}
+
+		if (!photos.length) continue; // an empty folder builds an empty page — now it exists
+		if (existing.some((entry) => entry.assetId !== null)) {
+			report.skipped.push({ folder, pageKey, pageLabel });
+			continue;
+		}
+		const copies = photos.map((entry) => cloneEntryForGroup(entry));
+		doc = { ...doc, galleries: { ...doc.galleries, [targetFolder]: copies } };
+		report.built.push({ folder, pageKey, pageLabel, count: copies.length });
+	}
+	return { doc, report };
 }
 
 function pageTreeKeys(pages: Record<string, PageConfig>, root: string): Set<string> {
@@ -681,6 +871,10 @@ export interface EditorContextValue {
 	): void;
 	/** Create a persistent workbench folder, even when it has no photos. */
 	createWorkbenchFolder(name: string): void;
+	/** The one-time "OK — build my pages" event: hang each workbench folder's
+	 * photos on its matching page (Selected works → home). One undo entry.
+	 * Returns what was built, skipped, or sample-dressed; null with no document. */
+	buildPagesFromWorkbench(sampleStarterId?: string | null): WorkbenchBuildReport | null;
 	/** Copy or move an existing image between the workbench and any image group. */
 	transferGalleryImage(
 		sourceFolder: string,
@@ -1511,33 +1705,7 @@ export function EditorProvider({
 
 		// ---- pages ----
 		addPage: (label, projectTemplate, options) =>
-			commitDoc((prev) => {
-				const key = uniquePageKey(slugify(label), prev.content.pages);
-				const folder = uniqueFolder(key, prev);
-				const name = label.trim() || 'New page';
-				const page: PageConfig = {
-					title: `${name} — {name}`,
-					label: name,
-					heading: projectTemplate ? name : undefined,
-					gallery: { folder, alt: name, order: 'asc' },
-					blocks: [
-						...(projectTemplate ? [{ id: uid('project'), type: 'project' as const, project: { template: projectTemplate } }] : []),
-						{ id: 'gallery', type: 'gallery' as const },
-					],
-					sections: [],
-				};
-				page.sections = [{ id: MAIN_SECTION_ID, name: 'Main section', blockIds: (page.blocks ?? []).map((block) => block.id) }];
-				return {
-					...prev,
-					content: {
-						...prev.content,
-						nav: [...prev.content.nav, { path: key, label: name, ...(options?.hidden ? { hidden: true } : {}) }],
-						pages: { ...prev.content.pages, [key]: page },
-						galleries: { ...prev.content.galleries, [folder]: { items: {} } },
-					},
-					galleries: { ...prev.galleries, [folder]: [] },
-				};
-			}),
+			commitDoc((prev) => withGalleryPage(prev, label, projectTemplate, options).doc),
 
 		addChildPage: (parentKey, label, sectionId) =>
 			commitDoc((prev) => {
@@ -3224,24 +3392,25 @@ export function EditorProvider({
 					workbenchFolders: [...(prev.workbenchFolders ?? []), clean],
 				};
 			}),
+		buildPagesFromWorkbench: (sampleStarterId) => {
+			let report: WorkbenchBuildReport | null = null;
+			commitDoc((prev) => {
+				const result = buildWorkbenchPages(prev, sampleStarterId);
+				report = result.report;
+				const changed =
+					result.report.built.length ||
+					result.report.sampled.length ||
+					result.report.createdPages.length;
+				return changed ? result.doc : prev;
+			});
+			return report;
+		},
 		transferGalleryImage: (sourceFolder, entryId, targetFolder, move = false) =>
 			commitDoc((prev) => {
 				if (sourceFolder === targetFolder) return prev;
 				const source = prev.galleries[sourceFolder]?.find((entry) => entry.id === entryId);
 				if (!source) return prev;
-				const clone: ImageEntry = {
-					...source,
-					id: uid('e'),
-					meta: {
-						...source.meta,
-						workbenchFolder:
-							targetFolder === '__hangwork_workbench__'
-								? source.meta.workbenchFolder
-								: undefined,
-						layout: source.meta.layout ? { ...source.meta.layout } : undefined,
-						effects: source.meta.effects ? { ...source.meta.effects } : undefined,
-					},
-				};
+				const clone = cloneEntryForGroup(source, targetFolder === WORKBENCH_FOLDER);
 				const galleries = {
 					...prev.galleries,
 					[targetFolder]: [...(prev.galleries[targetFolder] ?? []), clone],

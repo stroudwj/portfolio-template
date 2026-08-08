@@ -95,6 +95,9 @@ export interface IntakeIntent {
 	finishing?: boolean;
 	/** Offer the "Save your setup" account door once the editor opens. */
 	promptSignup?: boolean;
+	/** Which starter the intake applied (null = blank) — picks the sample
+	 * artwork that fills series pages when the artist leaves with no photos. */
+	starterId?: string | null;
 }
 
 let intakeInMemory: IntakeIntent | null = null;
@@ -102,6 +105,24 @@ let intakeInMemory: IntakeIntent | null = null;
 export function writeIntakeIntent(intent: IntakeIntent) {
 	intakeInMemory = intent;
 	write(session(), INTAKE_INTENT_KEY, JSON.stringify(intent));
+}
+
+/* ---- Post-build quick guide: the one-screen tour of core editor moves shown
+   right after "OK — build my pages" hangs the first pages. Dismissing it (or
+   finishing a later build with it already seen) retires it for good — it never
+   auto-reopens. ---- */
+
+const BUILD_GUIDE_KEY = 'portfolio-editor:workbench-build-guide-v1-seen';
+
+let buildGuideSeenInMemory = false;
+
+export function hasSeenWorkbenchBuildGuide(): boolean {
+	return buildGuideSeenInMemory || read(local(), BUILD_GUIDE_KEY) === '1';
+}
+
+export function markWorkbenchBuildGuideSeen() {
+	buildGuideSeenInMemory = true;
+	write(local(), BUILD_GUIDE_KEY, '1');
 }
 
 export function consumeIntakeIntent(): IntakeIntent | null {

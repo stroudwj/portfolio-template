@@ -220,7 +220,7 @@ changes to the cropZoom pipeline itself.
 
 ---
 
-## 10. Series folders → one-time page build on workbench exit — `queued`
+## 10. Series folders → one-time page build on workbench exit — `built` (branch worktree-spec-10-series-build, awaiting review/merge)
 
 **Goal.** Connect the intake's series answers to the workbench and the page structure:
 series-named folders wait in the workbench; when the user finishes sorting and hits an

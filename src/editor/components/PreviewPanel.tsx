@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useEditor } from '../store';
+import { buildWorkbenchPages, useEditor, type WorkbenchBuildReport } from '../store';
+import { WORKBENCH_FOLDER } from '../lib/image-transfer';
 import Portfolio from '../../portfolio/Portfolio';
 import { withBase } from '../../portfolio/types';
 import PreviewEditLayer from './PreviewEditLayer';
@@ -9,7 +10,12 @@ import CropLightDemo from './CropLightDemo';
 import { WorkbenchPicker } from './ImageCollectionEditor';
 import { PanelIcon } from './ui/panel-icons';
 import { docToPortfolioData } from '../lib/content-init';
-import { hasSeenCropLightDemo, markCropLightDemoSeen } from '../lib/onboarding';
+import {
+	hasSeenCropLightDemo,
+	hasSeenWorkbenchBuildGuide,
+	markCropLightDemoSeen,
+	markWorkbenchBuildGuideSeen,
+} from '../lib/onboarding';
 import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, guideById, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
@@ -365,6 +371,7 @@ export default function PreviewPanel({
 	onToggleSidebar,
 	openWorkbenchOnLaunch,
 	offerCropLightDemo,
+	intakeStarterId,
 }: {
 	base: string;
 	canvasEditingEnabled: boolean;
@@ -377,6 +384,9 @@ export default function PreviewPanel({
 	/** Start-intake answer: photos need a crop or light pass, so the workbench
 	 * first run leads with the practice-run offer instead of the quiet link. */
 	offerCropLightDemo?: boolean;
+	/** Which starter the intake applied (null = blank) — chooses the sample
+	 * artwork that dresses series pages when the artist leaves with no photos. */
+	intakeStarterId?: string | null;
 }) {
 	const editor = useEditor();
 	const { doc } = editor;
@@ -396,6 +406,16 @@ export default function PreviewPanel({
 	/** First-run guidance: the intake's "sort it here" answer opens the
 	 * workbench big and centered, with one clear instruction. */
 	const [workbenchIntro, setWorkbenchIntro] = useState(false);
+	/** The intake session's one-time build offer: the "OK — build my pages"
+	 * footer stays on the floating workbench until the build (or the zero-photo
+	 * sample head start) has happened. */
+	const [buildOffer, setBuildOffer] = useState(false);
+	/** The post-build panel: the run's report, plus the one-time quick guide of
+	 * core editor moves (shown once ever — dismissing retires it for good). */
+	const [buildGuide, setBuildGuide] = useState<{
+		report: WorkbenchBuildReport;
+		tour: boolean;
+	} | null>(null);
 	/** The crop & light practice run. Opens only from its offer or the quiet
 	 * link — never on its own — and one look (or one decline) retires the
 	 * prominent offer for good. */
@@ -414,9 +434,18 @@ export default function PreviewPanel({
 		if (openWorkbenchOnLaunch) {
 			setWorkbenchOpen(true);
 			setWorkbenchIntro(true);
+			setBuildOffer(true);
 		}
 	}, [openWorkbenchOnLaunch]);
 	const gridPrefs = useGridPrefs();
+	// Dry run of the build against the live document: whether the button does
+	// anything is DERIVED from what the folders and pages hold right now — no
+	// stored flag, so a build that already happened simply has nothing to do.
+	const buildPreview = useMemo(
+		() => (buildOffer && doc ? buildWorkbenchPages(doc, intakeStarterId).report : null),
+		[buildOffer, doc, intakeStarterId],
+	);
+	const buildReady = (buildPreview?.built.length ?? 0) > 0;
 
 	// In-place editing is per page and per editing mode; leaving either ends it,
 	// as does the block disappearing (undo, delete).
@@ -470,6 +499,37 @@ export default function PreviewPanel({
 		setPage(key);
 		if (fullscreen) return;
 		onEditPage(key);
+	};
+
+	const openBuildGuide = (report: WorkbenchBuildReport) => {
+		const tour = !hasSeenWorkbenchBuildGuide();
+		markWorkbenchBuildGuideSeen();
+		setBuildGuide({ report, tour });
+	};
+	/** "OK — build my pages": the one-time build, then home with the result. */
+	const runWorkbenchBuild = () => {
+		const report = editor.buildPagesFromWorkbench(intakeStarterId);
+		setBuildOffer(false);
+		setWorkbenchIntro(false);
+		setWorkbenchOpen(false);
+		navigate('home');
+		if (report) openBuildGuide(report);
+	};
+	/** Leaving the workbench during the intake session. With no photos uploaded
+	 * at all, the intake's "a page for each series" promise is still kept: empty
+	 * series pages get a rights-cleared sample head start. */
+	const closeWorkbenchSession = () => {
+		const report =
+			(doc?.galleries[WORKBENCH_FOLDER]?.length ?? 0) === 0
+				? editor.buildPagesFromWorkbench(intakeStarterId)
+				: null;
+		setWorkbenchIntro(false);
+		setWorkbenchOpen(false);
+		if (report?.sampled.length) {
+			setBuildOffer(false);
+			navigate('home');
+			openBuildGuide(report);
+		}
 	};
 
 	const portfolio = (
@@ -715,6 +775,10 @@ export default function PreviewPanel({
 							aria-label="Close the workbench"
 							title="Close"
 							onClick={() => {
+								if (buildOffer) {
+									closeWorkbenchSession();
+									return;
+								}
 								setWorkbenchOpen(false);
 								setWorkbenchIntro(false);
 							}}
@@ -762,15 +826,34 @@ export default function PreviewPanel({
 					<div className="floating-panel-body">
 						<AssetWorkbench chrome="floating" />
 					</div>
-					{workbenchIntro && (
-						<footer className="floating-panel-guide-foot">
-							<button
-								type="button"
-								className="btn-primary"
-								onClick={() => setWorkbenchIntro(false)}
-							>
-								Done sorting — start hanging
-							</button>
+					{buildOffer && (
+						<footer className="floating-panel-guide-foot workbench-build-foot">
+							<p className="workbench-build-hint">
+								A head start, not a deadline — you can add or re-sort photos
+								any time after your pages are built.
+							</p>
+							<div className="workbench-build-actions">
+								<button
+									type="button"
+									className="btn-ghost"
+									onClick={closeWorkbenchSession}
+								>
+									Done for now
+								</button>
+								<button
+									type="button"
+									className="btn-primary"
+									disabled={!buildReady}
+									title={
+										buildReady
+											? 'Hang each folder on its page — Selected works fills the home page'
+											: 'Sort at least one photo into a folder first'
+									}
+									onClick={runWorkbenchBuild}
+								>
+									OK — build my pages
+								</button>
+							</div>
 						</footer>
 					)}
 				</div>
@@ -780,6 +863,95 @@ export default function PreviewPanel({
 					src={withBase(base, 'assets/demo/crop-light-sample.jpg')}
 					onClose={closeCropDemo}
 				/>
+			)}
+			{buildGuide && !fullscreen && (
+				<>
+					<div
+						className="floating-panel-backdrop"
+						aria-hidden="true"
+						onClick={() => setBuildGuide(null)}
+					/>
+					<div
+						className="floating-panel workbench-build-guide"
+						role="dialog"
+						aria-label="Your first pages are hung"
+					>
+						<header className="floating-panel-head">
+							<strong>
+								<PanelIcon type="workbench" />
+								Your first pages are hung
+							</strong>
+							<button
+								type="button"
+								className="pv-icon-button"
+								aria-label="Close this guide"
+								title="Close"
+								onClick={() => setBuildGuide(null)}
+							>
+								<PanelIcon type="close" />
+							</button>
+						</header>
+						<div className="floating-panel-body workbench-build-guide-body">
+							{buildGuide.report.built.length > 0 && (
+								<p>
+									Your photos are on their pages:{' '}
+									{buildGuide.report.built
+										.map((item) => `${item.pageLabel} (${item.count})`)
+										.join(', ')}
+									.
+								</p>
+							)}
+							{buildGuide.report.sampled.length > 0 && (
+								<p>
+									No photos yet, so{' '}
+									{buildGuide.report.sampled.map((item) => item.pageLabel).join(', ')}{' '}
+									{buildGuide.report.sampled.length === 1 ? 'shows' : 'show'} labeled
+									sample works for now — rehang them with your own whenever you're
+									ready.
+								</p>
+							)}
+							{buildGuide.report.skipped.length > 0 && (
+								<p>
+									Left untouched (already holding images):{' '}
+									{buildGuide.report.skipped.map((item) => item.pageLabel).join(', ')}.
+								</p>
+							)}
+							{buildGuide.tour && (
+								<ul className="workbench-build-moves">
+									<li>
+										<strong>Add images</strong> — drop photos onto any page, or open
+										the image workbench from the preview toolbar.
+									</li>
+									<li>
+										<strong>Arrange the wall</strong> — drag and resize pieces right
+										on the page.
+									</li>
+									<li>
+										<strong>Pages</strong> — the Pages tab lists every page; open one
+										to edit it.
+									</li>
+									<li>
+										<strong>Publish</strong> — the Publish tab puts your site at its
+										own address when you're ready.
+									</li>
+								</ul>
+							)}
+							<p className="workbench-build-hint">
+								This build was a head start, not a deadline — add or re-sort photos
+								any time, and every page stays yours to rehang.
+							</p>
+						</div>
+						<footer className="floating-panel-guide-foot">
+							<button
+								type="button"
+								className="btn-primary"
+								onClick={() => setBuildGuide(null)}
+							>
+								Start hanging
+							</button>
+						</footer>
+					</div>
+				</>
 			)}
 			{workbenchPickFolder && !fullscreen && (
 				<div className="floating-panel floating-workbench" role="dialog" aria-label="Choose an image from the workbench">

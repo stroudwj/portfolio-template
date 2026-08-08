@@ -444,6 +444,31 @@ export function getStarterRecipe(id: StarterRecipe['id']): StarterRecipe | undef
 	return STARTER_RECIPES.find((recipe) => recipe.id === id);
 }
 
+/** Rights-cleared sample artwork suited to one discipline, for filling a series
+ * page the artist left empty. An unknown or blank starter ("a bit of
+ * everything") mixes the cleared catalogs round-robin so every discipline shows. */
+export function starterSampleFallbackIds(starterId?: string | null): string[] {
+	const recipeIds = (recipe: StarterRecipe): string[] => [
+		...new Set(
+			recipe.gallerySpecs.flatMap((spec) =>
+				spec.slots
+					.map((slot) => slot.sampleAssetId)
+					.filter(
+						(id): id is string =>
+							!!id && getSampleArtwork(id)?.status === 'active',
+					),
+			),
+		),
+	];
+	const known = AVAILABLE_STARTERS.find((recipe) => recipe.id === starterId);
+	if (known) return recipeIds(known);
+	const pools = AVAILABLE_STARTERS.map(recipeIds).filter((pool) => pool.length);
+	const mixed: string[] = [];
+	for (let index = 0; pools.some((pool) => index < pool.length); index += 1)
+		for (const pool of pools) if (index < pool.length) mixed.push(pool[index]);
+	return mixed;
+}
+
 export function detectDocumentTraits(doc: Pick<EditorDoc, 'content'>): RecipeTrait[] {
 	const traits = new Set<RecipeTrait>();
 	for (const page of Object.values(doc.content.pages)) {
