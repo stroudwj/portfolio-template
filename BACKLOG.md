@@ -135,3 +135,188 @@ hex halves) for the form's mailto fallback path: encode on save in the editor, d
 submit/click time, migrate existing plain values on draft load (no schema version bump if
 kept optional-with-fallback). Tests: published HTML for a site with a form block contains no
 raw address; old drafts with plain `recipientEmail` still work.
+
+---
+
+> **Sequencing for specs 8–11:** 8 and 9 are independent — run them in parallel worktrees.
+> 10 must merge before 11 starts (11 consumes 10's "Selected works" concept). Template
+> catalog production (the Squarespace batch) is separate from all four and can happen any
+> time after 11's registry lands. New sample images for the catalog sit in
+> `public/assets/starters/new-starters-aug-8/` (photography/painting/drawing, public-domain
+> masters) — unusable until each gets a rights entry in `sample-artwork.ts`.
+
+## 8. Workbench Finder-parity — `queued`
+
+**Goal.** Make the asset workbench (`src/editor/components/AssetWorkbench.tsx`) feel like a
+real Finder window: an accurate list view, a compact list density with very skinny rows, and
+a right-click context menu (starting with "New folder").
+
+**Why.** The workbench is the sorting room for the guided first run; artists arriving with
+hundreds of phone photos need Finder muscle memory to work. Today the list view is a loose
+approximation and folder creation hides behind a toolbar button + `window.prompt`.
+
+**Verify first.** A `grid`/`list` view toggle already exists (`WorkbenchView`,
+~AssetWorkbench.tsx:457) — do not add a third toggle from scratch; extend what's there.
+Confirm there is currently no `onContextMenu` handler anywhere in the file (recon 2026-08-08
+found none) and that folder creation is `createFolder()` via `window.prompt`
+(~AssetWorkbench.tsx:151, backed by `createWorkbenchFolder` in `store.tsx`). Folders persist
+in the doc as `workbenchFolders` + per-asset `workbenchFolder` meta — reuse, don't re-model.
+
+**Files.** `src/editor/components/AssetWorkbench.tsx`, workbench styles in the editor CSS,
+`src/editor/store.tsx` only if a rename/delete-folder action is missing.
+
+**Requirements.**
+- List view rendered as true rows (thumbnail, filename, folder, kind/date if cheap), columns
+  aligned, matching Finder's list mode rather than a wrapped grid.
+- A compact density for the list: very skinny rows (small thumb or none), togglable — Finder's
+  "small icons" feel. Persisting the choice locally (localStorage) is fine; not in the doc.
+- Right-click on empty workbench space → context menu with "New folder" (inline-rename the
+  new folder rather than `window.prompt` if reasonable). Right-click on a selected item or
+  multi-selection → at minimum "Move to folder ▸" with the existing folder list.
+- Context menu must be keyboard-dismissable (Esc), positioned within the viewport, and styled
+  per DESIGN.md (no new colors, sentence case).
+- Selection semantics (click, shift-click, drag) must not regress — the file already has them.
+
+**Out of scope.** Column sorting, file renaming, nested folders, drag-out to Finder, any doc
+schema change.
+
+---
+
+## 9. Guided crop & light demo in the workbench — `queued`
+
+**Goal.** A short, skippable guided example in the workbench first-run: take one deliberately
+unprofessional-looking sample photo of an artwork and walk the user through cropping to a
+common aspect ratio and adjusting brightness/contrast until it looks gallery-ready.
+
+**Why.** The intake's finishing question (StartIntake.tsx step 4) already tells users the
+tools exist; nothing *shows* them. Phone shots straightened + leveled is the single biggest
+quality jump a new artist's site can make.
+
+**Verify first.** The crop and brightness/contrast tools ALREADY EXIST — non-destructive,
+following the cropZoom pipeline, reachable from every image's Edit. This spec is a guided
+demo of existing tools; build no new image-adjustment capability. Confirm how the intake's
+`finishing: boolean` answer currently flows into the editor (IntakeAnswers in
+`StartIntake.tsx`) and hook the demo's prominence to it: `finishing: true` users get the demo
+offered directly; others get a quiet "See how" link.
+
+**Files.** `src/editor/components/AssetWorkbench.tsx` (or a sibling demo component), the
+guided first-run wiring from the 2026-08-07 "guided first-run workbench" commit, one bundled
+demo image (a rights-cleared sample shot at an angle / bad light — check
+`public/assets/starters/new-starters-aug-8/` and `src/editor/lib/sample-artwork.ts` for a
+candidate first; if none suits, flag for William to produce one rather than shipping a
+polished photo that makes the demo pointless).
+
+**Requirements.**
+- 3–4 steps max: (1) here's a crooked, dim photo; (2) crop to a common ratio — offer the
+  standard set (1:1, 4:5, 3:4, 2:3) with one-line guidance on when each suits artwork;
+  (3) nudge brightness/contrast; (4) before/after moment.
+- Runs on the demo image, never on the user's own photos; user's assets untouched.
+- Skippable at every step; dismissing it forever is one click; never auto-reopens.
+- Ends by pointing at where the same tools live on their own images ("every image's Edit").
+- Copy per DESIGN.md voice; no new colors.
+
+**Out of scope.** New adjustment tools (rotation, levels curves, filters), auto-enhance,
+changes to the cropZoom pipeline itself.
+
+---
+
+## 10. Series folders → one-time page build on workbench exit — `queued`
+
+**Goal.** Connect the intake's series answers to the workbench and the page structure:
+series-named folders wait in the workbench; when the user finishes sorting and hits an
+"OK — build my pages" button, each folder's images are placed into an image group on the
+matching page, the Selected works folder fills the home page, and the connection is then
+over — a one-time build, not a live sync.
+
+**Why.** Today the intake promises "we'll hang a page for each" series, and the workbench
+has folders, but sorting into a folder doesn't put anything on a page — the two halves of
+the first run don't meet.
+
+**Verify first.** Establish exactly what the intake's `series` array currently does after
+`onComplete` (does it already create pages? empty or with sample content?) before building.
+Confirm `workbenchFolders` persist in the doc and how images copy from workbench to image
+groups (`store.tsx` has a copy/move action, ~line 684). Check what the workbench's current
+exit/done affordance is.
+
+**Design decision (settled — do not re-litigate): no stored routing.** No `sourceFolder`
+field on image groups, no schema change, no in-memory link table. The build is an EVENT:
+on "OK — build my pages", match folder names to series/page names, copy each folder's images
+into an image group on that page (creating the page if the intake didn't), Selected works →
+home page. Nothing records the source, so severing is automatic and later folder edits can
+never touch pages. Whether the build already ran is derived (target pages have content), not
+a flag. This avoids any runtime-manifest/migration ripple.
+
+**Files.** `src/editor/components/StartIntake.tsx` (series → folder creation on entry),
+`src/editor/components/AssetWorkbench.tsx` (Selected works folder, build button, post-build
+guide), `src/editor/store.tsx` (the build action, reusing the existing copy machinery).
+
+**Requirements.**
+- Entering the workbench from intake auto-creates: a **Selected works** folder (always
+  present, cannot be deleted or renamed — enforce in the folder UI) plus one folder per
+  series the user named. Users who named no series just get Selected works.
+- Persistent, calm hint text: photos can be added or re-sorted ANY time later — this build
+  is a head start, not a deadline. Must also be stated in the post-build guide.
+- "OK — build my pages" primary button, enabled once ≥1 image is sorted into any folder
+  (still exitable without building). On click: the one-time build above, then land on the
+  home page with the result visible.
+- Skip path: a user with zero photos can leave the workbench and still get their series
+  pages, populated with rights-cleared samples from `sample-artwork.ts` appropriate to their
+  discipline (the intake starter tells you which).
+- Empty folders build empty pages (page exists, no image group) — a place to come back to.
+- After the build, a one-screen quick guide of core editor functions (add images, arrange on
+  canvas, pages list, publish tab) — dismissable, never auto-reopens, DESIGN.md voice.
+- Running "build" twice must not duplicate: folders whose matching page already has content
+  are skipped (report, don't overwrite).
+- Tests: build action unit-tested at the store level (folder→page mapping, Selected works →
+  home, second run no-op, zero-photo sample fallback).
+
+**Out of scope.** Live folder↔page sync, moving/deleting page images when workbench folders
+change, nested folders, any doc schema change.
+
+---
+
+## 11. Discipline template picker + auto-placement — `queued` (infrastructure; template production is separate)
+
+**Goal.** After the workbench build (or straight away for already-organized users), offer a
+picker of modern landing-page templates filtered by the discipline chosen at intake —
+photography answers see photography-suited layouts first — and applying one re-hangs the
+user's Selected works into the template's image positions. Users with no photos get the same
+templates filled with rights-cleared samples.
+
+**Why.** The intake currently maps one discipline → one starter. The plan is ~5 modern
+looks per discipline (plus an "Other" set); most layouts are shared across disciplines with
+discipline-appropriate imagery swapped in.
+
+**Verify first.** Read the starter/template system before building: starters are JSON
+(`src/editor/lib/starters/*.content.json` + `theme-presets/*.json`), registry + rights
+validation in `lib/templates.ts`, serializer contract in `lib/template-studio.ts`
+(`docToTemplateContent` ⇄ `initDocFromContent`, locked by `tests/template-studio.test.ts`),
+authored via the dev-only `/template-studio`. Confirm how `StarterRecipe.discipline` is
+modeled and whether one starter can serve multiple disciplines today. Do NOT invent a second
+template format.
+
+**Files.** `src/editor/lib/templates.ts` (registry: discipline tags per starter, many-to-many),
+`src/editor/lib/starters/` (content JSON), a picker component (near `StartIntake.tsx` /
+`StartScreen.tsx`), placement logic in `store.tsx`.
+
+**Requirements.**
+- Registry supports one template serving several disciplines (tags, not a 1:1 field), plus an
+  "Other" bucket that always shows a full set.
+- Applying a template with own photos: the user's Selected works images replace the
+  template's sample image slots in order; overflow images append to the page's image group;
+  the user's name/text content is preserved — template supplies layout + theme, not identity.
+- Applying with no photos: template renders with its own `sample-artwork.ts` samples (the
+  existing sample-rights validation must pass).
+- Applying a template is undoable (single undo entry) and re-pickable — switching templates
+  re-flows the same works, not duplicates.
+- Prove the machinery with 2–3 templates per discipline built from existing starters —
+  the full catalog (~12 distinct layouts reused across disciplines, sourced from live
+  Squarespace demo-site URLs, not screenshots) is produced separately through the template
+  studio and is NOT part of this spec. Fresh imagery for that catalog is staged in
+  `public/assets/starters/new-starters-aug-8/` but has no `sample-artwork.ts` rights entries
+  yet — adding entries is part of catalog production, not this spec.
+- Tests: apply-with-photos placement order, apply-with-samples rights validation, re-apply
+  no-duplication.
+
+**Out of scope.** Producing the template catalog itself; per-template custom code; changing
+the starter JSON format; the runtime manifest (starter JSON is deliberately unhashed).
