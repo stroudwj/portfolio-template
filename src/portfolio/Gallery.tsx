@@ -1074,6 +1074,11 @@ export default function Gallery({
 									onClick={!editable && !href ? (e) => openLightbox(i, e.currentTarget) : undefined}
 									onKeyDown={!editable && !href ? (e) => openFromKeyboard(e, i) : undefined}
 								/>
+								{img.title && (
+									<span className="motion-caption" aria-hidden="true">
+										{img.title}
+									</span>
+								)}
 								{href && (
 									<a
 										className="artwork-link-overlay"
@@ -1144,6 +1149,11 @@ export default function Gallery({
 									onClick={href ? undefined : (e) => openLightbox(i, e.currentTarget)}
 									onKeyDown={href ? undefined : (e) => openFromKeyboard(e, i)}
 								/>
+								{img.title && (
+									<span className="motion-caption" aria-hidden="true">
+										{img.title}
+									</span>
+								)}
 								{href && (
 									<a
 										className="artwork-link-overlay"

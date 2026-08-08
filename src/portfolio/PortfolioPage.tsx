@@ -21,6 +21,7 @@ import ChildPages from './ChildPages';
 import Signature from './Signature';
 import Footer from './Footer';
 import SectionMotionRuntime from './SectionMotion';
+import { resolveSiteMotion, siteSectionMotion } from './siteMotion';
 import SectionResizeHandle, {
 	responsiveHeightVars,
 	type SectionBreakpoint,
@@ -603,6 +604,7 @@ export default function PortfolioPage({
 	];
 	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
 	const automaticContrast = content.theme.automaticTextContrast !== false;
+	const siteMotion = resolveSiteMotion(content.theme.motion);
 	const pagePartVars = (key: string, isFirst: boolean): CSSProperties => {
 		return {
 			'--phone-page-order': String(pageOrder.get(key) ?? pageOrder.size + (automaticPageOrder.get(key) ?? 0)),
@@ -1212,7 +1214,7 @@ export default function PortfolioPage({
 		<>
 			<SectionMotionRuntime
 				root={pageRoot}
-				signature={JSON.stringify(config.sectionMotion ?? {})}
+				signature={JSON.stringify([config.sectionMotion ?? {}, content.theme.motion ?? null])}
 			/>
 			<div
 				ref={setPageRoot}
@@ -1221,7 +1223,14 @@ export default function PortfolioPage({
 			>
 				{pageParts.map((part, partIndex) => {
 					const sectionColor = config.sectionColors?.[part.key];
-					const motion = config.sectionMotion?.[part.key];
+					// Hand-authored per-section motion wins; otherwise the site vocabulary
+					// applies. Shots sections choreograph their own scroll (sticky inside a
+					// transformed wrapper would break), so they never inherit site motion.
+					const motion =
+						config.sectionMotion?.[part.key] ??
+						(part.shotsLength === undefined
+							? siteSectionMotion(siteMotion, partIndex === 0)
+							: undefined);
 					const strength = Math.min(Math.max(motion?.intensity ?? 45, 1), 100);
 					const partStyle = {
 						...pagePartVars(part.key, partIndex === 0),

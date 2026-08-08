@@ -1,0 +1,139 @@
+/* Site-level motion vocabulary (theme.motion → siteMotion.ts root classes).
+   CSS-only primitives: gallery hover, hover captions, page-load stagger.
+   Scroll-reveal and hero parallax compile onto the per-section SectionMotion
+   attributes instead — see siteMotion.ts. Everything here decorates with
+   transform/opacity only, so layout never shifts when motion is off vs on. */
+
+.motion-site-subtle {
+	--motion-hover-zoom: 1.025;
+	--motion-stagger-drop: 12px;
+	--motion-stagger-overshoot: 0px;
+	--motion-stagger-duration: 480ms;
+}
+
+.motion-site-full {
+	--motion-hover-zoom: 1.045;
+	--motion-stagger-drop: 22px;
+	--motion-stagger-overshoot: 3px;
+	--motion-stagger-duration: 560ms;
+}
+
+/* Gallery hover: the piece scales up gently, like leaning closer to a work.
+   No overflow clipping, so it composes with hanging tilt and mount markers the
+   way artwork-hover-tilt does. A per-image artwork-hover-* choice wins. */
+.motion-site-hover :is(.masonry-item, .uniform-item):not([class*='artwork-hover-']) > img {
+	transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.motion-site-hover :is(.masonry-item, .uniform-item):not([class*='artwork-hover-']):hover > img {
+	transform: scale(var(--motion-hover-zoom, 1.03));
+}
+
+/* Hover captions: the title rises over the artwork under the pointer. The span
+   is always in the markup (Gallery.tsx renders it whenever a title exists) and
+   only this root class makes it visible, so the primitive is pure CSS. */
+.motion-caption {
+	display: none;
+}
+
+.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption {
+	display: block;
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 2;
+	padding: 26px 14px 12px;
+	background: linear-gradient(transparent, rgba(17, 17, 17, 0.62));
+	color: #f5f5f2;
+	font-size: 13px;
+	line-height: 1.4;
+	opacity: 0;
+	transform: translateY(6px);
+	transition:
+		opacity 320ms ease,
+		transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+	pointer-events: none;
+}
+
+.motion-site-captions :is(.masonry-item, .uniform-item):hover > .motion-caption {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* Page-load stagger: images hang onto the wall in sequence — the wall-drop
+   settle, per piece. Runs once per page load (CSS animation on mount), which the
+   editor preview replays on page changes exactly like a published navigation.
+   Per-image artwork-reveal-* choices win; the Fun tab's slow reveal already
+   staggers the same targets, so this yields to it rather than double-animating. */
+@keyframes motion-stagger-hang {
+	0% {
+		opacity: 0;
+		transform: translateY(calc(-1 * var(--motion-stagger-drop, 16px)));
+	}
+	72% {
+		opacity: 1;
+		transform: translateY(var(--motion-stagger-overshoot, 0px));
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.motion-site-stagger:not(.creative-slow-reveal)
+	:is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)):not(
+		[class*='artwork-reveal-']
+	) {
+	animation: motion-stagger-hang var(--motion-stagger-duration, 520ms)
+		cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(2) {
+	animation-delay: 70ms;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(3) {
+	animation-delay: 140ms;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(4) {
+	animation-delay: 210ms;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(5) {
+	animation-delay: 280ms;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(6) {
+	animation-delay: 350ms;
+}
+
+.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item):nth-child(n + 7) {
+	animation-delay: 420ms;
+}
+
+/* A hand-authored sequence section choreographs its own items on scroll entry;
+   the load stagger stays out of its way. */
+.motion-site-stagger [data-motion-effect='sequence'] :is(.masonry-item, .uniform-item, .canvas-item) {
+	animation: none;
+}
+
+/* Reduced motion forces every primitive off, always, no override. Hover captions
+   keep working (they carry information) but appear without any transition. */
+@media (prefers-reduced-motion: reduce) {
+	.motion-site-stagger :is(.masonry-item, .uniform-item, .canvas-item) {
+		animation: none;
+	}
+
+	.motion-site-hover :is(.masonry-item, .uniform-item) > img,
+	.motion-site-hover :is(.masonry-item, .uniform-item):hover > img {
+		transform: none;
+		transition: none;
+	}
+
+	.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption {
+		transition: none;
+		transform: none;
+	}
+}

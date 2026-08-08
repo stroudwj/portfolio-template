@@ -5,6 +5,8 @@ import CreativeEffects from './CreativeEffects';
 import { useEffect, useRef, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
+import { resolveSiteMotion, siteMotionRootClass } from './siteMotion';
+import './SiteMotion.css';
 import type { ImageLayout, PortfolioData, TextFlowLayout, TextLayout } from './types';
 import type { CanvasLayoutUpdates, CanvasSelection } from './types';
 import { withBase } from './types';
@@ -91,6 +93,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 		'--hang-strength': String(pageHangingStrength ?? content.site.creative?.hangStrength ?? 0.75),
 	} as CSSProperties;
 	const creativeClasses = [
+		siteMotionRootClass(resolveSiteMotion(content.theme.motion)),
 		(pageHanging ?? content.site.creative?.looseHang) && 'creative-loose-hang',
 		content.theme.backgroundTexture && `texture-${content.theme.backgroundTexture}`,
 		content.site.creative?.slowReveal && 'creative-slow-reveal',

@@ -1,6 +1,7 @@
-// Optional site-wide visual effects in Design. Everything here
-// writes content.site.creative, rendered by portfolio/CreativeEffects in the
-// preview and on the published site.
+// Optional site-wide visual effects in Design. Almost everything here writes
+// content.site.creative, rendered by portfolio/CreativeEffects in the preview
+// and on the published site; the Site motion dial writes content.theme.motion,
+// the template-presettable motion vocabulary (portfolio/siteMotion.ts).
 import { useState } from 'react';
 import { useEditor } from '../store';
 import { getAssetPreviewUrl } from '../lib/assets';
@@ -12,6 +13,7 @@ import type {
 	CreativeTrail,
 	FilmTexturePreset,
 	PageTransition,
+	SiteMotionIntensity,
 } from '../../lib/content';
 
 /** Preset cursors — artist-flavored, one click each. */
@@ -36,6 +38,12 @@ const FILM_PRESETS: Array<{ value: FilmTexturePreset | ''; label: string }> = [
 	{ value: 'fine-grain', label: 'Fine grain' },
 	{ value: 'dust', label: 'Dust' },
 	{ value: 'projector', label: 'Projector' },
+];
+
+const SITE_MOTION: Array<{ value: SiteMotionIntensity; label: string }> = [
+	{ value: 'off', label: 'Off' },
+	{ value: 'subtle', label: 'Subtle' },
+	{ value: 'full', label: 'Full' },
 ];
 
 const PAGE_TRANSITIONS: Array<{ value: PageTransition | ''; label: string }> = [
@@ -84,7 +92,7 @@ function OnOff({
 }
 
 export default function CreativeEditor() {
-	const { doc, setCreative, setCursorImage, removeCursorImage } = useEditor();
+	const { doc, setCreative, setTheme, setCursorImage, removeCursorImage } = useEditor();
 	const [area, setArea] = useState<EffectArea>('surface');
 	if (!doc) return null;
 	const creative = doc.content.site.creative ?? {};
@@ -274,6 +282,35 @@ export default function CreativeEditor() {
 
 			{area === 'motion' && (
 				<>
+				<Field label="Site motion">
+				<div className="chip-row" role="group" aria-label="Site motion">
+					{SITE_MOTION.map((level) => (
+						<button
+							key={level.value}
+							type="button"
+							className={`btn-icon btn-chip ${(doc.content.theme.motion?.intensity ?? 'off') === level.value ? 'active' : ''}`}
+							onClick={() =>
+								setTheme({
+									// Only the dial moves. A template's choice of active
+									// primitives survives turning motion off and back on.
+									motion:
+										level.value === 'off' && !doc.content.theme.motion
+											? undefined
+											: { ...doc.content.theme.motion, intensity: level.value },
+								})
+							}
+						>
+							{level.label}
+						</button>
+					))}
+				</div>
+				<small className="scope-summary">
+					One motion feel for the whole site: sections rise into view, images hang in
+					sequence, galleries respond on hover. Visitors who prefer reduced motion see
+					none of it.
+				</small>
+			</Field>
+
 				<Field label="Page transitions">
 				<div className="chip-row" role="group" aria-label="Page transition">
 					{PAGE_TRANSITIONS.map((transition) => (
