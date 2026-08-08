@@ -1,5 +1,6 @@
 import {
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -7,9 +8,11 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
 	type PointerEvent as ReactPointerEvent,
+	type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditor } from '../store';
-import { getAssetPreviewUrl } from '../lib/assets';
+import { getAssetFileInfo, getAssetPreviewUrl } from '../lib/assets';
 import {
 	imageGroupTargets,
 	readImageTransfer,
@@ -26,13 +29,178 @@ import {
 import { compressImage } from '../lib/compressImage';
 import { isImageFile, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from '../lib/validation';
 
-type WorkbenchView = 'grid' | 'list';
+type WorkbenchView = 'grid' | 'list' | 'compact';
 type Marquee = {
 	startX: number;
 	startY: number;
 	currentX: number;
 	currentY: number;
 };
+type MenuState = { x: number; y: number; kind: 'canvas' | 'items' };
+type FolderDraft = { name: string; assign: boolean };
+
+const VIEW_STORE = 'portfolio-editor.workbench-view';
+
+function loadView(): WorkbenchView {
+	if (typeof localStorage === 'undefined') return 'grid';
+	const saved = localStorage.getItem(VIEW_STORE);
+	return saved === 'list' || saved === 'compact' ? saved : 'grid';
+}
+
+function formatSize(bytes: number): string {
+	if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
+	return `${Math.max(1, Math.round(bytes / 1e3))} KB`;
+}
+
+/** Right-click menu: fixed and portaled out to the editor root — the floating
+ * panel is transformed (which would re-anchor position:fixed), but the target
+ * must stay inside `.editor` because the design tokens are scoped to it.
+ * Clamped to the viewport, Esc-dismissable. */
+function ContextMenu({
+	x,
+	y,
+	label,
+	host,
+	onClose,
+	children,
+}: {
+	x: number;
+	y: number;
+	label: string;
+	host: HTMLElement;
+	onClose: () => void;
+	children: ReactNode;
+}) {
+	const ref = useRef<HTMLDivElement>(null);
+	const [position, setPosition] = useState({ left: x, top: y });
+	useLayoutEffect(() => {
+		const node = ref.current;
+		if (!node) return;
+		const pad = 8;
+		setPosition({
+			left: Math.max(pad, Math.min(x, window.innerWidth - node.offsetWidth - pad)),
+			top: Math.max(pad, Math.min(y, window.innerHeight - node.offsetHeight - pad)),
+		});
+	}, [x, y]);
+	useEffect(() => {
+		ref.current?.focus();
+	}, []);
+	useEffect(() => {
+		const closeOnOutsidePress = (event: PointerEvent) => {
+			if (!ref.current?.contains(event.target as Node)) onClose();
+		};
+		const close = () => onClose();
+		const closeOnScroll = (event: Event) => {
+			if (ref.current?.contains(event.target as Node)) return;
+			onClose();
+		};
+		window.addEventListener('pointerdown', closeOnOutsidePress);
+		window.addEventListener('resize', close);
+		window.addEventListener('scroll', closeOnScroll, true);
+		return () => {
+			window.removeEventListener('pointerdown', closeOnOutsidePress);
+			window.removeEventListener('resize', close);
+			window.removeEventListener('scroll', closeOnScroll, true);
+		};
+	}, [onClose]);
+	const moveFocus = (delta: number) => {
+		const items = [
+			...(ref.current?.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]') ?? []),
+		].filter((item) => !item.disabled && item.offsetParent !== null);
+		if (!items.length) return;
+		const index = items.indexOf(document.activeElement as HTMLButtonElement);
+		items[(index + delta + items.length) % items.length].focus();
+	};
+	return createPortal(
+		<div
+			ref={ref}
+			className="workbench-menu"
+			role="menu"
+			aria-label={label}
+			tabIndex={-1}
+			style={{ left: position.left, top: position.top }}
+			onContextMenu={(event) => event.preventDefault()}
+			onKeyDown={(event) => {
+				if (event.key === 'Escape') {
+					event.preventDefault();
+					event.stopPropagation();
+					onClose();
+				} else if (event.key === 'ArrowDown') {
+					event.preventDefault();
+					moveFocus(1);
+				} else if (event.key === 'ArrowUp') {
+					event.preventDefault();
+					moveFocus(-1);
+				}
+			}}
+		>
+			{children}
+		</div>,
+		host,
+	);
+}
+
+/** "Move to ▸" style submenu; opens on hover or ArrowRight, flips when the
+ * viewport edge is close. */
+function SubMenu({ label, children }: { label: string; children: ReactNode }) {
+	const wrapRef = useRef<HTMLDivElement>(null);
+	const [open, setOpen] = useState(false);
+	const [flip, setFlip] = useState(false);
+	useLayoutEffect(() => {
+		if (!open) return;
+		const panel = wrapRef.current?.querySelector<HTMLElement>('.workbench-menu-sub');
+		if (!panel) return;
+		setFlip(panel.getBoundingClientRect().right > window.innerWidth - 8);
+	}, [open]);
+	return (
+		<div
+			ref={wrapRef}
+			className="workbench-menu-subwrap"
+			onMouseEnter={() => setOpen(true)}
+			onMouseLeave={() => setOpen(false)}
+		>
+			<button
+				type="button"
+				role="menuitem"
+				aria-haspopup="menu"
+				aria-expanded={open}
+				onClick={() => setOpen((value) => !value)}
+				onKeyDown={(event) => {
+					if (event.key !== 'ArrowRight' && event.key !== 'Enter') return;
+					event.preventDefault();
+					event.stopPropagation();
+					setOpen(true);
+					requestAnimationFrame(() =>
+						wrapRef.current
+							?.querySelector<HTMLButtonElement>('.workbench-menu-sub button')
+							?.focus(),
+					);
+				}}
+			>
+				<span>{label}</span>
+				<span className="workbench-menu-arrow" aria-hidden="true">
+					▸
+				</span>
+			</button>
+			{open && (
+				<div
+					className={`workbench-menu-sub${flip ? ' flip' : ''}`}
+					role="menu"
+					aria-label={label}
+					onKeyDown={(event) => {
+						if (event.key !== 'ArrowLeft') return;
+						event.preventDefault();
+						event.stopPropagation();
+						setOpen(false);
+						wrapRef.current?.querySelector('button')?.focus();
+					}}
+				>
+					{children}
+				</div>
+			)}
+		</div>
+	);
+}
 
 function PhotoAddIcon() {
 	return (
@@ -68,8 +236,10 @@ export default function AssetWorkbench({
 		transferGalleryImage,
 		updateGalleryMeta,
 	} = useEditor();
-	const [view, setView] = useState<WorkbenchView>('grid');
+	const [view, setView] = useState<WorkbenchView>(loadView);
 	const [folder, setFolder] = useState<string | null>(null);
+	const [menu, setMenu] = useState<MenuState | null>(null);
+	const [folderDraft, setFolderDraft] = useState<FolderDraft | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [expanded, setExpanded] = useState(false);
 	const [minimized, setMinimized] = useState(false);
@@ -81,6 +251,7 @@ export default function AssetWorkbench({
 	const [dropStatus, setDropStatus] = useState<string | null>(null);
 	const [focusedId, setFocusedId] = useState<string | null>(null);
 	const gridRef = useRef<HTMLDivElement>(null);
+	const folderDraftRef = useRef<HTMLInputElement>(null);
 	const marqueeBase = useRef<Set<string>>(new Set());
 	const marqueeRef = useRef<Marquee | null>(null);
 	const selectionAnchor = useRef<string | null>(null);
@@ -131,6 +302,11 @@ export default function AssetWorkbench({
 		document.body.classList.add('workbench-window-open');
 		return () => document.body.classList.remove('workbench-window-open');
 	}, [sectionCollapsed, windowClosed]);
+	useEffect(() => {
+		if (!folderDraft) return;
+		folderDraftRef.current?.focus();
+		folderDraftRef.current?.select();
+	}, [!!folderDraft]);
 	if (!doc) return null;
 	const targets = imageGroupTargets(doc);
 
@@ -148,13 +324,38 @@ export default function AssetWorkbench({
 			updateGalleryMeta(WORKBENCH_FOLDER, entry.id, { workbenchFolder: nextFolder });
 		setFolder(nextFolder ?? '');
 	};
-	const createFolder = () => {
-		const name = window.prompt('Name this folder');
-		const clean = name?.trim().slice(0, 80);
+	const changeView = (next: WorkbenchView) => {
+		setView(next);
+		if (typeof localStorage !== 'undefined') localStorage.setItem(VIEW_STORE, next);
+	};
+	/** Opens the inline naming row in the folder sidebar (Finder-style, no prompt).
+	 * `assign` moves the current selection into the folder once it's named. */
+	const startFolderDraft = (assign: boolean) => {
+		const base = 'Untitled folder';
+		let name = base;
+		for (let n = 2; folders.includes(name); n += 1) name = `${base} ${n}`;
+		setFolderDraft({ name, assign });
+	};
+	const commitFolderDraft = () => {
+		const draft = folderDraft;
+		if (!draft) return;
+		setFolderDraft(null);
+		const clean = draft.name.trim().slice(0, 80);
 		if (!clean) return;
 		createWorkbenchFolder(clean);
-		if (selectedEntries.length) assignFolder(clean);
+		if (draft.assign && selectedEntries.length) assignFolder(clean);
 		else setFolder(clean);
+	};
+	const closeMenu = () => {
+		setMenu(null);
+		gridRef.current?.focus({ preventScroll: true });
+	};
+	const openContextMenu = (event: ReactMouseEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		const card = (event.target as HTMLElement).closest<HTMLElement>('[data-workbench-id]');
+		const id = card?.dataset.workbenchId;
+		if (id && !selected.has(id)) selectCard(id, {});
+		setMenu({ x: event.clientX, y: event.clientY, kind: id ? 'items' : 'canvas' });
 	};
 	const copySelected = (targetFolder: string) => {
 		for (const entry of selectedEntries)
@@ -459,7 +660,7 @@ export default function AssetWorkbench({
 									type="button"
 									className={view === 'grid' ? 'active' : ''}
 									aria-pressed={view === 'grid'}
-									onClick={() => setView('grid')}
+									onClick={() => changeView('grid')}
 									title="Icon view"
 								>
 									▦
@@ -468,10 +669,19 @@ export default function AssetWorkbench({
 									type="button"
 									className={view === 'list' ? 'active' : ''}
 									aria-pressed={view === 'list'}
-									onClick={() => setView('list')}
+									onClick={() => changeView('list')}
 									title="List view"
 								>
 									☷
+								</button>
+								<button
+									type="button"
+									className={view === 'compact' ? 'active' : ''}
+									aria-pressed={view === 'compact'}
+									onClick={() => changeView('compact')}
+									title="Compact list"
+								>
+									≡
 								</button>
 							</div>
 						</div>
@@ -526,8 +736,33 @@ export default function AssetWorkbench({
 									</small>
 								</button>
 							))}
+							{folderDraft && (
+								<div className="workbench-folder-draft">
+									<span aria-hidden="true">▰</span>
+									<input
+										ref={folderDraftRef}
+										value={folderDraft.name}
+										aria-label="New folder name"
+										maxLength={80}
+										onChange={(event) =>
+											setFolderDraft({ ...folderDraft, name: event.target.value })
+										}
+										onKeyDown={(event) => {
+											if (event.key === 'Enter') {
+												event.preventDefault();
+												commitFolderDraft();
+											} else if (event.key === 'Escape') {
+												event.preventDefault();
+												event.stopPropagation();
+												setFolderDraft(null);
+											}
+										}}
+										onBlur={commitFolderDraft}
+									/>
+								</div>
+							)}
 						</nav>
-						<div className="workbench-contents">
+						<div className="workbench-contents" data-view={view}>
 							<div className="workbench-select-row">
 								<label>
 									<input
@@ -551,14 +786,23 @@ export default function AssetWorkbench({
 							<small className="workbench-selection-hint">
 								Shift selects a range. Command/Ctrl adds one item. Drag selected photos onto a folder.
 							</small>
+							{view !== 'grid' && visible.length > 0 && (
+								<div className="workbench-list-head" aria-hidden="true">
+									<span className="wb-head-name">Name</span>
+									<span className="wb-col-folder">Folder</span>
+									<span className="wb-col-kind">Kind</span>
+									<span className="wb-col-size">Size</span>
+								</div>
+							)}
 							<div
 								ref={gridRef}
-								className={`workbench-grid workbench-${view}${gridDropOver ? ' drop-over' : ''}${!visible.length ? ' is-empty' : ''}`}
+								className={`workbench-grid ${view === 'grid' ? 'workbench-icons' : 'workbench-list'}${view === 'compact' ? ' workbench-compact' : ''}${gridDropOver ? ' drop-over' : ''}${!visible.length ? ' is-empty' : ''}`}
 								aria-label="Workbench images"
 								role="listbox"
 								aria-multiselectable="true"
 								tabIndex={0}
 								onKeyDown={handleGridKeyDown}
+								onContextMenu={openContextMenu}
 								onPointerDown={beginMarquee}
 								onPointerMove={moveMarquee}
 								onPointerUp={endMarquee}
@@ -603,6 +847,7 @@ export default function AssetWorkbench({
 								{visible.map((entry, index) => {
 									const name =
 										entry.meta.title || entry.filename || `Image ${index + 1}`;
+									const info = view !== 'grid' ? getAssetFileInfo(entry.assetId) : undefined;
 									return (
 										<label
 											className={`workbench-card ${selected.has(entry.id) ? 'selected' : ''}`}
@@ -658,8 +903,20 @@ export default function AssetWorkbench({
 												title="Drag into a folder or image group"
 											/>
 											<span title={name}>{name}</span>
-											{entry.meta.workbenchFolder && (
-												<small>{entry.meta.workbenchFolder}</small>
+											{view === 'grid' ? (
+												entry.meta.workbenchFolder && (
+													<small>{entry.meta.workbenchFolder}</small>
+												)
+											) : (
+												<>
+													<span className="wb-col-folder">
+														{entry.meta.workbenchFolder?.trim() ?? ''}
+													</span>
+													<span className="wb-col-kind">{info?.kind ?? ''}</span>
+													<span className="wb-col-size">
+														{info ? formatSize(info.sizeBytes) : ''}
+													</span>
+												</>
 											)}
 										</label>
 									);
@@ -689,7 +946,7 @@ export default function AssetWorkbench({
 						<button
 							type="button"
 							className="btn-secondary"
-							onClick={createFolder}
+							onClick={() => startFolderDraft(true)}
 							title={selected.size ? 'Put the selected photos in a new folder' : 'Create an empty folder'}
 						>
 							＋ Folder
@@ -741,6 +998,79 @@ export default function AssetWorkbench({
 						</button>
 					</div>}
 				</div>
+			)}
+			{menu && (
+				<ContextMenu
+					x={menu.x}
+					y={menu.y}
+					label={menu.kind === 'items' ? 'Photo actions' : 'Workbench actions'}
+					host={gridRef.current?.closest<HTMLElement>('.editor') ?? document.body}
+					onClose={closeMenu}
+				>
+					{menu.kind === 'canvas' ? (
+						<button
+							type="button"
+							role="menuitem"
+							onClick={() => {
+								closeMenu();
+								startFolderDraft(false);
+							}}
+						>
+							New folder
+						</button>
+					) : (
+						<>
+							<SubMenu label="Move to folder">
+								<button
+									type="button"
+									role="menuitem"
+									onClick={() => {
+										assignFolder(undefined);
+										closeMenu();
+									}}
+								>
+									Unfiled
+								</button>
+								{folders.map((name) => (
+									<button
+										type="button"
+										role="menuitem"
+										key={name}
+										onClick={() => {
+											assignFolder(name);
+											closeMenu();
+										}}
+									>
+										{name}
+									</button>
+								))}
+								<hr />
+								<button
+									type="button"
+									role="menuitem"
+									onClick={() => {
+										closeMenu();
+										startFolderDraft(true);
+									}}
+								>
+									New folder…
+								</button>
+							</SubMenu>
+							<hr />
+							<button
+								type="button"
+								role="menuitem"
+								className="danger"
+								onClick={() => {
+									closeMenu();
+									deleteSelected();
+								}}
+							>
+								Move to trash
+							</button>
+						</>
+					)}
+				</ContextMenu>
 			)}
 		</>
 	);

@@ -161,3 +161,26 @@ export function getAssetPreviewUrl(id?: string | null): string | undefined {
 export function getAssetBlob(id?: string | null): Blob | undefined {
 	return id ? registry.get(id)?.blob : undefined;
 }
+
+const KIND_LABELS: Record<string, string> = {
+	'image/jpeg': 'JPEG',
+	'image/png': 'PNG',
+	'image/webp': 'WebP',
+	'image/gif': 'GIF',
+	'image/svg+xml': 'SVG',
+	'image/avif': 'AVIF',
+	'image/heic': 'HEIC',
+};
+
+/** Type + size for the workbench's list columns (cheap registry lookup). */
+export function getAssetFileInfo(
+	id?: string | null,
+): { kind: string; sizeBytes: number } | undefined {
+	const record = id ? registry.get(id) : undefined;
+	if (!record) return undefined;
+	const mime = record.blob.type.toLowerCase();
+	const kind =
+		KIND_LABELS[mime] ??
+		(mime.startsWith('image/') ? mime.slice('image/'.length).toUpperCase() : 'Image');
+	return { kind, sizeBytes: record.blob.size };
+}
