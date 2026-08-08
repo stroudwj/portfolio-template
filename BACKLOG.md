@@ -310,9 +310,11 @@ template format.
 - Applying a template is undoable (single undo entry) and re-pickable — switching templates
   re-flows the same works, not duplicates.
 - Prove the machinery with 2–3 templates per discipline built from existing starters —
-  the full catalog (~12 distinct layouts reused across disciplines, sourced from live
-  Squarespace demo-site URLs, not screenshots) is produced separately through the template
-  studio and is NOT part of this spec. Fresh imagery for that catalog is staged in
+  but treat those as throwaway placeholders, not the product. The real catalog (~15 distinct
+  modern layouts translated from live Squarespace demo-site URLs, not screenshots, reused
+  across disciplines) is produced separately through the template studio immediately after
+  this spec and REPLACES the existing starters in the picker. Shape the registry for that:
+  adding/retiring templates must be pure JSON + registry data, no code changes. Fresh imagery for that catalog is staged in
   `public/assets/starters/new-starters-aug-8/` but has no `sample-artwork.ts` rights entries
   yet — adding entries is part of catalog production, not this spec.
 - Tests: apply-with-photos placement order, apply-with-samples rights validation, re-apply
@@ -320,3 +322,136 @@ template format.
 
 **Out of scope.** Producing the template catalog itself; per-template custom code; changing
 the starter JSON format; the runtime manifest (starter JSON is deliberately unhashed).
+
+---
+
+## 12. Motion primitives + template motion vocabulary — `queued`
+
+**Goal.** A small set of reusable motion primitives in the portfolio renderer, declared per
+site in the doc's theme (navStyle precedent) so starter templates can each carry their own
+motion feel, plus one site-level dial in the Design panel: Off / Subtle / Full.
+
+**Why.** The template catalog (SOURCES.md in `src/editor/lib/starters/`) is being translated
+from Squarespace portfolio designs whose "premium feel" is mostly light motion — scroll
+reveals, hover states, slow heroes. Without a shared vocabulary, motion would become
+per-template code and break the templates-are-pure-JSON architecture.
+
+**Verify first.** A Motion section already exists in DESIGN.md and motion already ships on
+the product site (hero frame sway, wall-drop, hang-tight) — read it and match its taste and
+its reduced-motion discipline; do not invent a second motion aesthetic. Check what
+transition/animation the portfolio renderer (`src/portfolio/`) already has (lightbox,
+canvas) before adding. Confirm how theme fields like `navStyle` flow doc → renderer →
+staticgen and follow the identical path.
+
+**Files.** `src/portfolio/` (primitives, CSS-first), `src/editor/lib/doc-schema.ts`
+(optional theme fields with defaults, no version bump), Design panel component (the dial),
+`src/editor/lib/staticgen/` (published output), starter JSON schema in `lib/templates.ts`
+(templates declare their motion), migration/round-trip tests beside existing ones.
+
+**Requirements.**
+- Primitives (≤5, CSS-driven where possible): scroll-reveal (fade/rise on viewport entry),
+  gallery hover treatment (subtle zoom + optional caption reveal), parallax-lite hero
+  (background at reduced scroll rate), page-load stagger (images hang in sequence — align
+  with the existing wall-drop metaphor). Nothing else in v1.
+- Declared in theme as optional fields with a site-level intensity: `off | subtle | full`;
+  template JSON can preset both the intensity and which primitives are active.
+- `prefers-reduced-motion` forces everything off, always, no override.
+- Works identically in editor preview and published static sites; no layout shift when off
+  vs on (motion decorates, never repositions).
+- Design panel: one compact "Motion" control (Off / Subtle / Full), DESIGN.md styling.
+- Old drafts without the fields parse and render exactly as today (default = current
+  behavior); round-trip + migration tests.
+
+**Out of scope.** Per-section/per-image overrides (spec 13), carousels/sliders,
+scroll-jacking, page transitions, any motion-authoring UI, JS animation libraries.
+
+---
+
+## 13. Per-element motion tools — `queued` (after 12; independent of catalog)
+
+**Goal.** Let users vary motion below the site level: per-section/per-gallery scroll-reveal
+on or off, and per-image hover treatment choice — surfaced inside the existing section
+settings and image Edit panels, never a new top-level panel.
+
+**Why.** Spec 12 gives every site one motion feel. Artists will want exceptions — a
+restrained archive page under a lively landing, one hero image that shouldn't zoom on
+hover. Exceptions are picks from the same vocabulary, not new animation.
+
+**Verify first.** Spec 12 must be merged; build strictly on its primitives and theme
+fields — if a control here would need a new primitive, stop and flag it. Look at how
+per-section options (color blocking) and per-image options (crop & light in Edit) are
+surfaced today and extend those exact surfaces.
+
+**Files.** `src/editor/lib/doc-schema.ts` (optional per-section/per-image fields,
+defaults = "inherit from site"), the section settings + image Edit components,
+`src/portfolio/` (respect overrides), staticgen, tests.
+
+**Requirements.**
+- Every control is a small picker over spec 12's primitives plus "Inherit" (the default) —
+  inherit resolves template/site setting so applying a new template still re-themes motion
+  sitewide unless the user explicitly overrode a spot.
+- Per section/gallery: scroll-reveal on/off/inherit. Per image: hover treatment
+  none/zoom/caption/inherit. Nothing per-image about entrances or timing.
+- Site dial at Off still wins everywhere; reduced-motion still wins over everything.
+- Old drafts parse unchanged; overrides survive template switching (they attach to the
+  user's content, not the template); round-trip tests.
+
+**Out of scope.** Keyframes, timing/easing controls, per-image entrance choreography,
+motion preview scrubbing, any new primitive.
+
+---
+
+## 14. Template catalog production — the 42 → ~15 starters — `queued` (after 11 + 12; multi-session)
+
+**Goal.** Translate the curated Squarespace portfolio designs in
+`src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork
+starter templates that fill spec 11's picker — 5 slots × (painting, photography, drawing,
+sculpture, Other), layouts reused across disciplines with discipline-appropriate imagery.
+These REPLACE the current starters as the picker's content.
+
+**Why.** The existing starters are the product's weakest surface; new users judge Hangwork
+against exactly these Squarespace designs.
+
+**Prerequisites.** Spec 11 merged (registry + picker + placement). Spec 12 merged
+(templates declare motion). Not before.
+
+**Verify first.** Read the template studio contract before authoring anything:
+`lib/template-studio.ts` (`docToTemplateContent` ⇄ `initDocFromContent`, locked by
+`tests/template-studio.test.ts`), `validateStarterCatalog` in `lib/templates.ts`, and how
+an existing starter's `*.content.json` + theme preset are shaped. Templates are authored
+via the dev-only `/template-studio` → editor → "Save to template" path or by writing JSON
+that passes validation — never by new code paths.
+
+**Process (batches of 4–6 templates per session; one branch per batch).**
+1. **Curation pass (first session, with William):** open each of the 42 demo URLs, mark
+   `keep`/`cut` in SOURCES.md with a one-line reason. Cut: carousel/scroll-jack-structural
+   designs, unreproducible type, near-duplicates. Keep ~15 spanning image-dense grids,
+   sparse large-image, text-forward/editorial, and unconventional looks.
+2. **Design-spec pass (scriptable):** for each keeper, fetch the demo site's CSS custom
+   properties/stylesheets for exact fonts, palette, and scale; screenshot desktop + mobile
+   for layout. Substitute closest Google Font where the original isn't freely licensable;
+   record the substitution in SOURCES.md.
+3. **Translation:** rebuild layout/typography/palette/nav-style/color-blocking/motion
+   declarations as starter JSON + theme preset. Copy design ideas only — never assets,
+   images, fonts we can't license, or copy text from the demos.
+4. **Imagery:** rights-cleared samples only. New masters in
+   `public/assets/starters/new-starters-aug-8/` (photography/painting/drawing) need
+   catalog entries in `sample-artwork.ts` (public-domain: Atget, Hine, etc.) — writing
+   those entries is part of this spec's first batch. Sculpture/Other reuse existing
+   catalog imagery.
+5. **Registry:** tag each template's disciplines in `lib/templates.ts` data; every
+   discipline (plus Other) ends with 5 slots filled; `validateStarterCatalog` and the
+   template-studio round-trip tests pass on every batch.
+
+**Requirements.**
+- Each template: landing page + at least one interior-page layout; motion declared per
+  spec 12's vocabulary; DESIGN.md editor-chrome rules don't apply to template *content*,
+  but sample text stays in Hangwork's voice (no lorem ipsum).
+- Every batch merges through the standard gate; starter JSON is deliberately unhashed —
+  no runtime manifest churn expected from content-only batches.
+- SOURCES.md stays the ledger: status, font substitutions, which Hangwork template id
+  each keeper became.
+
+**Out of scope.** New renderer/editor capability (if a design needs one, flag it as a new
+spec instead of hacking it into content), pixel-perfect cloning, copying any asset,
+carousels/sliders.
