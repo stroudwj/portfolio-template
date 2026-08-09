@@ -18,6 +18,7 @@ import {
 	sampleArtworkUrl,
 	sampleReplacement,
 } from '../src/editor/lib/sample-artwork';
+import { STROUD_ARTWORKS } from '../src/editor/lib/sample-artwork-stroud';
 import {
 	AVAILABLE_STARTERS,
 	STARTER_RECIPES,
@@ -309,6 +310,31 @@ describe('discipline-led starter catalog', () => {
 				expect(artwork.accessionNumber).not.toBe('');
 				expect(artwork.status).toBe('active');
 			}
+		}
+	});
+
+	it('keeps the owner-provided Stroud media byte-for-byte tied to its rights note', () => {
+		expect(STROUD_ARTWORKS).toHaveLength(19);
+		const filmIds = STROUD_ARTWORKS.filter((artwork) => artwork.id.includes('-film-'));
+		expect(filmIds).toHaveLength(10);
+		// vj02 is the deliberately skipped double exposure — never cataloged.
+		expect(STROUD_ARTWORKS.some((artwork) => artwork.id.includes('-photo-02-'))).toBe(false);
+		for (const artwork of STROUD_ARTWORKS) {
+			const bytes = readFileSync(`public/${artwork.url}`);
+			expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
+			expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
+			expect(artwork.source).toBe('Artist provided');
+			expect(artwork.creator).toBe('William Stroud');
+			expect(artwork.credit).toBe(`William Stroud. ${artwork.title}. Courtesy of the artist.`);
+			expect(artwork.rightsProof).toContain('William Stroud granted sample-use rights');
+			// Not museum works: no accession number or external object page, and
+			// the validator must accept that (covered by the validateStarterCatalog
+			// expectation above).
+			expect(artwork.accessionNumber).toBe('');
+			expect(artwork.objectUrl).toBe('');
+			expect(artwork.title).not.toMatch(/^(film|vj)\d+$/i);
+			expect(artwork.status).toBe('active');
+			expect(SAMPLE_ARTWORK.get(artwork.id)).toBe(artwork);
 		}
 	});
 

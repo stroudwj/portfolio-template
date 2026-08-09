@@ -898,7 +898,10 @@ export function validateStarterCatalog(
 		sampleIds.add(artwork.id);
 		if (artwork.width <= 0 || artwork.height <= 0 || artwork.aspectRatio <= 0)
 			issues.push(`${artwork.id} is missing valid dimensions.`);
-		if (!artwork.rightsProof || !artwork.objectUrl || !artwork.accessionNumber)
+		// Artist-provided works carry a rights note but no museum provenance
+		// (no accession number or external object page).
+		const needsProvenance = artwork.source !== 'Artist provided';
+		if (!artwork.rightsProof || (needsProvenance && (!artwork.objectUrl || !artwork.accessionNumber)))
 			issues.push(`${artwork.id} is missing rights evidence.`);
 		const replacement = artwork.replacementId
 			? artworkCatalog.get(artwork.replacementId)

@@ -1,4 +1,5 @@
 import { NGA_ARTWORKS } from './sample-artwork-nga';
+import { STROUD_ARTWORKS } from './sample-artwork-stroud';
 
 export type SampleArtworkStatus = 'draft' | 'active' | 'retiring' | 'revoked';
 
@@ -22,6 +23,7 @@ export interface SampleArtwork {
 		| 'The Metropolitan Museum of Art'
 		| 'National Gallery of Art'
 		| 'Wikimedia Commons'
+		| 'Artist provided'
 		| 'Hangwork internal';
 	objectUrl: string;
 	rightsProof: string;
@@ -871,7 +873,7 @@ const artworks: SampleArtwork[] = [
 ];
 
 export const SAMPLE_ARTWORK = new Map(
-	[...artworks, ...NGA_ARTWORKS].map((artwork) => [artwork.id, artwork]),
+	[...artworks, ...NGA_ARTWORKS, ...STROUD_ARTWORKS].map((artwork) => [artwork.id, artwork]),
 );
 
 export function getSampleArtwork(id: string | null | undefined): SampleArtwork | undefined {
