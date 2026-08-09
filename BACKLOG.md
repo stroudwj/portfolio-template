@@ -459,3 +459,46 @@ that passes validation — never by new code paths.
 **Out of scope.** New renderer/editor capability (if a design needs one, flag it as a new
 spec instead of hacking it into content), pixel-perfect cloning, copying any asset,
 carousels/sliders.
+
+---
+
+## 15. Editor panel polish: squished controls + hover help tips — `queued`
+
+**Goal.** Fix layout defects in the images-block editor panel at narrow sidebar widths, and
+replace the panel's verbose inline helper paragraphs with a small reusable "?" hover tip
+used consistently across every major editor area.
+
+**Why.** William's review of the images-block panel (2026-08-09, narrow sidebar): the
+Freeform / Grid / Carousel segmented control clips its labels when squished ("Freefor…"),
+the "…" overflow button sits misaligned next to its row of siblings, and multi-line hints
+("Drag images in the preview to position them. Drag rows here to set which sits in front.",
+"11 images · drag rows to change their order", "Choose how the group appears on the page.")
+eat vertical space that should go to content.
+
+**Verify first.** Find the actual component rendering this panel (search for the hint
+strings above and the Freeform/Grid/Carousel control) before assuming file names. Check
+whether any tooltip/help affordance already exists in the editor (search "tooltip",
+"title=", "aria-describedby" under `src/editor`) — extend it if so, don't build a second.
+Reproduce the squish: the sidebar has a drag-to-resize separator; test at its minimum width.
+
+**Files.** The images-block editor component (likely under `src/editor/components/`),
+`src/editor/editor.css`, a new small `HelpTip` component under
+`src/editor/components/ui/` if none exists.
+
+**Requirements.**
+- Segmented Layout control never clips or wraps labels at minimum sidebar width — let the
+  segments shrink with smaller type, stack, or truncate with full label on the help tip;
+  pick what reads best at 240px-ish widths and stays per DESIGN.md.
+- Align the "…" button with the arrow/trash buttons in its row (same size, same baseline).
+- `HelpTip`: a small "?" affordance that reveals its text instantly on hover AND on
+  keyboard focus (aria-describedby, Esc dismisses; no delay, no new colors, 13px
+  `--ink-soft` text per DESIGN.md). Position within the viewport.
+- Sweep the editor's major panel areas: every multi-line explanatory paragraph that is
+  advice (not a label) collapses into a HelpTip on the section's heading row — at minimum:
+  the three hints quoted above, the workbench intro copy, and equivalents found in the
+  Design/Store/Site/Publish panes. One-line field labels stay as-is.
+- Nothing loses information: every removed paragraph's text lives in its HelpTip.
+- Keyboard + screen-reader accessible; `npm run check` clean.
+
+**Out of scope.** Redesigning panel structure, onboarding flows (specs 9/10 own their
+copy), renderer/published-site changes, a tooltip library dependency.
