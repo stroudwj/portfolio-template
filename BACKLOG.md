@@ -457,6 +457,11 @@ that passes validation — never by new code paths.
   blocks at display scale layered with the images — NOT flattened into the site header.
   Test: a thumbnail of the template home should be attributable to its source at a
   glance. Batch 1's five need a revision pass to this bar before batch 2 starts.
+  Revision pass additions (William's conservatory-vs-Mosley review): place EVERY image
+  in the set (conservatory used 5 of 10 on one screen — the sources are multi-screen
+  scrolling collages; match their scroll depth so scroll-reveal motion has something to
+  reveal), and once spec 21 (edge bleed) merges, let collage images cross the canvas
+  edges like the sources do.
 - Vary body fonts and grounds across a batch — no more than two templates in the whole
   catalog sharing the same body stack; sample imagery should vary in tone, not all
   muted historical work (William's own sets, spec 19, help here).
@@ -746,3 +751,44 @@ stale pin as fatal, so the next load of the saved draft refused to open.
 - Regression tests in `tests/template-apply.test.ts`; the old fatal contract in
   `tests/content-compat.test.ts` updated to the heal contract. Verified against
   William's actual wedged draft — it opens with everything intact.
+
+---
+
+## 21. Freeform canvas edge bleed — `queued` (unblocks spec 14's collage fidelity)
+
+**Goal.** Let freeform-canvas images (and text) extend past the canvas's left/right edges
+so collage layouts can bleed off-screen the way Mosley/Reflect-style designs do, plus a
+per-section full-bleed option so the canvas itself can span the viewport.
+
+**Why.** William's review of the `conservatory` starter vs mosley.squarespace.com
+(2026-08-09): the source's images crop off both viewport edges; ours stop dead at the
+canvas edge. Verified genuine limitation, not template timidity: `clampLayout`
+(`src/portfolio/canvasLayout.ts:22`) clamps x to [0, 100−w] and y to ≥0 — a placement
+cannot cross an edge at all. Templates alone cannot fix this.
+
+**Verify first.** Re-read `clampLayout`/`clampTextLayout` and every call site
+(`CanvasGallery.tsx` drag/nudge/group paths, `store.tsx`) — the clamp is load-bearing for
+drag UX (items must stay grabbable). Check how the canvas section relates to the page's
+content width/padding (is x=0 the viewport edge or the content edge?) before deciding
+where "bleed" is measured from. Check published staticgen output crops (overflow hidden?).
+
+**Files.** `src/portfolio/canvasLayout.ts`, `src/portfolio/CanvasGallery.tsx`,
+section/page styles (overflow + full-bleed), `src/editor/` section settings (the
+full-bleed toggle), staticgen, tests beside `canvasLayout`'s.
+
+**Requirements.**
+- Allow x < 0 and x+w > 100 up to a sane bleed margin (e.g. half the item's width —
+  an item must always keep a grabbable sliver ≥ MIN_W/2 inside the canvas; never fully
+  escape). y ≥ 0 stays.
+- Canvas section clips bleed (`overflow hidden`) — no horizontal page scrollbar, ever,
+  editor preview and published site alike (the DESIGN/verify no-horizontal-scroll rule).
+- Per-section "full bleed" option: the canvas spans the viewport width instead of the
+  content column, so x=0/100 mean the actual screen edges. Optional field, navStyle
+  precedent, defaults to today's behavior.
+- Drag, arrow-nudge, snap, guides, and group-drag all respect the new bounds (edge snap
+  should still offer the true edge); phone rendering must not produce sideways scroll.
+- Old drafts unchanged (their placements are already within [0,100]); round-trip tests;
+  a clamp unit test for the new bounds.
+
+**Out of scope.** Vertical bleed, bleed on grid/masonry layouts, parallax (spec 12 owns
+motion), template content changes (spec 14's revision uses this once merged).
