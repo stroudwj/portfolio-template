@@ -959,7 +959,7 @@ feature, non-OFL/commercial faces, CJK or extended subsets, variable-font axes U
 
 ---
 
-## 24. Motion tools revision — cascade, preview fidelity, discoverability — `queued` (continues spec 13's branch)
+## 24. Motion tools revision — cascade, preview fidelity, discoverability — `built` (2026-08-09 on `worktree-spec-13-motion-tools` at f49b9c4, with spec 13; awaiting William's review + merge. Verify-first found: reveal sections vanished after className-changing edits (React wiped the runtime's motion-visible — fixed with a MutationObserver guard + entered-state WeakSet); scrub was never sharp while readable (curve renormalized to complete at 15% viewport); the Strength slider was dead for reveal/sequence (scene changes now replay entrances); and the spec-12 dial did not actually gate hand-authored scenes (now a true master switch — painter/photographer/sculptor got a muted vocabulary so their authored scenes survive). Cascade landed as theme.motion.scene + page.motion over the existing shape, resolved by resolveSectionScene; conservatory's ten entries regression-tested identical. The ∿ button is now a labeled chip naming the active scene.)
 
 **Goal.** Iterate on spec 13's per-section motion tools from William's hands-on review
 (2026-08-09, in the template studio on conservatory). Three findings, in priority order:
