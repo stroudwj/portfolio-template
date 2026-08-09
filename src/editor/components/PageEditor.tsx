@@ -30,6 +30,7 @@ import {
 } from '../../portfolio/mediaEmbed';
 import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { DEFAULT_CAROUSEL_FRAME, parseAspect, uniformColumns } from '../../portfolio/Gallery';
+import { gridGap, smartGridLayouts } from '../../portfolio/smartGrid';
 import {
 	bottomOf,
 	canvasHeight,
@@ -292,6 +293,10 @@ type GalleryPatch = Partial<
 		| 'layout'
 		| 'columns'
 		| 'aspect'
+		| 'smartGrid'
+		| 'galleryWall'
+		| 'gapX'
+		| 'gapY'
 		| 'carousel'
 		| 'carouselFit'
 		| 'carouselFrame'
@@ -320,18 +325,26 @@ const measureAr = (url: string | null | undefined): Promise<number | undefined> 
 		img.src = url;
 	});
 
-/** Layout toggle shared by the main gallery block and extra image groups. */
+/** Layout toggle shared by the main gallery block and extra image groups.
+ *  A gallery choosing Grid for the first time gets the smart grid by default;
+ *  docs that were already grids keep their uniform look until toggled. */
 function LayoutToggle({
 	mode,
+	config,
 	onPatch,
 	label,
 	carousel = false,
 }: {
 	mode: 'freeform' | 'grid' | 'carousel';
+	config: GalleryConfig;
 	onPatch: (patch: GalleryPatch) => void;
 	label: string;
 	carousel?: boolean;
 }) {
+	const gridPatch: GalleryPatch =
+		mode !== 'grid' && config.smartGrid === undefined
+			? { layout: 'grid', carousel: undefined, smartGrid: true }
+			: { layout: 'grid', carousel: undefined };
 	return (
 		<div className="align-toggle" role="group" aria-label={`${label} layout`}>
 			<button
@@ -350,7 +363,7 @@ function LayoutToggle({
 				title="Auto grid — images arrange themselves in neat rows"
 				aria-label={`Use Grid layout for ${label}`}
 				aria-pressed={mode === 'grid'}
-				onClick={() => onPatch({ layout: 'grid', carousel: undefined })}
+				onClick={() => onPatch(gridPatch)}
 			>
 				Grid
 			</button>
@@ -370,7 +383,8 @@ function LayoutToggle({
 	);
 }
 
-/** Grid-mode settings (columns + crop) shared by the gallery block and image groups. */
+/** Grid-mode settings (smart grid, columns, crop, gaps) shared by the gallery
+ *  block and image groups. */
 function GridOptions({
 	config,
 	onPatch,
@@ -383,13 +397,39 @@ function GridOptions({
 	/** Copy this grid arrangement into freeform coordinates, then switch to Freeform. */
 	onAdopt?: () => void;
 }) {
+	const smart = config.smartGrid === true;
 	return (
 		<div className="grid-options">
+			<label className="grid-option">
+				<input
+					type="checkbox"
+					checked={smart}
+					aria-label={`Smart grid for ${label}`}
+					onChange={(e) => onPatch({ smartGrid: e.target.checked })}
+				/>
+				Smart grid
+			</label>
+			<HelpTip tip="Packs horizontal and vertical pieces together using each artwork's own shape — no forced crops. Off returns to the classic uniform grid." />
+			{smart && (
+				<>
+					<label className="grid-option">
+						<input
+							type="checkbox"
+							checked={config.galleryWall === true}
+							aria-label={`Gallery wall variety for ${label}`}
+							onChange={(e) => onPatch({ galleryWall: e.target.checked || undefined })}
+						/>
+						Gallery wall
+					</label>
+					<HelpTip tip="Gently varies each artwork's size and placement so the grid hangs like a gallery wall instead of lining up like a spreadsheet. The variation is stable — publishing shows exactly what you see here." />
+				</>
+			)}
 			<label className="grid-option">
 				Columns
 				<select
 					className="select-input"
 					aria-label={`Number of columns for ${label}`}
+					title={smart ? 'About how many pieces share a row' : undefined}
 					value={uniformColumns(config.columns)}
 					onChange={(e) => onPatch({ columns: Number(e.target.value) })}
 				>
@@ -400,20 +440,46 @@ function GridOptions({
 					))}
 				</select>
 			</label>
-			<label className="grid-option">
-				Crop
-				<select
-					className="select-input"
-					aria-label={`Image crop for ${label}`}
-					value={config.aspect ?? ''}
-					onChange={(e) => onPatch({ aspect: e.target.value || undefined })}
-				>
-					{CROP_OPTIONS.map((o) => (
-						<option key={o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
+			{!smart && (
+				<label className="grid-option">
+					Crop
+					<select
+						className="select-input"
+						aria-label={`Image crop for ${label}`}
+						value={config.aspect ?? ''}
+						onChange={(e) => onPatch({ aspect: e.target.value || undefined })}
+					>
+						{CROP_OPTIONS.map((o) => (
+							<option key={o.value} value={o.value}>
+								{o.label}
+							</option>
+						))}
+					</select>
+				</label>
+			)}
+			<label className="grid-option grid-gap-option">
+				Gap ↔
+				<input
+					type="range"
+					min={0}
+					max={4}
+					step={0.25}
+					value={gridGap(config.gapX)}
+					aria-label={`Horizontal space between images for ${label}`}
+					onChange={(e) => onPatch({ gapX: Number(e.target.value) })}
+				/>
+			</label>
+			<label className="grid-option grid-gap-option">
+				Gap ↕
+				<input
+					type="range"
+					min={0}
+					max={4}
+					step={0.25}
+					value={gridGap(config.gapY)}
+					aria-label={`Vertical space between rows for ${label}`}
+					onChange={(e) => onPatch({ gapY: Number(e.target.value) })}
+				/>
 			</label>
 			{onAdopt && (
 				<button
@@ -424,6 +490,100 @@ function GridOptions({
 				>
 					Edit this arrangement in Freeform
 				</button>
+			)}
+		</div>
+	);
+}
+
+/** One-click actions over every image in a group — arranging a 25–50 image
+ *  page shouldn't need per-image fiddling. Each action is a single document
+ *  commit, so one Cmd+Z restores the previous arrangement. */
+function BatchImageTools({ folder, label, gridMode }: { folder: string; label: string; gridMode: boolean }) {
+	const editor = useEditor();
+	const [cropAspect, setCropAspect] = useState('1:1');
+	const [cropZoom, setCropZoom] = useState(1);
+	const count = editor.doc?.galleries[folder]?.length ?? 0;
+	if (count < 2) return null;
+	return (
+		<div className="batch-tools">
+			<span className="batch-tools-title">
+				All {count} images
+				<HelpTip tip="Whole-group shortcuts for arranging many images at once. Every action here is one undo step — Cmd+Z brings the previous arrangement straight back." />
+			</span>
+			<div className="batch-tools-row">
+				<button
+					type="button"
+					className="btn-icon btn-chip"
+					title="Deal the images into a new random order"
+					onClick={() => editor.shuffleGalleryImages(folder)}
+				>
+					Shuffle order
+				</button>
+				<button
+					type="button"
+					className="btn-icon btn-chip"
+					title="Remove every image's crop and zoom so each shows at its own shape"
+					onClick={() => editor.resetGalleryCrops(folder)}
+				>
+					Reset all crops
+				</button>
+				<button
+					type="button"
+					className="btn-icon btn-chip"
+					title="Reset every image's artwork effects (hanging, mount, hover, arrival) and crops to the page defaults"
+					onClick={() => {
+						if (
+							confirm(
+								`Reset artwork effects and crops on all ${count} images in ${label}? Titles, captions, and light adjustments stay.`,
+							)
+						)
+							editor.clearGalleryImageSettings(folder);
+					}}
+				>
+					Clear image settings…
+				</button>
+			</div>
+			{gridMode && (
+				<details className="batch-crop">
+					<summary>Crop &amp; zoom all…</summary>
+					<div className="batch-crop-body">
+						<label className="grid-option">
+							Frame
+							<select
+								className="select-input"
+								aria-label={`Crop frame for every image in ${label}`}
+								value={cropAspect}
+								onChange={(e) => setCropAspect(e.target.value)}
+							>
+								{CROP_OPTIONS.map((o) => (
+									<option key={o.value} value={o.value}>
+										{o.label}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="grid-option batch-crop-zoom">
+							Zoom <output>{cropZoom.toFixed(2)}×</output>
+							<input
+								type="range"
+								min={1}
+								max={6}
+								step={0.05}
+								value={cropZoom}
+								aria-label={`Zoom for every image in ${label}`}
+								onChange={(e) => setCropZoom(Number(e.target.value))}
+							/>
+						</label>
+						<button
+							type="button"
+							className="btn-icon btn-chip"
+							title="Give every image in this group this frame and zoom — then nudge individual images from their own crop controls"
+							onClick={() => editor.applyGalleryCropAll(folder, cropAspect || undefined, cropZoom)}
+						>
+							Apply to all {count}
+						</button>
+					</div>
+				</details>
 			)}
 		</div>
 	);
@@ -877,14 +1037,21 @@ export default function PageEditor({
 			onPatch({ layout: undefined });
 			return;
 		}
-		const cellAr = parseAspect(config.aspect);
+		// Smart grids ignore the block-level crop; each piece keeps its own shape.
+		const cellAr = config.smartGrid ? undefined : parseAspect(config.aspect);
 		const ars = await Promise.all(
 			entries.map(
 				async (e) =>
-					cellAr ?? (await measureAr(getAssetPreviewUrl(e.assetId))) ?? e.meta.layout?.ar ?? DEFAULT_AR,
+					cellAr ??
+					parseAspect(e.meta.cropAspect) ??
+					(await measureAr(getAssetPreviewUrl(e.assetId))) ??
+					e.meta.layout?.ar ??
+					DEFAULT_AR,
 			),
 		);
-		const layouts = uniformGridLayouts(ars, uniformColumns(config.columns));
+		const layouts = config.smartGrid
+			? smartGridLayouts(ars, uniformColumns(config.columns))
+			: uniformGridLayouts(ars, uniformColumns(config.columns));
 		editor.setGalleryLayouts(
 			config.folder,
 			Object.fromEntries(entries.map((e, i) => [e.id, roundLayout(layouts[i])])),
@@ -1779,7 +1946,7 @@ export default function PageEditor({
 									Layout &amp; mobile <span>{galleryMode === 'grid' ? 'Grid' : 'Freeform'}</span>
 								</summary>
 								<div className="image-layout-options-body">
-									<LayoutToggle label={`main images on ${pageName}`} mode={galleryMode} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
+									<LayoutToggle label={`main images on ${pageName}`} mode={galleryMode} config={page.gallery} onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)} />
 									{galleryMode === 'grid' && (
 										<GridOptions
 											config={page.gallery}
@@ -1790,6 +1957,11 @@ export default function PageEditor({
 											}
 										/>
 									)}
+									<BatchImageTools
+										folder={page.gallery.folder}
+										label={`the main images on ${pageName}`}
+										gridMode={galleryMode === 'grid'}
+									/>
 									{(phoneItemsFor(page.gallery, blockHasFreeCanvas).length > 0 || page.gallery.mobile) && (
 										<MobileArrangementEditor
 											items={phoneItemsFor(page.gallery, blockHasFreeCanvas)}
@@ -1875,6 +2047,7 @@ export default function PageEditor({
 							<LayoutToggle
 								label={groupLabel}
 								mode={carousel ? 'carousel' : groupMode}
+								config={block.gallery}
 								onPatch={patchGroup}
 								carousel
 							/>
@@ -2147,6 +2320,13 @@ export default function PageEditor({
 								)}
 							</div>
 						</details>
+						)}
+						{!carousel && (
+							<BatchImageTools
+								folder={block.gallery.folder}
+								label={groupLabel}
+								gridMode={groupMode === 'grid'}
+							/>
 						)}
 						<ImageCollectionEditor
 							embedded

@@ -7155,6 +7155,50 @@ a.live-url:hover {
 	font-size: 13px;
 	align-self: center;
 }
+.grid-gap-option input[type='range'] {
+	width: 72px;
+}
+
+/* Whole-group batch actions (shuffle, reset crops, clear settings, crop all). */
+.batch-tools {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 4px 0 10px;
+}
+.batch-tools-title {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ink-soft);
+}
+.batch-tools-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.batch-crop summary {
+	font-size: 13px;
+	color: var(--ink-soft);
+	cursor: pointer;
+}
+.batch-crop-body {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 0 2px;
+}
+.batch-crop-zoom input[type='range'] {
+	width: 90px;
+}
+.batch-crop-zoom output {
+	font-variant-numeric: tabular-nums;
+}
 .select-input {
 	border: 1px solid var(--wall-2);
 	background-color: #fff;
