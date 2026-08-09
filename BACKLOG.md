@@ -754,7 +754,7 @@ stale pin as fatal, so the next load of the saved draft refused to open.
 
 ---
 
-## 21. Freeform canvas edge bleed — `queued` (unblocks spec 14's collage fidelity)
+## 21. Freeform canvas edge bleed — `merged` (2026-08-09)
 
 **Goal.** Let freeform-canvas images (and text) extend past the canvas's left/right edges
 so collage layouts can bleed off-screen the way Mosley/Reflect-style designs do, plus a
