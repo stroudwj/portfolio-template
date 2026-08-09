@@ -142,6 +142,19 @@ export function onShowPreviewPage(fn: (pageKey: string) => void): () => void {
 	return () => window.removeEventListener(SHOW_PREVIEW_PAGE_EVENT, handler);
 }
 
+const OPEN_TEMPLATE_PICKER_EVENT = 'editor-open-template-picker';
+
+/** Open the landing-page look picker over the preview (Theme panel link). */
+export function openTemplatePicker() {
+	window.dispatchEvent(new CustomEvent(OPEN_TEMPLATE_PICKER_EVENT));
+}
+
+export function onOpenTemplatePicker(fn: () => void): () => void {
+	const handler = () => fn();
+	window.addEventListener(OPEN_TEMPLATE_PICKER_EVENT, handler);
+	return () => window.removeEventListener(OPEN_TEMPLATE_PICKER_EVENT, handler);
+}
+
 const PREVIEW_TYPE_MOTION_EVENT = 'editor-preview-type-motion';
 
 export interface TypeMotionPreviewRequest {

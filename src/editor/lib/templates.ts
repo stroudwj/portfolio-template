@@ -25,6 +25,16 @@ export type RecipeTrait =
 	| 'longform-case-study'
 	| 'freeform-canvas';
 
+/** Canonical discipline tags for the template picker. A template may serve
+ * several disciplines; its FIRST tag is the primary (display) one. "Other" is
+ * not a tag — a null/unknown discipline sees the full set. */
+export type DisciplineTag =
+	| 'painting'
+	| 'photography'
+	| 'drawing'
+	| 'sculpture'
+	| 'illustration-design';
+
 export interface ThemePreset {
 	id: string;
 	name: string;
@@ -55,9 +65,16 @@ export interface StarterGallerySpec {
 export type StarterReadiness = 'ready' | 'awaiting-permission' | 'awaiting-media';
 
 export interface StarterRecipe {
-	id: 'painter' | 'photographer' | 'illustrator-designer' | 'works-on-paper' | 'sculptor';
+	/** Stable registry id. A plain string so catalog production — adding and
+	 * retiring templates — stays pure JSON + registry data, no type edits. */
+	id: string;
 	name: string;
+	/** Display label for the primary discipline (the intake tile). */
 	discipline: string;
+	/** Every discipline this template suits, primary first. The picker filters
+	 * on these; one layout is meant to serve several disciplines with
+	 * discipline-appropriate imagery swapped in. */
+	disciplines: DisciplineTag[];
 	tagline: string;
 	description: string;
 	requiredTraits: RecipeTrait[];
@@ -210,6 +227,7 @@ const painterRecipe: StarterRecipe = {
 	id: 'painter',
 	name: 'Painter',
 	discipline: 'Painting',
+	disciplines: ['painting', 'drawing'],
 	tagline: 'A salon-style selected-work canvas with a focused collection.',
 	description: 'Five selected works, five collection pieces, and a quiet gallery-led theme.',
 	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
@@ -243,6 +261,7 @@ const photographerRecipe: StarterRecipe = {
 	id: 'photographer',
 	name: 'Photographer',
 	discipline: 'Photography',
+	disciplines: ['photography', 'sculpture'],
 	tagline: 'Three tightly edited photographic series.',
 	description: 'Twelve public-domain photographs across three four-image series.',
 	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
@@ -284,6 +303,7 @@ const illustratorRecipe: StarterRecipe = {
 	id: 'illustrator-designer',
 	name: 'Illustrator / Designer',
 	discipline: 'Illustration and design',
+	disciplines: ['illustration-design'],
 	tagline: 'Three image-led case studies with room for process.',
 	description: 'Partner artwork and public-use permission are still required.',
 	requiredTraits: ['dense-grid', 'longform-case-study'],
@@ -334,6 +354,7 @@ const worksOnPaperRecipe: StarterRecipe = {
 	id: 'works-on-paper',
 	name: 'Works on paper',
 	discipline: 'Drawing',
+	disciplines: ['drawing', 'painting'],
 	tagline: 'A studio pinboard — drawings taped and nailed to a cork wall.',
 	description: 'Ten Open Access drawings pinned to a corkboard wall, with two sketchbook sub-pages.',
 	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
@@ -390,6 +411,7 @@ const sculptorRecipe: StarterRecipe = {
 	id: 'sculptor',
 	name: 'Sculptor',
 	discipline: 'Sculpture',
+	disciplines: ['sculpture', 'photography'],
 	tagline: 'A museum walk — one work per color-blocked hall.',
 	description: 'Eight Open Access sculptures in full-height vitrine sections with scroll motion.',
 	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
@@ -425,9 +447,11 @@ export const STARTER_RECIPES: StarterRecipe[] = [
 	sculptorRecipe,
 ];
 
+export type ReadyStarterRecipe = StarterRecipe & { content: Content };
+
 /** Only cleared recipes enter marketing or the chooser. */
 export const AVAILABLE_STARTERS = STARTER_RECIPES.filter(
-	(recipe): recipe is StarterRecipe & { content: Content } =>
+	(recipe): recipe is ReadyStarterRecipe =>
 		recipe.readiness === 'ready' &&
 		!!recipe.content &&
 		recipe.gallerySpecs.every((spec) =>
@@ -440,8 +464,28 @@ export const AVAILABLE_STARTERS = STARTER_RECIPES.filter(
 		),
 );
 
-export function getStarterRecipe(id: StarterRecipe['id']): StarterRecipe | undefined {
+export function getStarterRecipe(id: string): StarterRecipe | undefined {
 	return STARTER_RECIPES.find((recipe) => recipe.id === id);
+}
+
+/** The template picker's list for one intake discipline: templates tagged for
+ * it lead, every other cleared template follows — so a discipline is a lens,
+ * never a wall. "Other" and unknown disciplines see the full set up front. */
+export function templatesForDiscipline(
+	discipline?: DisciplineTag | null,
+): { matched: ReadyStarterRecipe[]; more: ReadyStarterRecipe[] } {
+	if (!discipline) return { matched: [...AVAILABLE_STARTERS], more: [] };
+	return {
+		matched: AVAILABLE_STARTERS.filter((recipe) => recipe.disciplines.includes(discipline)),
+		more: AVAILABLE_STARTERS.filter((recipe) => !recipe.disciplines.includes(discipline)),
+	};
+}
+
+/** The discipline an intake starter choice stands for: its primary tag.
+ * Null (the blank "a bit of everything" answer) is the Other bucket. */
+export function starterDiscipline(starterId?: string | null): DisciplineTag | null {
+	if (!starterId) return null;
+	return getStarterRecipe(starterId)?.disciplines[0] ?? null;
 }
 
 /** Rights-cleared sample artwork suited to one discipline, for filling a series
@@ -590,6 +634,15 @@ export function validateStarterCatalog(
 	for (const recipe of recipes) {
 		if (recipeIds.has(recipe.id)) issues.push(`Duplicate starter recipe id: ${recipe.id}`);
 		recipeIds.add(recipe.id);
+		if (!recipe.disciplines.length)
+			issues.push(`${recipe.name} declares no disciplines for the template picker.`);
+		// The picker re-hangs an artist's works into the landing page; a ready
+		// template whose home page has no image group would swallow them.
+		if (recipe.readiness === 'ready' && recipe.content) {
+			const home = recipe.content.pages.home;
+			if (!home || pageGalleryConfigs(home).length === 0)
+				issues.push(`${recipe.name} home page has no image group to re-hang works into.`);
+		}
 		const defaultTheme = themes.find((theme) => theme.id === recipe.defaultThemeId);
 		if (!defaultTheme) issues.push(`${recipe.name} has a missing default theme.`);
 		else if (!recipe.requiredTraits.every((trait) => defaultTheme.supportedTraits.includes(trait)))

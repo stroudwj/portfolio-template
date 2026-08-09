@@ -335,6 +335,9 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 	/** The intake's finishing answer: this artist said some photos still need
 	 * a crop or light pass, so the workbench leads with the practice offer. */
 	const [intakeFinishing, setIntakeFinishing] = useState(false);
+	/** The intake's "already organized" answer: no workbench pass, so the
+	 * landing-look picker opens with the editor instead of after the build. */
+	const [intakeOrganized, setIntakeOrganized] = useState(false);
 	/** Which starter the intake applied (null = blank) — chooses the sample
 	 * artwork that dresses series pages when the artist leaves with no photos. */
 	const [intakeStarterId, setIntakeStarterId] = useState<string | null>(null);
@@ -471,7 +474,10 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 		intakeConsumedRef.current = true;
 		const intent = consumeIntakeIntent();
 		if (!intent) return;
-		if (intent.workflow === 'organized') openPageWorkspace('home');
+		if (intent.workflow === 'organized') {
+			openPageWorkspace('home');
+			setIntakeOrganized(true);
+		}
 		if (intent.workflow === 'pile' || intent.finishing) setIntakeWorkbench(true);
 		if (intent.finishing) setIntakeFinishing(true);
 		setIntakeStarterId(intent.starterId ?? null);
@@ -799,6 +805,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 						onToggleSidebar={toggleSidebar}
 						openWorkbenchOnLaunch={intakeWorkbench}
 						offerCropLightDemo={intakeFinishing}
+						offerTemplatePickerOnLaunch={intakeOrganized}
 						intakeStarterId={intakeStarterId}
 					/>
 				</div>
