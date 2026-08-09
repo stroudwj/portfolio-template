@@ -2250,6 +2250,10 @@ body.workbench-window-open .floating-add-block {
 .nav-style-glyph-minimal i:nth-child(1) { top: 9px; }
 .nav-style-glyph-minimal i:nth-child(2) { top: 15px; }
 .nav-style-glyph-minimal i:nth-child(3) { top: 21px; }
+/* Three-zone: link left, wordmark dot center, CTA right */
+.nav-style-glyph-three-zone i:nth-child(1) { top: 7px; left: 5px; width: 9px; }
+.nav-style-glyph-three-zone i:nth-child(2) { top: 7px; left: 50%; width: 4px; margin-left: -2px; }
+.nav-style-glyph-three-zone i:nth-child(3) { top: 7px; right: 5px; width: 7px; border-bottom: 1px solid currentColor; height: 3px; background: none; }
 .nav-style-option.active .nav-style-glyph {
 	border-color: color-mix(in srgb, var(--klein) 45%, var(--wall-2));
 	color: var(--klein);
