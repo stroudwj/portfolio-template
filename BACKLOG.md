@@ -714,3 +714,26 @@ note the resolution).
 
 **Out of scope.** Using them in templates (later spec 14 batches do that), touching the
 museum-sourced sets, republishing masters at full resolution.
+
+---
+
+## 20. BUG: template apply wedged drafts via stale phone-arrangement ids — `merged` (2026-08-09, fixed same day)
+
+> Reported by William while testing 14b1+15: "This browser draft could not be upgraded
+> safely (content.pages.home.mobile: Phone image arrangement points to an item that no
+> longer exists ×3)" — and "Continue editing" silently dead (same root cause: the load
+> threw and aborted).
+
+**Root cause.** `applyTemplateToDoc` (spec 11) replaces template sample slots with clones
+of the artist's works carrying fresh ids, but kept the template home's phone arrangement
+(`gallery.mobile.order`/`items`) pinned to the old slot ids. The doc validator treats a
+stale pin as fatal, so the next load of the saved draft refused to open.
+
+**Fix (both ends), on `integration/specs-14b1-15`:**
+- Producer: `applyTemplateToDoc` remaps `image:<slotId>` keys to the hung works' ids.
+- Loader: `parseAndMigrateEditorDoc` drops a stale phone arrangement on the affected
+  pages and retries (mirrors the existing `ogImage` self-heal precedent) instead of
+  refusing the draft. Phone arrangement is a derived preference, never irreplaceable work.
+- Regression tests in `tests/template-apply.test.ts`; the old fatal contract in
+  `tests/content-compat.test.ts` updated to the heal contract. Verified against
+  William's actual wedged draft — it opens with everything intact.
