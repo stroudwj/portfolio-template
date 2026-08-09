@@ -486,6 +486,21 @@ describe('discipline-led starter catalog', () => {
 		);
 	});
 
+	it('joins sample asset urls to every BASE_URL shape with exactly one slash', () => {
+		const sample = SAMPLE_ARTWORK.get('painter-aic-14655-v1')!;
+		expect(sample.url).not.toMatch(/^\//);
+		try {
+			vi.stubEnv('BASE_URL', '/');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/${sample.url}`);
+			vi.stubEnv('BASE_URL', '/portfolio-template');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/portfolio-template/${sample.url}`);
+			vi.stubEnv('BASE_URL', '/portfolio-template/');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/portfolio-template/${sample.url}`);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
 	it('exercises expiration, tombstone rendering, and explicit successor opt-in', () => {
 		const standin = SAMPLE_ARTWORK.get('internal-lifecycle-standin-v1')!;
 		expect(standin.url).toBe('');

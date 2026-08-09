@@ -3,6 +3,11 @@ import './SectionMotion.css';
 
 const clamp01 = (value: number): number => Math.min(Math.max(value, 0), 1);
 
+/** Animatable children of a sequence section. Keep in sync with the
+ * `.motion-effect-sequence` selectors in SectionMotion.css. */
+const SEQUENCE_ITEMS =
+	'.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout';
+
 /**
  * One scroll scheduler for all of a page's motion sections. IntersectionObserver
  * handles discrete entrances; a single passive scroll listener updates every
@@ -42,22 +47,38 @@ export default function SectionMotionRuntime({
 
 		const observe = () => {
 			observer?.disconnect();
+			// A visibility-ratio threshold can never fire on a section much taller
+			// than the viewport (the ratio tops out at viewport ÷ section height),
+			// so intersect at the first pixel instead and let the rootMargin demand
+			// a meaningful entry distance.
 			observer = new win.IntersectionObserver(
 				(entries) => {
 					for (const entry of entries) {
 						if (entry.isIntersecting) {
-							(entry.target as HTMLElement).classList.add('motion-visible');
-							observer?.unobserve(entry.target);
+							const target = entry.target as HTMLElement;
+							target.classList.add('motion-visible');
+							target.classList.remove('motion-pending');
+							observer?.unobserve(target);
 						}
 					}
 				},
-				{ threshold: 0.14, rootMargin: '0px 0px -8% 0px' },
+				{ threshold: 0, rootMargin: '0px 0px -8% 0px' },
 			);
 			for (const section of sections) {
 				if (!enabled(section)) continue;
 				const effect = section.dataset.motionEffect;
-				if (effect === 'reveal' || effect === 'sequence') observer.observe(section);
-				else section.classList.add('motion-visible');
+				if (effect === 'reveal') observer.observe(section);
+				else if (effect === 'sequence') {
+					// Items enter individually so a wall deeper than the viewport
+					// staggers with the scroll. Hiding is opt-in (motion-pending) so
+					// items this pass never saw fail visible, not stuck at opacity 0.
+					section.classList.add('motion-visible');
+					for (const item of section.querySelectorAll<HTMLElement>(SEQUENCE_ITEMS)) {
+						if (item.classList.contains('motion-visible')) continue;
+						item.classList.add('motion-pending');
+						observer.observe(item);
+					}
+				} else section.classList.add('motion-visible');
 			}
 		};
 

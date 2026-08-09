@@ -42,28 +42,35 @@
 	top: clamp(72px, 14vh, 160px);
 }
 
+/* Sequence items enter one by one as they reach the viewport (the runtime
+   observes each item, not the section). Hiding is opt-in via .motion-pending,
+   which only the runtime adds — an item it never marked stays visible. Keep the
+   item list in sync with SEQUENCE_ITEMS in SectionMotion.tsx. */
 .motion-runtime-ready
 	.motion-effect-sequence:not(.motion-disabled)
 	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
-	opacity: 0;
-	transform: translateY(calc(var(--motion-strength, 45) * 0.3px));
 	transition:
 		opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
 		transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .motion-runtime-ready
-	.motion-effect-sequence.motion-visible
-	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout) {
-	opacity: 1;
-	transform: translateY(0);
+	.motion-effect-sequence:not(.motion-disabled)
+	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card, .about-layout).motion-pending {
+	opacity: 0;
+	transform: translateY(calc(var(--motion-strength, 45) * 0.3px));
+	transition: none;
 }
 
-.motion-effect-sequence.motion-visible :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n + 2) {
+.motion-runtime-ready
+	.motion-effect-sequence:not(.motion-disabled)
+	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n + 2) {
 	transition-delay: 90ms;
 }
 
-.motion-effect-sequence.motion-visible :is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n) {
+.motion-runtime-ready
+	.motion-effect-sequence:not(.motion-disabled)
+	:is(.masonry-item, .uniform-item, .canvas-item, .child-card, .text-block, .product-card):nth-child(3n) {
 	transition-delay: 180ms;
 }
 
