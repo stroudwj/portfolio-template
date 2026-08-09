@@ -1,3 +1,5 @@
+import { NGA_ARTWORKS } from './sample-artwork-nga';
+
 export type SampleArtworkStatus = 'draft' | 'active' | 'retiring' | 'revoked';
 
 /**
@@ -18,6 +20,7 @@ export interface SampleArtwork {
 	source:
 		| 'Art Institute of Chicago'
 		| 'The Metropolitan Museum of Art'
+		| 'National Gallery of Art'
 		| 'Wikimedia Commons'
 		| 'Hangwork internal';
 	objectUrl: string;
@@ -867,7 +870,9 @@ const artworks: SampleArtwork[] = [
 	},
 ];
 
-export const SAMPLE_ARTWORK = new Map(artworks.map((artwork) => [artwork.id, artwork]));
+export const SAMPLE_ARTWORK = new Map(
+	[...artworks, ...NGA_ARTWORKS].map((artwork) => [artwork.id, artwork]),
+);
 
 export function getSampleArtwork(id: string | null | undefined): SampleArtwork | undefined {
 	return id ? SAMPLE_ARTWORK.get(id) : undefined;

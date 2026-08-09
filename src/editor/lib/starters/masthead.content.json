@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Painting portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "pageTransition": "slide"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#ffffff",
+    "textColor": "#111111",
+    "mutedTextColor": "#6f6f6f",
+    "accentColor": "#3d3d3d",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "logoScale": 300,
+    "pageHeadingScale": 130,
+    "pageHeadingPosition": "left",
+    "logoPosition": "center",
+    "navStyle": "topbar",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "full",
+      "reveal": true,
+      "hover": true,
+      "hoverCaptions": true,
+      "stagger": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Front wall"
+    },
+    {
+      "path": "works",
+      "label": "Works"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Say who you are in one line, then let the work argue the rest. The paintings in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name}",
+      "label": "Front wall",
+      "description": "Bright work hung edge to edge under one loud masthead.",
+      "blocks": [
+        {
+          "id": "collage-images",
+          "type": "images",
+          "gallery": {
+            "folder": "collage",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Front wall"
+        }
+      ],
+      "sections": [
+        {
+          "id": "collage",
+          "name": "Front wall",
+          "blockIds": [
+            "collage-images"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:collage": {
+          "effect": "reveal",
+          "intensity": 45
+        }
+      }
+    },
+    "works": {
+      "title": "Works — {name}",
+      "label": "Works",
+      "description": "The longer wall — everything current.",
+      "heading": "Works",
+      "blocks": [
+        {
+          "id": "works-intro",
+          "type": "text",
+          "text": "The longer wall — everything current, two to a row.",
+          "style": "body"
+        },
+        {
+          "id": "works-images",
+          "type": "images",
+          "gallery": {
+            "folder": "works",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Works"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "works-intro",
+            "works-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "collage": {
+      "items": {
+        "01-the-sisters.jpg": {
+          "id": "sample-painting-nga-42285-v1",
+          "sampleAssetId": "painting-nga-42285-v1",
+          "title": "The Sisters",
+          "alt": "Shown from the lap up, two women with pale skin and dark hair pulled up and back, wearing white dresses with baby-blue polka dots, sit on a couch in this horizontal portrait painting.",
+          "description": "Berthe Morisot. The Sisters, 1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.42285.html",
+          "layout": {
+            "x": 4,
+            "y": 6,
+            "w": 34,
+            "ar": 1.57621,
+            "z": 2
+          }
+        },
+        "02-the-harbor-at-lorient.jpg": {
+          "id": "sample-painting-nga-52192-v1",
+          "sampleAssetId": "painting-nga-52192-v1",
+          "title": "The Harbor at Lorient",
+          "alt": "From behind a low stone wall, on which a young woman with pale skin sits, we look across a wide, shimmering blue waterway toward a town along the opposite shore, under a pale blue sky with wispy white clouds in this horizontal landscape painting.",
+          "description": "Berthe Morisot. The Harbor at Lorient, 1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.52192.html",
+          "layout": {
+            "x": 58,
+            "y": 4,
+            "w": 36,
+            "ar": 1.68519,
+            "z": 1
+          }
+        },
+        "03-peonies.jpg": {
+          "id": "sample-painting-nga-89682-v1",
+          "sampleAssetId": "painting-nga-89682-v1",
+          "title": "Peonies",
+          "alt": "Four flowers and greenery create a loose bouquet in a clear glass in this vertical still life, which is painted with visible brushstrokes throughout.",
+          "description": "Berthe Morisot. Peonies, c. 1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.89682.html",
+          "layout": {
+            "x": 41,
+            "y": 14,
+            "w": 17,
+            "ar": 0.8022,
+            "z": 3
+          }
+        },
+        "04-hanging-the-laundry-out-to-dry.jpg": {
+          "id": "sample-painting-nga-66426-v1",
+          "sampleAssetId": "painting-nga-66426-v1",
+          "title": "Hanging the Laundry out to Dry",
+          "alt": "We look down onto a landscape where several laundry lines have been draped mostly with white sheets or cloth to dry in a flat, grassy yard in front of a rustic house and a distant town in this horizontal painting.",
+          "description": "Berthe Morisot. Hanging the Laundry out to Dry, 1875. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.66426.html",
+          "layout": {
+            "x": 6,
+            "y": 34,
+            "w": 30,
+            "ar": 1.23084,
+            "z": 1
+          }
+        },
+        "05-in-the-dining-room.jpg": {
+          "id": "sample-painting-nga-46660-v1",
+          "sampleAssetId": "painting-nga-46660-v1",
+          "title": "In the Dining Room",
+          "alt": "A young woman with pale, peach skin wearing a white apron over an ankle-length navy-blue dress stands in a dining room in this vertical painting.",
+          "description": "Berthe Morisot. In the Dining Room, 1886. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46660.html",
+          "layout": {
+            "x": 40,
+            "y": 38,
+            "w": 22,
+            "ar": 0.81245,
+            "z": 2
+          }
+        },
+        "06-the-mother-and-sister-of-the-artist.jpg": {
+          "id": "sample-painting-nga-46661-v1",
+          "sampleAssetId": "painting-nga-46661-v1",
+          "title": "The Mother and Sister of the Artist",
+          "alt": "An older woman wearing a long black dress sits reading a book in front of a younger woman wearing cream white, who sits on a couch just beyond, in this vertical portrait painting.",
+          "description": "Berthe Morisot. The Mother and Sister of the Artist, 1869/1870. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46661.html",
+          "layout": {
+            "x": 66,
+            "y": 32,
+            "w": 27,
+            "ar": 0.80966,
+            "z": 1
+          }
+        }
+      }
+    },
+    "works": {
+      "items": {
+        "01-young-woman-with-a-straw-hat.jpg": {
+          "id": "sample-painting-nga-52193-v1",
+          "sampleAssetId": "painting-nga-52193-v1",
+          "title": "Young Woman with a Straw Hat",
+          "alt": "Shown from the waist up, the profile of a pale-skinned woman wearing an ice-blue dress is loosely painted with visible brushstrokes in this vertical portrait.",
+          "description": "Berthe Morisot. Young Woman with a Straw Hat, 1884. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.52193.html"
+        },
+        "02-the-artist-s-sister-at-a-window.jpg": {
+          "id": "sample-painting-nga-52191-v1",
+          "sampleAssetId": "painting-nga-52191-v1",
+          "title": "The Artist's Sister at a Window",
+          "alt": "A young woman with pale peach skin and light brown hair sits in profile facing our left in an upholstered chair in this vertical painting.",
+          "description": "Berthe Morisot. The Artist's Sister at a Window, 1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.52191.html"
+        },
+        "03-girl-in-a-boat-with-geese.jpg": {
+          "id": "sample-painting-nga-52194-v1",
+          "sampleAssetId": "painting-nga-52194-v1",
+          "title": "Girl in a Boat with Geese",
+          "alt": "At least one rowboat occupied by two people floats on a lake, which is surrounded by lush green vegetation in this vertical landscape painting.",
+          "description": "Berthe Morisot. Girl in a Boat with Geese, c. 1889. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.52194.html"
+        },
+        "04-young-girl-with-an-apron.jpg": {
+          "id": "sample-painting-nga-131028-v1",
+          "sampleAssetId": "painting-nga-131028-v1",
+          "title": "Young Girl with an Apron",
+          "alt": "This painting displays a young girl sitting, her head and body slightly turned to the left.",
+          "description": "Berthe Morisot. Young Girl with an Apron, 1891. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.131028.html"
+        },
+        "05-peasant-girl.jpg": {
+          "id": "sample-painting-nga-93068-v1",
+          "sampleAssetId": "painting-nga-93068-v1",
+          "title": "Peasant Girl",
+          "alt": "The image shows a drawing of a person's upper body, from the shoulders up to a little below the waist.",
+          "description": "Berthe Morisot. Peasant Girl, 1890. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.93068.html"
+        },
+        "06-girl-seated.jpg": {
+          "id": "sample-painting-nga-52305-v1",
+          "sampleAssetId": "painting-nga-52305-v1",
+          "title": "Girl Seated",
+          "alt": "The image depicts an artistic rendering of a person, capturing their upper half.",
+          "description": "Berthe Morisot. Girl Seated, 1894. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.52305.html"
+        },
+        "07-the-artist-s-daughter-with-a-parakeet.jpg": {
+          "id": "sample-painting-nga-46525-v1",
+          "sampleAssetId": "painting-nga-46525-v1",
+          "title": "The Artist's Daughter with a Parakeet",
+          "alt": "Shown from the knees up, a young girl with pale skin, wearing a coral-peach dress, sits facing and looking at us in this loosely painted, vertical portrait.",
+          "description": "Berthe Morisot. The Artist's Daughter with a Parakeet, 1890. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46525.html"
+        },
+        "08-at-the-edge-of-the-forest-edma-and-jeanne.jpg": {
+          "id": "sample-painting-nga-164943-v1",
+          "sampleAssetId": "painting-nga-164943-v1",
+          "title": "At the Edge of the Forest (Edma and Jeanne)",
+          "alt": "In this painting, a woman and a child are seated on the grass in a woodland setting, facing the left.",
+          "description": "Berthe Morisot. At the Edge of the Forest (Edma and Jeanne), c. 1872. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.164943.html"
+        }
+      }
+    }
+  }
+}

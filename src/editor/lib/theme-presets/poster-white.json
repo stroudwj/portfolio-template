@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#ffffff",
+  "textColor": "#111111",
+  "mutedTextColor": "#6f6f6f",
+  "accentColor": "#3d3d3d",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "logoScale": 300,
+  "logoPosition": "center",
+  "pageHeadingScale": 130,
+  "pageHeadingPosition": "left",
+  "navStyle": "topbar",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}
