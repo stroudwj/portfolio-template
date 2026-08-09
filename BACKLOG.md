@@ -367,7 +367,24 @@ scroll-jacking, page transitions, any motion-authoring UI, JS animation librarie
 
 ---
 
-## 13. Per-element motion tools — `queued` (after 12 + 22; run before spec 14 batch 3)
+## 13. Per-element motion tools — `built` (2026-08-09 on worktree-spec-13-motion-tools; awaiting merge)
+
+Built entirely as UI over spec 22's existing `sectionMotion` schema — the one
+schema change is new optional values on existing fields ('none' joins the
+effect enum; 'none'/'caption' join effects.hover), no new fields, no version
+bump. Per section: a scroll-scene popover (∿, ColorSwatchPicker pattern) in the
+section header settings row beside color/bleed, with Inherit / five effects /
+Off + strength + phone; the existing Scroll scenes list in Mobile & advanced now
+shares the same choices — its old "Still" label was a lie post-spec-12 (deleting
+the entry means inherit, and Off was inexpressible; that was William's "no
+ability to tweak the motion"). Per image: Edit panel's On hover select gains
+Show title / Still, riding artwork-hover-* classes; the caption value is gated
+on a motion-site-* root class so the site dial at Off wins, while pre-existing
+lift/tilt/zoom/mono keep their standalone behavior (old drafts unchanged).
+Verified live in the template studio against conservatory (sequence 45 ground
+truth reads back; Off strips all motion markup from the hero while siblings
+keep theirs; Inherit resolves the site reveal). 292/292 tests, check clean,
+manifest regenerated. Remaining: merge to integration.
 
 **Goal.** Let users vary motion below the site level: per-section/per-gallery scroll-reveal
 on or off, and per-image hover treatment choice — surfaced inside the existing section
