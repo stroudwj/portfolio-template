@@ -795,7 +795,19 @@ motion), template content changes (spec 14's revision uses this once merged).
 
 ---
 
-## 22. Conservatory fidelity sprint — one template to indistinguishable — `queued` (pauses spec 14 batch 3)
+## 22. Conservatory fidelity sprint — one template to indistinguishable — `running` (steps 1+2 built 2026-08-09 on worktree-spec-22-conservatory-fidelity; step 3 apply remains)
+
+Step 1: 18-row gap audit in starters/SOURCES.md, decisions approved by William
+same day (accept list; footer upgrade; exact #2c332c/white/no-grain palette;
+shapes kept in scope). Step 2 built and tested on the branch: accordion block
+(native details, script-free), three-zone navStyle (last menu item = CTA),
+canvas shapes (line/arrow/rectangle on the shared widget canvas), footer
+upgrade (display-scale footerName + up to three footerColumns), motion — no
+renderer bug found (hidden preview panes freeze IO/transitions and fake the
+symptom; conservatory's home was drift-only by data) — salon now uses
+`sequence` 45 and slowReveal was dropped. Step 3: apply the audit's (a) list
+(home restructure, bio/portfolio/awards pages, palette swap) in the template
+studio; William is the acceptance test.
 
 **Goal.** Make `conservatory` a faithful stand-in for mosley.squarespace.com — every page,
 not just the landing — and in doing so produce the vetted capability list the other 18
