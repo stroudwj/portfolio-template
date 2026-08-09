@@ -1,0 +1,114 @@
+/* Full-width accordion rows: display-scale titles, hairline dividers, +/− mark.
+   Mosley reference: 1px rules above every row and below the last, titles at
+   display scale in the heading font, plus icon flush right. */
+
+.accordion-block {
+	width: 100%;
+}
+
+.accordion-row {
+	border-top: 1px solid currentColor;
+	color: var(--color-text);
+}
+
+.accordion-row:last-of-type {
+	border-bottom: 1px solid currentColor;
+}
+
+.accordion-row-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5em;
+	padding: 0.18em 0;
+	cursor: pointer;
+	list-style: none;
+	font-family: var(--accordion-title-font, var(--font-heading, var(--font-family)));
+	font-size: var(--accordion-title-size, 56pt);
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+/* WebKit renders a marker pseudo-element even with list-style: none. */
+.accordion-row-summary::-webkit-details-marker {
+	display: none;
+}
+
+.accordion-row-summary:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+.accordion-row-title {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* The +/− mark: two hairline bars; the vertical one collapses when open. */
+.accordion-row-mark {
+	position: relative;
+	flex: 0 0 auto;
+	width: 0.42em;
+	height: 0.42em;
+	max-width: 44px;
+	max-height: 44px;
+	min-width: 18px;
+	min-height: 18px;
+}
+
+.accordion-row-mark::before,
+.accordion-row-mark::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	background: currentColor;
+	transition: transform 0.25s ease;
+}
+
+.accordion-row-mark::before {
+	height: 1px;
+}
+
+.accordion-row-mark::after {
+	width: 1px;
+}
+
+.accordion-row[open] .accordion-row-mark::after {
+	transform: scaleY(0);
+}
+
+.accordion-row-body {
+	max-width: 42em;
+	padding: 0.35rem 0 1.6rem;
+	font-family: var(--font-family);
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+.accordion-row-body p {
+	margin: 0 0 0.9em;
+}
+
+.accordion-row-body p:last-child {
+	margin-bottom: 0;
+}
+
+.accordion-empty-hint {
+	color: var(--color-text-muted);
+	font-family: var(--font-family);
+	font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.accordion-row-mark::before,
+	.accordion-row-mark::after {
+		transition: none;
+	}
+}
+
+@media (max-width: 639px) {
+	.accordion-row-summary {
+		font-size: min(var(--accordion-title-size, 56pt), 44px);
+	}
+}

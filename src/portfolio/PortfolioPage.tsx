@@ -14,6 +14,7 @@ import { type InlineTextEditing } from './InlineTextEditor';
 import Embed from './Embed';
 import ScrollShots from './ScrollShots';
 import ContactForm from './ContactForm';
+import AccordionBlock from './AccordionBlock';
 import ContactBlock from './ContactBlock';
 import { PortfolioButton, PortfolioDivider } from './PageBlocks';
 import Products from './Products';
@@ -1058,6 +1059,17 @@ export default function PortfolioPage({
 						text={block.text}
 						email={block.email}
 						buttonLabel={block.buttonLabel}
+						editorPreview={editorPreview}
+					/>
+				);
+			case 'accordion':
+				return (
+					<AccordionBlock
+						key={block.id}
+						blockId={block.id}
+						items={block.items}
+						titleSize={block.titleSize}
+						fontFamily={block.fontFamily}
 						editorPreview={editorPreview}
 					/>
 				);

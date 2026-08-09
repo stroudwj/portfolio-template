@@ -327,6 +327,22 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 			}),
 		),
 	}),
+	// Full-width accordion rows: display-scale titles with +/− toggles over body
+	// text. Renders as native <details> grouped one-open-at-a-time, so published
+	// sites need no script and no-JS readers can still open every row.
+	passthrough({
+		id: z.string(),
+		type: z.literal('accordion'),
+		items: z.array(
+			passthrough({
+				id: z.string(),
+				title: z.string(),
+				text: z.string().optional(),
+			}),
+		),
+		titleSize: z.number().min(8).max(200).optional(),
+		fontFamily: z.string().optional(),
+	}),
 ]);
 
 const imageMetaSchema = passthrough({

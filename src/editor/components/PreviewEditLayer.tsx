@@ -111,6 +111,8 @@ function blockLabel(block: PageBlock): string {
 			return 'Email button';
 		case 'form':
 			return 'Contact form';
+		case 'accordion':
+			return 'Accordion';
 		case 'products':
 			return 'Products';
 		case 'project':
@@ -736,6 +738,7 @@ export default function PreviewEditLayer({
 				}]),
 		{ icon: 'contact', label: 'Email button', group: 'Portfolio', add: (s) => editor.addContactBlock(pageKey, s) },
 		{ icon: 'form', label: 'Contact form', group: 'Portfolio', add: (s) => editor.addFormBlock(pageKey, s) },
+		{ icon: 'accordion', label: 'Accordion', group: 'Portfolio', add: (s) => editor.addAccordionBlock(pageKey, s) },
 		{ icon: 'project', label: 'Project fields', group: 'Portfolio', add: (s) => editor.addProjectBlock(pageKey, s) },
 		{
 			icon: 'products',

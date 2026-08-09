@@ -992,6 +992,12 @@ export interface EditorContextValue {
 		blockId: string,
 		patch: Partial<Extract<PageBlock, { type: 'form' }>>,
 	): void;
+	addAccordionBlock(key: string, sectionId?: string): void;
+	updateAccordionBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'accordion' }>, 'id' | 'type'>>,
+	): void;
 	addProductsBlock(key: string, sectionId?: string): void;
 	updateProductsBlock(
 		key: string,
@@ -2835,6 +2841,26 @@ export function EditorProvider({
 					block.id === blockId && block.type === 'form' ? { ...block, ...patch, id: block.id, type: 'form' } : block,
 				),
 			true, `page:${key}:form:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addAccordionBlock: (key, sectionId) =>
+			patchPage(key, (page) =>
+				appendBlockToSection(page, {
+					id: uid('accordion'),
+					type: 'accordion',
+					items: [
+						{ id: uid('row'), title: 'First row', text: 'Words shown when this row is open.' },
+						{ id: uid('row'), title: 'Second row', text: '' },
+						{ id: uid('row'), title: 'Third row', text: '' },
+					],
+				}, sectionId),
+			),
+		updateAccordionBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'accordion'
+						? { ...block, ...patch, id: block.id, type: 'accordion' }
+						: block,
+				),
+			true, `page:${key}:accordion:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addProductsBlock: (key, sectionId) =>
 			patchPage(key, (page) => {
 				// Same canvas parity as sub-pages: in a freeform section the product

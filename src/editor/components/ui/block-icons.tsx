@@ -17,7 +17,8 @@ export type BlockIconType =
 	| 'contact'
 	| 'form'
 	| 'products'
-	| 'project';
+	| 'project'
+	| 'accordion';
 
 const PATHS: Record<BlockIconType, ReactNode> = {
 	// Type / text box
@@ -116,6 +117,15 @@ const PATHS: Record<BlockIconType, ReactNode> = {
 			<rect x="3" y="4" width="18" height="16" rx="2" />
 			<path d="M7 9h10M7 13h6" />
 			<path d="m14.5 16.5 2 2 3-3.5" />
+		</>
+	),
+	// Stacked rows, top one open with a plus
+	accordion: (
+		<>
+			<path d="M3 6h18" />
+			<path d="M3 12h18" />
+			<path d="M3 18h18" />
+			<path d="M17.5 8v2M16.5 9h2" />
 		</>
 	),
 	// Shopping bag

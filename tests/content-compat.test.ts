@@ -294,6 +294,41 @@ describe('content compatibility', () => {
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
 	});
 
+	it('preserves accordion rows through parse and re-parse', () => {
+		const raw = structuredClone(blankDoc().content);
+		raw.pages.home.blocks = [
+			...(raw.pages.home.blocks ?? []),
+			{
+				id: 'services',
+				type: 'accordion',
+				items: [
+					{ id: 'row-1', title: 'Film', text: 'Lead and supporting film work.' },
+					{ id: 'row-2', title: 'Stage', text: 'Live performance.' },
+					{ id: 'row-3', title: 'Stunts' },
+				],
+				titleSize: 92,
+				fontFamily: 'Didot, serif',
+				// Unknown extension fields must survive the passthrough schema.
+				futureOption: 'kept',
+			} as unknown as NonNullable<typeof raw.pages.home.blocks>[number],
+		];
+
+		const parsed = parseAndMigrateContent(raw);
+		const accordion = parsed.pages.home.blocks?.find((block) => block.id === 'services');
+		expect(accordion).toMatchObject({
+			type: 'accordion',
+			items: [
+				{ id: 'row-1', title: 'Film', text: 'Lead and supporting film work.' },
+				{ id: 'row-2', title: 'Stage', text: 'Live performance.' },
+				{ id: 'row-3', title: 'Stunts' },
+			],
+			titleSize: 92,
+			fontFamily: 'Didot, serif',
+			futureOption: 'kept',
+		});
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
 	it('validates and publishes an uploaded Shots / scroll video without leaking draft asset ids', async () => {
 		const doc = blankDoc();
 		const assetId = registerAsset(

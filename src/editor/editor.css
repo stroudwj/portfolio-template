@@ -4874,6 +4874,16 @@ a.resume-name:hover {
 	gap: 6px;
 	margin-top: 6px;
 }
+.accordion-row-editor {
+	margin-top: 10px;
+}
+.accordion-row-editor .form-field-row {
+	grid-template-columns: minmax(100px, 1fr) auto auto auto;
+}
+.accordion-row-editor .text-area {
+	width: 100%;
+	margin-top: 4px;
+}
 .image-description-field {
 	display: flex;
 	flex-direction: column;

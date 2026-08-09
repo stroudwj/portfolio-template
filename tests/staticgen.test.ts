@@ -230,6 +230,49 @@ describe('staticgen', () => {
 		expect(home).not.toContain('sidebar is-stabilized');
 	});
 
+	it('publishes an accordion as script-free details rows grouped one-open-at-a-time', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{
+							id: 'services-acc',
+							type: 'accordion',
+							items: [
+								{ id: 'row-1', title: 'Film', text: 'Lead and supporting film work.' },
+								{ id: 'row-2', title: 'Stage', text: 'Live performance.' },
+							],
+							titleSize: 92,
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		// Native details/summary: the published page needs no script to toggle,
+		// and every row's words are in the HTML for no-JS readers and search.
+		expect(home).toContain('accordion-block');
+		expect(home).toContain('<details');
+		expect(home).toContain('name="accordion-services-acc"');
+		expect(home).toContain('Film');
+		expect(home).toContain('Lead and supporting film work.');
+		expect(home).toContain('Stage');
+		expect(home).toContain('Live performance.');
+		expect(home).toContain('--accordion-title-size:92pt');
+	});
+
 	it('publishes a contact block without ever writing the address', async () => {
 		// Published pages inline their whole Content as window.__HW__, so the address
 		// must be absent from the served bytes entirely — markup AND boot data.

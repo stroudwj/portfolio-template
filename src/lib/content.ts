@@ -608,7 +608,24 @@ export type PageBlock =
 			fields: FormField[];
 			/** Optional image-like placement on the section's freeform canvas. */
 			layout?: ImageLayout;
+		}
+	| {
+			id: string;
+			type: 'accordion';
+			/** Full-width rows in order; each title toggles its body text open. */
+			items: AccordionItem[];
+			/** Row-title size in pt — display scale is expected (Mosley runs ~92pt). Absent = 56. */
+			titleSize?: number;
+			/** Row-title font override. Absent = the theme heading font. */
+			fontFamily?: string;
 		};
+
+/** One accordion row: a display-scale title over collapsible body text. */
+export interface AccordionItem {
+	id: string;
+	title: string;
+	text?: string;
+}
 
 /**
  * One movable page region. Blocks belong to exactly one section and the section

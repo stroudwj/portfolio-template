@@ -154,6 +154,7 @@ const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
 	{ value: 'about', label: 'About content' },
 	{ value: 'contact', label: 'Email button' },
 	{ value: 'form', label: 'Contact form' },
+	{ value: 'accordion', label: 'Accordion' },
 	{ value: 'products', label: 'Products' },
 	{ value: 'project', label: 'Project fields' },
 ];
@@ -807,6 +808,7 @@ export default function PageEditor({
 			)}
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addContactBlock(pageKey, target), sectionId, 'email button')}><BlockIcon type="contact" />Email button</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addFormBlock(pageKey, target), sectionId, 'contact form')}><BlockIcon type="form" />Contact form</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addAccordionBlock(pageKey, target), sectionId, 'accordion')}><BlockIcon type="accordion" />Accordion</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addProjectBlock(pageKey, target), sectionId, 'project fields')}><BlockIcon type="project" />Project fields</button>
 			<button
 				type="button"
@@ -2533,6 +2535,70 @@ export default function PageEditor({
 								value={block.buttonLabel ?? ''}
 								placeholder={DEFAULT_CONTACT_BUTTON_LABEL}
 								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { buttonLabel: event.target.value })}
+							/>
+						</Field>
+					</div>
+				);
+			}
+			case 'accordion': {
+				const accordionLabel = `accordion ${index + 1} on ${pageName}`;
+				const updateItems = (items: typeof block.items) =>
+					editor.updateAccordionBlock(pageKey, block.id, { items });
+				const moveItem = (from: number, to: number) => {
+					if (to < 0 || to >= block.items.length) return;
+					const items = [...block.items];
+					const [moved] = items.splice(from, 1);
+					items.splice(to, 0, moved);
+					updateItems(items);
+				};
+				return (
+					<div className="block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label"><BlockIcon type="accordion" />Accordion</span>
+							{controls(index, block, true)}
+						</div>
+						<div className="form-fields-editor">
+							<span className="field-label">Rows</span>
+							{block.items.map((item, itemIndex) => (
+								<div className="accordion-row-editor" key={item.id}>
+									<div className="form-field-row">
+										<input
+											className="text-input"
+											value={item.title}
+											placeholder="Row title"
+											aria-label={`Title of row ${itemIndex + 1} in ${accordionLabel}`}
+											onChange={(event) => updateItems(block.items.map((row) => row.id === item.id ? { ...row, title: event.target.value } : row))}
+										/>
+										<button type="button" className="btn-icon" disabled={itemIndex === 0} aria-label={`Move row ${itemIndex + 1} up in ${accordionLabel}`} onClick={() => moveItem(itemIndex, itemIndex - 1)}>↑</button>
+										<button type="button" className="btn-icon" disabled={itemIndex === block.items.length - 1} aria-label={`Move row ${itemIndex + 1} down in ${accordionLabel}`} onClick={() => moveItem(itemIndex, itemIndex + 1)}>↓</button>
+										<button type="button" className="btn-icon danger" aria-label={`Remove row ${itemIndex + 1} from ${accordionLabel}`} onClick={() => updateItems(block.items.filter((row) => row.id !== item.id))}>✕</button>
+									</div>
+									<textarea
+										className="text-area"
+										rows={2}
+										value={item.text ?? ''}
+										placeholder="Words shown when this row is open"
+										aria-label={`Words inside row ${itemIndex + 1} of ${accordionLabel}`}
+										onChange={(event) => updateItems(block.items.map((row) => row.id === item.id ? { ...row, text: event.target.value || undefined } : row))}
+									/>
+								</div>
+							))}
+							<button type="button" className="btn-link" aria-label={`Add a row to ${accordionLabel}`} onClick={() => updateItems([...block.items, { id: uid('row'), title: 'New row', text: '' }])}>＋ Add a row</button>
+						</div>
+						<Field label="Title size (pt)" hint="Display scale is the point — Mosley runs its accordion titles near 92pt.">
+							<input
+								type="number"
+								className="text-input"
+								min={8}
+								max={200}
+								value={block.titleSize ?? 56}
+								aria-label={`Title size for ${accordionLabel}`}
+								onChange={(event) => {
+									const value = Number(event.target.value);
+									editor.updateAccordionBlock(pageKey, block.id, {
+										titleSize: Number.isFinite(value) ? Math.min(Math.max(value, 8), 200) : undefined,
+									});
+								}}
 							/>
 						</Field>
 					</div>
