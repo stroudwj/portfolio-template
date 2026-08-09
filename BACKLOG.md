@@ -792,3 +792,49 @@ full-bleed toggle), staticgen, tests beside `canvasLayout`'s.
 
 **Out of scope.** Vertical bleed, bleed on grid/masonry layouts, parallax (spec 12 owns
 motion), template content changes (spec 14's revision uses this once merged).
+
+---
+
+## 22. Conservatory fidelity sprint — one template to indistinguishable — `queued` (pauses spec 14 batch 3)
+
+**Goal.** Make `conservatory` a faithful stand-in for mosley.squarespace.com — every page,
+not just the landing — and in doing so produce the vetted capability list the other 18
+keepers need. William's call (2026-08-09): "if we can get one, we can get the rest."
+Spec 14's batch 3 is PAUSED until this spec is merged and William signs off on the result.
+
+**Why.** Two review rounds each found systemic gaps (flattened type devices, then missing
+scroll depth/bleed, now interior-page devices). Auditing one source exhaustively is cheaper
+than fixing 19 templates three more times.
+
+**Step 1 — gap audit (do this first, report before building).** Walk every page of
+mosley.squarespace.com beside conservatory in the editor. Produce a table in SOURCES.md:
+each difference, classified as (a) template data — fix now in the template studio,
+(b) missing capability — needs editor/renderer work, (c) accept — deliberate divergence
+(e.g. licensed fonts, booking CTA). Present the table; William approves the (c) list.
+
+**Step 2 — known capability gaps to verify and build (each small, one branch each, this
+spec is the umbrella):**
+- **Accordion block**: full-width rows with display-scale headings and +/− toggles that
+  expand to text/images (Mosley's Film/Stage services page). New block kind — follow the
+  contact-block precedent (optional zod fields, no version bump, renderer + staticgen +
+  editor field UI + tests). No-JS fallback: expanded.
+- **Canvas shapes**: hairline rules and arrows as canvas items (line, arrow, rectangle;
+  theme ink color, optional custom). Layout like text items; z-order, drag, nudge, bleed
+  per spec 21. NOT a general drawing tool — three primitives max.
+- **Nav variant**: three-zone bar — links left, wordmark center, single CTA link right
+  (Mosley's bar). Extend navStyle options; phone behavior per existing fullscreenMobileMenu.
+- **Motion in preview (verify first — may be a bug, not a feature)**: William reports no
+  visible motion on conservatory in the editor preview despite `subtle` reveal declared.
+  Spec 12 requires preview parity. Diagnose: does reveal fire in the preview iframe at
+  all? Is `subtle` perceptible? Fix the bug if bug; if `subtle` is just too quiet,
+  recalibrate subtle (and re-check `full`).
+**Check SOURCES.md batch notes and the (a) list before building any of these — and if the
+audit finds a gap not listed here, add it to the table rather than silently expanding scope.**
+
+**Step 3 — apply.** Revise conservatory's JSON in the template studio using the new
+capabilities until a side-by-side scroll-through of every page reads as the same design
+in different clothes. William is the acceptance test.
+
+**Out of scope.** The other 18 templates (batch 3 resumes after sign-off), carousels,
+booking/scheduling integrations, per-element motion UI (spec 13), copying Mosley's text
+(sample copy stays ours), webfont shipping.
