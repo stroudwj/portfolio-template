@@ -423,10 +423,14 @@ via the dev-only `/template-studio` → editor → "Save to template" path or by
 that passes validation — never by new code paths.
 
 **Process (batches of 4–6 templates per session; one branch per batch).**
-1. **Curation pass (first session, with William):** open each of the 42 demo URLs, mark
-   `keep`/`cut` in SOURCES.md with a one-line reason. Cut: carousel/scroll-jack-structural
-   designs, unreproducible type, near-duplicates. Keep ~15 spanning image-dense grids,
-   sparse large-image, text-forward/editorial, and unconventional looks.
+1. **Curation pass (agent proposes, William approves):** visit each of the 42 demo URLs,
+   group near-duplicates (same bones, different palette/font), and mark a proposed
+   `keep`/`cut` in SOURCES.md with a one-line reason each. Cut only true duplicates and
+   designs that are structurally carousel/scroll-jack or otherwise unreproducible — the
+   goal is covering every DISTINCT design (likely ~25-30), not hitting a quota. Present
+   the marked table to William for approval before any translation begins; he may
+   overrule any call. If keepers exceed ~25, flag that spec 11's 5-slot picker needs a
+   scrolling-gallery variant and get a decision before proceeding.
 2. **Design-spec pass (scriptable):** for each keeper, fetch the demo site's CSS custom
    properties/stylesheets for exact fonts, palette, and scale; screenshot desktop + mobile
    for layout. Substitute closest Google Font where the original isn't freely licensable;
