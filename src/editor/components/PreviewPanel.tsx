@@ -7,6 +7,7 @@ import { withBase } from '../../portfolio/types';
 import PreviewEditLayer from './PreviewEditLayer';
 import AssetWorkbench from './AssetWorkbench';
 import CropLightDemo from './CropLightDemo';
+import TemplatePicker from './TemplatePicker';
 import { WorkbenchPicker } from './ImageCollectionEditor';
 import { PanelIcon } from './ui/panel-icons';
 import { docToPortfolioData } from '../lib/content-init';
@@ -19,6 +20,7 @@ import {
 import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, guideById, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
+	onOpenTemplatePicker,
 	onPreviewTypeMotion,
 	selectPreviewBlock,
 	onShowPreviewPage,
@@ -371,6 +373,7 @@ export default function PreviewPanel({
 	onToggleSidebar,
 	openWorkbenchOnLaunch,
 	offerCropLightDemo,
+	offerTemplatePickerOnLaunch,
 	intakeStarterId,
 }: {
 	base: string;
@@ -384,8 +387,12 @@ export default function PreviewPanel({
 	/** Start-intake answer: photos need a crop or light pass, so the workbench
 	 * first run leads with the practice-run offer instead of the quiet link. */
 	offerCropLightDemo?: boolean;
+	/** Start-intake answer "already organized": no workbench pass, so the
+	 * landing-look picker opens with the editor instead of after the build. */
+	offerTemplatePickerOnLaunch?: boolean;
 	/** Which starter the intake applied (null = blank) — chooses the sample
-	 * artwork that dresses series pages when the artist leaves with no photos. */
+	 * artwork that dresses series pages when the artist leaves with no photos,
+	 * and which discipline's looks lead the template picker. */
 	intakeStarterId?: string | null;
 }) {
 	const editor = useEditor();
@@ -429,6 +436,17 @@ export default function PreviewPanel({
 		setCropDemoOpen(false);
 		retireCropDemoOffer();
 	};
+	/** The landing-look picker (BACKLOG spec 11): opens once after the build
+	 * hangs the first pages — or with the editor for organized intakes — and
+	 * any time from the Theme panel's link. Applying is live behind the panel;
+	 * closing keeps whatever hangs now. */
+	const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+	const templatePickerOffered = useRef(false);
+	const offerTemplatePicker = () => {
+		if (templatePickerOffered.current) return;
+		templatePickerOffered.current = true;
+		setTemplatePickerOpen(true);
+	};
 	// A "sort it here" intake answer opens the workbench with the editor.
 	useEffect(() => {
 		if (openWorkbenchOnLaunch) {
@@ -437,6 +455,12 @@ export default function PreviewPanel({
 			setBuildOffer(true);
 		}
 	}, [openWorkbenchOnLaunch]);
+	// "Already organized" skips the workbench, so the look choice comes first.
+	useEffect(() => {
+		if (offerTemplatePickerOnLaunch) offerTemplatePicker();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [offerTemplatePickerOnLaunch]);
+	useEffect(() => onOpenTemplatePicker(() => setTemplatePickerOpen(true)), []);
 	const gridPrefs = useGridPrefs();
 	// Dry run of the build against the live document: whether the button does
 	// anything is DERIVED from what the folders and pages hold right now — no
@@ -505,6 +529,13 @@ export default function PreviewPanel({
 		const tour = !hasSeenWorkbenchBuildGuide();
 		markWorkbenchBuildGuideSeen();
 		setBuildGuide({ report, tour });
+	};
+	/** Dismissing the build guide hands off to the landing-look picker: the
+	 * wall just got its first pages, so "pick a look" is the natural next move. */
+	const closeBuildGuide = () => {
+		const report = buildGuide?.report;
+		setBuildGuide(null);
+		if (report && (report.built.length || report.sampled.length)) offerTemplatePicker();
 	};
 	/** "OK — build my pages": the one-time build, then home with the result. */
 	const runWorkbenchBuild = () => {
@@ -869,7 +900,7 @@ export default function PreviewPanel({
 					<div
 						className="floating-panel-backdrop"
 						aria-hidden="true"
-						onClick={() => setBuildGuide(null)}
+						onClick={closeBuildGuide}
 					/>
 					<div
 						className="floating-panel workbench-build-guide"
@@ -886,7 +917,7 @@ export default function PreviewPanel({
 								className="pv-icon-button"
 								aria-label="Close this guide"
 								title="Close"
-								onClick={() => setBuildGuide(null)}
+								onClick={closeBuildGuide}
 							>
 								<PanelIcon type="close" />
 							</button>
@@ -945,13 +976,20 @@ export default function PreviewPanel({
 							<button
 								type="button"
 								className="btn-primary"
-								onClick={() => setBuildGuide(null)}
+								onClick={closeBuildGuide}
 							>
 								Start hanging
 							</button>
 						</footer>
 					</div>
 				</>
+			)}
+			{templatePickerOpen && !fullscreen && (
+				<TemplatePicker
+					intakeStarterId={intakeStarterId}
+					onApplied={() => setPage('home')}
+					onClose={() => setTemplatePickerOpen(false)}
+				/>
 			)}
 			{workbenchPickFolder && !fullscreen && (
 				<div className="floating-panel floating-workbench" role="dialog" aria-label="Choose an image from the workbench">

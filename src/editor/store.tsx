@@ -495,6 +495,142 @@ export function buildWorkbenchPages(
 	return { doc, report };
 }
 
+/** How a template re-hang went, for the picker's confirmation line. */
+export interface TemplateApplyReport {
+	/** The artist's own works re-hung into the template's image positions. */
+	rehung: number;
+	/** Works beyond the template's positions, appended after the last position. */
+	overflow: number;
+	/** Template sample frames still showing (fewer works than positions). */
+	samplesLeft: number;
+}
+
+/** Applying a landing-page template (BACKLOG spec 11). Pure: the home page and
+ * site theme become the template's; every other page, the artist's identity
+ * (name, bio, contact, socials, résumé, store), and their uploaded files stay.
+ * The artist's works — their own uploads hanging on the current home page, in
+ * wall order — replace the template's sample slots in order, each adopting its
+ * slot's canvas position; overflow appends after the last image group's slots
+ * so a later template switch re-collects the works in the same order. Samples
+ * never count as works, which is what makes re-applying duplicate nothing. */
+export function applyTemplateToDoc(
+	prev: EditorDoc,
+	template: Content,
+): { doc: EditorDoc; report: TemplateApplyReport } {
+	const report: TemplateApplyReport = { rehung: 0, overflow: 0, samplesLeft: 0 };
+	const templateDoc = initDocFromContent(template);
+	const templateHome = templateDoc.content.pages.home;
+	if (!templateHome) return { doc: prev, report };
+
+	const prevHome = prev.content.pages.home;
+	const works: ImageEntry[] = [];
+	const prevHomeFolders = prevHome
+		? [...new Set(pageGalleryConfigs(prevHome).map((config) => config.folder))]
+		: [];
+	for (const folder of prevHomeFolders)
+		for (const entry of prev.galleries[folder] ?? [])
+			if (entry.assetId !== null) works.push(entry);
+
+	// A template home with nowhere to hang images would swallow the works — the
+	// catalog validator forbids shipping one, and this guard refuses stray data.
+	const homeConfigs = pageGalleryConfigs(templateHome);
+	if (!homeConfigs.length && works.length) return { doc: prev, report };
+
+	// Folders the rest of the site keeps using. Template folders that collide
+	// with them are renamed; old-home folders nothing else references drop out.
+	const survivingPages = Object.fromEntries(
+		Object.entries(prev.content.pages).filter(([key]) => key !== 'home'),
+	);
+	const keptFolders = new Set<string>([WORKBENCH_FOLDER]);
+	for (const page of Object.values(survivingPages))
+		for (const config of pageGalleryConfigs(page)) keptFolders.add(config.folder);
+	for (const saved of prev.content.sectionLibrary ?? [])
+		if (saved.block.type === 'images') keptFolders.add(saved.block.gallery.folder);
+
+	const renames = new Map<string, string>();
+	const taken = new Set(keptFolders);
+	for (const config of homeConfigs) {
+		let name = config.folder;
+		for (let n = 2; taken.has(name); n += 1) name = `${config.folder}-${n}`;
+		if (name !== config.folder) renames.set(config.folder, name);
+		taken.add(name);
+	}
+	const renamed = (folder: string) => renames.get(folder) ?? folder;
+	const newHome: PageConfig = {
+		...templateHome,
+		...(templateHome.gallery
+			? { gallery: { ...templateHome.gallery, folder: renamed(templateHome.gallery.folder) } }
+			: {}),
+		blocks: (templateHome.blocks ?? []).map((block) =>
+			block.type === 'images'
+				? { ...block, gallery: { ...block.gallery, folder: renamed(block.gallery.folder) } }
+				: block,
+		),
+	};
+
+	// Walk the template's slots in document order, hanging the artist's next
+	// work into each: the work keeps its own image, crop, light, and captions,
+	// and adopts the slot's layout — the template dictates positions.
+	const queue = [...works];
+	const newGalleries: Record<string, ImageEntry[]> = {};
+	for (const config of homeConfigs) {
+		const target = renamed(config.folder);
+		if (newGalleries[target]) continue; // two blocks sharing a folder hang it once
+		newGalleries[target] = (templateDoc.galleries[config.folder] ?? []).map((slot) => {
+			if (!slot.sampleAssetId || !queue.length) {
+				if (slot.sampleAssetId) report.samplesLeft += 1;
+				return slot;
+			}
+			const hung = cloneEntryForGroup(queue.shift()!);
+			hung.meta.layout = slot.meta.layout ? { ...slot.meta.layout } : undefined;
+			report.rehung += 1;
+			return hung;
+		});
+	}
+	if (queue.length) {
+		const lastFolder = renamed(homeConfigs[homeConfigs.length - 1].folder);
+		for (const work of queue) {
+			const hung = cloneEntryForGroup(work);
+			hung.meta.layout = undefined; // freeform canvases auto-flow unplaced images
+			newGalleries[lastFolder] = [...(newGalleries[lastFolder] ?? []), hung];
+			report.overflow += 1;
+		}
+	}
+
+	const galleries: Record<string, ImageEntry[]> = {};
+	for (const [folder, entries] of Object.entries(prev.galleries))
+		if (keptFolders.has(folder)) galleries[folder] = entries;
+	Object.assign(galleries, newGalleries);
+	const contentGalleries: Content['galleries'] = {};
+	for (const [folder, gallery] of Object.entries(prev.content.galleries))
+		if (keptFolders.has(folder)) contentGalleries[folder] = gallery;
+	for (const config of homeConfigs)
+		contentGalleries[renamed(config.folder)] =
+			templateDoc.content.galleries[config.folder] ?? { items: {} };
+
+	// contentWithThemePreset keeps the artist's custom fonts attached and lets
+	// the template's motion vocabulary win only when it declares one.
+	const content = contentWithThemePreset(
+		{
+			...prev.content,
+			pages: { ...survivingPages, home: newHome },
+			galleries: contentGalleries,
+		},
+		templateDoc.content.theme,
+	);
+
+	const pageThumbs = { ...prev.pageThumbs };
+	delete pageThumbs.home;
+	if (templateDoc.pageThumbs.home) pageThumbs.home = templateDoc.pageThumbs.home;
+	const ogImage =
+		prev.ogImage &&
+		galleries[prev.ogImage.folder]?.some((entry) => entry.id === prev.ogImage?.entryId)
+			? prev.ogImage
+			: undefined;
+
+	return { doc: { ...prev, content, galleries, pageThumbs, ogImage }, report };
+}
+
 function pageTreeKeys(pages: Record<string, PageConfig>, root: string): Set<string> {
 	const found = new Set<string>();
 	const queue = [root];
@@ -641,6 +777,9 @@ export interface EditorContextValue {
 	setTheme(patch: Partial<Theme>): void;
 	/** Replace factory theme tokens while preserving the document's uploaded font files. */
 	applyThemePreset(theme: Theme): void;
+	/** Re-hang the site onto a landing-page template: home page + theme swap,
+	 * the artist's works re-flowed into the template's positions. One undo. */
+	applyTemplate(template: Content): TemplateApplyReport | null;
 	/** Register an uploaded font file and select it as the site font. */
 	addCustomFont(file: File): void;
 	removeCustomFont(name: string): void;
@@ -1310,6 +1449,15 @@ export function EditorProvider({
 			),
 		applyThemePreset: (theme) =>
 			patchContent((content) => contentWithThemePreset(content, theme)),
+		applyTemplate: (template) => {
+			let report: TemplateApplyReport | null = null;
+			commitDoc((prev) => {
+				const result = applyTemplateToDoc(prev, template);
+				report = result.report;
+				return result.doc;
+			});
+			return report;
+		},
 
 		addCustomFont: (file) => {
 			const name = fontNameFromFile(file.name);

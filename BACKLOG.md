@@ -275,7 +275,7 @@ change, nested folders, any doc schema change.
 
 ---
 
-## 11. Discipline template picker + auto-placement — `queued` (infrastructure; template production is separate)
+## 11. Discipline template picker + auto-placement — `built` (branch worktree-spec-11-template-picker, awaiting review/merge)
 
 **Goal.** After the workbench build (or straight away for already-organized users), offer a
 picker of modern landing-page templates filtered by the discipline chosen at intake —

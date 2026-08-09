@@ -2,7 +2,7 @@
 // and the published Layout turn into the same CSS variables (see portfolio/theme.ts).
 import { useRef, useState } from 'react';
 import { useEditor } from '../store';
-import { Field, Section } from './ui/controls';
+import { Field, Section, openTemplatePicker } from './ui/controls';
 import { PanelIcon } from './ui/panel-icons';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
 import type { PageHeadingPosition, Theme } from '../../lib/content';
@@ -118,6 +118,13 @@ export default function ThemeEditor() {
 				<p className="theme-preset-note">
 					Themes restyle everything; your work stays put. One undo brings the old look back.
 				</p>
+				<button
+					type="button"
+					className="btn-link theme-template-link"
+					onClick={openTemplatePicker}
+				>
+					Rehang the landing page — browse looks
+				</button>
 			</div>
 			<div className="design-control-heading">
 				<span>2</span>
