@@ -11,7 +11,7 @@ export const SECTION_MOTION_CHOICES: Array<{
 	value: SectionMotionEffect | '';
 	label: string;
 }> = [
-	{ value: '', label: 'Inherit site motion' },
+	{ value: '', label: 'Inherit' },
 	{ value: 'reveal', label: 'Reveal' },
 	{ value: 'drift', label: 'Drift' },
 	{ value: 'pin', label: 'Pin' },
@@ -19,6 +19,17 @@ export const SECTION_MOTION_CHOICES: Array<{
 	{ value: 'sequence', label: 'Sequence' },
 	{ value: 'none', label: 'Off — always still' },
 ];
+
+/** Compact effect names for the trigger chip — the control labels itself with
+ * the active scene so the row reads at a glance. */
+export const SECTION_MOTION_SHORT: Record<SectionMotionEffect, string> = {
+	reveal: 'Reveal',
+	drift: 'Drift',
+	pin: 'Pin',
+	scrub: 'Scrub',
+	sequence: 'Sequence',
+	none: 'Off',
+};
 
 /** The stored config a picked effect implies. Inherit clears the entry; Off
  * needs no strength or phone choice; switching between effects keeps both. */
@@ -144,8 +155,9 @@ export function SectionMotionPicker({
 					</>
 				)}
 				<small>
-					Inherit follows the site’s motion feel from Design. Off keeps this
-					section still even when the rest of the site moves.
+					Inherit follows the page’s scene if one is set, otherwise the site’s
+					from Design. Off keeps this section still even when the rest of the
+					site moves.
 				</small>
 			</div>
 		</>
@@ -158,11 +170,12 @@ export function SectionMotionPicker({
 				type="button"
 				className={`btn-icon motion-scene-trigger${value ? ' active' : ''}`}
 				onClick={() => setOpen((current) => !current)}
-				aria-label={`${label}. ${value ? 'Has its own scroll scene' : 'Inherits site motion'}`}
+				aria-label={`${label}. ${value ? 'Has its own scroll scene' : 'Inherits the page or site motion'}`}
 				aria-expanded={open}
-				title="Scroll scene — how this section moves as visitors scroll"
+				title="Motion — how this section moves as visitors scroll"
 			>
-				∿
+				<span aria-hidden="true">∿</span>
+				{value ? SECTION_MOTION_SHORT[value.effect] : 'Motion'}
 			</button>
 			{typeof document !== 'undefined' && popover ? createPortal(popover, document.body) : null}
 		</div>

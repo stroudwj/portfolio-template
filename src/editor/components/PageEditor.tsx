@@ -3359,9 +3359,67 @@ export default function PageEditor({
 					</div>
 					<Field
 						label="Scroll scenes"
-						hint="Choose how each section responds as visitors move through the page. Inherit follows the site’s motion feel from Design; Off keeps a section still even when the site moves. Motion stays off on phones unless you opt in."
+						hint="Choose how this page moves as visitors scroll. Scenes cascade: a section's own scene wins, then the whole-page scene, then the site's from Design. Off pins that level still; motion stays off on phones unless you opt in."
 					>
 						<div className="scroll-scene-list">
+							<div className="scroll-scene-row">
+								<div className="scroll-scene-heading">
+									<strong>Whole page</strong>
+									<select
+										className="select-input"
+										value={page.motion?.effect ?? ''}
+										aria-label="Scroll scene for the whole page"
+										onChange={(event) =>
+											editor.setPageMotion(
+												pageKey,
+												nextSectionMotion(
+													page.motion,
+													event.target.value as SectionMotionEffect | '',
+												),
+											)
+										}
+									>
+										{SECTION_MOTION_CHOICES.map((choice) => (
+											<option key={choice.value || 'inherit'} value={choice.value}>
+												{choice.value === '' ? 'Inherit site scene' : choice.label}
+											</option>
+										))}
+									</select>
+								</div>
+								{page.motion && page.motion.effect !== 'none' && (
+									<div className="scroll-scene-options">
+										<label className="motion-range compact">
+											<span>Strength <output>{page.motion.intensity ?? 45}%</output></span>
+											<input
+												type="range"
+												min={1}
+												max={100}
+												step={1}
+												value={page.motion.intensity ?? 45}
+												onChange={(event) =>
+													editor.setPageMotion(pageKey, {
+														...page.motion!,
+														intensity: Number(event.target.value),
+													})
+												}
+											/>
+										</label>
+										<label className="compact-check">
+											<input
+												type="checkbox"
+												checked={page.motion.phone ?? false}
+												onChange={(event) =>
+													editor.setPageMotion(pageKey, {
+														...page.motion!,
+														phone: event.target.checked || undefined,
+													})
+												}
+											/>
+											Use on phones
+										</label>
+									</div>
+								)}
+							</div>
 							{motionSectionItems.map((item) => {
 								const motion = page.sectionMotion?.[item.key];
 								return (

@@ -1,15 +1,18 @@
-// Spec 13 — per-element motion tools. Every override is a pick from the spec-12
-// vocabulary plus Inherit: an absent entry inherits the site feel (so applying
-// a template still re-themes motion sitewide), an explicit choice wins, and the
-// new 'none' values pin one section or artwork still without touching the rest.
+// Spec 13 — per-element motion tools — and spec 24's cascade on top of them.
+// Every override is a pick from the spec-12 vocabulary plus Inherit: an absent
+// entry inherits (section → page → site scene → house feel), an explicit choice
+// wins, 'none' pins its scope still, and the Site motion dial is the master
+// switch over the whole chain.
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { parseAndMigrateContent, type Content, type Theme } from '../src/lib/content';
 import { blankContent, cloneContent } from '../src/editor/lib/content-init';
+import { STARTER_RECIPES } from '../src/editor/lib/templates';
 import { artworkEffectClass } from '../src/portfolio/artworkEffects';
 import Gallery from '../src/portfolio/Gallery';
 import Portfolio from '../src/portfolio/Portfolio';
+import { resolveSectionScene, resolveSiteMotion } from '../src/portfolio/siteMotion';
 import { nextSectionMotion } from '../src/editor/components/ui/SectionMotionPicker';
 
 function motionContent(motion: Theme['motion']): Content {
@@ -79,6 +82,73 @@ describe('per-section motion overrides', () => {
 		expect(parsed.schemaVersion).toBe(before);
 		expect(parsed.pages.home.sectionMotion).toEqual(content.pages.home.sectionMotion);
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
+	it('the Site motion dial is the master switch: Off stills hand-authored scenes too', () => {
+		const content = motionContent(undefined);
+		content.pages.home.sectionMotion = {
+			'section:main': { effect: 'sequence', intensity: 45, phone: true },
+		};
+		const markup = renderHome(content);
+		expect(markup).not.toContain('data-motion-effect=');
+		expect(markup).not.toContain('motion-effect-');
+	});
+
+	it('a page-wide scene fills sections without their own entry, and loses to both', () => {
+		const content = motionContent({ intensity: 'subtle' });
+		content.pages.home.motion = { effect: 'drift', intensity: 30 };
+		const markup = renderHome(content);
+		// Heading and main both inherit the page scene instead of the house reveal.
+		expect(markup.match(/data-motion-effect="drift"/g)).toHaveLength(2);
+		expect(markup).not.toContain('data-motion-effect="reveal"');
+
+		content.pages.home.sectionMotion = { 'section:main': { effect: 'none' } };
+		const withOverride = renderHome(content);
+		// The section's own choice wins over the page scene.
+		expect(withOverride.match(/data-motion-effect="drift"/g)).toHaveLength(1);
+	});
+
+	it("a site-wide scene replaces the house feel, and 'none' at page level stills a page", () => {
+		const content = motionContent({ intensity: 'full', scene: { effect: 'scrub', intensity: 50 } });
+		const markup = renderHome(content);
+		expect(markup.match(/data-motion-effect="scrub"/g)).toHaveLength(2);
+		expect(markup).not.toContain('data-motion-effect="reveal"');
+
+		content.pages.home.motion = { effect: 'none' };
+		const stilled = renderHome(content);
+		expect(stilled).not.toContain('data-motion-effect=');
+		// The dial stays on: unrelated primitives keep their root classes.
+		expect(stilled).toContain('motion-site-full');
+	});
+
+	it('round-trips the cascade fields through the schema without a version bump', () => {
+		const content = motionContent({ intensity: 'subtle', scene: { effect: 'drift', intensity: 20 } });
+		content.pages.home.motion = { effect: 'sequence', intensity: 60, phone: true };
+		const before = content.schemaVersion;
+		const parsed = parseAndMigrateContent(JSON.parse(JSON.stringify(content)));
+		expect(parsed.schemaVersion).toBe(before);
+		expect(parsed.theme.motion).toEqual(content.theme.motion);
+		expect(parsed.pages.home.motion).toEqual(content.pages.home.motion);
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
+	it("conservatory's hand-authored entries resolve identically under the cascade", () => {
+		const conservatory = STARTER_RECIPES.find((recipe) => recipe.id === 'conservatory')?.content;
+		expect(conservatory).toBeDefined();
+		if (!conservatory) return;
+		const site = resolveSiteMotion(conservatory.theme.motion);
+		expect(site).not.toBeNull();
+		let entries = 0;
+		for (const page of Object.values(conservatory.pages)) {
+			expect(page.motion).toBeUndefined(); // no page scenes were hand-authored
+			for (const authored of Object.values(page.sectionMotion ?? {})) {
+				entries += 1;
+				const resolved = resolveSectionScene(site, authored, page.motion, false);
+				if (authored.effect === 'none') expect(resolved).toBeUndefined();
+				else expect(resolved).toEqual(authored);
+			}
+		}
+		expect(entries).toBeGreaterThanOrEqual(10);
 	});
 
 	it('maps picker choices onto the stored config', () => {

@@ -27,7 +27,13 @@
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
     "fullscreenMobileMenu": true,
-    "pageHeadingScale": 115
+    "pageHeadingScale": 115,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": false,
+      "hover": false,
+      "stagger": false
+    }
   },
   "nav": [
     {

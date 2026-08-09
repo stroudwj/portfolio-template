@@ -414,6 +414,7 @@ export const themeSchema = passthrough({
 		hoverCaptions: z.boolean().optional(),
 		heroParallax: z.boolean().optional(),
 		stagger: z.boolean().optional(),
+		scene: sectionMotionSchema.optional(),
 	}).optional(),
 	customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 });
@@ -553,6 +554,7 @@ export const contentSchema = passthrough({
 			sectionHeights: z.record(z.string(), responsiveSectionHeightSchema).optional(),
 			sectionMotion: z.record(z.string(), sectionMotionSchema).optional(),
 			sectionBleed: z.record(z.string(), z.boolean()).optional(),
+			motion: sectionMotionSchema.optional(),
 			headingKinetic: kineticTextSchema.optional(),
 			project: projectDetailsSchema.optional(),
 		}),

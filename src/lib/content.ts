@@ -285,6 +285,10 @@ export interface SiteMotionConfig {
 	heroParallax?: boolean;
 	/** Images hang onto the wall in sequence when a page loads. */
 	stagger?: boolean;
+	/** Default scroll scene for every section — the site level of the spec-24
+	 * cascade (section → page → site → house feel). Absent = the house feel;
+	 * 'none' keeps sections still unless a page or section picks its own scene. */
+	scene?: SectionMotionConfig;
 }
 
 /** The navigation layouts an artist can pick from the Design area. */
@@ -715,6 +719,9 @@ export interface PageConfig {
 	sectionHeights?: Record<string, ResponsiveSectionHeight>;
 	/** Per-section scroll choreography keyed like sectionColors. */
 	sectionMotion?: Record<string, SectionMotionConfig>;
+	/** Page-wide scroll scene. Sections without their own entry inherit this
+	 * before the site's scene; 'none' keeps the whole page still. */
+	motion?: SectionMotionConfig;
 	/** Sections whose freeform canvas spans the viewport instead of the content
 	 * column (x=0/100 become the screen edges), keyed like sectionColors. */
 	sectionBleed?: Record<string, boolean>;

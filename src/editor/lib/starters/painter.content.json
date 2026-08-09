@@ -25,7 +25,13 @@
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
-    "stabilizeLogo": true
+    "stabilizeLogo": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": false,
+      "hover": false,
+      "stagger": false
+    }
   },
   "nav": [
     {

@@ -13,8 +13,10 @@ import type {
 	CreativeTrail,
 	FilmTexturePreset,
 	PageTransition,
+	SectionMotionEffect,
 	SiteMotionIntensity,
 } from '../../lib/content';
+import { SECTION_MOTION_CHOICES, nextSectionMotion } from './ui/SectionMotionPicker';
 
 /** Preset cursors — artist-flavored, one click each. */
 const CURSORS = ['✏️', '🖌️', '✂️', '🌸', '⭐', '👁️', '🐌'];
@@ -306,10 +308,93 @@ export default function CreativeEditor() {
 				</div>
 				<small className="scope-summary">
 					One motion feel for the whole site: sections rise into view, images hang in
-					sequence, galleries respond on hover. Visitors who prefer reduced motion see
-					none of it.
+					sequence, galleries respond on hover. Off keeps everything still — including
+					page and section scenes. Visitors who prefer reduced motion see none of it.
 				</small>
 			</Field>
+
+				{(doc.content.theme.motion?.intensity === 'subtle' ||
+					doc.content.theme.motion?.intensity === 'full') && (
+					<Field
+						label="Scroll scene"
+						hint="The scene every section plays as visitors scroll. Pages and sections can pick their own from their settings; Off in a section always wins."
+					>
+						<div className="scroll-scene-row">
+							<select
+								className="select-input"
+								value={doc.content.theme.motion?.scene?.effect ?? ''}
+								aria-label="Site-wide scroll scene"
+								onChange={(event) =>
+									setTheme({
+										motion: {
+											...doc.content.theme.motion,
+											scene: nextSectionMotion(
+												doc.content.theme.motion?.scene,
+												event.target.value as SectionMotionEffect | '',
+											),
+										},
+									})
+								}
+							>
+								{SECTION_MOTION_CHOICES.map((choice) => (
+									<option key={choice.value || 'inherit'} value={choice.value}>
+										{choice.value === ''
+											? 'House feel — sections rise into view'
+											: choice.value === 'none'
+												? 'Still — no scroll scenes'
+												: choice.label}
+									</option>
+								))}
+							</select>
+							{doc.content.theme.motion?.scene &&
+								doc.content.theme.motion.scene.effect !== 'none' && (
+									<div className="scroll-scene-options">
+										<label className="motion-range compact">
+											<span>
+												Strength <output>{doc.content.theme.motion.scene.intensity ?? 45}%</output>
+											</span>
+											<input
+												type="range"
+												min={1}
+												max={100}
+												step={1}
+												value={doc.content.theme.motion.scene.intensity ?? 45}
+												onChange={(event) =>
+													setTheme({
+														motion: {
+															...doc.content.theme.motion,
+															scene: {
+																...doc.content.theme.motion!.scene!,
+																intensity: Number(event.target.value),
+															},
+														},
+													})
+												}
+											/>
+										</label>
+										<label className="compact-check">
+											<input
+												type="checkbox"
+												checked={doc.content.theme.motion.scene.phone ?? false}
+												onChange={(event) =>
+													setTheme({
+														motion: {
+															...doc.content.theme.motion,
+															scene: {
+																...doc.content.theme.motion!.scene!,
+																phone: event.target.checked || undefined,
+															},
+														},
+													})
+												}
+											/>
+											Use on phones
+										</label>
+									</div>
+								)}
+						</div>
+					</Field>
+				)}
 
 				<Field label="Page transitions">
 				<div className="chip-row" role="group" aria-label="Page transition">

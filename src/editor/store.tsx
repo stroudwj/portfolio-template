@@ -1111,6 +1111,8 @@ export interface EditorContextValue {
 	setSectionBleed(key: string, partKey: string, bleed: boolean): void;
 	/** Scroll choreography for one page section. */
 	setSectionMotion(key: string, partKey: string, motion: SectionMotionConfig | undefined): void;
+	/** Page-wide scroll scene (undefined = inherit the site scene). */
+	setPageMotion(key: string, motion: SectionMotionConfig | undefined): void;
 	/** Replace one page's motion/type treatments with those copied from another page. */
 	applyPageEffects(key: string, source: PageConfig): void;
 	/** Responsive minimum height of one page section. */
@@ -4068,6 +4070,8 @@ export function EditorProvider({
 				true,
 				`page:${key}:sectionmotion:${partKey}`,
 			),
+		setPageMotion: (key, motion) =>
+			patchPage(key, (page) => ({ ...page, motion }), true, `page:${key}:pagemotion`),
 		applyPageEffects: (key, source) =>
 			patchPage(key, (page) => {
 				const sourceBlocks = source.blocks ?? [];
@@ -4104,6 +4108,7 @@ export function EditorProvider({
 					blocks,
 					headingKinetic: source.headingKinetic ? { ...source.headingKinetic } : undefined,
 					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+					motion: source.motion ? { ...source.motion } : undefined,
 				};
 			}),
 		setSectionHeight: (key, partKey, breakpoint, height, viewportHeight, gap, recordHistory = true) =>
