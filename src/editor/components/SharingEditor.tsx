@@ -3,7 +3,7 @@
 // site.description, per-page descriptions and the og:image choice; the exporter
 // and Layout.astro turn those into the real meta tags.
 import { useEditor } from '../store';
-import { Field, Section, TextArea, TextInput } from './ui/controls';
+import { Field, HelpTip, Section, TextArea, TextInput } from './ui/controls';
 import { pageGalleryConfigs } from '../../lib/content';
 import { getAssetPreviewUrl } from '../lib/assets';
 import { PLACEHOLDER_IMAGE } from '../lib/content-init';
@@ -121,10 +121,17 @@ export default function SharingEditor() {
 				</div>
 			</Section>
 
-			<Section title="Page descriptions" sectionKey="_page-descriptions" defaultCollapsed>
-				<p className="muted" style={{ marginTop: 0 }}>
-					Optional — a page without its own description uses the site description.
-				</p>
+			<Section
+				title="Page descriptions"
+				sectionKey="_page-descriptions"
+				defaultCollapsed
+				action={
+					<HelpTip
+						label="How page descriptions work"
+						tip="Optional — a page without its own description uses the site description."
+					/>
+				}
+			>
 				{pageRows.map(([key, page]) => (
 					<Field key={key} label={page.label ?? key}>
 						<TextInput

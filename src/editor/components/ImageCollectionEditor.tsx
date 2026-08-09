@@ -8,7 +8,7 @@ import {
 	type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { useEditor } from '../store';
-import { Section } from './ui/controls';
+import { HelpTip, Section } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { SortableList, SortableItem } from './ui/Sortable';
 import { getAssetPreviewUrl } from '../lib/assets';
@@ -317,11 +317,14 @@ export default function ImageCollectionEditor({
 					{focusedUi && (
 						<div className="image-group-collection-head">
 							<div>
-								<strong>Images</strong>
+								<span className="image-group-collection-title">
+									<strong>Images</strong>
+									<HelpTip label="How to arrange these images" tip={hint ?? 'Drag rows to change their order.'} />
+								</span>
 								<small>
 									{entries.length === 0
 										? 'Start by adding images to this group.'
-										: `${entries.length} image${entries.length === 1 ? '' : 's'} · drag rows to change their order`}
+										: `${entries.length} image${entries.length === 1 ? '' : 's'}`}
 								</small>
 							</div>
 							<span className="image-group-count" aria-label={`${entries.length} images`}>{entries.length}</span>
@@ -357,12 +360,15 @@ export default function ImageCollectionEditor({
 						<p className="muted">{emptyLabel}</p>
 					) : (
 						<>
-							<div className={`image-list-heading${focusedUi ? ' image-group-list-heading' : ''}`}>
-								<p className="muted">
-									{hint ??
-										'Arrange images in the live preview — drag one to move it, drag its corner handle to resize. ⠿ here sets the stacking: the top image sits in front when images overlap.'}
-								</p>
-								{!focusedUi && (
+							{!focusedUi && (
+								<div className="image-list-heading">
+									<HelpTip
+										label="How to arrange these images"
+										tip={
+											hint ??
+											'Arrange images in the live preview — drag one to move it, drag its corner handle to resize. ⠿ here sets the stacking: the top image sits in front when images overlap.'
+										}
+									/>
 									<div className="image-view-toggle" role="group" aria-label="Image editor view">
 										<button type="button" className={compact ? 'active' : ''} aria-pressed={compact} onClick={() => setCompact(true)}>
 											Compact
@@ -371,8 +377,8 @@ export default function ImageCollectionEditor({
 											Details
 										</button>
 									</div>
-								)}
-							</div>
+								</div>
+							)}
 							<SortableList ids={entries.map((e) => e.id)} onReorder={(f, t) => moveGalleryImage(folder, f, t)}>
 								<div className={`card-list ${(focusedUi || compact) ? 'image-card-list-compact' : ''}`}>
 										{entries.map((entry, idx) => {

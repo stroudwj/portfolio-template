@@ -7,6 +7,7 @@ import { useEditor } from '../store';
 import {
 	Field,
 	HelpDisclosure,
+	HelpTip,
 	TextInput,
 	Section,
 	previewTypeMotion,
@@ -1865,7 +1866,7 @@ export default function PageEditor({
 						<div className="image-group-layout-bar" data-tour="image-group-layout">
 							<div>
 								<strong>Layout</strong>
-								<small>Choose how the group appears on the page.</small>
+								<HelpTip label="About group layout" tip="Choose how the group appears on the page." />
 							</div>
 							<LayoutToggle
 								label={groupLabel}

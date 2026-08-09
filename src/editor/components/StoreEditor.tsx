@@ -3,7 +3,7 @@ import type { StoreOffer, StoreProduct } from '../../lib/content';
 import { isTestStripePaymentLink, normalizeStripePaymentLink } from '../../lib/stripe-payment-link';
 import { useEditor } from '../store';
 import { getAssetPreviewUrl } from '../lib/assets';
-import { Field, Section, TextArea, TextInput, showPreviewPage } from './ui/controls';
+import { Field, HelpTip, Section, TextArea, TextInput, showPreviewPage } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 
 type StripeLinkState = 'empty' | 'invalid' | 'test' | 'live';
@@ -451,7 +451,15 @@ export default function StoreEditor() {
 	if (!doc) return null;
 	if (!store)
 		return (
-			<Section title="Sell your work">
+			<Section
+				title="Sell your work"
+				action={
+					<HelpTip
+						label="What setting up the store does"
+						tip="Setting up the store also adds a visible Shop page at the next available address, beginning with /shop. Existing pages are never replaced."
+					/>
+				}
+			>
 				<div className="store-empty">
 					<p>
 						Create a simple catalog for prints and originals. Buyers choose an option here, then
@@ -470,10 +478,6 @@ export default function StoreEditor() {
 					>
 						Set up store
 					</button>
-					<p className="muted">
-						This also adds a visible Shop page at the next available address, beginning with
-						<code>/shop</code>. Existing pages are never replaced.
-					</p>
 				</div>
 			</Section>
 		);
