@@ -388,7 +388,7 @@ export const themeSchema = passthrough({
 	logoPosition: z.enum(['left', 'center', 'freeform']).optional(),
 	logoX: z.number().min(0).max(100).optional(),
 	logoY: z.number().min(0).max(400).optional(),
-	navStyle: z.enum(['dock', 'topbar', 'centered', 'pill', 'minimal']).optional(),
+	navStyle: z.enum(['dock', 'topbar', 'centered', 'pill', 'minimal', 'three-zone']).optional(),
 	navOffsetX: z.number().min(-64).max(64).optional(),
 	navOffsetY: z.number().min(-64).max(64).optional(),
 	fullscreenMobileMenu: z.boolean().optional(),

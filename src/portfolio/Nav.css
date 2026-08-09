@@ -148,6 +148,32 @@
 	font-size: 0.72rem;
 }
 
+/* Three-zone — links left, wordmark center (the sibling logo), CTA right */
+.nav-three-zone {
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+.nav-three-zone .nav-links-row {
+	justify-content: flex-start;
+	/* Leave the middle of the bar to the centered wordmark. */
+	max-width: calc(50% - 90px);
+}
+.nav-cta-link {
+	flex: 0 0 auto;
+	color: var(--chrome-ink, var(--color-text));
+	text-decoration: none;
+	font-size: 0.9rem;
+	letter-spacing: 0.04em;
+	padding-bottom: 2px;
+	border-bottom: 1px solid currentColor;
+	transition: opacity 0.2s ease;
+}
+.nav-cta-link:hover {
+	opacity: 0.75;
+}
+
 /* Pill — translucent floating capsule with a blur behind it */
 .nav-pill .nav-links-row {
 	padding: 10px 22px;

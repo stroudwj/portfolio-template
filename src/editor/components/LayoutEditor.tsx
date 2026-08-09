@@ -12,6 +12,7 @@ const NAV_STYLES: Array<{ value: NavStyle; label: string; hint: string }> = [
 	{ value: 'centered', label: 'Centered', hint: 'Spaced, uppercase links beneath the logo.' },
 	{ value: 'pill', label: 'Floating pill', hint: 'A translucent capsule floating at the bottom.' },
 	{ value: 'minimal', label: 'Minimal', hint: 'Just a menu button that opens a full-screen menu.' },
+	{ value: 'three-zone', label: 'Three-zone bar', hint: 'A solid top bar: links left, your name center, and the last menu item as a highlighted link on the right.' },
 ];
 
 

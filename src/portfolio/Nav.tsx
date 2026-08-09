@@ -91,6 +91,11 @@ export default function Nav({
 
 	const isDock = navStyle === 'dock';
 	const showDesktopList = navStyle !== 'minimal';
+	// Three-zone: links left, the (separately rendered) logo center, and the LAST
+	// menu item promoted to a call-to-action pinned right — Mosley's bar.
+	const isThreeZone = navStyle === 'three-zone';
+	const ctaLink = isThreeZone && links.length > 1 ? links[links.length - 1] : null;
+	const desktopLinks = ctaLink ? links.slice(0, -1) : links;
 
 	return (
 		<div
@@ -123,7 +128,7 @@ export default function Nav({
 					</div>
 				) : (
 					<div className="nav-links-row desktop-nav">
-						{links.map((item, i) => (
+						{desktopLinks.map((item, i) => (
 							<a
 								key={`${item.path}-${i}`}
 								href={item.href}
@@ -135,6 +140,16 @@ export default function Nav({
 						))}
 					</div>
 				))}
+
+			{ctaLink && (
+				<a
+					href={ctaLink.href}
+					className={`nav-cta-link desktop-nav ${ctaLink.isActive ? 'active' : ''}`}
+					onClick={go(ctaLink.path)}
+				>
+					{ctaLink.label}
+				</a>
+			)}
 
 			{/* Hamburger trigger — CSS shows it on phones always, and on desktop for the
 			    'minimal' style. Toggles the compact dropdown or the full-screen overlay. */}

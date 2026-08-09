@@ -265,7 +265,7 @@ export interface SiteMotionConfig {
 }
 
 /** The navigation layouts an artist can pick from the Design area. */
-export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
+export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal' | 'three-zone';
 export type HeaderMode = 'name' | 'text' | 'image';
 export type LogoPosition = 'left' | 'center' | 'freeform';
 export type PageHeadingPosition = 'left' | 'center' | 'right' | 'freeform';

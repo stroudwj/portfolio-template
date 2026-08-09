@@ -230,6 +230,40 @@ describe('staticgen', () => {
 		expect(home).not.toContain('sidebar is-stabilized');
 	});
 
+	it('publishes the three-zone bar with the last menu item as the right-hand CTA', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			theme: { ...base.contentJson.theme, navStyle: 'three-zone' },
+			nav: [
+				{ path: '', label: 'Works' },
+				{ path: 'about', label: 'About' },
+				{ path: 'contact', label: 'Book now' },
+			],
+			pages: {
+				...base.contentJson.pages,
+				about: { title: 'About', label: 'About', blocks: [] },
+				contact: { title: 'Contact', label: 'Book now', blocks: [] },
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('nav-style-three-zone');
+		// The last menu item is promoted out of the link row into the CTA slot…
+		expect(home).toContain('nav-cta-link');
+		expect(home).toMatch(/nav-cta-link[^>]*>Book now/);
+		// …and the remaining links still render as the left row.
+		expect(home).toMatch(/row-link[^>]*>Works/);
+		expect(home).toMatch(/row-link[^>]*>About/);
+		expect(home).not.toMatch(/row-link[^>]*>Book now/);
+	});
+
 	it('publishes an accordion as script-free details rows grouped one-open-at-a-time', async () => {
 		const base = testBundle();
 		const content = parseAndMigrateContent({
