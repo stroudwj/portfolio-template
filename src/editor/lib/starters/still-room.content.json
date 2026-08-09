@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Sculpture portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
+  },
+  "theme": {
+    "backgroundColor": "#f7f5f1",
+    "textColor": "#2b2622",
+    "mutedTextColor": "#8a8177",
+    "accentColor": "#625448",
+    "fontFamily": "\"Trebuchet MS\", Verdana, sans-serif",
+    "headingFontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+    "logoScale": 120,
+    "pageHeadingScale": 140,
+    "pageHeadingPosition": "left",
+    "logoPosition": "center",
+    "navStyle": "minimal",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "hover": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Studio"
+    },
+    {
+      "path": "work",
+      "label": "Work"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "A still room needs few words — say what you carve, cast, or collect, and where the pieces live. The photographs in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Studio",
+      "label": "Studio",
+      "description": "Object studies in a quiet cream room.",
+      "blocks": [
+        {
+          "id": "statement-images",
+          "type": "images",
+          "gallery": {
+            "folder": "statement",
+            "alt": "Object study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Statement"
+        },
+        {
+          "id": "statement-text",
+          "type": "text",
+          "text": "A sculptor with a patient eye. Every piece is photographed in the same north light it was made in.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A sculptor with a patient eye. Every piece is photographed in the same north light it was made in.",
+                  "fontSize": 40
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 4,
+            "w": 50,
+            "h": 26,
+            "z": 10
+          }
+        },
+        {
+          "id": "work-images",
+          "type": "images",
+          "gallery": {
+            "folder": "work-pair",
+            "alt": "Object study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Work"
+        },
+        {
+          "id": "work-title",
+          "type": "text",
+          "text": "Work",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Work",
+                  "fontSize": 64
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 66,
+            "w": 25,
+            "h": 9,
+            "z": 10
+          }
+        },
+        {
+          "id": "work-note",
+          "type": "text",
+          "text": "A collection of carefully composed studies, one object at a time.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A collection of carefully composed studies, one object at a time.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 78,
+            "w": 37,
+            "h": 6,
+            "z": 10
+          }
+        },
+        {
+          "id": "work-link",
+          "type": "text",
+          "text": "See the collection ↗",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "See the collection ↗",
+                  "fontSize": 18
+                }
+              ]
+            }
+          ],
+          "link": "/work",
+          "layout": {
+            "x": 0,
+            "y": 86,
+            "w": 33,
+            "h": 5,
+            "z": 10
+          }
+        },
+        {
+          "id": "commissions-images",
+          "type": "images",
+          "gallery": {
+            "folder": "commissions-pair",
+            "alt": "Object study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Commissions"
+        },
+        {
+          "id": "commissions-title",
+          "type": "text",
+          "text": "Commissions",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Commissions",
+                  "fontSize": 64
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 85,
+            "w": 40,
+            "h": 9,
+            "z": 10
+          }
+        },
+        {
+          "id": "commissions-note",
+          "type": "text",
+          "text": "Inquire about a commission — objects, editions, or a whole room.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Inquire about a commission — objects, editions, or a whole room.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 97,
+            "w": 37,
+            "h": 6,
+            "z": 10
+          }
+        },
+        {
+          "id": "commissions-link",
+          "type": "text",
+          "text": "Write to the studio ↗",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Write to the studio ↗",
+                  "fontSize": 18
+                }
+              ]
+            }
+          ],
+          "link": "/about",
+          "layout": {
+            "x": 0,
+            "y": 105,
+            "w": 33,
+            "h": 5,
+            "z": 10
+          }
+        },
+        {
+          "id": "colophon-images",
+          "type": "images",
+          "gallery": {
+            "folder": "colophon",
+            "alt": "Object study",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:colophon-name": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Signature"
+        },
+        {
+          "id": "colophon-marquee",
+          "type": "text",
+          "text": "The still room — new work each season —",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "The still room — new work each season —",
+                  "fontSize": 20
+                }
+              ]
+            }
+          ],
+          "kinetic": {
+            "effect": "marquee"
+          },
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 4,
+            "z": 10
+          }
+        },
+        {
+          "id": "colophon-name",
+          "type": "text",
+          "text": "YOUR NAME",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "YOUR NAME",
+                  "fontSize": 130
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "layout": {
+            "x": 6,
+            "y": 10,
+            "w": 88,
+            "h": 20,
+            "z": 12
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "statement",
+          "name": "Statement",
+          "blockIds": [
+            "statement-images",
+            "statement-text"
+          ]
+        },
+        {
+          "id": "work",
+          "name": "Work",
+          "blockIds": [
+            "work-images",
+            "work-title",
+            "work-note",
+            "work-link"
+          ]
+        },
+        {
+          "id": "commissions",
+          "name": "Commissions",
+          "blockIds": [
+            "commissions-images",
+            "commissions-title",
+            "commissions-note",
+            "commissions-link"
+          ]
+        },
+        {
+          "id": "colophon",
+          "name": "Signature",
+          "blockIds": [
+            "colophon-images",
+            "colophon-marquee",
+            "colophon-name"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:statement": {
+          "effect": "reveal",
+          "intensity": 30
+        },
+        "section:work": {
+          "effect": "reveal",
+          "intensity": 30
+        },
+        "section:commissions": {
+          "effect": "reveal",
+          "intensity": 30
+        }
+      }
+    },
+    "work": {
+      "title": "Work — {name}",
+      "label": "Work",
+      "description": "The collection, two to a row.",
+      "heading": "Work",
+      "blocks": [
+        {
+          "id": "work-page-intro",
+          "type": "text",
+          "text": "The collection — marble, bronze, and faience, two to a row.",
+          "style": "body"
+        },
+        {
+          "id": "work-page-images",
+          "type": "images",
+          "gallery": {
+            "folder": "collection",
+            "alt": "Object study",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Collection"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "work-page-intro",
+            "work-page-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "statement": {
+      "items": {
+        "01-hippopotamus-william.jpg": {
+          "id": "sample-sculptor-met-544227-v1",
+          "sampleAssetId": "sculptor-met-544227-v1",
+          "title": "Hippopotamus (William)",
+          "alt": "Bright blue faience hippopotamus decorated with painted lotus flowers.",
+          "description": "Egyptian, Middle Kingdom. Hippopotamus (William), ca. 1961–1878 B.C.. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/544227",
+          "layout": {
+            "x": 55,
+            "y": 0,
+            "w": 40,
+            "ar": 0.74875,
+            "z": 2
+          }
+        },
+        "02-marble-seated-harp-player.jpg": {
+          "id": "sample-sculptor-met-254587-v1",
+          "sampleAssetId": "sculptor-met-254587-v1",
+          "title": "Marble seated harp player",
+          "alt": "Smooth white marble figure of a seated musician tilting back a frame harp.",
+          "description": "Cycladic. Marble seated harp player, 2800–2700 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/254587",
+          "layout": {
+            "x": 2,
+            "y": 30,
+            "w": 30,
+            "ar": 0.7575,
+            "z": 1
+          }
+        }
+      }
+    },
+    "work-pair": {
+      "items": {
+        "01-marble-female-figure.jpg": {
+          "id": "sample-sculptor-met-255417-v1",
+          "sampleAssetId": "sculptor-met-255417-v1",
+          "title": "Marble female figure",
+          "alt": "Abstract marble female figure with folded arms, worn smooth by millennia.",
+          "description": "Cycladic. Marble female figure, 4500–4000 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/255417",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 50,
+            "ar": 0.80625,
+            "z": 1
+          }
+        },
+        "02-marble-head-of-a-goddess.jpg": {
+          "id": "sample-sculptor-met-248268-v1",
+          "sampleAssetId": "sculptor-met-248268-v1",
+          "title": "Marble head of a goddess",
+          "alt": "Weathered marble head of a goddess with a calm, level gaze.",
+          "description": "Greek. Marble head of a goddess, 4th century BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/248268",
+          "layout": {
+            "x": 54,
+            "y": 4,
+            "w": 48,
+            "ar": 0.71437,
+            "z": 2
+          }
+        }
+      }
+    },
+    "commissions-pair": {
+      "items": {
+        "01-marble-head-of-an-athlete.jpg": {
+          "id": "sample-sculptor-met-248579-v1",
+          "sampleAssetId": "sculptor-met-248579-v1",
+          "title": "Marble head of an athlete",
+          "alt": "Marble head of a young athlete with tightly curled hair.",
+          "description": "Roman. Marble head of an athlete, ca. 138–192 CE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/248579",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 66,
+            "ar": 0.81125,
+            "z": 1
+          }
+        },
+        "02-marble-female-figure.jpg": {
+          "id": "sample-sculptor-met-255275-v1",
+          "sampleAssetId": "sculptor-met-255275-v1",
+          "title": "Marble female figure",
+          "alt": "Slender Cycladic marble figure with folded arms and a lifted oval face.",
+          "description": "Bastis Master. Marble female figure, 2600–2400 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/255275",
+          "layout": {
+            "x": 70,
+            "y": 0,
+            "w": 32,
+            "ar": 0.66687,
+            "z": 2
+          }
+        }
+      }
+    },
+    "colophon": {
+      "items": {
+        "01-marble-head-of-a-ptolemaic-queen.jpg": {
+          "id": "sample-sculptor-met-257603-v1-b",
+          "sampleAssetId": "sculptor-met-257603-v1",
+          "title": "Marble head of a Ptolemaic queen",
+          "alt": "Marble head of a queen with softly carved features and traces of a diadem.",
+          "description": "Greek. Marble head of a Ptolemaic queen, ca. 270–250 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/257603",
+          "layout": {
+            "x": 84,
+            "y": 30,
+            "w": 14,
+            "ar": 0.75,
+            "z": 1
+          }
+        }
+      }
+    },
+    "collection": {
+      "items": {
+        "01-marble-head-of-a-ptolemaic-queen.jpg": {
+          "id": "sample-sculptor-met-257603-v1",
+          "sampleAssetId": "sculptor-met-257603-v1",
+          "title": "Marble head of a Ptolemaic queen",
+          "alt": "Marble head of a queen with softly carved features and traces of a diadem.",
+          "description": "Greek. Marble head of a Ptolemaic queen, ca. 270–250 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/257603"
+        },
+        "02-fragments-of-the-diadoumenos.jpg": {
+          "id": "sample-sculptor-met-251838-v1",
+          "sampleAssetId": "sculptor-met-251838-v1",
+          "title": "Fragments of the Diadoumenos",
+          "alt": "Fragmentary marble youth tying a victory fillet around his head.",
+          "description": "After Polykleitos. Fragments of the Diadoumenos, ca. 69–96 CE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/251838"
+        },
+        "03-hippopotamus-william.jpg": {
+          "id": "sample-sculptor-met-544227-v1-c",
+          "sampleAssetId": "sculptor-met-544227-v1",
+          "title": "Hippopotamus (William)",
+          "alt": "Bright blue faience hippopotamus decorated with painted lotus flowers.",
+          "description": "Egyptian, Middle Kingdom. Hippopotamus (William), ca. 1961–1878 B.C.. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/544227"
+        },
+        "04-marble-female-figure.jpg": {
+          "id": "sample-sculptor-met-255417-v1-c",
+          "sampleAssetId": "sculptor-met-255417-v1",
+          "title": "Marble female figure",
+          "alt": "Abstract marble female figure with folded arms, worn smooth by millennia.",
+          "description": "Cycladic. Marble female figure, 4500–4000 BCE. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/255417"
+        }
+      }
+    }
+  }
+}

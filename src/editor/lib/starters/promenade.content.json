@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Painting portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
+  },
+  "theme": {
+    "backgroundColor": "#ffffff",
+    "textColor": "#221c2c",
+    "mutedTextColor": "#6e687a",
+    "accentColor": "#32273b",
+    "fontFamily": "Optima, Candara, \"Segoe UI\", sans-serif",
+    "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+    "logoScale": 120,
+    "pageHeadingScale": 140,
+    "pageHeadingPosition": "center",
+    "logoPosition": "center",
+    "navStyle": "minimal",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "hover": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Halls"
+    },
+    {
+      "path": "sketchbook",
+      "label": "Sketchbook"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "State the mission in two sentences — what you paint and why it needs a whole wall. The watercolors in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Halls",
+      "label": "Halls",
+      "description": "Three painted halls, each a full-width watercolor.",
+      "blocks": [
+        {
+          "id": "mission",
+          "type": "text",
+          "text": "Watercolors from a long walk — courtyards, harbors, and towns that hold their light.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Watercolors from a long walk — courtyards, harbors, and towns that hold their light.",
+                  "fontSize": 30
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "flowLayout": {
+            "x": 25,
+            "w": 50
+          }
+        },
+        {
+          "id": "hall-1-band",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-1",
+            "alt": "Watercolor",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 1 — band"
+        },
+        {
+          "id": "hall-1-title",
+          "type": "text",
+          "text": "Courtyards",
+          "style": "heading"
+        },
+        {
+          "id": "hall-1-study",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-1-side",
+            "alt": "Watercolor study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 1 — study"
+        },
+        {
+          "id": "hall-2-band",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-2",
+            "alt": "Watercolor",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 2 — band"
+        },
+        {
+          "id": "hall-2-title",
+          "type": "text",
+          "text": "Harbors",
+          "style": "heading"
+        },
+        {
+          "id": "hall-2-study",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-2-side",
+            "alt": "Watercolor study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 2 — study"
+        },
+        {
+          "id": "hall-3-band",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-3",
+            "alt": "Watercolor",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 3 — band"
+        },
+        {
+          "id": "hall-3-title",
+          "type": "text",
+          "text": "Towns",
+          "style": "heading"
+        },
+        {
+          "id": "hall-3-study",
+          "type": "images",
+          "gallery": {
+            "folder": "hall-3-side",
+            "alt": "Watercolor study",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Hall 3 — study"
+        }
+      ],
+      "sections": [
+        {
+          "id": "mission",
+          "name": "Mission",
+          "blockIds": [
+            "mission"
+          ]
+        },
+        {
+          "id": "hall-1",
+          "name": "Hall 1",
+          "blockIds": [
+            "hall-1-band",
+            "hall-1-title",
+            "hall-1-study"
+          ]
+        },
+        {
+          "id": "hall-2",
+          "name": "Hall 2",
+          "blockIds": [
+            "hall-2-band",
+            "hall-2-title",
+            "hall-2-study"
+          ]
+        },
+        {
+          "id": "hall-3",
+          "name": "Hall 3",
+          "blockIds": [
+            "hall-3-band",
+            "hall-3-title",
+            "hall-3-study"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:hall-1": {
+          "effect": "reveal",
+          "intensity": 35
+        },
+        "section:hall-2": {
+          "effect": "reveal",
+          "intensity": 35
+        },
+        "section:hall-3": {
+          "effect": "reveal",
+          "intensity": 35
+        }
+      },
+      "sectionBleed": {
+        "section:hall-1": true,
+        "section:hall-2": true,
+        "section:hall-3": true
+      }
+    },
+    "sketchbook": {
+      "title": "Sketchbook — {name}",
+      "label": "Sketchbook",
+      "description": "Smaller studies between the halls.",
+      "heading": "Sketchbook",
+      "blocks": [
+        {
+          "id": "sketchbook-intro",
+          "type": "text",
+          "text": "Smaller studies made between the halls — streets, churches, and a lake.",
+          "style": "body"
+        },
+        {
+          "id": "sketchbook-images",
+          "type": "images",
+          "gallery": {
+            "folder": "sketchbook",
+            "alt": "Watercolor study",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Sketchbook"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "sketchbook-intro",
+            "sketchbook-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "hall-1": {
+      "items": {
+        "01-building-with-washing.jpg": {
+          "id": "sample-painting-nga-222879-v1",
+          "sampleAssetId": "painting-nga-222879-v1",
+          "title": "Building with Washing",
+          "alt": "The image shows a view of a path or road leading towards a large building by a waterway.",
+          "description": "Emily Sargent. Building with Washing, 1908. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222879.html",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "ar": 1.49344,
+            "z": 1
+          }
+        }
+      }
+    },
+    "hall-1-side": {
+      "items": {
+        "01-a-loggia.jpg": {
+          "id": "sample-painting-nga-222877-v1",
+          "sampleAssetId": "painting-nga-222877-v1",
+          "title": "A Loggia",
+          "alt": "The painting shows a covered walkway with arches that recede into the distance.",
+          "description": "Emily Sargent. A Loggia, 1901. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222877.html",
+          "layout": {
+            "x": 84,
+            "y": 0,
+            "w": 16,
+            "ar": 0.71889,
+            "z": 1
+          }
+        }
+      }
+    },
+    "hall-2": {
+      "items": {
+        "01-tangier.jpg": {
+          "id": "sample-painting-nga-222884-v1",
+          "sampleAssetId": "painting-nga-222884-v1",
+          "title": "Tangier",
+          "alt": "The painting features an elevated viewpoint showing a hill or mound with colorful buildings in the distance.",
+          "description": "Emily Sargent. Tangier, 1900. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222884.html",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "ar": 1.48855,
+            "z": 1
+          }
+        }
+      }
+    },
+    "hall-2-side": {
+      "items": {
+        "01-cordoba.jpg": {
+          "id": "sample-painting-nga-222880-v1",
+          "sampleAssetId": "painting-nga-222880-v1",
+          "title": "Cordoba",
+          "alt": "The image shows a street viewed from an eye-level perspective.",
+          "description": "Emily Sargent. Cordoba, 1904. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222880.html",
+          "layout": {
+            "x": 84,
+            "y": 0,
+            "w": 16,
+            "ar": 0.71575,
+            "z": 1
+          }
+        }
+      }
+    },
+    "hall-3": {
+      "items": {
+        "01-quayside-scene-with-church.jpg": {
+          "id": "sample-painting-nga-222875-v1",
+          "sampleAssetId": "painting-nga-222875-v1",
+          "title": "Quayside Scene with Church",
+          "alt": "The image depicts a harbor scene.",
+          "description": "Emily Sargent. Quayside Scene with Church, 1908. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222875.html",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "ar": 1.3872,
+            "z": 1
+          }
+        }
+      }
+    },
+    "hall-3-side": {
+      "items": {
+        "01-statuette-of-a-buddha.jpg": {
+          "id": "sample-painting-nga-222874-v1",
+          "sampleAssetId": "painting-nga-222874-v1",
+          "title": "Statuette of a Buddha",
+          "alt": "The image shows a painting of a golden statue.",
+          "description": "Emily Sargent. Statuette of a Buddha, 1885. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222874.html",
+          "layout": {
+            "x": 84,
+            "y": 0,
+            "w": 16,
+            "ar": 0.737,
+            "z": 1
+          }
+        }
+      }
+    },
+    "sketchbook": {
+      "items": {
+        "01-church-and-street-camprodon.jpg": {
+          "id": "sample-painting-nga-222876-v1",
+          "sampleAssetId": "painting-nga-222876-v1",
+          "title": "Church and Street, Camprodon",
+          "alt": "The image shows a street scene with buildings viewed from a town square.",
+          "description": "Emily Sargent. Church and Street, Camprodon, 1902. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222876.html"
+        },
+        "02-vevey.jpg": {
+          "id": "sample-painting-nga-222873-v1",
+          "sampleAssetId": "painting-nga-222873-v1",
+          "title": "Vevey",
+          "alt": "The image shows a gently sloping riverbank extending into the distance, with a low horizon and a light, open sky merging with the distant landscape where water meets land.",
+          "description": "Emily Sargent. Vevey, 1884. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222873.html"
+        },
+        "03-untitled.jpg": {
+          "id": "sample-painting-nga-222881-v1",
+          "sampleAssetId": "painting-nga-222881-v1",
+          "title": "Untitled",
+          "alt": "The image shows a street view from an elevated point, looking down a gentle slope between two large buildings.",
+          "description": "Emily Sargent. Untitled, 1904. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222881.html"
+        }
+      }
+    }
+  }
+}

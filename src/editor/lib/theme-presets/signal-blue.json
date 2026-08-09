@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#ffffff",
+  "textColor": "#000d7a",
+  "mutedTextColor": "#5a5f9e",
+  "accentColor": "#0016d0",
+  "fontFamily": "Verdana, Geneva, sans-serif",
+  "headingFontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+  "logoScale": 130,
+  "logoPosition": "left",
+  "pageHeadingScale": 140,
+  "pageHeadingPosition": "left",
+  "navStyle": "topbar",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

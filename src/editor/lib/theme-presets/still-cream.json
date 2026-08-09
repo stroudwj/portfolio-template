@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#f7f5f1",
+  "textColor": "#2b2622",
+  "mutedTextColor": "#8a8177",
+  "accentColor": "#625448",
+  "fontFamily": "\"Trebuchet MS\", Verdana, sans-serif",
+  "headingFontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+  "logoScale": 120,
+  "logoPosition": "center",
+  "pageHeadingScale": 140,
+  "pageHeadingPosition": "left",
+  "navStyle": "minimal",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

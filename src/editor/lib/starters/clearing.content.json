@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Photography portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
+  },
+  "theme": {
+    "backgroundColor": "#ffffff",
+    "textColor": "#1a1a1a",
+    "mutedTextColor": "#8c887f",
+    "accentColor": "#b9b19e",
+    "fontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+    "headingFontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+    "logoScale": 100,
+    "pageHeadingScale": 110,
+    "pageHeadingPosition": "left",
+    "logoPosition": "left",
+    "navStyle": "minimal",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "hover": false
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Clearing"
+    },
+    {
+      "path": "index",
+      "label": "Index"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Keep it spare: a sentence on where these were made, and one on what you look for. The photographs in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name}",
+      "label": "Clearing",
+      "description": "Six photographs and a great deal of air.",
+      "blocks": [
+        {
+          "id": "clearing-images",
+          "type": "images",
+          "gallery": {
+            "folder": "clearing",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Clearing"
+        }
+      ],
+      "sections": [
+        {
+          "id": "clearing",
+          "name": "Clearing",
+          "blockIds": [
+            "clearing-images"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:clearing": {
+          "effect": "drift",
+          "intensity": 25
+        }
+      },
+      "sectionBleed": {
+        "section:clearing": true
+      }
+    },
+    "index": {
+      "title": "Index — {name}",
+      "label": "Index",
+      "description": "The rest of the roll, in order.",
+      "heading": "Index",
+      "blocks": [
+        {
+          "id": "index-intro",
+          "type": "text",
+          "text": "The rest of the roll — bridges, gates, and a maison de retraite.",
+          "style": "body"
+        },
+        {
+          "id": "index-images",
+          "type": "images",
+          "gallery": {
+            "folder": "index",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Index"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "index-intro",
+            "index-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "clearing": {
+      "items": {
+        "01-saint-cloud.jpg": {
+          "id": "sample-photography-nga-124992-v1",
+          "sampleAssetId": "photography-nga-124992-v1",
+          "title": "Saint-Cloud",
+          "alt": "Saint-Cloud: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. Saint-Cloud, 1926. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124992.html",
+          "layout": {
+            "x": 12,
+            "y": 0,
+            "w": 37,
+            "ar": 1.31757,
+            "z": 1
+          }
+        },
+        "02-parc-de-sceaux.jpg": {
+          "id": "sample-photography-nga-124987-v1",
+          "sampleAssetId": "photography-nga-124987-v1",
+          "title": "Parc de Sceaux",
+          "alt": "This sepia-toned photograph shows a long, grassy path that extends into the distance.",
+          "description": "Eugène Atget. Parc de Sceaux, 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124987.html",
+          "layout": {
+            "x": 78,
+            "y": 11,
+            "w": 25,
+            "ar": 0.78843,
+            "z": 2
+          }
+        },
+        "03-saint-cloud.jpg": {
+          "id": "sample-photography-nga-136283-v1",
+          "sampleAssetId": "photography-nga-136283-v1",
+          "title": "Saint-Cloud",
+          "alt": "The image shows a landscape with a large tree, a stone statue of a figure with a cross, distant leafless trees, a reflective body of water, and a misty horizon.",
+          "description": "Eugène Atget. Saint-Cloud, 1926. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.136283.html",
+          "layout": {
+            "x": 0,
+            "y": 49,
+            "w": 54,
+            "ar": 1.33562,
+            "z": 2
+          }
+        },
+        "04-nympheas.jpg": {
+          "id": "sample-photography-nga-124982-v1",
+          "sampleAssetId": "photography-nga-124982-v1",
+          "title": "Nymphéas",
+          "alt": "The view is from above and slightly to the side, showing water-lilies and surrounding details on a pond.",
+          "description": "Eugène Atget. Nymphéas, 1922/1923. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124982.html",
+          "layout": {
+            "x": 66,
+            "y": 57,
+            "w": 25,
+            "ar": 1.30347,
+            "z": 3
+          }
+        },
+        "05-arcueil-cachan-parc-de-madame-de-provigny.jpg": {
+          "id": "sample-photography-nga-115379-v1",
+          "sampleAssetId": "photography-nga-115379-v1",
+          "title": "Arcueil-Cachan, Parc de Madame de Provigny",
+          "alt": "The image shows a grassy area with scattered sticks, logs, and a stone structure in the foreground.",
+          "description": "Eugène Atget. Arcueil-Cachan, Parc de Madame de Provigny, 1901. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.115379.html",
+          "layout": {
+            "x": 29,
+            "y": 95,
+            "w": 66,
+            "ar": 1.23641,
+            "z": 3
+          }
+        },
+        "06-nympheas-bagatelle.jpg": {
+          "id": "sample-photography-nga-124996-v1",
+          "sampleAssetId": "photography-nga-124996-v1",
+          "title": "Nymphéas (Bagatelle)",
+          "alt": "This sepia-toned photograph displays a pond with lily pads and water lilies.",
+          "description": "Eugène Atget. Nymphéas (Bagatelle), 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124996.html",
+          "layout": {
+            "x": 4,
+            "y": 141,
+            "w": 33,
+            "ar": 1.2443,
+            "z": 4
+          }
+        }
+      }
+    },
+    "index": {
+      "items": {
+        "01-saint-cloud.jpg": {
+          "id": "sample-photography-nga-136284-v1",
+          "sampleAssetId": "photography-nga-136284-v1",
+          "title": "Saint-Cloud",
+          "alt": "The image depicts a park landscape with a tree and a statue close to the viewer.",
+          "description": "Eugène Atget. Saint-Cloud, 1926. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.136284.html"
+        },
+        "02-pont-marie.jpg": {
+          "id": "sample-photography-nga-124989-v1",
+          "sampleAssetId": "photography-nga-124989-v1",
+          "title": "Pont Marie",
+          "alt": "The image shows a ground-level perspective of an arched stone bridge spanning horizontally across the scene.",
+          "description": "Eugène Atget. Pont Marie, 1926. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124989.html"
+        },
+        "03-poterne-des-peupliers.jpg": {
+          "id": "sample-photography-nga-131732-v1",
+          "sampleAssetId": "photography-nga-131732-v1",
+          "title": "Poterne des Peupliers",
+          "alt": "The image shows a low angle view of a steep, rocky slope with two rustic buildings on top.",
+          "description": "Eugène Atget. Poterne des Peupliers, 1913. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.131732.html"
+        },
+        "04-saint-denis-maison-de-retraite.jpg": {
+          "id": "sample-photography-nga-124995-v1",
+          "sampleAssetId": "photography-nga-124995-v1",
+          "title": "Saint-Denis, maison de retraite",
+          "alt": "This is a photograph of an arched underground cellar or basement with laundry hanging.",
+          "description": "Eugène Atget. Saint-Denis, maison de retraite, 1901. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124995.html"
+        }
+      }
+    }
+  }
+}
