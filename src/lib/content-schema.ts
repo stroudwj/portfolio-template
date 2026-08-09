@@ -327,6 +327,33 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 			}),
 		),
 	}),
+	// Canvas shape primitives: hairline rules, arrows, and outline rectangles.
+	// Deliberately three shapes and axis-aligned — not a drawing tool.
+	passthrough({
+		id: z.string(),
+		type: z.literal('shape'),
+		shape: z.enum(['line', 'arrow', 'rectangle']),
+		color: z.string().optional(),
+		strokeWidth: z.number().min(1).max(24).optional(),
+		direction: z.enum(['right', 'left', 'up', 'down']).optional(),
+		layout: imageLayoutSchema.optional(),
+	}),
+	// Full-width accordion rows: display-scale titles with +/− toggles over body
+	// text. Renders as native <details> grouped one-open-at-a-time, so published
+	// sites need no script and no-JS readers can still open every row.
+	passthrough({
+		id: z.string(),
+		type: z.literal('accordion'),
+		items: z.array(
+			passthrough({
+				id: z.string(),
+				title: z.string(),
+				text: z.string().optional(),
+			}),
+		),
+		titleSize: z.number().min(8).max(200).optional(),
+		fontFamily: z.string().optional(),
+	}),
 ]);
 
 const imageMetaSchema = passthrough({
@@ -372,7 +399,7 @@ export const themeSchema = passthrough({
 	logoPosition: z.enum(['left', 'center', 'freeform']).optional(),
 	logoX: z.number().min(0).max(100).optional(),
 	logoY: z.number().min(0).max(400).optional(),
-	navStyle: z.enum(['dock', 'topbar', 'centered', 'pill', 'minimal']).optional(),
+	navStyle: z.enum(['dock', 'topbar', 'centered', 'pill', 'minimal', 'three-zone']).optional(),
 	navOffsetX: z.number().min(-64).max(64).optional(),
 	navOffsetY: z.number().min(-64).max(64).optional(),
 	fullscreenMobileMenu: z.boolean().optional(),
@@ -412,6 +439,16 @@ export const contentSchema = passthrough({
 		footerImage: z.string().optional(),
 		footerImageLayout: imageLayoutSchema.optional(),
 		footerHeights: responsiveSectionHeightSchema.optional(),
+		footerName: z.string().optional(),
+		footerNameSize: z.number().min(8).max(300).optional(),
+		footerColumns: z
+			.array(
+				passthrough({
+					heading: z.string().optional(),
+					links: z.array(passthrough({ label: z.string(), url: z.string() })),
+				}),
+			)
+			.optional(),
 		ogImage: z.string().optional(),
 		creative: passthrough({
 			cursor: z.string().optional(),

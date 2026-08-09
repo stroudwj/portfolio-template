@@ -51,10 +51,28 @@ export interface Site {
 	footerImageLayout?: ImageLayout;
 	/** Optional minimum footer height, independently adjustable for desktop and phone. */
 	footerHeights?: ResponsiveSectionHeight;
+	/** Display-scale closing name above the footer columns (Mosley's giant footer wordmark). */
+	footerName?: string;
+	/** footerName size in pt. Absent = 72. */
+	footerNameSize?: number;
+	/** Up to three headed link columns (e.g. "Site map" / "Contact"). */
+	footerColumns?: FooterColumn[];
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
 	ogImage?: string;
 	/** Optional site-wide flourishes configured in the editor's Design area. Absent = none. */
 	creative?: CreativeConfig;
+}
+
+/** One headed footer link column ("Site map": Bio / Portfolio / Awards). */
+export interface FooterColumn {
+	heading?: string;
+	links: FooterLink[];
+}
+
+/** A footer link. Internal when the url has no scheme (a page path like 'portraits'). */
+export interface FooterLink {
+	label: string;
+	url: string;
 }
 
 /** The pointer-trail flavors a site can turn on. */
@@ -265,7 +283,7 @@ export interface SiteMotionConfig {
 }
 
 /** The navigation layouts an artist can pick from the Design area. */
-export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal';
+export type NavStyle = 'dock' | 'topbar' | 'centered' | 'pill' | 'minimal' | 'three-zone';
 export type HeaderMode = 'name' | 'text' | 'image';
 export type LogoPosition = 'left' | 'center' | 'freeform';
 export type PageHeadingPosition = 'left' | 'center' | 'right' | 'freeform';
@@ -608,7 +626,38 @@ export type PageBlock =
 			fields: FormField[];
 			/** Optional image-like placement on the section's freeform canvas. */
 			layout?: ImageLayout;
+		}
+	| {
+			id: string;
+			type: 'shape';
+			/** Three primitives only — this is deliberately not a drawing tool. */
+			shape: 'line' | 'arrow' | 'rectangle';
+			/** Stroke color. Absent = the theme ink (text color). */
+			color?: string;
+			/** Stroke width in px. Absent = 1 (hairline). */
+			strokeWidth?: number;
+			/** Arrows only: which way the head points. Absent = 'right'. */
+			direction?: 'right' | 'left' | 'up' | 'down';
+			/** Freeform placement within its section canvas; shapes are born freeform. */
+			layout?: ImageLayout;
+		}
+	| {
+			id: string;
+			type: 'accordion';
+			/** Full-width rows in order; each title toggles its body text open. */
+			items: AccordionItem[];
+			/** Row-title size in pt — display scale is expected (Mosley runs ~92pt). Absent = 56. */
+			titleSize?: number;
+			/** Row-title font override. Absent = the theme heading font. */
+			fontFamily?: string;
 		};
+
+/** One accordion row: a display-scale title over collapsible body text. */
+export interface AccordionItem {
+	id: string;
+	title: string;
+	text?: string;
+}
 
 /**
  * One movable page region. Blocks belong to exactly one section and the section

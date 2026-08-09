@@ -9,7 +9,8 @@ import SectionResizeHandle, {
 } from './SectionResizeHandle';
 import './Footer.css';
 import Gallery from './Gallery';
-import type { ImageLayout } from '../lib/content';
+import type { FooterColumn, ImageLayout } from '../lib/content';
+import { withBase } from './types';
 
 /** Keep the default credit useful as a link while leaving every other footer fully freeform. */
 function FooterLine({ text }: { text: string }) {
@@ -35,6 +36,11 @@ export default function Footer({
 	imageSrc,
 	imageLayout,
 	onImageLayout,
+	name,
+	nameSize,
+	columns,
+	base = '',
+	onNavigate,
 }: {
 	text: string;
 	imageSrc?: string;
@@ -43,10 +49,34 @@ export default function Footer({
 	heights?: ResponsiveSectionHeight;
 	resizeBreakpoint?: SectionBreakpoint;
 	onHeightChange?: (breakpoint: SectionBreakpoint, height: number | undefined) => void;
+	/** Display-scale closing name above the columns. */
+	name?: string;
+	/** name size in pt. Absent = 72. */
+	nameSize?: number;
+	/** Up to three headed link columns; extras beyond three are not rendered. */
+	columns?: FooterColumn[];
+	/** Site base path, for resolving internal column links. */
+	base?: string;
+	/** Editor preview: switch pages in place for internal column links. */
+	onNavigate?: (path: string) => void;
 }) {
-	if (!text.trim() && !imageSrc) return null;
+	const shownColumns = (columns ?? [])
+		.map((column) => ({ ...column, links: column.links.filter((link) => link.label.trim()) }))
+		.filter((column) => column.heading?.trim() || column.links.length)
+		.slice(0, 3);
+	const trimmedName = name?.trim() ?? '';
+	if (!text.trim() && !imageSrc && !trimmedName && !shownColumns.length) return null;
+	const external = (url: string) => /^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//');
 	return (
 		<footer className="site-footer" style={responsiveHeightVars(heights)}>
+			{trimmedName && (
+				<p
+					className="site-footer-name"
+					style={{ '--footer-name-size': `${Math.min(Math.max(nameSize ?? 72, 8), 300)}pt` } as React.CSSProperties}
+				>
+					{trimmedName}
+				</p>
+			)}
 			{imageSrc && imageLayout ? (
 				<Gallery
 					images={[{ id: '__footer-image__', src: imageSrc, alt: 'Footer image', layout: imageLayout }]}
@@ -55,6 +85,32 @@ export default function Footer({
 					onLayoutChange={onImageLayout ? (_id, layout) => onImageLayout(layout) : undefined}
 				/>
 			) : imageSrc ? <img className="site-footer-image" src={imageSrc} alt="" /> : null}
+			{shownColumns.length > 0 && (
+				<div className="site-footer-columns">
+					{shownColumns.map((column, columnIndex) => (
+						<div className="site-footer-column" key={columnIndex}>
+							{column.heading?.trim() && <h2 className="site-footer-column-heading">{column.heading}</h2>}
+							{column.links.map((link, linkIndex) => (
+								<a
+									key={linkIndex}
+									href={external(link.url) ? link.url : withBase(base, link.url)}
+									{...(external(link.url) ? { target: '_blank', rel: 'noopener' } : {})}
+									onClick={
+										!external(link.url) && onNavigate
+											? (event) => {
+													event.preventDefault();
+													onNavigate(link.url);
+												}
+											: undefined
+									}
+								>
+									{link.label}
+								</a>
+							))}
+						</div>
+					))}
+				</div>
+			)}
 			{text.trim() && <p>
 				{text.split('\n').map((line, index) => (
 					<Fragment key={index}>

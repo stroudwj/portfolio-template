@@ -99,6 +99,52 @@ files were deleted; artist folders were renamed to URL-safe names (`george bello
 (they are Emily Sargent watercolors), `eugeneatget` → `atget`, `lewiswickedhine` →
 `hine`).
 
+## Spec 22 — Conservatory ↔ Mosley gap audit (2026-08-09, step 1; decisions approved by William 2026-08-09)
+
+Method: every page of mosley.squarespace.com walked at 1280×720 and DOM-measured
+(section map, block geometry, computed type sizes/colors, animation tweaks) beside
+`conservatory` in the editor (template-studio mode, desktop preview ≈1100px). Mosley
+pages: home (7-section one-pager, ~7460px), /bio, /portfolio, /awards, /book-now,
+plus a global footer. Motion caveat: the browser pane was hidden for most of this
+session — hidden documents throttle IntersectionObserver and freeze CSS transitions,
+so editor-preview motion could not be conclusively tested (see row 17).
+
+Class: **(a)** template data — fix in template studio now · **(b)** missing
+capability — editor/renderer work · **(c)** accept — deliberate divergence.
+Split classes mean "part now, part decision".
+
+| # | Area | Mosley (measured) | Conservatory today | Class | Fix / decision |
+|---|---|---|---|---|---|
+| 1 | Nav bar | Three-zone fixed bar on solid #2c332c: links left (uppercase 16px HN), script wordmark center, bordered/underline BOOK NOW button right. Phone: burger + fullscreen folder menu (matches our fullscreenMobileMenu) | `navStyle: minimal` hamburger overlay | (b) | Nav variant per spec step 2 (three-zone + CTA slot). Verified absent: navStyle enum is dock/topbar/centered/pill/minimal |
+| 2 | Script wordmark | "don" in Seaweed Script (webfont), 28px | Site name in Didot stack | (c)? | No webfonts shipped (spec 23 gated on this spec). Propose accept: serif wordmark |
+| 3 | Global footer | On every page: ~224px serif name, footer image, two link columns ("Site map" Bio/Portfolio/Awards · "Contact" Email/Instagram/X) under 25px serif heads | `site.footer` = one text line + optional footerImage; no links/columns/display type | (b)/(c) | Decision: small footer upgrade (link columns + display-scale name) vs accept text+image footer vs per-page closing section (data, duplicated ×pages) |
+| 4 | Home hero | 205px Gilda name over 5 scattered imgs, left+right edge bleed, static (no pinning) | Salon canvas: 144pt name + statement + CTA + 10 imgs over ~2.7 viewport-widths, bleed ✓ | (a) | Close. Split: Mosley's hero is ~1 viewport, then DISTINCT sections follow; conservatory folds everything into one canvas. Restructure home into hero + sections below (rows 5–9) |
+| 5 | Home bio statement | Eyebrow "BIO / DON MOSLEY" (14.4px caps) + 77px serif statement + one small img | Statement lives inside hero canvas, smaller | (a) | Add eyebrow+statement section device (text blocks) |
+| 6 | Home skills scatter | 5 imgs staggered across 2325px, each with a plain 16px caption UNDER it | No captioned scatter | (a) | Canvas imgs + adjacent text items as captions (no first-class static caption field; hoverCaptions is hover-only) |
+| 7 | SERVICES accordion | Eyebrow + 3 rows (Film/Stage/Stunts): 123.5px Gilda titles, +/− right, 1px hairline dividers (top+bottom shown), one-open-at-a-time, text-only bodies (~320 chars) | None | (b) | Accordion block per spec step 2. Confirmed details: display-scale titles, text bodies suffice (no images in Mosley's), expanded no-JS fallback |
+| 8 | Home BOOK/DON CTA | Giant "BOOK" 174px + "DON" 165px, underline BOOK NOW link between, award note, email + address | None | (a) | Canvas text at display scale + link |
+| 9 | Home contact form | First/Last name, Email, Project description, Budget as 4 checkbox-buttons, Message, SUBMIT bar | No form on any page | (a)+(c) | Add contact block to home (fields: name/email/text/textarea ✓). Budget checkbox-group: accept as a text field (or tiny (b) if parity wanted) |
+| 10 | Page inventory | Home + /bio + /portfolio + /awards + /book-now | Works + Portraits + About | (a) | Rebuild page set as Bio / Portfolio / Awards (+ Book analog); sample copy stays ours |
+| 11 | /bio layout | Centered 123.5px heading; wide img; eyebrow; 43.6px serif statement left; running 16px text right column; 2 small scattered imgs | About page = about block | (a) | Editorial split via text/images blocks (about block can't do the two-column offset) |
+| 12 | /portfolio layout | Centered giant heading + captionless scatter collage (5 imgs, 2131px), no lightbox links | Portraits: intro + 2-col grid | (a) | Convert to scatter canvas page (grid page optional extra) |
+| 13 | /awards layout | Heading + wide img + two OFFSET eyebrow+43.6px statement pairs (2nd pair indented right) | None | (a) | New page, text/images blocks |
+| 14 | /book-now | "Book Don" heading + Acuity scheduling iframe + 2 scattered imgs | None | (c) | Booking integrations out of scope per spec. Optional (a): approximate with contact block + imgs |
+| 15 | Palette | #2c332c ground, PURE white text/headings, no accent tint | #252c25 + warm off-white #f0efe6 + sage muted/accent | (a)? | Recommend matching #2c332c + white for fidelity; keep sage only if William prefers the richer set. Also: conservatory `grain: 3` — Mosley is flat; recommend grain 0 |
+| 16 | Display type metrics | Headings line-height ≈0.86, letter-spacing ≈-2% at 123–224px | 144pt recipe; metrics unverified | (a) | Tune in studio at step 3 (visual check) |
+| 17 | Motion | Global entrance animation ON: every block fades+slides (0.6s ease, 0.6s delay, per-element "detailed") | Home = drift-only (35 on a ~4400px section ⇒ ±24px total: imperceptible); only reveal part on home is the EMPTY page heading; portraits/about get subtle reveal on 2 small parts | (a)+verify | Data: put `sequence`/reveal on the salon (and new sections), consider `full`. Preview-parity bug NOT confirmed: IObserver did fire when pane visible; hidden-pane throttling reproduces "no motion" symptomatically. Needs 2-min visible re-test before/with the spec's motion item |
+| 18 | Canvas shapes | Only hairlines on the whole site are the accordion dividers + CTA underline; NO arrows/rules/rectangles anywhere | n/a | audit note | For conservatory fidelity, shapes are NOT required (accordion carries its own dividers). Keep the shapes build only if other keepers need it — William's call |
+
+**William's decisions (2026-08-09, in-session):**
+- **(c) accept list APPROVED**: script wordmark → serif stack (row 2), budget
+  checkbox-group → text field (row 9), booking/Acuity skipped (row 14) — plus the
+  batch-1 carry-overs (system font stacks, Bellows imagery).
+- **Footer (row 3): build the small footer upgrade** — optional link columns +
+  display-scale name in the site footer ((b), one branch under the spec umbrella).
+- **Palette (row 15): match Mosley exactly** — #2c332c ground, pure white text,
+  `grain: 0`. The warm off-white/sage set is dropped from conservatory.
+- **Shapes (row 18): KEPT in scope** — build line/arrow/rectangle now so the
+  capability exists before batch 3, even though conservatory itself needs none.
+
 Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 
 | Status | Template | Demo URL | Reason (group) |

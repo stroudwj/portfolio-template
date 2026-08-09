@@ -6,29 +6,48 @@
     "description": "Painting portfolio",
     "favicon": "favicon.svg",
     "footer": "Made with hangwork.art",
+    "footerName": "Your Name",
+    "footerNameSize": 150,
+    "footerColumns": [
+      {
+        "heading": "Site map",
+        "links": [
+          { "label": "Bio", "url": "bio" },
+          { "label": "Portfolio", "url": "portfolio" },
+          { "label": "Awards", "url": "awards" }
+        ]
+      },
+      {
+        "heading": "Contact",
+        "links": [
+          { "label": "Email", "url": "mailto:you@example.com" },
+          { "label": "Instagram", "url": "https://www.instagram.com/yourstudio" },
+          { "label": "X", "url": "https://x.com/yourstudio" }
+        ]
+      }
+    ],
     "creative": {
-      "grain": 3,
-      "slowReveal": true,
+      "grain": 0,
       "pageTransition": "fade"
     }
   },
   "theme": {
-    "backgroundColor": "#252c25",
-    "textColor": "#f0efe6",
-    "mutedTextColor": "#a3aaa0",
-    "accentColor": "#8ea38b",
+    "backgroundColor": "#2c332c",
+    "textColor": "#ffffff",
+    "mutedTextColor": "#d6d6d6",
+    "accentColor": "#ffffff",
     "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
     "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
     "logoScale": 140,
     "pageHeadingScale": 150,
     "pageHeadingPosition": "center",
     "logoPosition": "center",
-    "navStyle": "minimal",
+    "navStyle": "three-zone",
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
     "motion": {
-      "intensity": "subtle",
+      "intensity": "full",
       "reveal": true,
       "hover": true
     }
@@ -39,12 +58,20 @@
       "label": "Works"
     },
     {
-      "path": "portraits",
-      "label": "Portraits"
+      "path": "bio",
+      "label": "Bio"
     },
     {
-      "path": "about",
-      "label": "About"
+      "path": "portfolio",
+      "label": "Portfolio"
+    },
+    {
+      "path": "awards",
+      "label": "Awards"
+    },
+    {
+      "path": "book",
+      "label": "Book now"
     }
   ],
   "profile": {
@@ -66,10 +93,10 @@
       "description": "New paintings, hung as one dark wall.",
       "blocks": [
         {
-          "id": "salon-images",
+          "id": "hero-images",
           "type": "images",
           "gallery": {
-            "folder": "salon",
+            "folder": "hero",
             "alt": "Painting",
             "order": "asc",
             "layout": "freeform",
@@ -77,19 +104,16 @@
               "mode": "custom",
               "order": [],
               "items": {
-                "text:salon-name": {
-                  "hidden": true
-                },
-                "text:salon-cta": {
+                "text:hero-name": {
                   "hidden": true
                 }
               }
             }
           },
-          "name": "Salon wall"
+          "name": "Hero wall"
         },
         {
-          "id": "salon-name",
+          "id": "hero-name",
           "type": "text",
           "text": "Your Name",
           "richText": [
@@ -106,14 +130,47 @@
           "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
           "layout": {
             "x": 2,
-            "y": 16,
+            "y": 14,
             "w": 96,
             "h": 18,
             "z": 20
           }
         },
         {
-          "id": "salon-statement",
+          "id": "statement-images",
+          "type": "images",
+          "gallery": {
+            "folder": "statement",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Statement"
+        },
+        {
+          "id": "statement-eyebrow",
+          "type": "text",
+          "text": "BIO — YOUR NAME",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "BIO — YOUR NAME",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 8,
+            "y": 4,
+            "w": 40,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "statement-text",
           "type": "text",
           "text": "Painter of the loud city — night crowds, riverlight, and rooms that will not sit still.",
           "richText": [
@@ -121,114 +178,688 @@
               "runs": [
                 {
                   "text": "Painter of the loud city — night crowds, riverlight, and rooms that will not sit still.",
-                  "fontSize": 40
-                }
-              ],
-              "align": "center"
-            }
-          ],
-          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
-          "layout": {
-            "x": 16,
-            "y": 76,
-            "w": 68,
-            "h": 26,
-            "z": 12
-          }
-        },
-        {
-          "id": "salon-cta",
-          "type": "text",
-          "text": "Portraits",
-          "richText": [
-            {
-              "runs": [
-                {
-                  "text": "Portraits",
-                  "fontSize": 110
+                  "fontSize": 42
                 }
               ]
             }
           ],
           "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
-          "link": "/portraits",
           "layout": {
-            "x": 4,
-            "y": 388,
-            "w": 60,
-            "h": 14,
-            "z": 12
+            "x": 8,
+            "y": 9,
+            "w": 62,
+            "h": 40,
+            "z": 2
           }
         },
         {
-          "id": "salon-cta-note",
+          "id": "scatter-images",
+          "type": "images",
+          "gallery": {
+            "folder": "scatter",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Series scatter"
+        },
+        {
+          "id": "scatter-caption-1",
           "type": "text",
-          "text": "A quieter room, two to a row.",
+          "text": "Night crowds — oil on canvas",
           "richText": [
             {
               "runs": [
                 {
-                  "text": "A quieter room, two to a row.",
-                  "fontSize": 16
+                  "text": "Night crowds — oil on canvas",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 4,
+            "y": 29,
+            "w": 30,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "scatter-caption-2",
+          "type": "text",
+          "text": "The ring — oil on canvas",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "The ring — oil on canvas",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 56,
+            "y": 40,
+            "w": 24,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "scatter-caption-3",
+          "type": "text",
+          "text": "The river — oil on canvas",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "The river — oil on canvas",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 12,
+            "y": 70,
+            "w": 26,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "scatter-caption-4",
+          "type": "text",
+          "text": "The city — oil on canvas",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "The city — oil on canvas",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 50,
+            "y": 93,
+            "w": 30,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "services-eyebrow",
+          "type": "text",
+          "text": "SERVICES",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "SERVICES",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "style": "body"
+        },
+        {
+          "id": "services-accordion",
+          "type": "accordion",
+          "titleSize": 92,
+          "items": [
+            {
+              "id": "services-commissions",
+              "title": "Commissions",
+              "text": "Oil paintings sized to a wall you already love — from the first studio visit to the install. Three to five commissions a year; the waitlist opens each January."
+            },
+            {
+              "id": "services-murals",
+              "title": "Murals",
+              "text": "Full rooms and exterior walls in the same loud key as the canvases. A site survey first, then a color study you can live with before any scaffolding goes up."
+            },
+            {
+              "id": "services-workshops",
+              "title": "Workshops",
+              "text": "One-day painting intensives for small groups — night scenes, fast brushwork, and how to keep a crowd moving on the canvas."
+            }
+          ]
+        },
+        {
+          "id": "cta-book",
+          "type": "text",
+          "text": "BOOK",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "BOOK",
+                  "fontSize": 132
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 4,
+            "y": 2,
+            "w": 64,
+            "h": 13,
+            "z": 2
+          }
+        },
+        {
+          "id": "cta-link",
+          "type": "text",
+          "text": "Book a commission",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Book a commission",
+                  "fontSize": 18,
+                  "underline": true,
+                  "link": "/book"
                 }
               ]
             }
           ],
           "layout": {
             "x": 68,
-            "y": 396,
+            "y": 12,
             "w": 28,
             "h": 4,
-            "z": 12
+            "z": 2
+          }
+        },
+        {
+          "id": "cta-wall",
+          "type": "text",
+          "text": "A WALL",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A WALL",
+                  "fontSize": 124
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 4,
+            "y": 17,
+            "w": 78,
+            "h": 13,
+            "z": 2
+          }
+        },
+        {
+          "id": "cta-note",
+          "type": "text",
+          "text": "Two prizes and a long-list live on the Awards page.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Two prizes and a long-list live on the Awards page.",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 4,
+            "y": 32,
+            "w": 42,
+            "h": 4,
+            "z": 2
+          }
+        },
+        {
+          "id": "cta-contact",
+          "type": "text",
+          "text": "you@example.com\nStudio — 14 River Street",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "you@example.com",
+                  "fontSize": 13
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "Studio — 14 River Street",
+                  "fontSize": 13
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 68,
+            "y": 32,
+            "w": 28,
+            "h": 6,
+            "z": 2
+          }
+        },
+        {
+          "id": "book-form",
+          "type": "form",
+          "heading": "Book a commission",
+          "action": "",
+          "successMessage": "Thanks — I read every note and reply within a week.",
+          "fields": [
+            { "id": "book-name", "type": "name", "label": "Name", "required": true },
+            { "id": "book-email", "type": "email", "label": "Email", "required": true },
+            { "id": "book-project", "type": "text", "label": "Project description" },
+            { "id": "book-budget", "type": "text", "label": "Budget" },
+            { "id": "book-message", "type": "textarea", "label": "Message", "required": true }
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "hero",
+          "name": "Hero wall",
+          "blockIds": [
+            "hero-images",
+            "hero-name"
+          ]
+        },
+        {
+          "id": "statement",
+          "name": "Bio statement",
+          "blockIds": [
+            "statement-images",
+            "statement-eyebrow",
+            "statement-text"
+          ]
+        },
+        {
+          "id": "scatter",
+          "name": "Series scatter",
+          "blockIds": [
+            "scatter-images",
+            "scatter-caption-1",
+            "scatter-caption-2",
+            "scatter-caption-3",
+            "scatter-caption-4"
+          ]
+        },
+        {
+          "id": "services",
+          "name": "Services",
+          "blockIds": [
+            "services-eyebrow",
+            "services-accordion"
+          ]
+        },
+        {
+          "id": "cta",
+          "name": "Book CTA",
+          "blockIds": [
+            "cta-book",
+            "cta-link",
+            "cta-wall",
+            "cta-note",
+            "cta-contact"
+          ]
+        },
+        {
+          "id": "book-form-section",
+          "name": "Booking form",
+          "blockIds": [
+            "book-form"
+          ]
+        }
+      ],
+      "mobile": {
+        "mode": "custom",
+        "order": [],
+        "items": {
+          "section:cta": {
+            "hidden": true
+          }
+        }
+      },
+      "sectionMotion": {
+        "section:hero": {
+          "effect": "sequence",
+          "intensity": 45,
+          "phone": true
+        },
+        "section:statement": {
+          "effect": "sequence",
+          "intensity": 40,
+          "phone": true
+        },
+        "section:scatter": {
+          "effect": "sequence",
+          "intensity": 45,
+          "phone": true
+        },
+        "section:services": {
+          "effect": "reveal",
+          "intensity": 40,
+          "phone": true
+        },
+        "section:cta": {
+          "effect": "reveal",
+          "intensity": 45
+        },
+        "section:book-form-section": {
+          "effect": "reveal",
+          "intensity": 40,
+          "phone": true
+        }
+      },
+      "sectionBleed": {
+        "section:hero": true
+      }
+    },
+    "bio": {
+      "title": "Bio — {name}",
+      "label": "Bio",
+      "heading": "Bio",
+      "description": "The practice, the subjects, and the studio.",
+      "blocks": [
+        {
+          "id": "bio-images",
+          "type": "images",
+          "gallery": {
+            "folder": "bio",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Bio wall"
+        },
+        {
+          "id": "bio-eyebrow",
+          "type": "text",
+          "text": "THE PRACTICE",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "THE PRACTICE",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 8,
+            "y": 48,
+            "w": 40,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "bio-statement",
+          "type": "text",
+          "text": "The city is the sitter — it fidgets, it shows off, it will not hold the pose.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "The city is the sitter — it fidgets, it shows off, it will not hold the pose.",
+                  "fontSize": 33
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 8,
+            "y": 53,
+            "w": 46,
+            "h": 30,
+            "z": 2
+          }
+        },
+        {
+          "id": "bio-running",
+          "type": "text",
+          "text": "I paint at night, from drawings made in the afternoon. The studio is two rooms over a print shop; the big canvases leave by the window. Work moves between galleries and public rooms, and a few walls each year are painted where they stand. Replace this text with your own path — where you trained, where the work has shown, and what you are looking for next.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "I paint at night, from drawings made in the afternoon. The studio is two rooms over a print shop; the big canvases leave by the window. Work moves between galleries and public rooms, and a few walls each year are painted where they stand. Replace this text with your own path — where you trained, where the work has shown, and what you are looking for next.",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 56,
+            "y": 53,
+            "w": 34,
+            "h": 20,
+            "z": 2
           }
         }
       ],
       "sections": [
         {
-          "id": "salon",
-          "name": "Salon wall",
+          "id": "bio-canvas",
+          "name": "Bio wall",
           "blockIds": [
-            "salon-images",
-            "salon-name",
-            "salon-statement",
-            "salon-cta",
-            "salon-cta-note"
+            "bio-images",
+            "bio-eyebrow",
+            "bio-statement",
+            "bio-running"
           ]
         }
       ],
       "sectionMotion": {
-        "section:salon": {
-          "effect": "drift",
-          "intensity": 35
+        "section:bio-canvas": {
+          "effect": "sequence",
+          "intensity": 40,
+          "phone": true
         }
-      },
-      "sectionBleed": {
-        "section:salon": true
       }
     },
-    "portraits": {
-      "title": "Portraits — {name}",
-      "label": "Portraits",
-      "description": "Portraits and figures, two to a row.",
-      "heading": "Portraits",
+    "portfolio": {
+      "title": "Portfolio — {name}",
+      "label": "Portfolio",
+      "heading": "Portfolio",
+      "description": "Selected paintings, scattered like the studio wall.",
       "blocks": [
         {
-          "id": "portraits-intro",
+          "id": "portfolio-images",
+          "type": "images",
+          "gallery": {
+            "folder": "portfolio",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Portfolio scatter"
+        }
+      ],
+      "sections": [
+        {
+          "id": "portfolio-canvas",
+          "name": "Portfolio scatter",
+          "blockIds": [
+            "portfolio-images"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:portfolio-canvas": {
+          "effect": "sequence",
+          "intensity": 45,
+          "phone": true
+        }
+      }
+    },
+    "awards": {
+      "title": "Awards — {name}",
+      "label": "Awards",
+      "heading": "Awards",
+      "description": "Prizes, long-lists, and public collections.",
+      "blocks": [
+        {
+          "id": "awards-images",
+          "type": "images",
+          "gallery": {
+            "folder": "awards",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Awards wall"
+        },
+        {
+          "id": "awards-eyebrow-1",
           "type": "text",
-          "text": "A quieter room — portraits and figures, two to a row.",
+          "text": "SELECTED",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "SELECTED",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 8,
+            "y": 66,
+            "w": 30,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "awards-statement-1",
+          "type": "text",
+          "text": "City Arts Annual — painting prize, two years running.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "City Arts Annual — painting prize, two years running.",
+                  "fontSize": 33
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 8,
+            "y": 70,
+            "w": 44,
+            "h": 24,
+            "z": 2
+          }
+        },
+        {
+          "id": "awards-eyebrow-2",
+          "type": "text",
+          "text": "COLLECTED",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "COLLECTED",
+                  "fontSize": 12
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 52,
+            "y": 86,
+            "w": 30,
+            "h": 3,
+            "z": 2
+          }
+        },
+        {
+          "id": "awards-statement-2",
+          "type": "text",
+          "text": "Held in public rooms on both sides of the river.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Held in public rooms on both sides of the river.",
+                  "fontSize": 33
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 52,
+            "y": 94,
+            "w": 44,
+            "h": 24,
+            "z": 2
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "awards-canvas",
+          "name": "Awards wall",
+          "blockIds": [
+            "awards-images",
+            "awards-eyebrow-1",
+            "awards-statement-1",
+            "awards-eyebrow-2",
+            "awards-statement-2"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:awards-canvas": {
+          "effect": "sequence",
+          "intensity": 40,
+          "phone": true
+        }
+      }
+    },
+    "book": {
+      "title": "Book now — {name}",
+      "label": "Book now",
+      "heading": "Book",
+      "description": "Commissions, murals, and workshops.",
+      "blocks": [
+        {
+          "id": "book-intro",
+          "type": "text",
+          "text": "Commissions open each January — tell me about the wall and the room it lives in.",
           "style": "body"
         },
         {
-          "id": "portraits-images",
-          "type": "images",
-          "gallery": {
-            "folder": "portraits",
-            "alt": "Portrait",
-            "order": "asc",
-            "layout": "grid",
-            "columns": 2
-          },
-          "name": "Portraits"
+          "id": "book-page-form",
+          "type": "form",
+          "heading": "Book a commission",
+          "action": "",
+          "successMessage": "Thanks — I read every note and reply within a week.",
+          "fields": [
+            { "id": "bookpage-name", "type": "name", "label": "Name", "required": true },
+            { "id": "bookpage-email", "type": "email", "label": "Email", "required": true },
+            { "id": "bookpage-project", "type": "text", "label": "Project description" },
+            { "id": "bookpage-budget", "type": "text", "label": "Budget" },
+            { "id": "bookpage-message", "type": "textarea", "label": "Message", "required": true }
+          ]
         }
       ],
       "sections": [
@@ -236,35 +867,22 @@
           "id": "main",
           "name": "Main section",
           "blockIds": [
-            "portraits-intro",
-            "portraits-images"
+            "book-intro",
+            "book-page-form"
           ]
-        }
-      ]
-    },
-    "about": {
-      "title": "About — {name}",
-      "label": "About",
-      "heading": "About",
-      "blocks": [
-        {
-          "id": "about",
-          "type": "about"
         }
       ],
-      "sections": [
-        {
-          "id": "main",
-          "name": "Main section",
-          "blockIds": [
-            "about"
-          ]
+      "sectionMotion": {
+        "section:main": {
+          "effect": "reveal",
+          "intensity": 40,
+          "phone": true
         }
-      ]
+      }
     }
   },
   "galleries": {
-    "salon": {
+    "hero": {
       "items": {
         "01-blue-morning.jpg": {
           "id": "sample-painting-nga-46557-v1",
@@ -275,7 +893,7 @@
           "link": "https://www.nga.gov/collection/art-object-page.46557.html",
           "layout": {
             "x": 27,
-            "y": 6,
+            "y": 4,
             "w": 15,
             "ar": 1.28289,
             "z": 2
@@ -289,7 +907,7 @@
           "description": "George Bellows. The Lone Tenement, 1909. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46558.html",
           "layout": {
-            "x": 84,
+            "x": 88,
             "y": 6,
             "w": 15,
             "ar": 1.33562,
@@ -305,7 +923,7 @@
           "link": "https://www.nga.gov/collection/art-object-page.61351.html",
           "layout": {
             "x": -6,
-            "y": 26,
+            "y": 22,
             "w": 14,
             "ar": 0.60366,
             "z": 2
@@ -319,8 +937,8 @@
           "description": "George Bellows. Tennis Tournament, 1920. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.61355.html",
           "layout": {
-            "x": 61,
-            "y": 38,
+            "x": 63,
+            "y": 33,
             "w": 15,
             "ar": 1.11977,
             "z": 2
@@ -334,14 +952,37 @@
           "description": "George Bellows. Nude with Red Hair, 1920. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46559.html",
           "layout": {
-            "x": 27,
-            "y": 46,
+            "x": 30,
+            "y": 40,
             "w": 14,
             "ar": 0.76647,
             "z": 2
           }
-        },
-        "06-both-members-of-this-club.jpg": {
+        }
+      }
+    },
+    "statement": {
+      "items": {
+        "01-nude-with-hexagonal-quilt.jpg": {
+          "id": "sample-painting-nga-61354-v1",
+          "sampleAssetId": "painting-nga-61354-v1",
+          "title": "Nude with Hexagonal Quilt",
+          "alt": "This painting shows a reclining nude female figure on an upholstered couch.",
+          "description": "George Bellows. Nude with Hexagonal Quilt, 1924. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61354.html",
+          "layout": {
+            "x": 72,
+            "y": 10,
+            "w": 22,
+            "ar": 1.22973,
+            "z": 1
+          }
+        }
+      }
+    },
+    "scatter": {
+      "items": {
+        "01-both-members-of-this-club.jpg": {
           "id": "sample-painting-nga-30667-v1",
           "sampleAssetId": "painting-nga-30667-v1",
           "title": "Both Members of This Club",
@@ -350,13 +991,13 @@
           "link": "https://www.nga.gov/collection/art-object-page.30667.html",
           "layout": {
             "x": 4,
-            "y": 118,
-            "w": 41,
+            "y": 4,
+            "w": 34,
             "ar": 1.40144,
             "z": 1
           }
         },
-        "07-club-night.jpg": {
+        "02-club-night.jpg": {
           "id": "sample-painting-nga-61247-v1",
           "sampleAssetId": "painting-nga-61247-v1",
           "title": "Club Night",
@@ -364,14 +1005,14 @@
           "description": "George Bellows. Club Night, 1907. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.61247.html",
           "layout": {
-            "x": 61,
-            "y": 145,
-            "w": 30,
+            "x": 56,
+            "y": 18,
+            "w": 26,
             "ar": 1.23866,
             "z": 1
           }
         },
-        "08-forty-two-kids.jpg": {
+        "03-forty-two-kids.jpg": {
           "id": "sample-painting-nga-134485-v1",
           "sampleAssetId": "painting-nga-134485-v1",
           "title": "Forty-two Kids",
@@ -379,29 +1020,14 @@
           "description": "George Bellows. Forty-two Kids, 1907. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.134485.html",
           "layout": {
-            "x": 76,
-            "y": 178,
-            "w": 32,
+            "x": 12,
+            "y": 48,
+            "w": 30,
             "ar": 1.44292,
             "z": 1
           }
         },
-        "09-nude-with-hexagonal-quilt.jpg": {
-          "id": "sample-painting-nga-61354-v1",
-          "sampleAssetId": "painting-nga-61354-v1",
-          "title": "Nude with Hexagonal Quilt",
-          "alt": "This painting shows a reclining nude female figure on an upholstered couch.",
-          "description": "George Bellows. Nude with Hexagonal Quilt, 1924. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.61354.html",
-          "layout": {
-            "x": 4,
-            "y": 196,
-            "w": 22,
-            "ar": 1.22973,
-            "z": 1
-          }
-        },
-        "10-new-york.jpg": {
+        "04-new-york.jpg": {
           "id": "sample-painting-nga-69392-v1",
           "sampleAssetId": "painting-nga-69392-v1",
           "title": "New York",
@@ -409,16 +1035,65 @@
           "description": "George Bellows. New York, 1911. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.69392.html",
           "layout": {
-            "x": 0,
-            "y": 268,
-            "w": 100,
+            "x": 50,
+            "y": 62,
+            "w": 44,
             "ar": 1.44751,
             "z": 1
           }
         }
       }
     },
-    "portraits": {
+    "bio": {
+      "items": {
+        "01-my-family.jpg": {
+          "id": "sample-painting-nga-61353-v1",
+          "sampleAssetId": "painting-nga-61353-v1",
+          "title": "My Family",
+          "alt": "This painting shows an adult woman and two children on a white lounge chair.",
+          "description": "George Bellows. My Family, 1916. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61353.html",
+          "layout": {
+            "x": 22,
+            "y": 4,
+            "w": 44,
+            "ar": 1.10348,
+            "z": 1
+          }
+        },
+        "02-little-girl-in-white-queenie-burnett.jpg": {
+          "id": "sample-painting-nga-61352-v1",
+          "sampleAssetId": "painting-nga-61352-v1",
+          "title": "Little Girl in White (Queenie Burnett)",
+          "alt": "A young, pale-skinned girl wearing a white dress stands against a darkened background in this vertical portrait painting.",
+          "description": "George Bellows. Little Girl in White (Queenie Burnett), 1907. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61352.html",
+          "layout": {
+            "x": 12,
+            "y": 86,
+            "w": 13,
+            "ar": 0.54978,
+            "z": 1
+          }
+        },
+        "03-maud-murray-dale-mrs-chester-dale.jpg": {
+          "id": "sample-painting-nga-30742-v1",
+          "sampleAssetId": "painting-nga-30742-v1",
+          "title": "Maud Murray Dale (Mrs. Chester Dale)",
+          "alt": "This painting shows a seated woman from the waist up.",
+          "description": "George Bellows. Maud Murray Dale (Mrs. Chester Dale), 1919. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.30742.html",
+          "layout": {
+            "x": 62,
+            "y": 74,
+            "w": 16,
+            "ar": 0.8359,
+            "z": 1
+          }
+        }
+      }
+    },
+    "portfolio": {
       "items": {
         "01-chester-dale.jpg": {
           "id": "sample-painting-nga-30743-v1",
@@ -426,7 +1101,14 @@
           "title": "Chester Dale",
           "alt": "This painting shows a man from the waist up, his body turned slightly to the right.",
           "description": "George Bellows. Chester Dale, 1922. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.30743.html"
+          "link": "https://www.nga.gov/collection/art-object-page.30743.html",
+          "layout": {
+            "x": 6,
+            "y": 4,
+            "w": 24,
+            "ar": 0.77143,
+            "z": 1
+          }
         },
         "02-florence-sittenham-davey-mrs-randall-davey.jpg": {
           "id": "sample-painting-nga-57491-v1",
@@ -434,31 +1116,78 @@
           "title": "Florence Sittenham Davey (Mrs. Randall Davey)",
           "alt": "This painting is a portrait of a seated woman shown from the knees upwards.",
           "description": "George Bellows. Florence Sittenham Davey (Mrs. Randall Davey), 1914. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.57491.html"
+          "link": "https://www.nga.gov/collection/art-object-page.57491.html",
+          "layout": {
+            "x": 64,
+            "y": 10,
+            "w": 24,
+            "ar": 0.78388,
+            "z": 1
+          }
         },
-        "03-little-girl-in-white-queenie-burnett.jpg": {
-          "id": "sample-painting-nga-61352-v1",
-          "sampleAssetId": "painting-nga-61352-v1",
-          "title": "Little Girl in White (Queenie Burnett)",
-          "alt": "A young, pale-skinned girl wearing a white dress stands against a darkened background in this vertical portrait painting.",
-          "description": "George Bellows. Little Girl in White (Queenie Burnett), 1907. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.61352.html"
+        "03-tennis-tournament.jpg": {
+          "id": "sample-painting-nga-61355-v1-portfolio",
+          "sampleAssetId": "painting-nga-61355-v1",
+          "title": "Tennis Tournament",
+          "alt": "This painting shows a dynamic scene of a green tennis court with a player in action near the bottom-right corner, their hand extended behind their head and one leg in the air.",
+          "description": "George Bellows. Tennis Tournament, 1920. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61355.html",
+          "layout": {
+            "x": 30,
+            "y": 26,
+            "w": 28,
+            "ar": 1.11977,
+            "z": 1
+          }
         },
-        "04-maud-murray-dale-mrs-chester-dale.jpg": {
-          "id": "sample-painting-nga-30742-v1",
-          "sampleAssetId": "painting-nga-30742-v1",
-          "title": "Maud Murray Dale (Mrs. Chester Dale)",
-          "alt": "This painting shows a seated woman from the waist up.",
-          "description": "George Bellows. Maud Murray Dale (Mrs. Chester Dale), 1919. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.30742.html"
+        "04-club-night.jpg": {
+          "id": "sample-painting-nga-61247-v1-portfolio",
+          "sampleAssetId": "painting-nga-61247-v1",
+          "title": "Club Night",
+          "alt": "Two men wearing brief-like shorts, shoes, and boxing gloves curl toward each other as they grapple in the middle of a boxing ring in this horizontal painting.",
+          "description": "George Bellows. Club Night, 1907. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61247.html",
+          "layout": {
+            "x": 4,
+            "y": 44,
+            "w": 30,
+            "ar": 1.23866,
+            "z": 1
+          }
         },
-        "05-my-family.jpg": {
-          "id": "sample-painting-nga-61353-v1",
-          "sampleAssetId": "painting-nga-61353-v1",
-          "title": "My Family",
-          "alt": "This painting shows an adult woman and two children on a white lounge chair.",
-          "description": "George Bellows. My Family, 1916. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.61353.html"
+        "05-nude-with-red-hair.jpg": {
+          "id": "sample-painting-nga-46559-v1-portfolio",
+          "sampleAssetId": "painting-nga-46559-v1",
+          "title": "Nude with Red Hair",
+          "alt": "Shown from the knees up, a woman sits partially covered by a black cloth as she holds one forearm across her bare breasts in this vertical painting.",
+          "description": "George Bellows. Nude with Red Hair, 1920. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46559.html",
+          "layout": {
+            "x": 60,
+            "y": 48,
+            "w": 22,
+            "ar": 0.76647,
+            "z": 1
+          }
+        }
+      }
+    },
+    "awards": {
+      "items": {
+        "01-new-york.jpg": {
+          "id": "sample-painting-nga-69392-v1-awards",
+          "sampleAssetId": "painting-nga-69392-v1",
+          "title": "New York",
+          "alt": "We look slightly down onto a crush of pedestrians, horse-drawn carriages, wagons, and streetcars enclosed by a row of densely spaced buildings and skyscrapers opposite us in this horizontal painting.",
+          "description": "George Bellows. New York, 1911. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.69392.html",
+          "layout": {
+            "x": 8,
+            "y": 4,
+            "w": 84,
+            "ar": 1.44751,
+            "z": 1
+          }
         }
       }
     }

@@ -296,7 +296,7 @@ describe('discipline-led starter catalog', () => {
 	it('keeps the spec-14 batch media byte-for-byte tied to the NGA rights manifest', () => {
 		// Slot counts include cross-folder reuses (a sample hung in two rooms).
 		const expectedCounts = {
-			conservatory: 15,
+			conservatory: 19,
 			masthead: 20,
 			atelier: 18,
 			'contact-sheet': 13,
@@ -484,6 +484,21 @@ describe('discipline-led starter catalog', () => {
 		expect(validateStarterCatalog([], THEME_PRESETS, wrongAspect)).toContain(
 			'internal-lifecycle-standin-v1 replacement differs in aspect ratio by more than 3%.',
 		);
+	});
+
+	it('joins sample asset urls to every BASE_URL shape with exactly one slash', () => {
+		const sample = SAMPLE_ARTWORK.get('painter-aic-14655-v1')!;
+		expect(sample.url).not.toMatch(/^\//);
+		try {
+			vi.stubEnv('BASE_URL', '/');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/${sample.url}`);
+			vi.stubEnv('BASE_URL', '/portfolio-template');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/portfolio-template/${sample.url}`);
+			vi.stubEnv('BASE_URL', '/portfolio-template/');
+			expect(sampleArtworkUrl(sample.id)).toBe(`/portfolio-template/${sample.url}`);
+		} finally {
+			vi.unstubAllEnvs();
+		}
 	});
 
 	it('exercises expiration, tombstone rendering, and explicit successor opt-in', () => {

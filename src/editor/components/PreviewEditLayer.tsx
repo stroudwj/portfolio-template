@@ -111,6 +111,10 @@ function blockLabel(block: PageBlock): string {
 			return 'Email button';
 		case 'form':
 			return 'Contact form';
+		case 'accordion':
+			return 'Accordion';
+		case 'shape':
+			return block.shape === 'arrow' ? 'Arrow' : block.shape === 'rectangle' ? 'Rectangle' : 'Line';
 		case 'products':
 			return 'Products';
 		case 'project':
@@ -726,6 +730,7 @@ export default function PreviewEditLayer({
 		{ icon: 'map', label: 'Google Map', group: 'Essentials', add: (s) => editor.addEmbedBlock(pageKey, 'map', s) },
 		{ icon: 'button', label: 'Button', group: 'Essentials', add: (s) => editor.addButtonBlock(pageKey, s) },
 		{ icon: 'divider', label: 'Divider', group: 'Essentials', add: (s) => editor.addDividerBlock(pageKey, s) },
+		{ icon: 'shape', label: 'Shape', group: 'Essentials', add: (s) => editor.addShapeBlock(pageKey, 'line', s) },
 		...(hasAboutBlock
 			? []
 			: [{
@@ -736,6 +741,7 @@ export default function PreviewEditLayer({
 				}]),
 		{ icon: 'contact', label: 'Email button', group: 'Portfolio', add: (s) => editor.addContactBlock(pageKey, s) },
 		{ icon: 'form', label: 'Contact form', group: 'Portfolio', add: (s) => editor.addFormBlock(pageKey, s) },
+		{ icon: 'accordion', label: 'Accordion', group: 'Portfolio', add: (s) => editor.addAccordionBlock(pageKey, s) },
 		{ icon: 'project', label: 'Project fields', group: 'Portfolio', add: (s) => editor.addProjectBlock(pageKey, s) },
 		{
 			icon: 'products',

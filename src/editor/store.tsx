@@ -4,6 +4,7 @@ import type {
 	ChildrenStyle,
 	Content,
 	CreativeConfig,
+	FooterColumn,
 	GalleryConfig,
 	HeaderMode,
 	ImageLayout,
@@ -945,6 +946,9 @@ export interface EditorContextValue {
 	removeSignatureImage(): void;
 	/** Footer text shown at the bottom of every page (empty removes the footer). */
 	setFooter(value: string): void;
+	setFooterName(value: string): void;
+	setFooterNameSize(value: number | undefined): void;
+	setFooterColumns(columns: FooterColumn[] | undefined): void;
 	setFooterImage(file: File): void;
 	removeFooterImage(): void;
 	setFooterImageLayout(layout: ImageLayout | undefined): void;
@@ -991,6 +995,19 @@ export interface EditorContextValue {
 		key: string,
 		blockId: string,
 		patch: Partial<Extract<PageBlock, { type: 'form' }>>,
+	): void;
+	/** Shapes are born freeform: placed on the section canvas at add time. */
+	addShapeBlock(key: string, shape: 'line' | 'arrow' | 'rectangle', sectionId?: string): void;
+	updateShapeBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'shape' }>, 'id' | 'type'>>,
+	): void;
+	addAccordionBlock(key: string, sectionId?: string): void;
+	updateAccordionBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'accordion' }>, 'id' | 'type'>>,
 	): void;
 	addProductsBlock(key: string, sectionId?: string): void;
 	updateProductsBlock(
@@ -2605,6 +2622,29 @@ export function EditorProvider({
 			}),
 		setFooter: (value) =>
 			patchContent((c) => ({ ...c, site: { ...c.site, footer: value || undefined } }), true, 'site:footer'),
+		setFooterName: (value) =>
+			patchContent((c) => ({ ...c, site: { ...c.site, footerName: value || undefined } }), true, 'site:footer-name'),
+		setFooterNameSize: (value) =>
+			patchContent(
+				(c) => ({
+					...c,
+					site: {
+						...c.site,
+						footerNameSize:
+							value === undefined || !Number.isFinite(value)
+								? undefined
+								: Math.min(Math.max(Math.round(value), 8), 300),
+					},
+				}),
+				true,
+				'site:footer-name-size',
+			),
+		setFooterColumns: (columns) =>
+			patchContent(
+				(c) => ({ ...c, site: { ...c.site, footerColumns: columns?.length ? columns : undefined } }),
+				true,
+				'site:footer-columns',
+			),
 		setFooterImage: (file) => {
 			const assetId = registerAsset(file, file.name);
 			commitDoc((prev) => ({
@@ -2835,6 +2875,49 @@ export function EditorProvider({
 					block.id === blockId && block.type === 'form' ? { ...block, ...patch, id: block.id, type: 'form' } : block,
 				),
 			true, `page:${key}:form:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addShapeBlock: (key, shape, sectionId) =>
+			patchPage(key, (page) => {
+				const current = docRef.current;
+				const canvasBottom = current ? freeCanvasBottomInSection(current, page, sectionId) : null;
+				const y = (canvasBottom ?? 0) + 2;
+				// Born freeform, sized per primitive: a wide hairline, a shorter arrow,
+				// a modest rectangle. The artist drags/resizes from there.
+				const layout =
+					shape === 'rectangle'
+						? { x: 30, y, w: 40, ar: 1.5 }
+						: shape === 'arrow'
+							? { x: 35, y, w: 30, ar: 6 }
+							: { x: 25, y, w: 50, ar: 25 };
+				return appendBlockToSection(page, { id: uid('shape'), type: 'shape', shape, layout }, sectionId);
+			}),
+		updateShapeBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'shape'
+						? { ...block, ...patch, id: block.id, type: 'shape' }
+						: block,
+				),
+			true, `page:${key}:shape:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addAccordionBlock: (key, sectionId) =>
+			patchPage(key, (page) =>
+				appendBlockToSection(page, {
+					id: uid('accordion'),
+					type: 'accordion',
+					items: [
+						{ id: uid('row'), title: 'First row', text: 'Words shown when this row is open.' },
+						{ id: uid('row'), title: 'Second row', text: '' },
+						{ id: uid('row'), title: 'Third row', text: '' },
+					],
+				}, sectionId),
+			),
+		updateAccordionBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'accordion'
+						? { ...block, ...patch, id: block.id, type: 'accordion' }
+						: block,
+				),
+			true, `page:${key}:accordion:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addProductsBlock: (key, sectionId) =>
 			patchPage(key, (page) => {
 				// Same canvas parity as sub-pages: in a freeform section the product

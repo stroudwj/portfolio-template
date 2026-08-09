@@ -2250,6 +2250,10 @@ body.workbench-window-open .floating-add-block {
 .nav-style-glyph-minimal i:nth-child(1) { top: 9px; }
 .nav-style-glyph-minimal i:nth-child(2) { top: 15px; }
 .nav-style-glyph-minimal i:nth-child(3) { top: 21px; }
+/* Three-zone: link left, wordmark dot center, CTA right */
+.nav-style-glyph-three-zone i:nth-child(1) { top: 7px; left: 5px; width: 9px; }
+.nav-style-glyph-three-zone i:nth-child(2) { top: 7px; left: 50%; width: 4px; margin-left: -2px; }
+.nav-style-glyph-three-zone i:nth-child(3) { top: 7px; right: 5px; width: 7px; border-bottom: 1px solid currentColor; height: 3px; background: none; }
 .nav-style-option.active .nav-style-glyph {
 	border-color: color-mix(in srgb, var(--klein) 45%, var(--wall-2));
 	color: var(--klein);
@@ -4873,6 +4877,38 @@ a.resume-name:hover {
 	align-items: center;
 	gap: 6px;
 	margin-top: 6px;
+}
+.accordion-row-editor {
+	margin-top: 10px;
+}
+.footer-column-editor {
+	margin-top: 10px;
+	padding: 8px;
+	border: 1px solid var(--wall-2);
+	border-radius: 8px;
+}
+.footer-column-editor .form-field-row {
+	grid-template-columns: minmax(80px, 1fr) minmax(80px, 1.4fr) auto;
+}
+.footer-column-editor .form-field-row:first-child {
+	grid-template-columns: minmax(100px, 1fr) auto;
+}
+.field-inline {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+	font-size: 12px;
+}
+.field-inline .text-input {
+	width: 80px;
+}
+.accordion-row-editor .form-field-row {
+	grid-template-columns: minmax(100px, 1fr) auto auto auto;
+}
+.accordion-row-editor .text-area {
+	width: 100%;
+	margin-top: 4px;
 }
 .image-description-field {
 	display: flex;

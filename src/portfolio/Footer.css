@@ -52,3 +52,52 @@
 	margin: 0 auto 1rem;
 	object-fit: contain;
 }
+
+/* Display-scale closing name — Mosley's giant footer wordmark. Sized in pt
+   but never wider than the viewport. */
+.site-footer-name {
+	color: var(--color-text);
+	font-family: var(--font-heading, var(--font-family));
+	font-size: min(var(--footer-name-size, 72pt), 14vw);
+	line-height: 0.95;
+	letter-spacing: -0.02em;
+	margin: 0 0 2rem;
+	overflow-wrap: anywhere;
+}
+
+/* Headed link columns ("Site map" / "Contact"). */
+.site-footer-columns {
+	display: flex;
+	justify-content: center;
+	gap: clamp(2.5rem, 8vw, 7rem);
+	margin: 0 0 2rem;
+	text-align: left;
+}
+
+.site-footer-column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45em;
+}
+
+.site-footer-column-heading {
+	color: var(--color-text);
+	font-family: var(--font-heading, var(--font-family));
+	font-size: 1.15rem;
+	font-weight: 400;
+	margin: 0 0 0.5em;
+}
+
+.site-footer-column a {
+	font-size: 0.92rem;
+	color: var(--color-text);
+}
+
+@media (max-width: 639px) {
+	.site-footer-columns {
+		flex-direction: column;
+		gap: 1.75rem;
+		align-items: center;
+		text-align: center;
+	}
+}

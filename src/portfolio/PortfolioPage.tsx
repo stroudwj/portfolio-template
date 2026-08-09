@@ -14,7 +14,9 @@ import { type InlineTextEditing } from './InlineTextEditor';
 import Embed from './Embed';
 import ScrollShots from './ScrollShots';
 import ContactForm from './ContactForm';
+import AccordionBlock from './AccordionBlock';
 import ContactBlock from './ContactBlock';
+import ShapeBlock from './ShapeBlock';
 import { PortfolioButton, PortfolioDivider } from './PageBlocks';
 import Products from './Products';
 import ChildPages from './ChildPages';
@@ -518,6 +520,21 @@ export default function PortfolioPage({
 							/>
 						),
 					}];
+				if (block.type === 'shape' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: true,
+						dragLabel: `Click and drag ${block.shape}`,
+						content: (
+							<ShapeBlock
+								shape={block.shape}
+								color={block.color}
+								strokeWidth={block.strokeWidth}
+								direction={block.direction}
+							/>
+						),
+					}];
 				if (block.type === 'products' && block.canvasLayout && content.store)
 					return [{
 						id: block.id,
@@ -587,7 +604,7 @@ export default function PortfolioPage({
 		const anchor = section.blockIds.find((id) => {
 			const block = blockById.get(id);
 			return (
-				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider') && !!block.layout) ||
+				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider' || block?.type === 'shape') && !!block.layout) ||
 				(block?.type === 'children' && (!!block.canvasLayout || (block.items ?? []).some((item) => !!item.layout))) ||
 				(block?.type === 'products' && !!block.canvasLayout) ||
 				(block?.type === 'project' && !!block.layout) ||
@@ -1050,6 +1067,32 @@ export default function PortfolioPage({
 						color={block.color}
 					/>
 				);
+			case 'shape':
+				if (hasCanvas && block.layout) return null;
+				if (block.layout) {
+					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
+					return (
+						<div key={block.id} className="page-content-wrapper standalone-widget-canvas">
+							<Gallery
+								images={[]}
+								canvasWidgets={canvasWidgets}
+								editable={!!canvasWidgetLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onSelectBlock={selectInnerBlock}
+							/>
+						</div>
+					);
+				}
+				return (
+					<div key={block.id} className={`shape-flow shape-flow-${block.shape}`}>
+						<ShapeBlock
+							shape={block.shape}
+							color={block.color}
+							strokeWidth={block.strokeWidth}
+							direction={block.direction}
+						/>
+					</div>
+				);
 			case 'contact':
 				return (
 					<ContactBlock
@@ -1058,6 +1101,17 @@ export default function PortfolioPage({
 						text={block.text}
 						email={block.email}
 						buttonLabel={block.buttonLabel}
+						editorPreview={editorPreview}
+					/>
+				);
+			case 'accordion':
+				return (
+					<AccordionBlock
+						key={block.id}
+						blockId={block.id}
+						items={block.items}
+						titleSize={block.titleSize}
+						fontFamily={block.fontFamily}
 						editorPreview={editorPreview}
 					/>
 				);
@@ -1295,7 +1349,10 @@ export default function PortfolioPage({
 				})}
 			</div>
 			{content.site.signature && <Signature data={content.site.signature} base={base} />}
-			{(content.site.footer || content.site.footerImage) && (
+			{(content.site.footer ||
+				content.site.footerImage ||
+				content.site.footerName ||
+				content.site.footerColumns?.length) && (
 				<Footer
 					text={content.site.footer ?? ''}
 					imageSrc={content.site.footerImage ? (/^(?:blob:|data:|https?:|\/)/i.test(content.site.footerImage) ? content.site.footerImage : withBase(base, `assets/${content.site.footerImage}`)) : undefined}
@@ -1304,6 +1361,11 @@ export default function PortfolioPage({
 					heights={content.site.footerHeights}
 					resizeBreakpoint={resizeBreakpoint}
 					onHeightChange={onFooterHeight}
+					name={content.site.footerName}
+					nameSize={content.site.footerNameSize}
+					columns={content.site.footerColumns}
+					base={base}
+					onNavigate={onNavigate}
 				/>
 			)}
 		</>

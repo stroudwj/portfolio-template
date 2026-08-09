@@ -1,3 +1,4 @@
+import { withBase } from '../../portfolio/types';
 import { NGA_ARTWORKS } from './sample-artwork-nga';
 import { STROUD_ARTWORKS } from './sample-artwork-stroud';
 
@@ -901,7 +902,9 @@ export function sampleArtworkUrl(id: string | null | undefined, now = new Date()
 	if (!artwork) return undefined;
 	if (isSampleWithdrawn(artwork, now)) return WITHDRAWN_SAMPLE_IMAGE;
 	if (!artwork.url) return undefined;
-	return `${import.meta.env.BASE_URL}${artwork.url}`;
+	// BASE_URL may arrive as '/', '/portfolio-template', or '/portfolio-template/';
+	// catalog urls are relative — withBase guarantees exactly one joining slash.
+	return withBase(import.meta.env.BASE_URL, artwork.url);
 }
 
 export function sampleReplacement(id: string | null | undefined): SampleArtwork | undefined {

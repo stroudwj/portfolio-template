@@ -230,6 +230,156 @@ describe('staticgen', () => {
 		expect(home).not.toContain('sidebar is-stabilized');
 	});
 
+	it('publishes the three-zone bar with the last menu item as the right-hand CTA', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			theme: { ...base.contentJson.theme, navStyle: 'three-zone' },
+			nav: [
+				{ path: '', label: 'Works' },
+				{ path: 'about', label: 'About' },
+				{ path: 'contact', label: 'Book now' },
+			],
+			pages: {
+				...base.contentJson.pages,
+				about: { title: 'About', label: 'About', blocks: [] },
+				contact: { title: 'Contact', label: 'Book now', blocks: [] },
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('nav-style-three-zone');
+		// The last menu item is promoted out of the link row into the CTA slot…
+		expect(home).toContain('nav-cta-link');
+		expect(home).toMatch(/nav-cta-link[^>]*>Book now/);
+		// …and the remaining links still render as the left row.
+		expect(home).toMatch(/row-link[^>]*>Works/);
+		expect(home).toMatch(/row-link[^>]*>About/);
+		expect(home).not.toMatch(/row-link[^>]*>Book now/);
+	});
+
+	it('publishes an accordion as script-free details rows grouped one-open-at-a-time', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{
+							id: 'services-acc',
+							type: 'accordion',
+							items: [
+								{ id: 'row-1', title: 'Film', text: 'Lead and supporting film work.' },
+								{ id: 'row-2', title: 'Stage', text: 'Live performance.' },
+							],
+							titleSize: 92,
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		// Native details/summary: the published page needs no script to toggle,
+		// and every row's words are in the HTML for no-JS readers and search.
+		expect(home).toContain('accordion-block');
+		expect(home).toContain('<details');
+		expect(home).toContain('name="accordion-services-acc"');
+		expect(home).toContain('Film');
+		expect(home).toContain('Lead and supporting film work.');
+		expect(home).toContain('Stage');
+		expect(home).toContain('Live performance.');
+		expect(home).toContain('--accordion-title-size:92pt');
+	});
+
+	it('publishes the upgraded footer: display-scale name and headed link columns', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			site: {
+				...base.contentJson.site,
+				footer: 'Made with hangwork.art',
+				footerName: 'Jane Doe',
+				footerNameSize: 168,
+				footerColumns: [
+					{ heading: 'Site map', links: [{ label: 'Works', url: '' }, { label: 'About', url: 'about' }] },
+					{ heading: 'Contact', links: [{ label: 'Instagram', url: 'https://instagram.com/jane' }] },
+				],
+			},
+			pages: {
+				...base.contentJson.pages,
+				about: { title: 'About', label: 'About', blocks: [] },
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('site-footer-name');
+		expect(home).toContain('--footer-name-size:168pt');
+		expect(home).toContain('Jane Doe');
+		expect(home).toContain('site-footer-columns');
+		expect(home).toContain('Site map');
+		// Internal links resolve against the site base; external ones open in a new tab.
+		expect(home).toMatch(/site-footer-column[\s\S]*?href="\/about\/?"[^>]*>About/);
+		expect(home).toMatch(/href="https:\/\/instagram\.com\/jane"[^>]*target="_blank"/);
+	});
+
+	it('publishes canvas shapes as fixed-stroke boxes on the section canvas', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{ id: 'rule', type: 'shape', shape: 'line', layout: { x: 10, y: 6, w: 60, ar: 25 } },
+						{
+							id: 'pointer',
+							type: 'shape',
+							shape: 'arrow',
+							direction: 'down',
+							strokeWidth: 2,
+							layout: { x: 40, y: 20, w: 20, ar: 6 },
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('shape-line');
+		expect(home).toContain('shape-arrow-down');
+		expect(home).toContain('--shape-stroke:2px');
+	});
+
 	it('publishes a contact block without ever writing the address', async () => {
 		// Published pages inline their whole Content as window.__HW__, so the address
 		// must be absent from the served bytes entirely — markup AND boot data.

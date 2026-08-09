@@ -124,6 +124,7 @@ body.texture-concrete {
 	padding: 28px 36px;
 }
 .portfolio-container.nav-style-topbar > .sidebar:not(.is-stabilized),
+.portfolio-container.nav-style-three-zone > .sidebar:not(.is-stabilized),
 .portfolio-container.nav-style-centered > .sidebar:not(.is-stabilized),
 .portfolio-container.nav-style-pill > .sidebar:not(.is-stabilized),
 .portfolio-container.nav-style-minimal > .sidebar:not(.is-stabilized) {
@@ -149,6 +150,24 @@ body.texture-concrete {
 }
 .portfolio-container.nav-style-topbar.logo-position-freeform > .sidebar .nav-links-row {
 	max-width: 55%;
+}
+
+/* Three-zone: a solid full-width top bar — links left, the centered logo as
+   the wordmark, and the last menu item as a call-to-action pinned right. */
+.portfolio-container.nav-style-three-zone > .sidebar {
+	left: 0;
+	right: 0;
+	box-sizing: border-box;
+	padding: 24px 36px;
+	background: var(--color-bg);
+	/* One below the logo's 1000: the wordmark must stay visible over the solid bar. */
+	z-index: 999;
+}
+.portfolio-container.nav-style-three-zone > .sidebar .navigation-shell {
+	width: 100%;
+}
+.portfolio-container.nav-style-three-zone > .content-view > .portfolio-page-body > .portfolio-page-part:first-child > .motion-section-inner {
+	padding-top: max(0px, calc(72px + var(--content-gap, 0px)));
 }
 
 /* Centered: links centered just beneath the centered logo. */
@@ -200,6 +219,7 @@ body.texture-concrete {
    sidebar box. Left + right define the viewport width without fighting a
    leftover width: 0 declaration. */
 .portfolio-container.nav-style-topbar > .sidebar.is-stabilized,
+.portfolio-container.nav-style-three-zone > .sidebar.is-stabilized,
 .portfolio-container.nav-style-centered > .sidebar.is-stabilized,
 .portfolio-container.nav-style-pill > .sidebar.is-stabilized {
 	width: auto;
