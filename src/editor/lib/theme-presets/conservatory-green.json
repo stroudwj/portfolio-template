@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#252c25",
+  "textColor": "#f0efe6",
+  "mutedTextColor": "#a3aaa0",
+  "accentColor": "#8ea38b",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+  "logoScale": 220,
+  "logoPosition": "center",
+  "pageHeadingScale": 150,
+  "pageHeadingPosition": "center",
+  "navStyle": "minimal",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

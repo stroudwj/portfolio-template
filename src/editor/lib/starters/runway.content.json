@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Painting portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "pageTransition": "curtain"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#101010",
+    "textColor": "#f4f2ee",
+    "mutedTextColor": "#98938b",
+    "accentColor": "#d9d5cd",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+    "logoScale": 260,
+    "pageHeadingScale": 190,
+    "pageHeadingPosition": "center",
+    "logoPosition": "center",
+    "navStyle": "centered",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "full",
+      "reveal": true,
+      "hover": true,
+      "heroParallax": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Front of house"
+    },
+    {
+      "path": "portraits",
+      "label": "01 — Portraits"
+    },
+    {
+      "path": "figures",
+      "label": "02 — Figures"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "One line on who you paint, one on how it feels in the room. The paintings in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name}",
+      "label": "Front of house",
+      "description": "Portraits lit low, the name over everything.",
+      "blocks": [
+        {
+          "id": "hero-images",
+          "type": "images",
+          "gallery": {
+            "folder": "hero",
+            "alt": "Portrait",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Front of house"
+        }
+      ],
+      "sections": [
+        {
+          "id": "hero",
+          "name": "Front of house",
+          "blockIds": [
+            "hero-images"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:hero": {
+          "effect": "pin",
+          "intensity": 35
+        }
+      }
+    },
+    "portraits": {
+      "title": "Portraits — {name}",
+      "label": "01 — Portraits",
+      "description": "The numbered wall — sitters in order of appearance.",
+      "heading": "Portraits",
+      "blocks": [
+        {
+          "id": "portraits-intro",
+          "type": "text",
+          "text": "The numbered wall — sitters in order of appearance.",
+          "style": "body"
+        },
+        {
+          "id": "portraits-images",
+          "type": "images",
+          "gallery": {
+            "folder": "portraits",
+            "alt": "Portrait",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Portraits"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "portraits-intro",
+            "portraits-images"
+          ]
+        }
+      ]
+    },
+    "figures": {
+      "title": "Figures — {name}",
+      "label": "02 — Figures",
+      "description": "Full-length studies — cut, color, and line.",
+      "heading": "Figures",
+      "blocks": [
+        {
+          "id": "figures-intro",
+          "type": "text",
+          "text": "Full-length studies — cut, color, and line.",
+          "style": "body"
+        },
+        {
+          "id": "figures-images",
+          "type": "images",
+          "gallery": {
+            "folder": "figures",
+            "alt": "Portrait",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Figures"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "figures-intro",
+            "figures-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "hero": {
+      "items": {
+        "01-chaim-soutine.jpg": {
+          "id": "sample-painting-nga-46522-v1",
+          "sampleAssetId": "painting-nga-46522-v1",
+          "title": "Chaim Soutine",
+          "alt": "Shown from the lap up, a cleanshaven man with black hair and dark clothes faces us as he sits with his hands resting together in his lap in this stylized, vertical portrait painting.",
+          "description": "Amedeo Modigliani. Chaim Soutine, 1918. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46522.html",
+          "layout": {
+            "x": 30,
+            "y": 2,
+            "w": 34,
+            "ar": 0.64689,
+            "z": 2
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        },
+        "02-woman-with-red-hair.jpg": {
+          "id": "sample-painting-nga-46651-v1",
+          "sampleAssetId": "painting-nga-46651-v1",
+          "title": "Woman with Red Hair",
+          "alt": "Shown from the lap up, a woman with peach-colored skin sits leaning sideways against the back of a wooden chair with her head tilted to our left on her long neck in this vertical, stylized portrait.",
+          "description": "Amedeo Modigliani. Woman with Red Hair, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46651.html",
+          "layout": {
+            "x": 60,
+            "y": 30,
+            "w": 22,
+            "ar": 0.65959,
+            "z": 1
+          },
+          "effects": {
+            "reveal": "rise"
+          }
+        }
+      }
+    },
+    "portraits": {
+      "items": {
+        "01-madame-am-d-e-woman-with-cigarette.jpg": {
+          "id": "sample-painting-nga-46647-v1",
+          "sampleAssetId": "painting-nga-46647-v1",
+          "title": "Madame Amédée (Woman with Cigarette)",
+          "alt": "This painting shows a portrait of a woman, depicted from the thighs up.",
+          "description": "Amedeo Modigliani. Madame Amédée (Woman with Cigarette), 1918. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46647.html"
+        },
+        "02-caf-singer.jpg": {
+          "id": "sample-painting-nga-46519-v1",
+          "sampleAssetId": "painting-nga-46519-v1",
+          "title": "Café Singer",
+          "alt": "Shown from the knees up, a woman wearing a black dress is painted with areas of mottled color in this vertical painting.",
+          "description": "Amedeo Modigliani. Café Singer, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46519.html"
+        },
+        "03-madame-kisling.jpg": {
+          "id": "sample-painting-nga-46650-v1",
+          "sampleAssetId": "painting-nga-46650-v1",
+          "title": "Madame Kisling",
+          "alt": "This vertical portrait painting shows the head and shoulders of a person with pale peach skin and an auburn, cheek-length bob hairstyle.",
+          "description": "Amedeo Modigliani. Madame Kisling, c. 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46650.html"
+        },
+        "04-l-on-bakst.jpg": {
+          "id": "sample-painting-nga-46648-v1",
+          "sampleAssetId": "painting-nga-46648-v1",
+          "title": "Léon Bakst",
+          "alt": "This painting is a portrait showing a man from the chest up.",
+          "description": "Amedeo Modigliani. Léon Bakst, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46648.html"
+        },
+        "05-adrienne-woman-with-bangs.jpg": {
+          "id": "sample-painting-nga-46646-v1",
+          "sampleAssetId": "painting-nga-46646-v1",
+          "title": "Adrienne (Woman with Bangs)",
+          "alt": "A woman with peachy skin and dark auburn hair is shown from her chest up sitting in a wooden chair in this vertical portrait painting.",
+          "description": "Amedeo Modigliani. Adrienne (Woman with Bangs), 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46646.html"
+        }
+      }
+    },
+    "figures": {
+      "items": {
+        "01-girl-in-a-green-blouse.jpg": {
+          "id": "sample-painting-nga-46520-v1",
+          "sampleAssetId": "painting-nga-46520-v1",
+          "title": "Girl in a Green Blouse",
+          "alt": "Shown from the lap up, a pale-skinned woman with an oval face and long neck sits facing us in this vertical painting.",
+          "description": "Amedeo Modigliani. Girl in a Green Blouse, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46520.html"
+        },
+        "02-monsieur-deleu.jpg": {
+          "id": "sample-painting-nga-46551-v1",
+          "sampleAssetId": "painting-nga-46551-v1",
+          "title": "Monsieur Deleu",
+          "alt": "Shown from the lap up, a person with peach-colored skin sits facing us as he looks down and to our left in this vertical, stylized, portrait painting.",
+          "description": "Amedeo Modigliani. Monsieur Deleu, 1916. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46551.html"
+        },
+        "03-roma-woman-with-baby.jpg": {
+          "id": "sample-painting-nga-46649-v1",
+          "sampleAssetId": "painting-nga-46649-v1",
+          "title": "Roma Woman with Baby",
+          "alt": "Shown from the knees up, a woman with peach-colored skin and dark hair sits facing us and holding a baby in this stylized, vertical portrait painting.",
+          "description": "Amedeo Modigliani. Roma Woman with Baby, 1919. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46649.html"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Painting portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "grain": 3,
+      "slowReveal": true,
+      "pageTransition": "fade"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#252c25",
+    "textColor": "#f0efe6",
+    "mutedTextColor": "#a3aaa0",
+    "accentColor": "#8ea38b",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+    "logoScale": 220,
+    "pageHeadingScale": 150,
+    "pageHeadingPosition": "center",
+    "logoPosition": "center",
+    "navStyle": "minimal",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "hover": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Works"
+    },
+    {
+      "path": "portraits",
+      "label": "Portraits"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Introduce your practice — the subjects you keep returning to, and what a wall of your work should feel like. The paintings in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Works",
+      "label": "Works",
+      "description": "New paintings, hung as one dark wall.",
+      "blocks": [
+        {
+          "id": "salon-images",
+          "type": "images",
+          "gallery": {
+            "folder": "salon",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Salon wall"
+        }
+      ],
+      "sections": [
+        {
+          "id": "salon",
+          "name": "Salon wall",
+          "blockIds": [
+            "salon-images"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:salon": {
+          "effect": "drift",
+          "intensity": 35
+        }
+      }
+    },
+    "portraits": {
+      "title": "Portraits — {name}",
+      "label": "Portraits",
+      "description": "Portraits and figures, two to a row.",
+      "heading": "Portraits",
+      "blocks": [
+        {
+          "id": "portraits-intro",
+          "type": "text",
+          "text": "A quieter room — portraits and figures, two to a row.",
+          "style": "body"
+        },
+        {
+          "id": "portraits-images",
+          "type": "images",
+          "gallery": {
+            "folder": "portraits",
+            "alt": "Portrait",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Portraits"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "portraits-intro",
+            "portraits-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "salon": {
+      "items": {
+        "01-blue-morning.jpg": {
+          "id": "sample-painting-nga-46557-v1",
+          "sampleAssetId": "painting-nga-46557-v1",
+          "title": "Blue Morning",
+          "alt": "From under an elevated train track, we look at a cluster of people hammering and working on the far side of a wooden fence, all against a silvery-blue building that fills most of the background in this horizontal painting.",
+          "description": "George Bellows. Blue Morning, 1909. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46557.html",
+          "layout": {
+            "x": 6,
+            "y": 8,
+            "w": 30,
+            "ar": 1.28289,
+            "z": 3
+          }
+        },
+        "02-the-lone-tenement.jpg": {
+          "id": "sample-painting-nga-46558-v1",
+          "sampleAssetId": "painting-nga-46558-v1",
+          "title": "The Lone Tenement",
+          "alt": "A six-story, narrow building stands alone in an otherwise unoccupied lot under the deck of a high bridge, with a river and cityscape in the background in this horizontal painting.",
+          "description": "George Bellows. The Lone Tenement, 1909. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46558.html",
+          "layout": {
+            "x": 52,
+            "y": 13,
+            "w": 34,
+            "ar": 1.33562,
+            "z": 2
+          }
+        },
+        "03-anne-with-a-japanese-parasol.jpg": {
+          "id": "sample-painting-nga-61351-v1",
+          "sampleAssetId": "painting-nga-61351-v1",
+          "title": "Anne with a Japanese Parasol",
+          "alt": "This painting shows a young girl standing and facing forward.",
+          "description": "George Bellows. Anne with a Japanese Parasol, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61351.html",
+          "layout": {
+            "x": 36,
+            "y": 27,
+            "w": 20,
+            "ar": 0.60366,
+            "z": 5
+          }
+        },
+        "04-new-york.jpg": {
+          "id": "sample-painting-nga-69392-v1",
+          "sampleAssetId": "painting-nga-69392-v1",
+          "title": "New York",
+          "alt": "We look slightly down onto a crush of pedestrians, horse-drawn carriages, wagons, and streetcars enclosed by a row of densely spaced buildings and skyscrapers opposite us in this horizontal painting.",
+          "description": "George Bellows. New York, 1911. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.69392.html",
+          "layout": {
+            "x": 10,
+            "y": 45,
+            "w": 36,
+            "ar": 1.44751,
+            "z": 4
+          }
+        },
+        "05-nude-with-red-hair.jpg": {
+          "id": "sample-painting-nga-46559-v1",
+          "sampleAssetId": "painting-nga-46559-v1",
+          "title": "Nude with Red Hair",
+          "alt": "Shown from the knees up, a woman sits partially covered by a black cloth as she holds one forearm across her bare breasts in this vertical painting.",
+          "description": "George Bellows. Nude with Red Hair, 1920. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46559.html",
+          "layout": {
+            "x": 62,
+            "y": 49,
+            "w": 24,
+            "ar": 0.76647,
+            "z": 1
+          }
+        }
+      }
+    },
+    "portraits": {
+      "items": {
+        "01-chester-dale.jpg": {
+          "id": "sample-painting-nga-30743-v1",
+          "sampleAssetId": "painting-nga-30743-v1",
+          "title": "Chester Dale",
+          "alt": "This painting shows a man from the waist up, his body turned slightly to the right.",
+          "description": "George Bellows. Chester Dale, 1922. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.30743.html"
+        },
+        "02-florence-sittenham-davey-mrs-randall-davey.jpg": {
+          "id": "sample-painting-nga-57491-v1",
+          "sampleAssetId": "painting-nga-57491-v1",
+          "title": "Florence Sittenham Davey (Mrs. Randall Davey)",
+          "alt": "This painting is a portrait of a seated woman shown from the knees upwards.",
+          "description": "George Bellows. Florence Sittenham Davey (Mrs. Randall Davey), 1914. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.57491.html"
+        },
+        "03-little-girl-in-white-queenie-burnett.jpg": {
+          "id": "sample-painting-nga-61352-v1",
+          "sampleAssetId": "painting-nga-61352-v1",
+          "title": "Little Girl in White (Queenie Burnett)",
+          "alt": "A young, pale-skinned girl wearing a white dress stands against a darkened background in this vertical portrait painting.",
+          "description": "George Bellows. Little Girl in White (Queenie Burnett), 1907. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61352.html"
+        },
+        "04-maud-murray-dale-mrs-chester-dale.jpg": {
+          "id": "sample-painting-nga-30742-v1",
+          "sampleAssetId": "painting-nga-30742-v1",
+          "title": "Maud Murray Dale (Mrs. Chester Dale)",
+          "alt": "This painting shows a seated woman from the waist up.",
+          "description": "George Bellows. Maud Murray Dale (Mrs. Chester Dale), 1919. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.30742.html"
+        },
+        "05-my-family.jpg": {
+          "id": "sample-painting-nga-61353-v1",
+          "sampleAssetId": "painting-nga-61353-v1",
+          "title": "My Family",
+          "alt": "This painting shows an adult woman and two children on a white lounge chair.",
+          "description": "George Bellows. My Family, 1916. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61353.html"
+        }
+      }
+    }
+  }
+}

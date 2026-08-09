@@ -27,20 +27,51 @@ Near-duplicate groups (pick ≥1 per group, cut the rest):
 - **H — agency/service statement sites (not work-first portfolios):** Adri, Sawyer, Agaro, Nolan, Sackett
 - **I — bio/CV narrative pages (image-light):** Hart, Otto, (Suhama text-only)
 
+## Translation ledger — batch 1 (2026-08-09, branch worktree-spec-14-batch-1)
+
+The first five keepers are translated into Hangwork starters. Fonts: the renderer
+ships no webfonts (templates cannot carry font files), so each substitution below is
+the closest **system font stack**, not a Google Font. Imagery: National Gallery of
+Art open-access masters from `public/assets/starters/new-starters-aug-8/`, cataloged
+in `sample-artwork-nga.ts` (129 entries, generated from NGA open data; alt text from
+NGA assistive text).
+
+| Keeper | Hangwork template id | Theme preset | Imagery | Font substitutions |
+|---|---|---|---|---|
+| Mosley | `conservatory` | `conservatory-green` | George Bellows (10) | Gilda Display → Didot/Bodoni stack; Clarkson → Helvetica Neue |
+| Reflect | `masthead` | `poster-white` | Berthe Morisot (14) | Clarkson → Helvetica Neue (logo weight 800 carries the masthead) |
+| Radian | `atelier` | `studio-white` | Eugène Atget (18) | Halyard Display → Avenir stack; Pragmatica → Helvetica Neue |
+| Keo | `contact-sheet` | `almond-paper` | Lewis Hine (9) | Poppins → Futura/Century Gothic stack; Halyard → Avenir |
+| Gilden | `runway` | `backstage-black` | Amedeo Modigliani (10) | Syne → Futura/Century Gothic stack; Source Sans Pro → Helvetica Neue |
+
+Batch-1 device notes: the giant-wordmark devices (Mosley/Reflect/Gilden) are carried
+by `logoScale` 220–300 with `logoPosition: center`; Keo's marquee ticker is
+`headingKinetic: marquee`; Reflect's shop is out of scope for a starter (Stripe links
+are per-artist) and was not translated.
+
+Uncataloged masters flagged for William: `photography/filmseries copy/` and
+`photography/photoseries1 copy/` (film01–10.png, vj01–10.png) carry no accession
+numbers or rights provenance — they look like personal work, so they were left out of
+`sample-artwork-nga.ts` and out of the templates. Two exact-duplicate " (1).jpg"
+files were deleted; artist folders were renamed to URL-safe names (`george bellows` →
+`bellows`, `sargentdrawingscompress` → `sargent`, `watercolor1` → `emily-sargent`
+(they are Emily Sargent watercolors), `eugeneatget` → `atget`, `lewiswickedhine` →
+`hine`).
+
 Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 
 | Status | Template | Demo URL | Reason (group) |
 |---|---|---|---|
 | cut | Night | https://night-fluid-demo.squarespace.com/ | A dup: same dark pinned giant-serif collage as Mosley, offset type is the only difference |
-| keep | Mosley | https://mosley.squarespace.com/ | A pick: giant serif name over scattered images on dark green — most generalizable collage hero |
-| keep | Reflect | https://reflect-fluid-demo.squarespace.com/ | A sans variant with a distinct device: full-width bold-sans masthead crossing a vivid collage, plus shop |
-| keep | Radian | https://radian-fluid-demo.squarespace.com/ | B pick: white studio editorial — photo hero + project index + alternating case sections |
+| keep → `conservatory` | Mosley | https://mosley.squarespace.com/ | A pick: giant serif name over scattered images on dark green — most generalizable collage hero |
+| keep → `masthead` | Reflect | https://reflect-fluid-demo.squarespace.com/ | A sans variant with a distinct device: full-width bold-sans masthead crossing a vivid collage, plus shop |
+| keep → `atelier` | Radian | https://radian-fluid-demo.squarespace.com/ | B pick: white studio editorial — photo hero + project index + alternating case sections |
 | cut | Adri | https://adri-fluid-demo.squarespace.com/ | H: freelancer funnel one-pager (stats/FAQ/newsletter), not a work-first portfolio |
 | cut | Sawyer | https://sawyer-fluid-demo.squarespace.com/ | H: painting-contractor services + consultation form; layout bones covered by group B |
 | cut | Transmission | https://transmission-fluid-demo.squarespace.com/ | Podcast/membership site, no gallery; only distinct device is the marquee wordmark |
 | cut | McCurry | https://mccurry-fluid-demo.squarespace.com/ | C dup of Reseda: same masthead-wordmark + work-category bones in a serif skin |
-| keep | Keo | https://keo-fluid-demo.squarespace.com/ | D pick: big sans statement + dense lightbox grid + marquee ticker; cleanest light grid portfolio |
-| keep | Gilden | https://gilden-fluid-demo.squarespace.com/ | Single: dark fashion portfolio — watermark wordmark behind hero + numbered case list |
+| keep → `contact-sheet` | Keo | https://keo-fluid-demo.squarespace.com/ | D pick: big sans statement + dense lightbox grid + marquee ticker; cleanest light grid portfolio |
+| keep → `runway` | Gilden | https://gilden-fluid-demo.squarespace.com/ | Single: dark fashion portfolio — watermark wordmark behind hero + numbered case list |
 | keep | Cimen | https://cimen-fluid-demo.squarespace.com/ | Single: cream quiet editorial with full-width video hero; maps to our video-on-canvas |
 | keep | Aue Sobol | https://aue-sobol-fluid-demo.squarespace.com/ | Single: huge klein-blue centered wordmark + bold statement; shop + gallery author layout |
 | keep | Arthur | https://arthur-fluid-demo.squarespace.com/ | Single: sparse asymmetric photo scatter with heavy whitespace — freeform-canvas showcase |

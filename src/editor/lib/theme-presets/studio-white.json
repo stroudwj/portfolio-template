@@ -1,0 +1,14 @@
+{
+  "backgroundColor": "#fafafa",
+  "textColor": "#161616",
+  "mutedTextColor": "#6e6e6e",
+  "accentColor": "#1c1c1c",
+  "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+  "pageHeadingScale": 120,
+  "pageHeadingPosition": "left",
+  "navStyle": "topbar",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

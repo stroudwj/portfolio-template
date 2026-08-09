@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Photography portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art",
+    "creative": {
+      "slowReveal": true,
+      "pageTransition": "fade"
+    }
+  },
+  "theme": {
+    "backgroundColor": "#fafafa",
+    "textColor": "#161616",
+    "mutedTextColor": "#6e6e6e",
+    "accentColor": "#1c1c1c",
+    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "headingFontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+    "pageHeadingScale": 120,
+    "pageHeadingPosition": "left",
+    "navStyle": "topbar",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "stagger": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Studio"
+    },
+    {
+      "path": "gardens",
+      "label": "Gardens"
+    },
+    {
+      "path": "storefronts",
+      "label": "Storefronts"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Introduce the studio — what you photograph, who commissions it, and how a project runs. The photographs in this starter are public-domain museum samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Studio",
+      "label": "Studio",
+      "description": "A working studio — projects first, process close behind.",
+      "heading": "Studio",
+      "blocks": [
+        {
+          "id": "hero-image",
+          "type": "images",
+          "gallery": {
+            "folder": "hero",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 1
+          },
+          "name": "Hero"
+        },
+        {
+          "id": "statement",
+          "type": "text",
+          "text": "A working studio — projects first, process close behind.",
+          "style": "body"
+        },
+        {
+          "id": "index-images",
+          "type": "images",
+          "gallery": {
+            "folder": "index",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 3
+          },
+          "name": "Selected projects"
+        },
+        {
+          "id": "index-caption",
+          "type": "text",
+          "text": "Selected projects — each series opens as its own page.",
+          "align": "center",
+          "style": "body"
+        }
+      ],
+      "sections": [
+        {
+          "id": "hero",
+          "name": "Hero",
+          "blockIds": [
+            "hero-image"
+          ]
+        },
+        {
+          "id": "statement",
+          "name": "Statement",
+          "blockIds": [
+            "statement"
+          ]
+        },
+        {
+          "id": "index",
+          "name": "Project index",
+          "blockIds": [
+            "index-images",
+            "index-caption"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:hero": {
+          "effect": "reveal",
+          "intensity": 35
+        },
+        "section:index": {
+          "effect": "reveal",
+          "intensity": 30
+        }
+      }
+    },
+    "gardens": {
+      "title": "Gardens — {name}",
+      "label": "Gardens",
+      "description": "Saint-Cloud and Sceaux, out of season.",
+      "heading": "Gardens",
+      "blocks": [
+        {
+          "id": "gardens-intro",
+          "type": "text",
+          "text": "Saint-Cloud and Sceaux, out of season — water, hedges, and empty steps.",
+          "style": "body"
+        },
+        {
+          "id": "gardens-images",
+          "type": "images",
+          "gallery": {
+            "folder": "gardens",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Gardens"
+        },
+        {
+          "id": "gardens-project",
+          "type": "project",
+          "project": {
+            "template": "artwork",
+            "year": "1901–1926",
+            "medium": "Albumen and gelatin silver prints",
+            "exhibitionHistory": "National Gallery of Art, Open Access"
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "gardens-intro",
+            "gardens-images"
+          ]
+        },
+        {
+          "id": "section-project",
+          "name": "Project details",
+          "blockIds": [
+            "gardens-project"
+          ]
+        }
+      ],
+      "sectionColors": {
+        "section:section-project": "#efefec"
+      }
+    },
+    "storefronts": {
+      "title": "Storefronts — {name}",
+      "label": "Storefronts",
+      "description": "Shop windows and signs — the city addressed directly.",
+      "heading": "Storefronts",
+      "blocks": [
+        {
+          "id": "storefronts-intro",
+          "type": "text",
+          "text": "Shop windows and signs — the city addressed directly.",
+          "style": "body"
+        },
+        {
+          "id": "storefronts-images",
+          "type": "images",
+          "gallery": {
+            "folder": "storefronts",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 2
+          },
+          "name": "Storefronts"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "storefronts-intro",
+            "storefronts-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "hero": {
+      "items": {
+        "01-parc-de-sceaux.jpg": {
+          "id": "sample-photography-nga-124991-v1",
+          "sampleAssetId": "photography-nga-124991-v1",
+          "title": "Parc de Sceaux",
+          "alt": "The image shows a set of stone steps leading up to a grassy area.",
+          "description": "Eugène Atget. Parc de Sceaux, 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124991.html"
+        }
+      }
+    },
+    "index": {
+      "items": {
+        "01-cour-du-dragon-dragon-court.jpg": {
+          "id": "sample-photography-nga-222106-v1",
+          "sampleAssetId": "photography-nga-222106-v1",
+          "title": "Cour du Dragon (Dragon Court)",
+          "alt": "The image shows a narrow street with cobblestones, lined by tall buildings on either side.",
+          "description": "Eugène Atget. Cour du Dragon (Dragon Court), 1905. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.222106.html"
+        },
+        "02-a-la-grappe-d-or-4-place-d-aligre.jpg": {
+          "id": "sample-photography-nga-124994-v1",
+          "sampleAssetId": "photography-nga-124994-v1",
+          "title": "A la Grappe d'Or, 4 place d'Aligre",
+          "alt": "This is a photograph of a vintage storefront.",
+          "description": "Eugène Atget. A la Grappe d'Or, 4 place d'Aligre, 1911. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124994.html"
+        },
+        "03-notre-dame.jpg": {
+          "id": "sample-photography-nga-124979-v1",
+          "sampleAssetId": "photography-nga-124979-v1",
+          "title": "Notre-Dame",
+          "alt": "Notre-Dame: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. Notre-Dame, 1922. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124979.html"
+        },
+        "04-the-steps-at-saint-cloud.jpg": {
+          "id": "sample-photography-nga-106293-v1",
+          "sampleAssetId": "photography-nga-106293-v1",
+          "title": "The Steps at Saint-Cloud",
+          "alt": "The Steps at Saint-Cloud: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. The Steps at Saint-Cloud, 1906. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.106293.html"
+        },
+        "05-luxembourg-anne-of-brittany.jpg": {
+          "id": "sample-photography-nga-109004-v1",
+          "sampleAssetId": "photography-nga-109004-v1",
+          "title": "Luxembourg, Anne of Brittany",
+          "alt": "The image shows a sculpture of a figure in robes on an ornate pedestal.",
+          "description": "Eugène Atget. Luxembourg, Anne of Brittany, 1923-1926. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.109004.html"
+        },
+        "06-pont-marie.jpg": {
+          "id": "sample-photography-nga-124973-v1",
+          "sampleAssetId": "photography-nga-124973-v1",
+          "title": "Pont Marie",
+          "alt": "Pont Marie: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. Pont Marie, 1912. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124973.html"
+        }
+      }
+    },
+    "gardens": {
+      "items": {
+        "01-saint-cloud.jpg": {
+          "id": "sample-photography-nga-124980-v1",
+          "sampleAssetId": "photography-nga-124980-v1",
+          "title": "Saint-Cloud",
+          "alt": "The image shows a sculpture of a male figure holding animal-related attributes.",
+          "description": "Eugène Atget. Saint-Cloud, 1922. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124980.html"
+        },
+        "02-saint-cloud-h-tre.jpg": {
+          "id": "sample-photography-nga-124976-v1",
+          "sampleAssetId": "photography-nga-124976-v1",
+          "title": "Saint-Cloud (Hêtre)",
+          "alt": "The image shows a close-up view of an ancient tree with a gnarled trunk.",
+          "description": "Eugène Atget. Saint-Cloud (Hêtre), 1919/1921. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124976.html"
+        },
+        "03-nymph-as-bagatelle.jpg": {
+          "id": "sample-photography-nga-124986-v1",
+          "sampleAssetId": "photography-nga-124986-v1",
+          "title": "Nymphéas (Bagatelle)",
+          "alt": "The image shows a peaceful pond with water lilies, lily pads, and vegetation reflecting on the water's surface.",
+          "description": "Eugène Atget. Nymphéas (Bagatelle), 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124986.html"
+        },
+        "04-parc-de-sceaux.jpg": {
+          "id": "sample-photography-nga-112170-v1",
+          "sampleAssetId": "photography-nga-112170-v1",
+          "title": "Parc de Sceaux",
+          "alt": "The sculpture is a shell-like structure with a coiled spiral motif on top.",
+          "description": "Eugène Atget. Parc de Sceaux, c. 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.112170.html"
+        },
+        "05-roseaux-tang-du-plessis-piquet.jpg": {
+          "id": "sample-photography-nga-124975-v1",
+          "sampleAssetId": "photography-nga-124975-v1",
+          "title": "Roseaux, Étang du Plessis-Piquet",
+          "alt": "The image shows a ground-level view near the edge of a body of water with tall grasses and reeds dominating the scene.",
+          "description": "Eugène Atget. Roseaux, Étang du Plessis-Piquet, 1919/1921. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124975.html"
+        },
+        "06-poirier.jpg": {
+          "id": "sample-photography-nga-124977-v1",
+          "sampleAssetId": "photography-nga-124977-v1",
+          "title": "Poirier",
+          "alt": "The image is captured from a ground-level perspective, showing a wooded area with various trees, some with sparse foliage.",
+          "description": "Eugène Atget. Poirier, 1921. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124977.html"
+        }
+      }
+    },
+    "storefronts": {
+      "items": {
+        "01-au-petit-dunkerque-3-quai-conti.jpg": {
+          "id": "sample-photography-nga-124962-v1",
+          "sampleAssetId": "photography-nga-124962-v1",
+          "title": "Au Petit Dunkerque, 3 quai Conti",
+          "alt": "This is a photograph of a detailed architectural feature above an entrance.",
+          "description": "Eugène Atget. Au Petit Dunkerque, 3 quai Conti, 1900. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124962.html"
+        },
+        "02-magasin-avenue-des-gobelins.jpg": {
+          "id": "sample-photography-nga-92719-v1",
+          "sampleAssetId": "photography-nga-92719-v1",
+          "title": "Magasin, Avenue des Gobelins",
+          "alt": "This is a sepia-toned photograph of a shop window display featuring mannequins dressed in coats and long dresses.",
+          "description": "Eugène Atget. Magasin, Avenue des Gobelins, 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.92719.html"
+        },
+        "03-boulevard-de-strasbourg-corsets.jpg": {
+          "id": "sample-photography-nga-179424-v1",
+          "sampleAssetId": "photography-nga-179424-v1",
+          "title": "Boulevard de Strasbourg, Corsets",
+          "alt": "This black-and-white photograph shows a storefront with multiple mannequins displayed in the window.",
+          "description": "Eugène Atget. Boulevard de Strasbourg, Corsets, 1912, printed later. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.179424.html"
+        },
+        "04-men-s-fashions.jpg": {
+          "id": "sample-photography-nga-197730-v1",
+          "sampleAssetId": "photography-nga-197730-v1",
+          "title": "Men's Fashions",
+          "alt": "Men's Fashions: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. Men's Fashions, 1923-1924, printed 1956. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.197730.html"
+        },
+        "05-avenue-des-gobelins.jpg": {
+          "id": "sample-photography-nga-196208-v1",
+          "sampleAssetId": "photography-nga-196208-v1",
+          "title": "Avenue des Gobelins",
+          "alt": "This is a photograph of a shop window displaying a mannequin dressed in plain clothing.",
+          "description": "Eugène Atget. Avenue des Gobelins, 1925-1927, printed later. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.196208.html"
+        }
+      }
+    }
+  }
+}

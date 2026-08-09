@@ -401,7 +401,7 @@ motion preview scrubbing, any new primitive.
 
 ---
 
-## 14. Template catalog production — the 42 → ~15 starters — `running` (curation approved; batch 1 in review) (after 11 + 12; multi-session)
+## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 in review: conservatory/masthead/atelier/contact-sheet/runway + NGA sample catalog; batches 2–3 queued)
 
 **Goal.** Translate the curated Squarespace portfolio designs in
 `src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork

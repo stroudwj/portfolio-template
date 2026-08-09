@@ -58,6 +58,11 @@ describe('discipline-led starter catalog', () => {
 			'photographer',
 			'works-on-paper',
 			'sculptor',
+			'conservatory',
+			'masthead',
+			'atelier',
+			'contact-sheet',
+			'runway',
 		]);
 		const photographer = STARTER_RECIPES.find(
 			(recipe) => recipe.id === 'photographer',
@@ -266,6 +271,41 @@ describe('discipline-led starter catalog', () => {
 				expect(artwork.source).toBe('The Metropolitan Museum of Art');
 				expect(artwork.rightsProof).toMatch(/^https:\/\//);
 				expect(artwork.objectUrl).toMatch(/^https:\/\//);
+				expect(artwork.accessionNumber).not.toBe('');
+				expect(artwork.status).toBe('active');
+			}
+		}
+	});
+
+	it('keeps the spec-14 batch-1 media byte-for-byte tied to the NGA rights manifest', () => {
+		const expectedCounts = {
+			conservatory: 10,
+			masthead: 14,
+			atelier: 18,
+			'contact-sheet': 9,
+			runway: 10,
+		} as const;
+		for (const starterId of Object.keys(expectedCounts) as Array<keyof typeof expectedCounts>) {
+			const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === starterId)!;
+			const sampleIds = starter.gallerySpecs.flatMap((spec) =>
+				spec.slots.map((slot) => slot.sampleAssetId!),
+			);
+			expect(sampleIds).toHaveLength(expectedCounts[starterId]);
+			for (const id of sampleIds) {
+				const artwork = SAMPLE_ARTWORK.get(id)!;
+				const bytes = readFileSync(`public/${artwork.url}`);
+				expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
+				expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
+				expect(artwork.source).toBe('National Gallery of Art');
+				expect(artwork.rightsProof).toBe(
+					'https://www.nga.gov/artworks/free-images-and-open-access',
+				);
+				expect(artwork.objectUrl).toMatch(
+					/^https:\/\/www\.nga\.gov\/collection\/art-object-page\.\d+\.html$/,
+				);
+				expect(artwork.sourceImageUrl).toMatch(
+					/^https:\/\/api\.nga\.gov\/iiif\/[0-9a-f-]+\/full\/full\/0\/default\.jpg$/,
+				);
 				expect(artwork.accessionNumber).not.toBe('');
 				expect(artwork.status).toBe('active');
 			}
