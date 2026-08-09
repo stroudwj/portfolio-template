@@ -99,7 +99,7 @@ files were deleted; artist folders were renamed to URL-safe names (`george bello
 (they are Emily Sargent watercolors), `eugeneatget` → `atget`, `lewiswickedhine` →
 `hine`).
 
-## Spec 22 — Conservatory ↔ Mosley gap audit (2026-08-09, step 1; pending William's approval)
+## Spec 22 — Conservatory ↔ Mosley gap audit (2026-08-09, step 1; decisions approved by William 2026-08-09)
 
 Method: every page of mosley.squarespace.com walked at 1280×720 and DOM-measured
 (section map, block geometry, computed type sizes/colors, animation tweaks) beside
@@ -134,10 +134,16 @@ Split classes mean "part now, part decision".
 | 17 | Motion | Global entrance animation ON: every block fades+slides (0.6s ease, 0.6s delay, per-element "detailed") | Home = drift-only (35 on a ~4400px section ⇒ ±24px total: imperceptible); only reveal part on home is the EMPTY page heading; portraits/about get subtle reveal on 2 small parts | (a)+verify | Data: put `sequence`/reveal on the salon (and new sections), consider `full`. Preview-parity bug NOT confirmed: IObserver did fire when pane visible; hidden-pane throttling reproduces "no motion" symptomatically. Needs 2-min visible re-test before/with the spec's motion item |
 | 18 | Canvas shapes | Only hairlines on the whole site are the accordion dividers + CTA underline; NO arrows/rules/rectangles anywhere | n/a | audit note | For conservatory fidelity, shapes are NOT required (accordion carries its own dividers). Keep the shapes build only if other keepers need it — William's call |
 
-Proposed **(c) accept** list for approval: script wordmark (row 2), budget
-checkbox-group (row 9), booking/Acuity (row 14) — plus fonts-as-system-stacks and
-donkey-photos→Bellows imagery, carried over from batch 1. Row 3 (footer) and row 15
-(palette, grain) are explicit decisions. Row 18 asks whether shapes stay in scope.
+**William's decisions (2026-08-09, in-session):**
+- **(c) accept list APPROVED**: script wordmark → serif stack (row 2), budget
+  checkbox-group → text field (row 9), booking/Acuity skipped (row 14) — plus the
+  batch-1 carry-overs (system font stacks, Bellows imagery).
+- **Footer (row 3): build the small footer upgrade** — optional link columns +
+  display-scale name in the site footer ((b), one branch under the spec umbrella).
+- **Palette (row 15): match Mosley exactly** — #2c332c ground, pure white text,
+  `grain: 0`. The warm off-white/sage set is dropped from conservatory.
+- **Shapes (row 18): KEPT in scope** — build line/arrow/rectangle now so the
+  capability exists before batch 3, even though conservatory itself needs none.
 
 Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 
