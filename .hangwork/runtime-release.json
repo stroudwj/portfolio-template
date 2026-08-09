@@ -511,8 +511,8 @@
       "gitBlobSha": "88baf9d29277f57eba6295c6343ecc4606116783"
     },
     "src/editor/lib/templates.ts": {
-      "sha256": "51db1e1ae162f72bb8edb54e031ec5fc93e956ec26f0b1775c28a1df3d445201",
-      "gitBlobSha": "ae5a912c13e39aa128e93eb23050998e4dbc4da0"
+      "sha256": "92c9b66eb02cdc33ec911ff7b40462424c276c89a3df2b64c88481bf3aa96cdc",
+      "gitBlobSha": "7624e27d0c4bb75edbdcacf024b828ddea05a9f0"
     },
     "src/editor/lib/types.ts": {
       "sha256": "a3cebca4e8bde4d36183973604fc73332c9e4e8022d83c2d339fd99ee842a5f0",

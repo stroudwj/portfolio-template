@@ -191,8 +191,8 @@
       "gitBlobSha": "d47fe117067afd215c0d01e7fb1f3e9122198b5e"
     },
     "src/editor/components/PageEditor.tsx": {
-      "sha256": "63459d544b7dfdfd0e65577cbe7dcb81b85cfbddace6770713ac4220195b0d6d",
-      "gitBlobSha": "5f84c22882ba9dfd3a0ad37987cd845d6ecafdb9"
+      "sha256": "f7e8ba7ac600ef55bd74bc6946c234b4305dc2a91fb6ac62300dcc9317e1d63a",
+      "gitBlobSha": "d0f0b42854571a1a1aa38ca4b50878fb8043cfb0"
     },
     "src/editor/components/PageHeadingLayoutEditor.tsx": {
       "sha256": "39e232b9f37bfbed86235dc101daa480827abf34db21199f50b41816df5b7fd0",
@@ -491,8 +491,8 @@
       "gitBlobSha": "9f8e11636d4826e33780f4f3e41d0e974804da6d"
     },
     "src/editor/lib/sample-publish.ts": {
-      "sha256": "4f081dc294a88eb4d4832cffd9fa6add29f74a9538d4b2d45b1a3e8d78f91080",
-      "gitBlobSha": "f724a21ebd2198b46c96a2f6b3c6646848e9a67b"
+      "sha256": "712696eee603985e117cdbe2fe5215ab865a8303bf4ac5ca89f3101737a987a5",
+      "gitBlobSha": "9d2a8c35380ac6e2e6e245687859913a566bf5d3"
     },
     "src/editor/lib/site-audit.ts": {
       "sha256": "10679c832cb40659c1842b8ee75a2eee97da1c7c67d5e122a71323a85709324a",
@@ -515,8 +515,8 @@
       "gitBlobSha": "88baf9d29277f57eba6295c6343ecc4606116783"
     },
     "src/editor/lib/templates.ts": {
-      "sha256": "51db1e1ae162f72bb8edb54e031ec5fc93e956ec26f0b1775c28a1df3d445201",
-      "gitBlobSha": "ae5a912c13e39aa128e93eb23050998e4dbc4da0"
+      "sha256": "92c9b66eb02cdc33ec911ff7b40462424c276c89a3df2b64c88481bf3aa96cdc",
+      "gitBlobSha": "7624e27d0c4bb75edbdcacf024b828ddea05a9f0"
     },
     "src/editor/lib/types.ts": {
       "sha256": "a3cebca4e8bde4d36183973604fc73332c9e4e8022d83c2d339fd99ee842a5f0",
@@ -531,20 +531,20 @@
       "gitBlobSha": "534777e201077be80c2b623f1e4ae800bba11aec"
     },
     "src/editor/store.tsx": {
-      "sha256": "de8ea3d2327c70e59f4f6d0d37971d241e742d0e28087974654984298ef7d828",
-      "gitBlobSha": "c5d3c95af80c6fe63325d59722e81b5ad1377794"
+      "sha256": "3c009c75fe11c0a1dfb1f2e877f8a2c833b55fc00c767279da9a6540b26f0e8d",
+      "gitBlobSha": "0239a8d7326f4f42abf5422f396786936a667e07"
     },
     "src/layouts/Layout.astro": {
       "sha256": "48f247a943f284ebbeb5bfb96eff34628e7b90ceb02a3705f8fef726801406f1",
       "gitBlobSha": "eb1df065469ee4e8bd511ce2f5ec7f2247f4ea0c"
     },
     "src/lib/content-schema.ts": {
-      "sha256": "2b0a06df64146e92be54bb46aa51d69e231f356766e63851f819426cbcfeea08",
-      "gitBlobSha": "264bee8392fbc2ff3005f76620325487b37db955"
+      "sha256": "4683489a56a275d190a6fd73cbd8469ad1f13b86c908cc26e725e3113bafdca4",
+      "gitBlobSha": "01a546e5f3f907b0156d649b9804b7b854ecc19d"
     },
     "src/lib/content.ts": {
-      "sha256": "0614ecc1f92b435221da1b2b11b386177c707610d421fae4ef2b82547fe55a0a",
-      "gitBlobSha": "c5ba15831f4696211ae5a8629e9ad3ab0abc1dce"
+      "sha256": "40c8719e2f564fa5896667679b8875271d221bd1a5420115b65cc070e8c277b6",
+      "gitBlobSha": "d336caa1d029e02c836e2b596bef34babb64fcbc"
     },
     "src/lib/examples.ts": {
       "sha256": "f889a2a0e492cd65b8d456cb6ada668df048f757324a12a68b9fa0f36131346a",
@@ -659,8 +659,8 @@
       "gitBlobSha": "5bf4d5dd0b74b0546c849a5a04985c1386cfcd74"
     },
     "src/portfolio/CanvasGallery.tsx": {
-      "sha256": "a269c5831ba743113cf95cfc787e8293759b0c667e40f3ac636eb201c6e234fa",
-      "gitBlobSha": "fd68f67809eb2644ec5e5ae57dc0df0260c643e8"
+      "sha256": "9be83d41d0b8d1290b9529be658643894792c958e1f2f5427b22be6097b3f408",
+      "gitBlobSha": "e89699f5c9477abb73bd6fc9eea718b1ff12f618"
     },
     "src/portfolio/ChildPages.css": {
       "sha256": "7c0327413b19894725027d395a23c57bc787c20e3eeeb7f70c8fb169d9336895",
@@ -771,8 +771,8 @@
       "gitBlobSha": "c2b40d098cc17fbc71a14de9be18282be98207b1"
     },
     "src/portfolio/PortfolioPage.tsx": {
-      "sha256": "4873b5e50a184aff0b4fad378b82c2b19c48a22a7ca63593137457f80a7ed246",
-      "gitBlobSha": "8c694553f39074d029904e48b8a49f4e25ee3f60"
+      "sha256": "344a9e597149b80df46a676cbc9a6a8df6f6e08983b156b5a915f7f8eeef5e85",
+      "gitBlobSha": "d0b3462aa2cd549f2f31281504d6cc5430e2bc4c"
     },
     "src/portfolio/Products.css": {
       "sha256": "3cfb69c98e79aa4f2820db524507fbf792cd087444fcb9301d8c595c1afd78e8",
@@ -843,16 +843,16 @@
       "gitBlobSha": "38ede1caa79f0684a8eaf4395c7edf6b06914dc0"
     },
     "src/portfolio/canvasLayout.ts": {
-      "sha256": "e79d8b0e28340be56ab751d1356d2aec67651a09b14cc4b678f552ceaf028bd1",
-      "gitBlobSha": "76bda739a0bc6245a90f68a6a73ba712de37d307"
+      "sha256": "a75d0f7cd57faf2c3c326e219b1f58e2db17afdbe694fcd0e7f7cc78f09d6c0b",
+      "gitBlobSha": "56b745a449614d0066e836e7b358a56c9f248260"
     },
     "src/portfolio/contactEmail.ts": {
       "sha256": "a72009f2bf5fb4ec48d6dc473f376f4834f0a83909132f834d7ba4a7899afc01",
       "gitBlobSha": "b064af81fbf4ceed3319792eba3107e7106d25cc"
     },
     "src/portfolio/frame.css": {
-      "sha256": "919471b819279efc7d2a690d814bd9e196a1dafc432c80f36f8b5e6ec465413c",
-      "gitBlobSha": "0570329476d7a91a623b71597fa99712309082b6"
+      "sha256": "b43c6d1d1e8e3d979dbe4f17abdb95e3e0c05b276ec64b0291e962569beca1c4",
+      "gitBlobSha": "a9709b664f2d251a52c40d0294d83be98c159a81"
     },
     "src/portfolio/gridPrefs.ts": {
       "sha256": "6661704c75d0c9468d30fd29daa3cf0af46c283fffbb4c19f4a09e89d9c0693d",
@@ -915,8 +915,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "4fc21be65ce796ba19836db28f25e040582233bda4824759187c7afeb5195bf7",
-      "gitBlobSha": "8cab89f937e5f6601246e327a6b235d86083fde6"
+      "sha256": "8bd606b75ee80f23b363f9849777bfaa18b6328c601c0101c684b393eb633d79",
+      "gitBlobSha": "8d08cbc5cb527b419348397911bf85a3ece907ce"
     }
   }
 }
