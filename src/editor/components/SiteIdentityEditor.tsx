@@ -1,5 +1,5 @@
 import { useEditor } from '../store';
-import { Field, Section, TextInput } from './ui/controls';
+import { Field, HelpTip, Section, TextInput } from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
 
@@ -24,7 +24,16 @@ export default function SiteIdentityEditor() {
 	const headerMode = inferredHeaderMode === 'image' ? 'image' : 'name';
 
 	return (
-		<Section title="Header" sectionKey="_identity">
+		<Section
+			title="Header"
+			sectionKey="_identity"
+			action={
+				<HelpTip
+					label="Where the rest of the header options live"
+					tip="Header size, position, and scroll behavior live in Design → Structure."
+				/>
+			}
+		>
 			<Field label="Header text" hint="Changes only the text identity in the header and the site’s browser-title name. About has its own name field.">
 				<TextInput
 					value={site.name}
@@ -65,9 +74,6 @@ export default function SiteIdentityEditor() {
 				</Field>
 			)}
 
-			<p className="muted">
-				Header size, position, and scroll behavior live in Design → Structure.
-			</p>
 		</Section>
 	);
 }

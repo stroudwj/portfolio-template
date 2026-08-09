@@ -1,5 +1,5 @@
 // Tiny form primitives shared by every editor section.
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
 export function Field({
@@ -86,6 +86,73 @@ export function HelpDisclosure({
 			</summary>
 			<div>{children}</div>
 		</details>
+	);
+}
+
+/** The "?" hover companion to HelpDisclosure: advice that used to be an inline
+ *  paragraph lives behind a small circled ? on the heading row. The tip shows
+ *  instantly on hover or keyboard focus (no delay), Esc dismisses it, and
+ *  screen readers get the text through aria-describedby. The bubble is fixed-
+ *  positioned so the sidebar's overflow never clips it, and it clamps itself
+ *  inside the viewport. */
+export function HelpTip({ tip, label = 'More about this' }: { tip: string; label?: string }) {
+	const id = useId();
+	const [open, setOpen] = useState(false);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const bubbleRef = useRef<HTMLSpanElement>(null);
+
+	useLayoutEffect(() => {
+		if (!open) return;
+		const trigger = triggerRef.current;
+		const bubble = bubbleRef.current;
+		if (!trigger || !bubble) return;
+		const anchor = trigger.getBoundingClientRect();
+		const size = bubble.getBoundingClientRect();
+		const margin = 8;
+		const left = Math.min(
+			Math.max(margin, anchor.left + anchor.width / 2 - size.width / 2),
+			Math.max(margin, window.innerWidth - size.width - margin),
+		);
+		const below = anchor.bottom + 4;
+		const top = below + size.height > window.innerHeight - margin ? anchor.top - size.height - 4 : below;
+		bubble.style.left = `${Math.round(left)}px`;
+		bubble.style.top = `${Math.round(top)}px`;
+
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') setOpen(false);
+		};
+		const close = () => setOpen(false);
+		window.addEventListener('keydown', onKey);
+		// The fixed bubble can't follow its anchor — close instead of drifting.
+		window.addEventListener('scroll', close, true);
+		window.addEventListener('resize', close);
+		return () => {
+			window.removeEventListener('keydown', onKey);
+			window.removeEventListener('scroll', close, true);
+			window.removeEventListener('resize', close);
+		};
+	}, [open]);
+
+	return (
+		<>
+			<button
+				type="button"
+				ref={triggerRef}
+				className="help-tip"
+				aria-label={label}
+				aria-describedby={id}
+				onMouseEnter={() => setOpen(true)}
+				onMouseLeave={() => setOpen(false)}
+				onFocus={() => setOpen(true)}
+				onBlur={() => setOpen(false)}
+				onClick={() => setOpen((current) => !current)}
+			>
+				<span aria-hidden="true">?</span>
+			</button>
+			<span role="tooltip" id={id} ref={bubbleRef} className={`help-tip-bubble${open ? ' open' : ''}`}>
+				{tip}
+			</span>
+		</>
 	);
 }
 

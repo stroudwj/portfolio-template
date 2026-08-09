@@ -267,12 +267,6 @@
 	font-weight: 400;
 }
 
-.workbench-intro {
-	margin: 0 0 10px;
-	color: var(--ink);
-	font-size: 13px;
-	line-height: 1.55;
-}
 .workbench-window {
 	overflow: hidden;
 	margin-top: 10px;
@@ -605,6 +599,11 @@ body.workbench-window-open .floating-add-block {
 }
 .workbench-select-row input {
 	margin: 0;
+}
+.workbench-select-count {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
 }
 .workbench-selection-hint {
 	display: block;
@@ -2373,6 +2372,63 @@ body.workbench-window-open .floating-add-block {
 .help-disclosure p {
 	margin: 0;
 }
+/* HelpTip: the hover "?" — same circled glyph as HelpDisclosure's summary. */
+.help-tip {
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 auto;
+	width: 17px;
+	height: 17px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink-soft);
+	cursor: help;
+	vertical-align: middle;
+}
+.help-tip > span {
+	display: grid;
+	width: 15px;
+	height: 15px;
+	place-items: center;
+	border: 1px solid var(--wall-2);
+	border-radius: 999px;
+	background: var(--paper);
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1;
+}
+.help-tip:hover,
+.help-tip:focus-visible {
+	color: var(--ink);
+}
+.help-tip:hover > span,
+.help-tip:focus-visible > span {
+	border-color: var(--ink-soft);
+}
+/* The bubble follows DESIGN.md's tooltip rule: --ink bg, --paper text, no
+   arrow, no shadow, no motion. Fixed so panel overflow can't clip it; the
+   component clamps left/top inside the viewport before it becomes visible. */
+.help-tip-bubble {
+	position: fixed;
+	left: 0;
+	top: 0;
+	z-index: 1200;
+	max-width: 260px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	background: var(--ink);
+	color: var(--paper);
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.45;
+	text-align: left;
+	visibility: hidden;
+	pointer-events: none;
+}
+.help-tip-bubble.open {
+	visibility: visible;
+}
 .design-area-help {
 	margin: -3px 2px 2px;
 }
@@ -2496,6 +2552,7 @@ body.workbench-window-open .floating-add-block {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 8px;
 	margin-bottom: 12px;
 }
 .editor-section-head h2 {
@@ -6663,11 +6720,17 @@ a.live-url:hover {
 	font-size: 11px;
 }
 
-/* Chip-sized toggle (e.g. Freeform / Grid) — a btn-icon that fits a word. */
+/* Chip-sized toggle (e.g. Freeform / Grid) — a btn-icon that fits a word.
+   min-width 0 + ellipsis: when a grid cell squeezes a chip below its label's
+   width, the label truncates visibly instead of clipping mid-letter. */
 .btn-icon.btn-chip {
 	width: auto;
+	min-width: 0;
 	padding: 0 9px;
 	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* Editable block label (image groups): looks like the label, edits in place. */
@@ -7661,18 +7724,14 @@ a.live-url:hover {
 	background: color-mix(in srgb, var(--wall-1) 58%, var(--paper));
 }
 .image-group-layout-bar > div:first-child {
-	display: grid;
-	gap: 1px;
+	display: flex;
+	align-items: center;
+	gap: 5px;
 	min-width: 0;
 }
 .image-group-layout-bar strong {
 	font-size: 11px;
 	font-weight: 650;
-}
-.image-group-layout-bar small {
-	color: var(--ink-soft);
-	font-size: 9px;
-	line-height: 1.35;
 }
 .image-group-layout-bar > .align-toggle {
 	flex: none;
@@ -7716,6 +7775,11 @@ a.live-url:hover {
 .image-group-collection-head strong {
 	font-size: 12px;
 	font-weight: 650;
+}
+.image-group-collection-title {
+	display: flex;
+	align-items: center;
+	gap: 5px;
 }
 .image-group-collection-head small {
 	color: var(--ink-soft);
@@ -7802,23 +7866,6 @@ a.live-url:hover {
 	border-radius: 5px;
 	background: color-mix(in srgb, var(--wall-1) 62%, var(--paper));
 	text-align: center;
-}
-.image-group-list-heading {
-	align-items: center;
-	margin-top: 9px;
-	padding: 7px 8px;
-	border-radius: 5px;
-	background: color-mix(in srgb, var(--wall-1) 68%, var(--paper));
-}
-.image-group-list-heading .muted {
-	margin: 0;
-	font-size: 10px;
-	line-height: 1.4;
-}
-.image-group-list-heading .muted::before {
-	content: 'Preview · ';
-	color: var(--ink);
-	font-weight: 650;
 }
 .image-group-editor .card-list {
 	margin-top: 7px;
@@ -8002,6 +8049,15 @@ a.live-url:hover {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
+}
+/* At the narrowest sidebar widths a nested group's bar is ~150px wide — three
+   side-by-side segments can't keep their labels legible, so they stack. */
+@container (max-width: 320px) {
+	.image-group-layout-bar > .align-toggle {
+		grid-template-columns: 1fr;
+	}
+}
+@container (max-width: 460px) {
 	.image-group-source-actions {
 		grid-template-columns: 1fr;
 	}
@@ -8704,6 +8760,10 @@ a.live-url:hover {
 .block-more > summary {
 	list-style: none;
 	display: inline-flex;
+	/* A summary doesn't center its content the way a button does — without this
+	   the ⋯ icon pins to the box's top edge and reads misaligned in its row. */
+	align-items: center;
+	justify-content: center;
 }
 .block-more > summary::-webkit-details-marker {
 	display: none;

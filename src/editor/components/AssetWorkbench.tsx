@@ -20,7 +20,7 @@ import {
 	writeImageTransfer,
 } from '../lib/image-transfer';
 import { ImageDrop, filesFromDrop } from './ui/ImageDrop';
-import { Section } from './ui/controls';
+import { HelpTip, Section } from './ui/controls';
 import {
 	selectWorkbenchItem,
 	selectWorkbenchRange,
@@ -794,11 +794,14 @@ export default function AssetWorkbench({
 									/>
 									Select all
 								</label>
-								<span>{selected.size ? `${selected.size} selected` : `${visible.length} items`}</span>
+								<span className="workbench-select-count">
+									{selected.size ? `${selected.size} selected` : `${visible.length} items`}
+									<HelpTip
+										label="How selecting photos works"
+										tip="Shift selects a range. Command/Ctrl adds one item. Drag selected photos onto a folder."
+									/>
+								</span>
 							</div>
-							<small className="workbench-selection-hint">
-								Shift selects a range. Command/Ctrl adds one item. Drag selected photos onto a folder.
-							</small>
 							{view !== 'grid' && visible.length > 0 && (
 								<div className="workbench-list-head" aria-hidden="true">
 									<span className="wb-head-name">Name</span>
@@ -1093,17 +1096,21 @@ export default function AssetWorkbench({
 		<Section
 			title="Image workbench"
 			sectionKey="_image-workbench"
-			action={<span className="count">{entries.length}</span>}
+			action={
+				<>
+					<HelpTip
+						label="What the image workbench is"
+						tip="Your private photo folder. Upload once, organize here, then copy or drag photos into any image group without finding the files again."
+					/>
+					<span className="count">{entries.length}</span>
+				</>
+			}
 			// Collapsed by default even when empty: the workbench sits above the page
 			// list, and an expanded empty Finder window pushes the actual page editing
 			// below the fold on every visit to Pages.
 			defaultCollapsed
 			onCollapsedChange={setSectionCollapsed}
 		>
-			<p className="workbench-intro">
-				Your private photo folder. Upload once, organize here, then copy or drag photos
-				into any image group without finding the files again.
-			</p>
 			{windowBody}
 		</Section>
 	);

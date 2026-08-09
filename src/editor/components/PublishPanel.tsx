@@ -3,7 +3,7 @@
 // same Publish action as the topbar button (which stays where it is).
 import { useRef, useState } from 'react';
 import { useEditor } from '../store';
-import { Section } from './ui/controls';
+import { HelpTip, Section } from './ui/controls';
 import { useAccount } from './useAccount';
 import { hasPublishableContent } from '../lib/validation';
 import { currentPriceText, monthlyPriceText, monthlyUpgradeCreditText } from '../../lib/pricing';
@@ -198,9 +198,12 @@ export default function PublishPanel() {
 					<>
 						<p className="muted" style={{ marginTop: 0 }}>
 							Not published yet. When you publish, your site gets its own address:
+							<HelpTip
+								label="About custom domains"
+								tip="You can connect a domain you own afterwards."
+							/>
 						</p>
 						<span className="live-url">{plannedAddress}</span>
-						<p className="muted">You can connect a domain you own afterwards.</p>
 					</>
 				)}
 			</Section>
@@ -306,14 +309,25 @@ export default function PublishPanel() {
 				{!built && <p className="muted">Hang your first piece, then publish.</p>}
 			</Section>
 
-			<Section title="Download your site" sectionKey="_publish-own">
-				<p className="muted" style={{ marginTop: 0 }}>
-					{account.canDownload
-						? 'Download your published site as plain files — HTML, images, everything. It works on any web host exactly as it is, with or without Hangwork.'
-						: account.plan === 'monthly'
+			<Section
+				title="Download your site"
+				sectionKey="_publish-own"
+				action={
+					account.canDownload ? (
+						<HelpTip
+							label="What the site download contains"
+							tip="Download your published site as plain files — HTML, images, everything. It works on any web host exactly as it is, with or without Hangwork."
+						/>
+					) : undefined
+				}
+			>
+				{!account.canDownload && (
+					<p className="muted" style={{ marginTop: 0 }}>
+						{account.plan === 'monthly'
 							? `Downloads are not included with monthly access. Upgrade to lifetime and your ${monthlyUpgradeCreditText} credit is applied automatically.`
 							: 'Site downloads are included with lifetime access.'}
-				</p>
+					</p>
+				)}
 				<div className="publish-panel-actions">
 					{account.canDownload ? (
 						<button
@@ -339,12 +353,23 @@ export default function PublishPanel() {
 
 			<VersionHistory />
 
-			<Section title="Back up your work" sectionKey="_publish-backup">
-				<p className="muted" style={{ marginTop: 0 }}>
-					{account.canDownload
-						? 'Download one backup file with your editable pages, drafts, and uploaded files. This does not publish or change your live website.'
-						: 'Backup downloads are included with lifetime access. You can still open an existing backup below.'}
-				</p>
+			<Section
+				title="Back up your work"
+				sectionKey="_publish-backup"
+				action={
+					account.canDownload ? (
+						<HelpTip
+							label="What a backup contains"
+							tip="Download one backup file with your editable pages, drafts, and uploaded files. This does not publish or change your live website."
+						/>
+					) : undefined
+				}
+			>
+				{!account.canDownload && (
+					<p className="muted" style={{ marginTop: 0 }}>
+						Backup downloads are included with lifetime access. You can still open an existing backup below.
+					</p>
+				)}
 				{account.canDownload && (
 					<div className="publish-panel-actions">
 						<button
