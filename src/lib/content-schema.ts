@@ -59,13 +59,13 @@ const kineticTextSchema = passthrough({
 });
 
 const sectionMotionSchema = passthrough({
-	effect: z.enum(['reveal', 'drift', 'pin', 'scrub', 'sequence']),
+	effect: z.enum(['reveal', 'drift', 'pin', 'scrub', 'sequence', 'none']),
 	intensity: z.number().min(1).max(100).optional(),
 	phone: z.boolean().optional(),
 });
 
 const artworkEffectSchema = passthrough({
-	hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
+	hover: z.enum(['lift', 'tilt', 'zoom', 'mono', 'none', 'caption']).optional(),
 	reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
 	hang: z.boolean().optional(),
 	skew: z.number().min(-6).max(6).optional(),

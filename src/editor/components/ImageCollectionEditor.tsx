@@ -652,11 +652,13 @@ export default function ImageCollectionEditor({
 																						})
 																					}
 																				>
-																					<option value="">Still</option>
+																					<option value="">Use site setting</option>
 																					<option value="lift">Lift</option>
 																					<option value="tilt">Tilt</option>
 																					<option value="zoom">Zoom</option>
 																					<option value="mono">Mono to color</option>
+																					<option value="caption">Show title</option>
+																					<option value="none">Still — no hover motion</option>
 																				</select>
 																			</label>
 																			<label>
@@ -697,7 +699,8 @@ export default function ImageCollectionEditor({
 																}}
 															/>
 														</label>}
-																		{(artworkEffects?.hover || artworkEffects?.reveal) && (
+																		{((artworkEffects?.hover && artworkEffects.hover !== 'none') ||
+																			artworkEffects?.reveal) && (
 																			<label className="effect-phone-control">
 																				<input
 																					type="checkbox"

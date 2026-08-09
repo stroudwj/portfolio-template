@@ -7402,6 +7402,45 @@ a.live-url:hover {
 	padding: 0;
 }
 
+/* Per-section scroll-scene picker: same portalled popover shape as the color
+   swatches, holding a small vocabulary select instead of a grid. */
+.motion-scene-picker {
+	position: relative;
+	display: inline-flex;
+}
+.motion-scene-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+}
+.motion-scene-popover {
+	position: fixed;
+	z-index: 41;
+	box-sizing: border-box;
+	padding: 12px;
+	background: var(--paper, #fff);
+	border: 1px solid var(--wall-2);
+	border-radius: 10px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+	display: grid;
+	gap: 10px;
+	font-size: 12px;
+}
+.motion-scene-popover > small {
+	color: var(--ink-2, #666);
+	line-height: 1.45;
+}
+.motion-scene-choice {
+	display: grid;
+	gap: 4px;
+}
+.motion-scene-choice > span {
+	font-weight: 500;
+}
+.motion-scene-trigger {
+	font-size: 15px;
+}
+
 /* ---- Design: effects & flourishes ---- */
 .chip-row {
 	display: flex;

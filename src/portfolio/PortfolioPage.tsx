@@ -1278,13 +1278,18 @@ export default function PortfolioPage({
 				{pageParts.map((part, partIndex) => {
 					const sectionColor = config.sectionColors?.[part.key];
 					// Hand-authored per-section motion wins; otherwise the site vocabulary
-					// applies. Shots sections choreograph their own scroll (sticky inside a
-					// transformed wrapper would break), so they never inherit site motion.
-					const motion =
-						config.sectionMotion?.[part.key] ??
-						(part.shotsLength === undefined
+					// applies. An explicit 'none' keeps the section still — it never falls
+					// through to the site feel. Shots sections choreograph their own scroll
+					// (sticky inside a transformed wrapper would break), so they never
+					// inherit site motion.
+					const authoredMotion = config.sectionMotion?.[part.key];
+					const motion = authoredMotion
+						? authoredMotion.effect === 'none'
+							? undefined
+							: authoredMotion
+						: part.shotsLength === undefined
 							? siteSectionMotion(siteMotion, partIndex === 0)
-							: undefined);
+							: undefined;
 					const strength = Math.min(Math.max(motion?.intensity ?? 45, 1), 100);
 					const partStyle = {
 						...pagePartVars(part.key, partIndex === 0),

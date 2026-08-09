@@ -16,6 +16,11 @@ import {
 	showEditorTab,
 } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
+import {
+	SECTION_MOTION_CHOICES,
+	SectionMotionPicker,
+	nextSectionMotion,
+} from './ui/SectionMotionPicker';
 import { PanelIcon } from './ui/panel-icons';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
@@ -128,18 +133,6 @@ const KINETIC_TEXT_EFFECTS: Array<{ value: KineticTextEffect | ''; label: string
 	{ value: 'letters', label: 'Letters rise' },
 	{ value: 'lines', label: 'Lines rise' },
 	{ value: 'marquee', label: 'Marquee' },
-];
-
-const SECTION_MOTION_EFFECTS: Array<{
-	value: SectionMotionEffect | '';
-	label: string;
-}> = [
-	{ value: '', label: 'Still' },
-	{ value: 'reveal', label: 'Reveal' },
-	{ value: 'drift', label: 'Drift' },
-	{ value: 'pin', label: 'Pin' },
-	{ value: 'scrub', label: 'Scroll scrub' },
-	{ value: 'sequence', label: 'Sequence' },
 ];
 
 const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
@@ -3242,6 +3235,13 @@ export default function PageEditor({
 													editor.setSectionColor(pageKey, partKey, color)
 												}
 											/>
+											<SectionMotionPicker
+												label={`Scroll scene for Section ${sectionIndex + 1}, ${section.name}`}
+												value={page.sectionMotion?.[partKey]}
+												onChange={(motion) =>
+													editor.setSectionMotion(pageKey, partKey, motion)
+												}
+											/>
 											<button
 												type="button"
 												className={`btn-icon${page.sectionBleed?.[partKey] ? ' active' : ''}`}
@@ -3359,7 +3359,7 @@ export default function PageEditor({
 					</div>
 					<Field
 						label="Scroll scenes"
-						hint="Choose how each section responds as visitors move through the page. Motion stays off on phones unless you opt in."
+						hint="Choose how each section responds as visitors move through the page. Inherit follows the site’s motion feel from Design; Off keeps a section still even when the site moves. Motion stays off on phones unless you opt in."
 					>
 						<div className="scroll-scene-list">
 							{motionSectionItems.map((item) => {
@@ -3372,29 +3372,25 @@ export default function PageEditor({
 												className="select-input"
 												value={motion?.effect ?? ''}
 												aria-label={`Scroll scene for ${item.label}`}
-												onChange={(event) => {
-													const effect = event.target.value as SectionMotionEffect | '';
+												onChange={(event) =>
 													editor.setSectionMotion(
 														pageKey,
 														item.key,
-														effect
-															? {
-																	effect,
-																	intensity: motion?.intensity ?? 45,
-																	phone: motion?.phone,
-																}
-															: undefined,
-													);
-												}}
+														nextSectionMotion(
+															motion,
+															event.target.value as SectionMotionEffect | '',
+														),
+													)
+												}
 											>
-												{SECTION_MOTION_EFFECTS.map((effect) => (
-													<option key={effect.value || 'still'} value={effect.value}>
-														{effect.label}
+												{SECTION_MOTION_CHOICES.map((choice) => (
+													<option key={choice.value || 'inherit'} value={choice.value}>
+														{choice.label}
 													</option>
 												))}
 											</select>
 										</div>
-										{motion && (
+										{motion && motion.effect !== 'none' && (
 											<div className="scroll-scene-options">
 												<label className="motion-range compact">
 													<span>Strength <output>{motion.intensity ?? 45}%</output></span>

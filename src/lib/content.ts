@@ -148,8 +148,10 @@ export interface CreativeConfig {
 	phone?: Partial<Record<CreativeEffectKey, boolean>>;
 }
 
-/** Scroll choreography that can be applied independently to every page section. */
-export type SectionMotionEffect = 'reveal' | 'drift' | 'pin' | 'scrub' | 'sequence';
+/** Scroll choreography that can be applied independently to every page section.
+ * 'none' pins a section still even when the site's motion vocabulary is on —
+ * an absent entry inherits the site feel instead. */
+export type SectionMotionEffect = 'reveal' | 'drift' | 'pin' | 'scrub' | 'sequence' | 'none';
 
 export interface SectionMotionConfig {
 	effect: SectionMotionEffect;
@@ -171,9 +173,12 @@ export interface KineticTextConfig {
 	phone?: boolean;
 }
 
-/** Curated motion applied to one artwork without changing its layout. */
+/** Curated motion applied to one artwork without changing its layout.
+ * hover 'none' keeps this piece still even when the site's hover motion is on;
+ * 'caption' shows the title on hover for just this piece (site dial permitting).
+ * Absent inherits the site setting. */
 export interface ArtworkEffectConfig {
-	hover?: 'lift' | 'tilt' | 'zoom' | 'mono';
+	hover?: 'lift' | 'tilt' | 'zoom' | 'mono' | 'none' | 'caption';
 	reveal?: 'fade' | 'rise' | 'wipe';
 	/** Override the site/page hanging choice for this artwork. */
 	hang?: boolean;
