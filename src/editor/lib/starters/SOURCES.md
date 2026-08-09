@@ -9,49 +9,67 @@ tokens and rights-cleared sample art (`public/assets/starters/new-starters-aug-8
 `sample-artwork.ts`). Copy the *design ideas*, never assets, images, fonts we can't license,
 or copy text. Target: ~15 distinct layouts to fill 5 slots × (4 disciplines + Other).
 
+## Curation pass — 2026-08-09 (agent-proposed, pending William's approval)
+
+All 42 demos visited; near-duplicates grouped (same bones, different palette/font).
+**Proposed: 19 keep / 23 cut.** Keeps ≤ 25, so spec 14's picker-overflow flag is not
+triggered. Every call below is a proposal — William may overrule any of them.
+
+Near-duplicate groups (pick ≥1 per group, cut the rest):
+
+- **A — dark pinned collage, giant display type over scattered images:** Night, Mosley, Reflect
+- **B — light studio editorial (statement/photo hero + project sections):** Radian, Bergen, Utica
+- **C — giant light masthead wordmark + collection galleries:** McCurry, Reseda
+- **D — statement + dense masonry grid:** Keo, Balboa, Falodu
+- **E — pure masonry grid + lightbox home:** Gates, Matsuya, Talva, Minetta
+- **F — titled project-card index grid:** Beaumont, Nevins, Novo, Kester, Pazari, (Tepito execution)
+- **G — full-bleed photo cover home:** Quincy, Zion
+- **H — agency/service statement sites (not work-first portfolios):** Adri, Sawyer, Agaro, Nolan, Sackett
+- **I — bio/CV narrative pages (image-light):** Hart, Otto, (Suhama text-only)
+
 Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 
-| Status | Template | Demo URL |
-|---|---|---|
-| - | Night | https://night-fluid-demo.squarespace.com/ |
-| - | Mosley | https://mosley.squarespace.com/ |
-| - | Reflect | https://reflect-fluid-demo.squarespace.com/ |
-| - | Radian | https://radian-fluid-demo.squarespace.com/ |
-| - | Adri | https://adri-fluid-demo.squarespace.com/ |
-| - | Sawyer | https://sawyer-fluid-demo.squarespace.com/ |
-| - | Transmission | https://transmission-fluid-demo.squarespace.com/ |
-| - | McCurry | https://mccurry-fluid-demo.squarespace.com/ |
-| - | Keo | https://keo-fluid-demo.squarespace.com/ |
-| - | Gilden | https://gilden-fluid-demo.squarespace.com/ |
-| - | Cimen | https://cimen-fluid-demo.squarespace.com/ |
-| - | Aue Sobol | https://aue-sobol-fluid-demo.squarespace.com/ |
-| - | Arthur | https://arthur-fluid-demo.squarespace.com/ |
-| - | Quinn | https://quinn-fluid-demo.squarespace.com/ |
-| - | Reseda | https://reseda-fluid-demo.squarespace.com/ |
-| - | Ortiz | https://ortiz-fluid-demo.squarespace.com/ |
-| - | Agaro | https://agaro-fluid-demo.squarespace.com/ |
-| - | Mycelium | https://mycelium-fluid-demo.squarespace.com/ |
-| - | Balboa | https://balboa-fluid-demo.squarespace.com/ |
-| - | Beaumont | https://beaumont-fluid-demo.squarespace.com/ |
-| - | Bergen | https://bergen-fluid-demo.squarespace.com/ |
-| - | Cami | https://cami-fluid-demo.squarespace.com/ |
-| - | Elliott | https://elliott-fluid-demo.squarespace.com/ |
-| - | Falodu | https://falodu-fluid-demo.squarespace.com/ |
-| - | Gates | https://gates-fluid-demo.squarespace.com/ |
-| - | Hart | https://hart-fluid-demo.squarespace.com/ |
-| - | Hawley | https://hawley-fluid-demo.squarespace.com/ |
-| - | Kester | https://kester-fluid-demo.squarespace.com/ |
-| - | Matsuya | https://matsuya-fluid-demo.squarespace.com/ |
-| - | Minetta | https://minetta-fluid-demo.squarespace.com/ |
-| - | Nevins | https://nevins-fluid-demo.squarespace.com/ |
-| - | Nolan | https://nolan-fluid-demo.squarespace.com/ |
-| - | Novo | https://novo-fluid-demo.squarespace.com/ |
-| - | Otto | https://otto-fluid-demo.squarespace.com/ |
-| - | Pazari | https://pazari-fluid-demo.squarespace.com/ |
-| - | Quincy | https://quincy-fluid-demo.squarespace.com/ |
-| - | Sackett | https://sackett-fluid-demo.squarespace.com/ |
-| - | Suhama | https://suhama-fluid-demo.squarespace.com/ |
-| - | Talva | https://talva-fluid-demo.squarespace.com/ |
-| - | Tepito | https://tepito-fluid-demo.squarespace.com/ |
-| - | Utica | https://utica-fluid-demo.squarespace.com/ |
-| - | Zion | https://zion-fluid-demo.squarespace.com/ |
+| Status | Template | Demo URL | Reason (group) |
+|---|---|---|---|
+| cut | Night | https://night-fluid-demo.squarespace.com/ | A dup: same dark pinned giant-serif collage as Mosley, offset type is the only difference |
+| keep | Mosley | https://mosley.squarespace.com/ | A pick: giant serif name over scattered images on dark green — most generalizable collage hero |
+| keep | Reflect | https://reflect-fluid-demo.squarespace.com/ | A sans variant with a distinct device: full-width bold-sans masthead crossing a vivid collage, plus shop |
+| keep | Radian | https://radian-fluid-demo.squarespace.com/ | B pick: white studio editorial — photo hero + project index + alternating case sections |
+| cut | Adri | https://adri-fluid-demo.squarespace.com/ | H: freelancer funnel one-pager (stats/FAQ/newsletter), not a work-first portfolio |
+| cut | Sawyer | https://sawyer-fluid-demo.squarespace.com/ | H: painting-contractor services + consultation form; layout bones covered by group B |
+| cut | Transmission | https://transmission-fluid-demo.squarespace.com/ | Podcast/membership site, no gallery; only distinct device is the marquee wordmark |
+| cut | McCurry | https://mccurry-fluid-demo.squarespace.com/ | C dup of Reseda: same masthead-wordmark + work-category bones in a serif skin |
+| keep | Keo | https://keo-fluid-demo.squarespace.com/ | D pick: big sans statement + dense lightbox grid + marquee ticker; cleanest light grid portfolio |
+| keep | Gilden | https://gilden-fluid-demo.squarespace.com/ | Single: dark fashion portfolio — watermark wordmark behind hero + numbered case list |
+| keep | Cimen | https://cimen-fluid-demo.squarespace.com/ | Single: cream quiet editorial with full-width video hero; maps to our video-on-canvas |
+| keep | Aue Sobol | https://aue-sobol-fluid-demo.squarespace.com/ | Single: huge klein-blue centered wordmark + bold statement; shop + gallery author layout |
+| keep | Arthur | https://arthur-fluid-demo.squarespace.com/ | Single: sparse asymmetric photo scatter with heavy whitespace — freeform-canvas showcase |
+| keep | Quinn | https://quinn-fluid-demo.squarespace.com/ | Single: light ground, repeated giant serif PORTFOLIO in orange over a gray block + case list |
+| keep | Reseda | https://reseda-fluid-demo.squarespace.com/ | C pick: massive grotesque masthead + tagline + stacked collection galleries |
+| keep | Ortiz | https://ortiz-fluid-demo.squarespace.com/ | Single: cream + chartreuse color-blocking, organic scalloped image mask, serif display name |
+| cut | Agaro | https://agaro-fluid-demo.squarespace.com/ | H: marketing-agency services page on flat violet; no gallery bones |
+| keep | Mycelium | https://mycelium-fluid-demo.squarespace.com/ | Single: dark immersive photo-essay — video hero, lowercase captions, themed sections, print shop |
+| cut | Balboa | https://balboa-fluid-demo.squarespace.com/ | D dup: statement + image-grid bands with text interludes ≈ Keo bones |
+| keep | Beaumont | https://beaumont-fluid-demo.squarespace.com/ | F pick: quiet titled client-project index grid + short bio |
+| keep | Bergen | https://bergen-fluid-demo.squarespace.com/ | B second pick, distinct device: centered didone mission + full-bleed category image bands |
+| keep | Cami | https://cami-fluid-demo.squarespace.com/ | Single: flat camel ground, bold sans statement + stacked named case rows |
+| cut | Elliott | https://elliott-fluid-demo.squarespace.com/ | Structurally a fullscreen numbered slideshow (carousel) — out of scope per spec |
+| cut | Falodu | https://falodu-fluid-demo.squarespace.com/ | D dup: centered serif statement + one image row; thin subset of Keo/Balboa |
+| cut | Gates | https://gates-fluid-demo.squarespace.com/ | E dup: pure masonry + lightbox, same bones as the Minetta pick |
+| cut | Hart | https://hart-fluid-demo.squarespace.com/ | I: black didone bio narrative, image-light; About-page material, not a gallery starter |
+| keep | Hawley | https://hawley-fluid-demo.squarespace.com/ | Single: typographic project index (big serif links) with hover image reveals on blush |
+| cut | Kester | https://kester-fluid-demo.squarespace.com/ | F dup: statement + titled card grid + shop; covered by Beaumont + Aue Sobol |
+| cut | Matsuya | https://matsuya-fluid-demo.squarespace.com/ | E dup: mono-type masonry grid with category subpages; same bones as Minetta pick |
+| keep | Minetta | https://minetta-fluid-demo.squarespace.com/ | E pick: pure masonry + lightbox grid; dark skin (light variant = token swap, covers Gates/Matsuya/Talva) |
+| cut | Nevins | https://nevins-fluid-demo.squarespace.com/ | F dup: 3-col captioned category grid ≈ Beaumont |
+| cut | Nolan | https://nolan-fluid-demo.squarespace.com/ | H: digital-product-agency statement site (dark twin of Agaro); no gallery bones |
+| cut | Novo | https://novo-fluid-demo.squarespace.com/ | F dup: titled project-card grid ≈ Beaumont |
+| cut | Otto | https://otto-fluid-demo.squarespace.com/ | I: designer bio/CV one-pager, image-light |
+| cut | Pazari | https://pazari-fluid-demo.squarespace.com/ | F dup: staggered 2-col category cards ≈ Beaumont/Nevins |
+| cut | Quincy | https://quincy-fluid-demo.squarespace.com/ | G dup: full-bleed dark cover + serif statement + booking CTA; cover bones kept via Zion |
+| cut | Sackett | https://sackett-fluid-demo.squarespace.com/ | H: craftsman business site — testimonials + consultation funnel |
+| cut | Suhama | https://suhama-fluid-demo.squarespace.com/ | Text-only copywriter CV/list on flat orange; no visual gallery bones (typographic index kept via Hawley) |
+| cut | Talva | https://talva-fluid-demo.squarespace.com/ | E dup: masonry + lightbox grid ≈ Minetta/Gates |
+| keep | Tepito | https://tepito-fluid-demo.squarespace.com/ | F-adjacent pick: editorial serif intro with italic emphasis + region cards + location section, sage palette |
+| cut | Utica | https://utica-fluid-demo.squarespace.com/ | B dup: bold sans statement + project cards ≈ Radian |
+| keep | Zion | https://zion-fluid-demo.squarespace.com/ | G pick: fullscreen photo cover with category links overlaid — simplest cover-page starter |
