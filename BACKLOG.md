@@ -367,7 +367,7 @@ scroll-jacking, page transitions, any motion-authoring UI, JS animation librarie
 
 ---
 
-## 13. Per-element motion tools — `queued` (after 12; independent of catalog)
+## 13. Per-element motion tools — `queued` (after 12 + 22; run before spec 14 batch 3)
 
 **Goal.** Let users vary motion below the site level: per-section/per-gallery scroll-reveal
 on or off, and per-image hover treatment choice — surfaced inside the existing section
@@ -381,6 +381,17 @@ hover. Exceptions are picks from the same vocabulary, not new animation.
 fields — if a control here would need a new primitive, stop and flag it. Look at how
 per-section options (color blocking) and per-image options (crop & light in Edit) are
 surfaced today and extend those exact surfaces.
+
+**Update after spec 22 (2026-08-09).** The per-section data layer ALREADY EXISTS — do not
+invent new fields. `sectionMotion` (src/lib/content-schema.ts, `effect` enum
+`reveal|drift|pin|scrub|sequence` + `intensity`, per page keyed by section) is rendered by
+`src/portfolio/SectionMotion.tsx` and hand-authored in conservatory's JSON (salon =
+`sequence` 45). William's exact complaint: "the editor has no ability to tweak the motion"
+users can see in that template. So this spec's per-section deliverable is UI over the
+EXISTING `sectionMotion` schema: an effect picker (Inherit / the five effects / Off) +
+intensity, in the section settings surface. Study spec 22's conservatory JSON as the
+ground-truth of what the UI must be able to express, and keep the 2b behaviors intact
+(threshold-0 observation, per-item sequence entrances, unmarked-items-fail-visible).
 
 **Files.** `src/editor/lib/doc-schema.ts` (optional per-section/per-image fields,
 defaults = "inherit from site"), the section settings + image Edit components,
