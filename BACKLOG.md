@@ -367,7 +367,7 @@ scroll-jacking, page transitions, any motion-authoring UI, JS animation librarie
 
 ---
 
-## 13. Per-element motion tools — `queued` (after 12 + 22; run before spec 14 batch 3)
+## 13. Per-element motion tools — `review` (built 2026-08-09 on `worktree-spec-13-motion-tools`, unmerged; William's review found gaps → spec 24 continues on the same branch)
 
 **Goal.** Let users vary motion below the site level: per-section/per-gallery scroll-reveal
 on or off, and per-image hover treatment choice — surfaced inside the existing section
@@ -956,3 +956,55 @@ declared faces, `staticgen` + publish upload + export zip, `lib/templates.ts` va
 
 **Out of scope.** User font browser/arbitrary uploads beyond the existing custom-font
 feature, non-OFL/commercial faces, CJK or extended subsets, variable-font axes UI.
+
+---
+
+## 24. Motion tools revision — cascade, preview fidelity, discoverability — `queued` (continues spec 13's branch)
+
+**Goal.** Iterate on spec 13's per-section motion tools from William's hands-on review
+(2026-08-09, in the template studio on conservatory). Three findings, in priority order:
+1. **No way to set motion above the section.** He wants a sitewide scroll-scene choice
+   and a page-wide one — picking an effect once, not section by section.
+2. **Preview fidelity.** "Some of them don't really load or preview that well — timing
+   can be off." Effects must play in the editor preview the way they will publish.
+3. **Discoverability.** He could not find the ∿ button even when told it existed. The
+   icon reads as decoration, and the placement (between color and bleed controls) says
+   nothing about motion.
+
+**Where.** Continue on `worktree-spec-13-motion-tools` (spec 13 is built there,
+unmerged — do NOT start from integration; you'd lose the section picker). Read spec 13
+and its commits first.
+
+**Verify first.** Before writing any fix, reproduce finding 2 with the browser pane
+VISIBLE (a hidden pane freezes IntersectionObserver and CSS transitions — known trap):
+walk all five effects (`reveal`, `drift`, `pin`, `scrub`, `sequence`) on conservatory
+sections at desktop and phone widths, and record per effect what is actually wrong —
+doesn't fire, fires at the wrong scroll position, wrong duration/stagger, re-triggers on
+edit, differs from the published/staticgen output. Fix what's broken; recalibrate what's
+merely weak; write the findings table into the commit message. If an effect is fine and
+the complaint was editor-iframe-specific, make the preview match publish — never the
+reverse.
+
+**The cascade (finding 1).** One inherit chain, resolved top-down, using the EXISTING
+`sectionMotion` shape at each level — no new effect vocabulary:
+- **Site level**: a default scroll scene (effect + strength + phones) in Design →
+  Effects, sitting with the spec-12 "Site motion" dial (which stays the master switch:
+  Off still kills everything; reduced-motion still wins over all).
+- **Page level**: an optional override in the existing page settings surface.
+- **Section level**: spec 13's picker, unchanged semantics — `Inherit` now resolves
+  section → page → site → spec-12 default; explicit `Off` at any level pins that scope
+  still. Absent = inherit (the spec-13/22 convention, do not change it).
+- Templates keep working: conservatory's hand-authored per-section entries must resolve
+  identically after the cascade lands (regression-test this against its JSON).
+- Schema: optional fields only, defaults = inherit; old drafts parse unchanged;
+  round-trip + staticgen tests.
+
+**Discoverability (finding 3).** Replace the bare ∿ icon treatment: clearer icon plus a
+visible affordance — a short text label, or at minimum a HelpTip (reuse
+`ui/controls.tsx` HelpTip — extend, don't duplicate). Consider whether motion belongs
+grouped with color/bleed at all; if you move it, keep it inside the existing section
+header surface, no new panels. Apply DESIGN.md: sentence case, verb-or-noun labels that
+say what the thing does ("Motion"), no new colors.
+
+**Out of scope.** New effects/primitives, keyframe or easing editors, per-image entrance
+choreography, motion preview scrubbing, per-block (non-section) motion.
