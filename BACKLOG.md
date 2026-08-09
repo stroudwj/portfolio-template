@@ -401,7 +401,7 @@ motion preview scrubbing, any new primitive.
 
 ---
 
-## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 in review: conservatory/masthead/atelier/contact-sheet/runway + NGA sample catalog; batches 2–3 queued)
+## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 `merged` 2026-08-09: conservatory/masthead/atelier/contact-sheet/runway + NGA sample catalog; revision pass required after spec 21, then batches 2–3)
 
 **Goal.** Translate the curated Squarespace portfolio designs in
 `src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork
@@ -476,7 +476,7 @@ carousels/sliders.
 
 ---
 
-## 15. Editor panel polish: squished controls + hover help tips — `review`
+## 15. Editor panel polish: squished controls + hover help tips — `merged` (2026-08-09)
 
 **Goal.** Fix layout defects in the images-block editor panel at narrow sidebar widths, and
 replace the panel's verbose inline helper paragraphs with a small reusable "?" hover tip
