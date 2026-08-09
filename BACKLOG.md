@@ -699,7 +699,7 @@ per-image motion (spec 13), renderer bugs (spec 17).
 
 ---
 
-## 19. Catalog William's own film & photo-series masters — `queued` (unblocks spec 14 batches)
+## 19. Catalog William's own film & photo-series masters — `merged` (2026-08-09, on integration/specs-14r-19; vj02 skipped by the agent)
 
 **Goal.** The two uncataloged master sets that batch 1 correctly refused to touch —
 `public/assets/starters/new-starters-aug-8/photography/filmseries copy/` (film01–10) and
