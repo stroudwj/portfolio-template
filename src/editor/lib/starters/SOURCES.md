@@ -49,10 +49,21 @@ by `logoScale` 220–300 with `logoPosition: center`; Keo's marquee ticker is
 `headingKinetic: marquee`; Reflect's shop is out of scope for a starter (Stripe links
 are per-artist) and was not translated.
 
-Uncataloged masters flagged for William: `photography/filmseries copy/` and
-`photography/photoseries1 copy/` (film01–10.png, vj01–10.png) carry no accession
-numbers or rights provenance — they look like personal work, so they were left out of
-`sample-artwork-nga.ts` and out of the templates. Two exact-duplicate " (1).jpg"
+Batch 1 flagged two uncataloged masters (`photography/filmseries copy/` and
+`photography/photoseries1 copy/`) as provenance-unknown. **Resolved 2026-08-09 (spec
+19):** they are William Stroud's own photographs; he granted sample-use rights for
+Hangwork starters in-session on 2026-08-09. The folders were renamed to
+`photography/film-series/` (b/w 35mm scans, film01–10) and `photography/photo-series/`
+(color night series, vj01–10), the PNGs converted to compressed JPEGs, and 19 of the 20
+frames cataloged in `sample-artwork-stroud.ts` (source "Artist provided", credit
+"Courtesy of the artist", rights note in that file — no accession numbers; these are
+not museum works). **Skipped: `photo-series/vj02.png`** (kept in-repo, uncataloged) — a
+double exposure compositing a recognizable Earth-from-space image whose origin is
+unclear; per the spec-19 safety rule it stays out of the catalog until William confirms
+the source imagery is his to grant (NASA imagery would be public domain, but that is
+his call to make).
+
+Two exact-duplicate " (1).jpg"
 files were deleted; artist folders were renamed to URL-safe names (`george bellows` →
 `bellows`, `sargentdrawingscompress` → `sargent`, `watercolor1` → `emily-sargent`
 (they are Emily Sargent watercolors), `eugeneatget` → `atget`, `lewiswickedhine` →
