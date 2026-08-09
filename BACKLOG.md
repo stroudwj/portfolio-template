@@ -451,6 +451,15 @@ that passes validation — never by new code paths.
 - Each template: landing page + at least one interior-page layout; motion declared per
   spec 12's vocabulary; DESIGN.md editor-chrome rules don't apply to template *content*,
   but sample text stays in Hangwork's voice (no lorem ipsum).
+- **The source's signature device must survive translation (William's review of batch 1:
+  "they all look kind of the same").** If the source's identity is giant display type
+  laid across/behind the images (Mosley, Reflect, Gilden), build it with canvas text
+  blocks at display scale layered with the images — NOT flattened into the site header.
+  Test: a thumbnail of the template home should be attributable to its source at a
+  glance. Batch 1's five need a revision pass to this bar before batch 2 starts.
+- Vary body fonts and grounds across a batch — no more than two templates in the whole
+  catalog sharing the same body stack; sample imagery should vary in tone, not all
+  muted historical work (William's own sets, spec 19, help here).
 - Every batch merges through the standard gate; starter JSON is deliberately unhashed —
   no runtime manifest churn expected from content-only batches.
 - SOURCES.md stays the ledger: status, font substitutions, which Hangwork template id
