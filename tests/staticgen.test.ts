@@ -307,6 +307,43 @@ describe('staticgen', () => {
 		expect(home).toContain('--accordion-title-size:92pt');
 	});
 
+	it('publishes the upgraded footer: display-scale name and headed link columns', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			site: {
+				...base.contentJson.site,
+				footer: 'Made with hangwork.art',
+				footerName: 'Jane Doe',
+				footerNameSize: 168,
+				footerColumns: [
+					{ heading: 'Site map', links: [{ label: 'Works', url: '' }, { label: 'About', url: 'about' }] },
+					{ heading: 'Contact', links: [{ label: 'Instagram', url: 'https://instagram.com/jane' }] },
+				],
+			},
+			pages: {
+				...base.contentJson.pages,
+				about: { title: 'About', label: 'About', blocks: [] },
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('site-footer-name');
+		expect(home).toContain('--footer-name-size:168pt');
+		expect(home).toContain('Jane Doe');
+		expect(home).toContain('site-footer-columns');
+		expect(home).toContain('Site map');
+		// Internal links resolve against the site base; external ones open in a new tab.
+		expect(home).toMatch(/site-footer-column[\s\S]*?href="\/about\/?"[^>]*>About/);
+		expect(home).toMatch(/href="https:\/\/instagram\.com\/jane"[^>]*target="_blank"/);
+	});
+
 	it('publishes canvas shapes as fixed-stroke boxes on the section canvas', async () => {
 		const base = testBundle();
 		const content = parseAndMigrateContent({

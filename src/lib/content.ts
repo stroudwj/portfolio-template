@@ -51,10 +51,28 @@ export interface Site {
 	footerImageLayout?: ImageLayout;
 	/** Optional minimum footer height, independently adjustable for desktop and phone. */
 	footerHeights?: ResponsiveSectionHeight;
+	/** Display-scale closing name above the footer columns (Mosley's giant footer wordmark). */
+	footerName?: string;
+	/** footerName size in pt. Absent = 72. */
+	footerNameSize?: number;
+	/** Up to three headed link columns (e.g. "Site map" / "Contact"). */
+	footerColumns?: FooterColumn[];
 	/** Social-card image (path under src/assets/). Absent = automatic (profile photo, else first home image). */
 	ogImage?: string;
 	/** Optional site-wide flourishes configured in the editor's Design area. Absent = none. */
 	creative?: CreativeConfig;
+}
+
+/** One headed footer link column ("Site map": Bio / Portfolio / Awards). */
+export interface FooterColumn {
+	heading?: string;
+	links: FooterLink[];
+}
+
+/** A footer link. Internal when the url has no scheme (a page path like 'portraits'). */
+export interface FooterLink {
+	label: string;
+	url: string;
 }
 
 /** The pointer-trail flavors a site can turn on. */

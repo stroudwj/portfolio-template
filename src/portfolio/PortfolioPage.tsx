@@ -1349,7 +1349,10 @@ export default function PortfolioPage({
 				})}
 			</div>
 			{content.site.signature && <Signature data={content.site.signature} base={base} />}
-			{(content.site.footer || content.site.footerImage) && (
+			{(content.site.footer ||
+				content.site.footerImage ||
+				content.site.footerName ||
+				content.site.footerColumns?.length) && (
 				<Footer
 					text={content.site.footer ?? ''}
 					imageSrc={content.site.footerImage ? (/^(?:blob:|data:|https?:|\/)/i.test(content.site.footerImage) ? content.site.footerImage : withBase(base, `assets/${content.site.footerImage}`)) : undefined}
@@ -1358,6 +1361,11 @@ export default function PortfolioPage({
 					heights={content.site.footerHeights}
 					resizeBreakpoint={resizeBreakpoint}
 					onHeightChange={onFooterHeight}
+					name={content.site.footerName}
+					nameSize={content.site.footerNameSize}
+					columns={content.site.footerColumns}
+					base={base}
+					onNavigate={onNavigate}
 				/>
 			)}
 		</>

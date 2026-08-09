@@ -4,6 +4,7 @@ import type {
 	ChildrenStyle,
 	Content,
 	CreativeConfig,
+	FooterColumn,
 	GalleryConfig,
 	HeaderMode,
 	ImageLayout,
@@ -945,6 +946,9 @@ export interface EditorContextValue {
 	removeSignatureImage(): void;
 	/** Footer text shown at the bottom of every page (empty removes the footer). */
 	setFooter(value: string): void;
+	setFooterName(value: string): void;
+	setFooterNameSize(value: number | undefined): void;
+	setFooterColumns(columns: FooterColumn[] | undefined): void;
 	setFooterImage(file: File): void;
 	removeFooterImage(): void;
 	setFooterImageLayout(layout: ImageLayout | undefined): void;
@@ -2618,6 +2622,29 @@ export function EditorProvider({
 			}),
 		setFooter: (value) =>
 			patchContent((c) => ({ ...c, site: { ...c.site, footer: value || undefined } }), true, 'site:footer'),
+		setFooterName: (value) =>
+			patchContent((c) => ({ ...c, site: { ...c.site, footerName: value || undefined } }), true, 'site:footer-name'),
+		setFooterNameSize: (value) =>
+			patchContent(
+				(c) => ({
+					...c,
+					site: {
+						...c.site,
+						footerNameSize:
+							value === undefined || !Number.isFinite(value)
+								? undefined
+								: Math.min(Math.max(Math.round(value), 8), 300),
+					},
+				}),
+				true,
+				'site:footer-name-size',
+			),
+		setFooterColumns: (columns) =>
+			patchContent(
+				(c) => ({ ...c, site: { ...c.site, footerColumns: columns?.length ? columns : undefined } }),
+				true,
+				'site:footer-columns',
+			),
 		setFooterImage: (file) => {
 			const assetId = registerAsset(file, file.name);
 			commitDoc((prev) => ({

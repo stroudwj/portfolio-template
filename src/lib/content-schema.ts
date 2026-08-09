@@ -439,6 +439,16 @@ export const contentSchema = passthrough({
 		footerImage: z.string().optional(),
 		footerImageLayout: imageLayoutSchema.optional(),
 		footerHeights: responsiveSectionHeightSchema.optional(),
+		footerName: z.string().optional(),
+		footerNameSize: z.number().min(8).max(300).optional(),
+		footerColumns: z
+			.array(
+				passthrough({
+					heading: z.string().optional(),
+					links: z.array(passthrough({ label: z.string(), url: z.string() })),
+				}),
+			)
+			.optional(),
 		ogImage: z.string().optional(),
 		creative: passthrough({
 			cursor: z.string().optional(),

@@ -8,11 +8,23 @@ import { ImageDrop } from './ui/ImageDrop';
 import { getAssetPreviewUrl } from '../lib/assets';
 
 export default function FooterEditor() {
-	const { doc, setFooter, setFooterImage, removeFooterImage, setFooterImageLayout } = useEditor();
+	const {
+		doc,
+		setFooter,
+		setFooterImage,
+		removeFooterImage,
+		setFooterImageLayout,
+		setFooterName,
+		setFooterNameSize,
+		setFooterColumns,
+	} = useEditor();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	if (!doc) return null;
 	const footerImageUrl = getAssetPreviewUrl(doc.footerImage.assetId);
 	const hasFooterImage = !!(footerImageUrl || doc.footerImage.filename);
+	const columns = doc.content.site.footerColumns ?? [];
+	const updateColumn = (index: number, patch: Partial<(typeof columns)[number]>) =>
+		setFooterColumns(columns.map((column, i) => (i === index ? { ...column, ...patch } : column)));
 
 	const insertCopyright = () => {
 		const textarea = textareaRef.current;
@@ -46,6 +58,104 @@ export default function FooterEditor() {
 						Insert ©
 					</button>
 				</div>
+			</div>
+			<div className="field">
+				<label className="field-label" htmlFor="site-footer-name">Large closing name</label>
+				<input
+					id="site-footer-name"
+					className="text-input"
+					value={doc.content.site.footerName ?? ''}
+					placeholder="Your Name"
+					onChange={(e) => setFooterName(e.target.value)}
+				/>
+				<span className="field-hint">A display-size name above the footer, like a closing signature wall.</span>
+				{(doc.content.site.footerName ?? '').trim() && (
+					<label className="field-inline">
+						Size (pt)
+						<input
+							type="number"
+							className="text-input"
+							min={8}
+							max={300}
+							value={doc.content.site.footerNameSize ?? 72}
+							aria-label="Closing name size in points"
+							onChange={(e) => {
+								const value = Number(e.target.value);
+								setFooterNameSize(value === 72 ? undefined : value);
+							}}
+						/>
+					</label>
+				)}
+			</div>
+			<div className="field">
+				<span className="field-label">Link columns</span>
+				<span className="field-hint">Up to three headed lists — a site map, contact links.</span>
+				{columns.map((column, columnIndex) => (
+					<div className="footer-column-editor" key={columnIndex}>
+						<div className="form-field-row">
+							<input
+								className="text-input"
+								value={column.heading ?? ''}
+								placeholder="Column heading"
+								aria-label={`Heading of footer column ${columnIndex + 1}`}
+								onChange={(e) => updateColumn(columnIndex, { heading: e.target.value || undefined })}
+							/>
+							<button
+								type="button"
+								className="btn-icon danger"
+								aria-label={`Remove footer column ${columnIndex + 1}`}
+								onClick={() => setFooterColumns(columns.filter((_, i) => i !== columnIndex))}
+							>✕</button>
+						</div>
+						{column.links.map((link, linkIndex) => (
+							<div className="form-field-row" key={linkIndex}>
+								<input
+									className="text-input"
+									value={link.label}
+									placeholder="Label"
+									aria-label={`Label of link ${linkIndex + 1} in footer column ${columnIndex + 1}`}
+									onChange={(e) =>
+										updateColumn(columnIndex, {
+											links: column.links.map((item, i) => (i === linkIndex ? { ...item, label: e.target.value } : item)),
+										})
+									}
+								/>
+								<input
+									className="text-input"
+									value={link.url}
+									placeholder="Page (about) or https://…"
+									aria-label={`Address of link ${linkIndex + 1} in footer column ${columnIndex + 1}`}
+									onChange={(e) =>
+										updateColumn(columnIndex, {
+											links: column.links.map((item, i) => (i === linkIndex ? { ...item, url: e.target.value } : item)),
+										})
+									}
+								/>
+								<button
+									type="button"
+									className="btn-icon danger"
+									aria-label={`Remove link ${linkIndex + 1} from footer column ${columnIndex + 1}`}
+									onClick={() =>
+										updateColumn(columnIndex, { links: column.links.filter((_, i) => i !== linkIndex) })
+									}
+								>✕</button>
+							</div>
+						))}
+						<button
+							type="button"
+							className="btn-link"
+							aria-label={`Add a link to footer column ${columnIndex + 1}`}
+							onClick={() => updateColumn(columnIndex, { links: [...column.links, { label: '', url: '' }] })}
+						>＋ Add a link</button>
+					</div>
+				))}
+				{columns.length < 3 && (
+					<button
+						type="button"
+						className="btn-link"
+						onClick={() => setFooterColumns([...columns, { heading: '', links: [{ label: '', url: '' }] }])}
+					>＋ Add a column</button>
+				)}
 			</div>
 			<div className="field">
 				<span className="field-label">Footer image</span>
