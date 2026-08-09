@@ -462,7 +462,7 @@ carousels/sliders.
 
 ---
 
-## 15. Editor panel polish: squished controls + hover help tips — `queued`
+## 15. Editor panel polish: squished controls + hover help tips — `built` (branch worktree-spec-15-panel-polish, awaiting review/merge)
 
 **Goal.** Fix layout defects in the images-block editor panel at narrow sidebar widths, and
 replace the panel's verbose inline helper paragraphs with a small reusable "?" hover tip
