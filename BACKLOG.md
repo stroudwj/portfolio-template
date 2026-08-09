@@ -795,7 +795,7 @@ motion), template content changes (spec 14's revision uses this once merged).
 
 ---
 
-## 22. Conservatory fidelity sprint — one template to indistinguishable — `running` (steps 1+2 built 2026-08-09 on worktree-spec-22-conservatory-fidelity; step 3 apply remains)
+## 22. Conservatory fidelity sprint — one template to indistinguishable — `built` (steps 1+2+2b+3 done 2026-08-09 on worktree-spec-22-conservatory-fidelity; awaiting William's side-by-side sign-off, then merge — spec 14 batch 3 unblocks after)
 
 Step 1: 18-row gap audit in starters/SOURCES.md, decisions approved by William
 same day (accept list; footer upgrade; exact #2c332c/white/no-grain palette;
@@ -805,9 +805,24 @@ canvas shapes (line/arrow/rectangle on the shared widget canvas), footer
 upgrade (display-scale footerName + up to three footerColumns), motion — no
 renderer bug found (hidden preview panes freeze IO/transitions and fake the
 symptom; conservatory's home was drift-only by data) — salon now uses
-`sequence` 45 and slowReveal was dropped. Step 3: apply the audit's (a) list
-(home restructure, bio/portfolio/awards pages, palette swap) in the template
-studio; William is the acceptance test.
+`sequence` 45 and slowReveal was dropped. Step 2b (2026-08-09): both render
+blockers fixed and acceptance-verified in a visible pane — sampleArtworkUrl
+joins BASE_URL through withBase (test pins '/', '/portfolio-template', and
+the trailing-slash form), and SectionMotion observes at threshold 0 with
+per-item sequence entrances (motion-pending opt-in hiding, so unmarked items
+fail visible); 10/10 salon images render and stagger on scroll at desktop and
+phone widths, via both the studio and the template-picker apply path. Step 3
+(2026-08-09): conservatory rebuilt to the Mosley bones — exact palette,
+three-zone nav with Book-now CTA, one-pager home (hero wall / eyebrow+statement
+/ captioned scatter / 92pt SERVICES accordion / BOOK-A WALL canvas CTA hidden
+on phone / booking form), Bio-Portfolio-Awards-Book pages, footer name+columns,
+sequence-everywhere motion with phone entrances on; galleries split into six
+rooms (19 slots from 15 cleared samples, four rehung twice). 284/284 tests,
+`check` clean, manifest regenerated. Remaining: William's side-by-side
+scroll-through against mosley.squarespace.com is the acceptance test. Known
+data-untunable gap for the review: canvas display type keeps the renderer's
+airy line-height (~1.75) vs Mosley's ~0.86/-2% tracking — a schema-level
+line-height control would be a new (b) capability if William wants it.
 
 **Goal.** Make `conservatory` a faithful stand-in for mosley.squarespace.com — every page,
 not just the landing — and in doing so produce the vetted capability list the other 18
