@@ -83,6 +83,9 @@ function removePageSections(page: PageConfig, blockIds: Set<string>): PageConfig
 	const sectionMotion = Object.fromEntries(
 		Object.entries(page.sectionMotion ?? {}).filter(([key]) => !partKeys.has(key)),
 	);
+	const sectionBleed = Object.fromEntries(
+		Object.entries(page.sectionBleed ?? {}).filter(([key]) => !partKeys.has(key)),
+	);
 	return {
 		...page,
 		sections,
@@ -90,6 +93,7 @@ function removePageSections(page: PageConfig, blockIds: Set<string>): PageConfig
 		sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 		sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
 		sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+		sectionBleed: Object.keys(sectionBleed).length ? sectionBleed : undefined,
 	};
 }
 

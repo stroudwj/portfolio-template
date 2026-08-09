@@ -1090,6 +1090,8 @@ export interface EditorContextValue {
 	setPageBackground(key: string, color: string | undefined): void;
 	/** Background color of one page section, keyed 'block:<id>' / 'page:heading'. */
 	setSectionColor(key: string, partKey: string, color: string | undefined): void;
+	/** Full bleed for one page section: its freeform canvas spans the viewport. */
+	setSectionBleed(key: string, partKey: string, bleed: boolean): void;
 	/** Scroll choreography for one page section. */
 	setSectionMotion(key: string, partKey: string, motion: SectionMotionConfig | undefined): void;
 	/** Replace one page's motion/type treatments with those copied from another page. */
@@ -2981,10 +2983,12 @@ export function EditorProvider({
 				const sectionColors = { ...(page.sectionColors ?? {}) };
 				const sectionHeights = { ...(page.sectionHeights ?? {}) };
 				const sectionMotion = { ...(page.sectionMotion ?? {}) };
+				const sectionBleed = { ...(page.sectionBleed ?? {}) };
 				if (sectionRemoved) {
 					delete sectionColors[sectionKey];
 					delete sectionHeights[sectionKey];
 					delete sectionMotion[sectionKey];
+					delete sectionBleed[sectionKey];
 				}
 				const nextPage = {
 						...page,
@@ -2993,6 +2997,7 @@ export function EditorProvider({
 						sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 						sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
 						sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+						sectionBleed: Object.keys(sectionBleed).length ? sectionBleed : undefined,
 						mobile: page.mobile && sectionRemoved
 							? {
 								...page.mobile,
@@ -3125,9 +3130,11 @@ export function EditorProvider({
 				const sectionColors = { ...(page.sectionColors ?? {}) };
 				const sectionHeights = { ...(page.sectionHeights ?? {}) };
 				const sectionMotion = { ...(page.sectionMotion ?? {}) };
+				const sectionBleed = { ...(page.sectionBleed ?? {}) };
 				delete sectionColors[partKey];
 				delete sectionHeights[partKey];
 				delete sectionMotion[partKey];
+				delete sectionBleed[partKey];
 				const removedLegacyGallery = targets.some((b) => b.type === 'gallery');
 				const nextPage = {
 					...page,
@@ -3136,6 +3143,7 @@ export function EditorProvider({
 					sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 					sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
 					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+					sectionBleed: Object.keys(sectionBleed).length ? sectionBleed : undefined,
 					mobile: page.mobile
 						? {
 								...page.mobile,
@@ -3278,6 +3286,7 @@ export function EditorProvider({
 				const sectionColors = { ...(page.sectionColors ?? {}) };
 				const sectionHeights = { ...(page.sectionHeights ?? {}) };
 				const sectionMotion = { ...(page.sectionMotion ?? {}) };
+				const sectionBleed = { ...(page.sectionBleed ?? {}) };
 				if (creatingSection) {
 					if (page.sectionColors?.[sourceKey])
 						sectionColors[destinationKey] = page.sectionColors[sourceKey];
@@ -3285,11 +3294,13 @@ export function EditorProvider({
 						sectionHeights[destinationKey] = { ...page.sectionHeights[sourceKey] };
 					if (page.sectionMotion?.[sourceKey])
 						sectionMotion[destinationKey] = { ...page.sectionMotion[sourceKey] };
+					if (page.sectionBleed?.[sourceKey]) sectionBleed[destinationKey] = true;
 				}
 				if (removedSource) {
 					delete sectionColors[sourceKey];
 					delete sectionHeights[sourceKey];
 					delete sectionMotion[sourceKey];
+					delete sectionBleed[sourceKey];
 				}
 				const nextPage: PageConfig = {
 					...page,
@@ -3298,6 +3309,7 @@ export function EditorProvider({
 					sectionColors: Object.keys(sectionColors).length ? sectionColors : undefined,
 					sectionHeights: Object.keys(sectionHeights).length ? sectionHeights : undefined,
 					sectionMotion: Object.keys(sectionMotion).length ? sectionMotion : undefined,
+					sectionBleed: Object.keys(sectionBleed).length ? sectionBleed : undefined,
 					mobile:
 						page.mobile && removedSource
 							? {
@@ -3945,6 +3957,18 @@ export function EditorProvider({
 				},
 				true,
 				`page:${key}:sectioncolor:${partKey}`,
+			),
+		setSectionBleed: (key, partKey, bleed) =>
+			patchPage(
+				key,
+				(page) => {
+					const next = { ...(page.sectionBleed ?? {}) };
+					if (bleed) next[partKey] = true;
+					else delete next[partKey];
+					return { ...page, sectionBleed: Object.keys(next).length ? next : undefined };
+				},
+				true,
+				`page:${key}:sectionbleed:${partKey}`,
 			),
 		setSectionMotion: (key, partKey, motion) =>
 			patchPage(

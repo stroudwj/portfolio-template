@@ -87,6 +87,7 @@ import type { MobileComposition } from '../lib/content';
 import {
 	bottomOf,
 	canvasHeight,
+	canvasDxBounds,
 	clampLayout,
 	clampTextLayout,
 	columnEdges,
@@ -95,6 +96,8 @@ import {
 	EDGE_SNAP,
 	flowMissing,
 	formatCanvasPercent,
+	maxWEastOf,
+	maxWWestOf,
 	MIN_EMBED_W,
 	MIN_TEXT_W,
 	MIN_W,
@@ -980,8 +983,8 @@ export default function CanvasGallery({
 					const east = corner.endsWith('e');
 					const rightEdge = from.x + from.w;
 					const width = east
-						? Math.min(Math.max(from.w + dx, minW), 100 - from.x)
-						: Math.min(Math.max(from.w - dx, minW), rightEdge);
+						? Math.min(Math.max(from.w + dx, minW), maxWEastOf(from.x))
+						: Math.min(Math.max(from.w - dx, minW), maxWWestOf(rightEdge));
 					next = { ...from, x: east ? from.x : rightEdge - width, w: width };
 					finalDraft = clampLayout(next);
 					setDrafts((d) => ({ ...d, [id]: finalDraft! }));
@@ -1017,7 +1020,7 @@ export default function CanvasGallery({
 					return;
 				}
 				if (freeResize) {
-					let width = Math.min(Math.max(from.w + dx, minW), 100 - from.x);
+					let width = Math.min(Math.max(from.w + dx, minW), maxWEastOf(from.x));
 					let height = Math.max(from.w / from.ar + dy, MIN_W);
 					const snappedRight = nearestEdge(from.x + width, xs, EDGE_SNAP);
 					const snappedBottom = nearestEdge(from.y + height, ys, EDGE_SNAP);
@@ -1037,7 +1040,7 @@ export default function CanvasGallery({
 				// Snap the RIGHT edge to the guides so resized items line up with
 				// columns — unless a neighbor's edge is closer: right edge to a
 				// neighbor's side, or bottom edge to a neighbor's top/bottom.
-				const w = Math.min(from.w + Math.max(dx, dy * from.ar), 100 - from.x);
+				const w = Math.min(from.w + Math.max(dx, dy * from.ar), maxWEastOf(from.x));
 				const right = nearestEdge(from.x + w, xs, EDGE_SNAP);
 				const bottom = nearestEdge(from.y + w / from.ar, ys, EDGE_SNAP);
 				const wRight = right === null ? null : right - from.x;
@@ -1126,6 +1129,10 @@ export default function CanvasGallery({
 		);
 		const groupW = right - left;
 		const groupH = bottom - top;
+		// Each item may bleed up to half its width past a side edge, so the shared
+		// horizontal travel is the tightest of the items' own allowances.
+		const dxBounds = canvasDxBounds(chosen.map((item) => item.layout));
+		const boundDx = (dx: number): number => Math.min(Math.max(dx, dxBounds.min), dxBounds.max);
 		const { xs, ys } = neighborEdges(new Set(chosen.map((item) => item.key)));
 		let finalDrafts: Record<string, ImageLayout> = {};
 		let finalTextDrafts: Record<string, TextLayout> = {};
@@ -1136,12 +1143,9 @@ export default function CanvasGallery({
 			const current = pointerInCanvas(clientX, clientY, canvas.getBoundingClientRect());
 			const rawDx = current.x - origin.x;
 			const rawDy = current.y - origin.y;
-			const proposedLeft = Math.min(Math.max(left + rawDx, 0), 100 - groupW);
+			const proposedLeft = left + boundDx(rawDx);
 			const edgeLeft = snapSpanToEdges(snapX(proposedLeft), groupW, xs);
-			const snappedLeft = Math.min(
-				Math.max(centeredX(edgeLeft, groupW), 0),
-				100 - groupW,
-			);
+			const snappedLeft = left + boundDx(centeredX(edgeLeft, groupW) - left);
 			const proposedTop = Math.max(top + rawDy, 0);
 			const snappedTop = Math.max(
 				snapSpanToEdges(snapY(proposedTop), groupH, ys),

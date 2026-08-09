@@ -3077,6 +3077,22 @@ export default function PageEditor({
 											/>
 											<button
 												type="button"
+												className={`btn-icon${page.sectionBleed?.[partKey] ? ' active' : ''}`}
+												aria-pressed={!!page.sectionBleed?.[partKey]}
+												onClick={() =>
+													editor.setSectionBleed(
+														pageKey,
+														partKey,
+														!page.sectionBleed?.[partKey],
+													)
+												}
+												aria-label={`Full bleed for Section ${sectionIndex + 1}, ${section.name}`}
+												title="Full bleed — this section's canvas spans the whole screen, edge to edge"
+											>
+												↔
+											</button>
+											<button
+												type="button"
 												className="btn-icon"
 												disabled={sectionIndex === 0}
 												onClick={() =>

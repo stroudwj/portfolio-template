@@ -241,6 +241,26 @@ body.texture-concrete {
 	padding: 34px 40px 40px;
 }
 
+/* Freeform canvas items may bleed past the canvas's side edges (clampLayout
+   allows up to half an item's width). The section clips that bleed so it can
+   never widen the page — no horizontal scrollbar, editor preview or published.
+   `clip`, not `hidden`: hidden would create a scroll container, breaking the
+   sticky pinning scroll scenes rely on and inviting a stray inner scrollbar. */
+.portfolio-page-part.section-container {
+	overflow-x: clip;
+}
+
+/* Full bleed: the canvas spans the viewport instead of the content column, so
+   x=0 and x=100 mean the actual screen edges. Only the canvas wrapper reaches
+   the edges — flow blocks in the same section keep their padding. */
+.portfolio-page-part.section-full-bleed [data-section-gallery],
+.portfolio-page-part.section-full-bleed .standalone-text-box-canvas,
+.portfolio-page-part.section-full-bleed .standalone-embed-canvas,
+.portfolio-page-part.section-full-bleed .standalone-widget-canvas {
+	padding-left: 0;
+	padding-right: 0;
+}
+
 /* Section boundaries default to the content's natural box. The previous top
    and bottom wrapper padding made an empty-looking band that could not be
    removed with the resize handle—most visibly above the About photo. */

@@ -177,6 +177,7 @@ describe('staticgen', () => {
 						'page:heading': { desktopGap: 31, phoneGap: 18 },
 						'block:gallery': { desktop: 720 },
 					},
+					sectionBleed: { 'section:main': true },
 				},
 			},
 		});
@@ -213,6 +214,9 @@ describe('staticgen', () => {
 		// Per-page background: the root carries the override + the flipped (light) text.
 		expect(home).toContain('--color-bg:#101014');
 		expect(home).toContain('--color-text:#f5f5f2');
+
+		// Per-section full bleed: the canvas section spans the viewport.
+		expect(home).toContain('section-full-bleed');
 
 		// Per-section color: the heading band is a color-blocked part.
 		expect(home).toContain('has-section-color');

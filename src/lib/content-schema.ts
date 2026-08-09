@@ -515,6 +515,7 @@ export const contentSchema = passthrough({
 			sectionColors: z.record(z.string(), z.string()).optional(),
 			sectionHeights: z.record(z.string(), responsiveSectionHeightSchema).optional(),
 			sectionMotion: z.record(z.string(), sectionMotionSchema).optional(),
+			sectionBleed: z.record(z.string(), z.boolean()).optional(),
 			headingKinetic: kineticTextSchema.optional(),
 			project: projectDetailsSchema.optional(),
 		}),

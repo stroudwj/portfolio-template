@@ -1248,7 +1248,7 @@ export default function PortfolioPage({
 					} as CSSProperties;
 					return (
 						<div
-							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
+							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${config.sectionBleed?.[part.key] ? ' section-full-bleed' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
 							style={partStyle}
 							key={part.key}
 							data-preview-part={part.key}

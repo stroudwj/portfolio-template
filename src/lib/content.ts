@@ -661,6 +661,9 @@ export interface PageConfig {
 	sectionHeights?: Record<string, ResponsiveSectionHeight>;
 	/** Per-section scroll choreography keyed like sectionColors. */
 	sectionMotion?: Record<string, SectionMotionConfig>;
+	/** Sections whose freeform canvas spans the viewport instead of the content
+	 * column (x=0/100 become the screen edges), keyed like sectionColors. */
+	sectionBleed?: Record<string, boolean>;
 	/** Optional typography treatment for the page heading. */
 	headingKinetic?: KineticTextConfig;
 	/** Structured, reusable project facts rendered beneath the page heading. */

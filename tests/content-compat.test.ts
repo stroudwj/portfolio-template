@@ -135,7 +135,10 @@ describe('content compatibility', () => {
 		expect(snapSpanToEdges(20.8, 30, [20, 70])).toBe(20);
 	});
 
-	it('nudges multiple canvas items together and keeps the group inside its edges', () => {
+	it('nudges multiple canvas items together within the shared bleed allowance', () => {
+		// Spec 21: an item may hang up to half its width past a side edge, so
+		// this rightward nudge no longer stops at the canvas edge (the w=50 item
+		// has 25 of bleed) — but the top edge still closes at y=0.
 		const layouts = nudgeCanvasLayouts(
 			[
 				{ x: 1, y: 2, w: 30, ar: 1 },
@@ -145,8 +148,22 @@ describe('content compatibility', () => {
 			-5,
 		);
 		expect(layouts).toEqual([
-			{ x: 11, y: 0, w: 30, ar: 1 },
-			{ x: 50, y: 6, w: 50, ar: 2 },
+			{ x: 21, y: 0, w: 30, ar: 1 },
+			{ x: 60, y: 6, w: 50, ar: 2 },
+		]);
+		// A huge delta stops where the first item reaches its own half-out
+		// limit (the w=50 item's right edge at 115), keeping the spacing shared.
+		const capped = nudgeCanvasLayouts(
+			[
+				{ x: 1, y: 2, w: 30, ar: 1 },
+				{ x: 40, y: 8, w: 50, ar: 2 },
+			],
+			999,
+			0,
+		);
+		expect(capped).toEqual([
+			{ x: 36, y: 2, w: 30, ar: 1 },
+			{ x: 75, y: 8, w: 50, ar: 2 },
 		]);
 	});
 

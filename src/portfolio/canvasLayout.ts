@@ -18,10 +18,25 @@ export const bottomOf = (l: ImageLayout): number => l.y + l.w / l.ar;
 export const canvasHeight = (layouts: ImageLayout[]): number =>
 	layouts.reduce((max, l) => Math.max(max, bottomOf(l)), 0);
 
-/** Keep a layout on the canvas: sane width, x fully inside, y not above the top. */
+/** How far past the canvas's left/right edge an item may bleed: half its own
+ * width. The inner half always stays on the canvas, so an item keeps a
+ * grabbable sliver of at least MIN_W/2 and can never fully escape. */
+export const maxBleed = (w: number): number => w / 2;
+/** Lowest allowed x for an item of width w (bleeding off the left edge). */
+export const minXFor = (w: number): number => -maxBleed(w);
+/** Highest allowed x for an item of width w (bleeding off the right edge). */
+export const maxXFor = (w: number): number => 100 - w + maxBleed(w);
+/** Widest an item anchored at x can grow eastward before its right edge would
+ * bleed more than half of it off the canvas. */
+export const maxWEastOf = (x: number): number => Math.min(100, 2 * (100 - x));
+/** Widest an item whose right edge is fixed can grow westward. */
+export const maxWWestOf = (rightEdge: number): number => Math.min(100, 2 * rightEdge);
+
+/** Keep a layout on the canvas: sane width, at least half of it inside the
+ * side edges, y not above the top. */
 export function clampLayout(l: ImageLayout): ImageLayout {
 	const w = Math.min(Math.max(l.w, MIN_W), 100);
-	return { ...l, w, x: Math.min(Math.max(l.x, 0), 100 - w), y: Math.max(l.y, 0) };
+	return { ...l, w, x: Math.min(Math.max(l.x, minXFor(w)), maxXFor(w)), y: Math.max(l.y, 0) };
 }
 
 /** Smallest width a canvas text can be resized to, in canvas-width %. */
@@ -43,7 +58,7 @@ export const textBottom = (t: TextLayout): number => t.y + (t.h ?? TEXT_H_GUESS)
 /** Same clamp for text placements (looser minimum width, no aspect ratio). */
 export function clampTextLayout(t: TextLayout): TextLayout {
 	const w = Math.min(Math.max(t.w, MIN_TEXT_W), 100);
-	return { ...t, w, x: Math.min(Math.max(t.x, 0), 100 - w), y: Math.max(t.y, 0) };
+	return { ...t, w, x: Math.min(Math.max(t.x, minXFor(w)), maxXFor(w)), y: Math.max(t.y, 0) };
 }
 
 /** Keep a normal-flow text box inside the page's padded content area. */
@@ -52,20 +67,31 @@ export function clampTextFlowLayout(layout: TextFlowLayout): TextFlowLayout {
 	return { w, x: Math.min(Math.max(layout.x, 0), 100 - w) };
 }
 
-/** Move one or more canvas items by the same amount while keeping the complete
- * selection inside the left, right, and top edges. The bottom stays open so a
- * composition can grow downward. Keeping the delta shared preserves spacing
- * when several selected images are nudged together. */
+/** The shared horizontal delta a whole selection can move: each item may bleed
+ * up to half its width past a side edge, so the range is the tightest of the
+ * items' own allowances. min <= 0 <= max whenever every item starts in bounds. */
+export function canvasDxBounds<T extends { x: number; w: number }>(
+	layouts: readonly T[],
+): { min: number; max: number } {
+	return {
+		min: Math.max(...layouts.map((layout) => minXFor(layout.w) - layout.x)),
+		max: Math.min(...layouts.map((layout) => maxXFor(layout.w) - layout.x)),
+	};
+}
+
+/** Move one or more canvas items by the same amount while keeping every item
+ * within its own side-bleed allowance and below the top edge. The bottom stays
+ * open so a composition can grow downward. Keeping the delta shared preserves
+ * spacing when several selected images are nudged together. */
 export function nudgeCanvasLayouts<T extends { x: number; y: number; w: number }>(
 	layouts: readonly T[],
 	dx: number,
 	dy: number,
 ): T[] {
 	if (layouts.length === 0) return [];
-	const left = Math.min(...layouts.map((layout) => layout.x));
 	const top = Math.min(...layouts.map((layout) => layout.y));
-	const right = Math.max(...layouts.map((layout) => layout.x + layout.w));
-	const boundedDx = Math.min(Math.max(dx, -left), 100 - right);
+	const bounds = canvasDxBounds(layouts);
+	const boundedDx = Math.min(Math.max(dx, bounds.min), bounds.max);
 	const boundedDy = Math.max(dy, -top);
 	return layouts.map((layout) => ({
 		...layout,
