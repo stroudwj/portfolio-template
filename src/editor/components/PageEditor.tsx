@@ -155,6 +155,7 @@ const BLOCK_TYPE_OPTIONS: Array<{ value: PageBlock['type']; label: string }> = [
 	{ value: 'contact', label: 'Email button' },
 	{ value: 'form', label: 'Contact form' },
 	{ value: 'accordion', label: 'Accordion' },
+	{ value: 'shape', label: 'Shape' },
 	{ value: 'products', label: 'Products' },
 	{ value: 'project', label: 'Project fields' },
 ];
@@ -803,6 +804,7 @@ export default function PageEditor({
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addEmbedBlock(pageKey, 'map', target), sectionId, 'Google Map')}><BlockIcon type="map" />Google Map</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addButtonBlock(pageKey, target), sectionId, 'button')}><BlockIcon type="button" />Button</button>
 			<button type="button" onClick={() => runSectionAdd((target) => editor.addDividerBlock(pageKey, target), sectionId, 'divider')}><BlockIcon type="divider" />Divider</button>
+			<button type="button" onClick={() => runSectionAdd((target) => editor.addShapeBlock(pageKey, 'line', target), sectionId, 'shape')}><BlockIcon type="shape" />Shape</button>
 			{!hasAboutBlock && (
 				<button type="button" onClick={() => runSectionAdd((target) => editor.addAboutBlock(pageKey, target), sectionId, 'About content')}><BlockIcon type="about" />About content</button>
 			)}
@@ -2537,6 +2539,105 @@ export default function PageEditor({
 								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { buttonLabel: event.target.value })}
 							/>
 						</Field>
+					</div>
+				);
+			}
+			case 'shape': {
+				const shapeLabel = `${block.shape} shape ${index + 1} on ${pageName}`;
+				return (
+					<div className="block" key={block.id}>
+						<div className="block-head">
+							<span className="block-label"><BlockIcon type="shape" />Shape</span>
+							{controls(index, block, true)}
+						</div>
+						<div className="block-choice-row">
+							<label>
+								Shape
+								<select
+									className="select-input"
+									value={block.shape}
+									aria-label={`Kind of ${shapeLabel}`}
+									onChange={(event) =>
+										editor.updateShapeBlock(pageKey, block.id, {
+											shape: event.target.value as typeof block.shape,
+										})
+									}
+								>
+									<option value="line">Line</option>
+									<option value="arrow">Arrow</option>
+									<option value="rectangle">Rectangle</option>
+								</select>
+							</label>
+							{block.shape === 'arrow' && (
+								<label>
+									Points
+									<select
+										className="select-input"
+										value={block.direction ?? 'right'}
+										aria-label={`Direction of ${shapeLabel}`}
+										onChange={(event) =>
+											editor.updateShapeBlock(pageKey, block.id, {
+												direction:
+													event.target.value === 'right'
+														? undefined
+														: (event.target.value as NonNullable<typeof block.direction>),
+											})
+										}
+									>
+										<option value="right">Right</option>
+										<option value="left">Left</option>
+										<option value="up">Up</option>
+										<option value="down">Down</option>
+									</select>
+								</label>
+							)}
+							<label>
+								Thickness
+								<select
+									className="select-input"
+									value={String(block.strokeWidth ?? 1)}
+									aria-label={`Stroke width of ${shapeLabel}`}
+									onChange={(event) => {
+										const value = Number(event.target.value);
+										editor.updateShapeBlock(pageKey, block.id, {
+											strokeWidth: value === 1 ? undefined : value,
+										});
+									}}
+								>
+									{[1, 2, 3, 4, 6, 8, 12].map((width) => (
+										<option key={width} value={String(width)}>{width}px</option>
+									))}
+								</select>
+							</label>
+							<label>
+								Color
+								<span className="color-field">
+									<input
+										type="color"
+										aria-label={`Color of ${shapeLabel}`}
+										value={
+											/^#[\da-f]{6}$/i.test(block.color ?? '')
+												? block.color
+												: /^#[\da-f]{6}$/i.test(doc.content.theme.textColor)
+													? doc.content.theme.textColor
+													: '#111111'
+										}
+										onChange={(event) =>
+											editor.updateShapeBlock(pageKey, block.id, { color: event.target.value })
+										}
+									/>
+									{block.color && (
+										<button
+											type="button"
+											className="btn-link"
+											onClick={() => editor.updateShapeBlock(pageKey, block.id, { color: undefined })}
+										>
+											Use theme ink
+										</button>
+									)}
+								</span>
+							</label>
+						</div>
 					</div>
 				);
 			}

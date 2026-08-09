@@ -307,6 +307,42 @@ describe('staticgen', () => {
 		expect(home).toContain('--accordion-title-size:92pt');
 	});
 
+	it('publishes canvas shapes as fixed-stroke boxes on the section canvas', async () => {
+		const base = testBundle();
+		const content = parseAndMigrateContent({
+			...base.contentJson,
+			pages: {
+				...base.contentJson.pages,
+				home: {
+					...base.contentJson.pages.home,
+					blocks: [
+						...(base.contentJson.pages.home.blocks ?? []),
+						{ id: 'rule', type: 'shape', shape: 'line', layout: { x: 10, y: 6, w: 60, ar: 25 } },
+						{
+							id: 'pointer',
+							type: 'shape',
+							shape: 'arrow',
+							direction: 'down',
+							strokeWidth: 2,
+							layout: { x: 40, y: 20, w: 20, ar: 6 },
+						},
+					],
+				},
+			},
+		});
+		const site = await generateStaticSite(
+			{ ...base, contentJson: content },
+			{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+		);
+		const home = new TextDecoder().decode(
+			site.files.find((file) => file.path === 'index.html')!.bytes,
+		);
+
+		expect(home).toContain('shape-line');
+		expect(home).toContain('shape-arrow-down');
+		expect(home).toContain('--shape-stroke:2px');
+	});
+
 	it('publishes a contact block without ever writing the address', async () => {
 		// Published pages inline their whole Content as window.__HW__, so the address
 		// must be absent from the served bytes entirely — markup AND boot data.

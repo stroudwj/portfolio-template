@@ -113,6 +113,8 @@ function blockLabel(block: PageBlock): string {
 			return 'Contact form';
 		case 'accordion':
 			return 'Accordion';
+		case 'shape':
+			return block.shape === 'arrow' ? 'Arrow' : block.shape === 'rectangle' ? 'Rectangle' : 'Line';
 		case 'products':
 			return 'Products';
 		case 'project':
@@ -728,6 +730,7 @@ export default function PreviewEditLayer({
 		{ icon: 'map', label: 'Google Map', group: 'Essentials', add: (s) => editor.addEmbedBlock(pageKey, 'map', s) },
 		{ icon: 'button', label: 'Button', group: 'Essentials', add: (s) => editor.addButtonBlock(pageKey, s) },
 		{ icon: 'divider', label: 'Divider', group: 'Essentials', add: (s) => editor.addDividerBlock(pageKey, s) },
+		{ icon: 'shape', label: 'Shape', group: 'Essentials', add: (s) => editor.addShapeBlock(pageKey, 'line', s) },
 		...(hasAboutBlock
 			? []
 			: [{

@@ -16,6 +16,7 @@ import ScrollShots from './ScrollShots';
 import ContactForm from './ContactForm';
 import AccordionBlock from './AccordionBlock';
 import ContactBlock from './ContactBlock';
+import ShapeBlock from './ShapeBlock';
 import { PortfolioButton, PortfolioDivider } from './PageBlocks';
 import Products from './Products';
 import ChildPages from './ChildPages';
@@ -519,6 +520,21 @@ export default function PortfolioPage({
 							/>
 						),
 					}];
+				if (block.type === 'shape' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: true,
+						dragLabel: `Click and drag ${block.shape}`,
+						content: (
+							<ShapeBlock
+								shape={block.shape}
+								color={block.color}
+								strokeWidth={block.strokeWidth}
+								direction={block.direction}
+							/>
+						),
+					}];
 				if (block.type === 'products' && block.canvasLayout && content.store)
 					return [{
 						id: block.id,
@@ -588,7 +604,7 @@ export default function PortfolioPage({
 		const anchor = section.blockIds.find((id) => {
 			const block = blockById.get(id);
 			return (
-				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider') && !!block.layout) ||
+				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider' || block?.type === 'shape') && !!block.layout) ||
 				(block?.type === 'children' && (!!block.canvasLayout || (block.items ?? []).some((item) => !!item.layout))) ||
 				(block?.type === 'products' && !!block.canvasLayout) ||
 				(block?.type === 'project' && !!block.layout) ||
@@ -1050,6 +1066,32 @@ export default function PortfolioPage({
 						width={block.width}
 						color={block.color}
 					/>
+				);
+			case 'shape':
+				if (hasCanvas && block.layout) return null;
+				if (block.layout) {
+					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
+					return (
+						<div key={block.id} className="page-content-wrapper standalone-widget-canvas">
+							<Gallery
+								images={[]}
+								canvasWidgets={canvasWidgets}
+								editable={!!canvasWidgetLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onSelectBlock={selectInnerBlock}
+							/>
+						</div>
+					);
+				}
+				return (
+					<div key={block.id} className={`shape-flow shape-flow-${block.shape}`}>
+						<ShapeBlock
+							shape={block.shape}
+							color={block.color}
+							strokeWidth={block.strokeWidth}
+							direction={block.direction}
+						/>
+					</div>
 				);
 			case 'contact':
 				return (

@@ -294,6 +294,45 @@ describe('content compatibility', () => {
 		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
 	});
 
+	it('preserves canvas shape primitives through parse and re-parse', () => {
+		const raw = structuredClone(blankDoc().content);
+		raw.pages.home.blocks = [
+			...(raw.pages.home.blocks ?? []),
+			{ id: 'rule', type: 'shape', shape: 'line', layout: { x: -4, y: 10, w: 60, ar: 25 } },
+			{
+				id: 'pointer',
+				type: 'shape',
+				shape: 'arrow',
+				direction: 'down',
+				color: '#8ea38b',
+				strokeWidth: 2,
+				layout: { x: 40, y: 30, w: 20, ar: 6, z: 3 },
+			},
+			{ id: 'box', type: 'shape', shape: 'rectangle', layout: { x: 70, y: 50, w: 45, ar: 1.5 } },
+		];
+
+		const parsed = parseAndMigrateContent(raw);
+		const blocks = parsed.pages.home.blocks ?? [];
+		// Spec-21 edge bleed carries through: x < 0 and x + w > 100 both survive.
+		expect(blocks.find((block) => block.id === 'rule')).toMatchObject({
+			type: 'shape',
+			shape: 'line',
+			layout: { x: -4, y: 10, w: 60, ar: 25 },
+		});
+		expect(blocks.find((block) => block.id === 'pointer')).toMatchObject({
+			shape: 'arrow',
+			direction: 'down',
+			color: '#8ea38b',
+			strokeWidth: 2,
+			layout: { z: 3 },
+		});
+		expect(blocks.find((block) => block.id === 'box')).toMatchObject({
+			shape: 'rectangle',
+			layout: { x: 70, w: 45 },
+		});
+		expect(parseAndMigrateContent(parsed)).toEqual(parsed);
+	});
+
 	it('preserves accordion rows through parse and re-parse', () => {
 		const raw = structuredClone(blankDoc().content);
 		raw.pages.home.blocks = [

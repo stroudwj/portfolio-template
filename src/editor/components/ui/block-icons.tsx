@@ -18,7 +18,8 @@ export type BlockIconType =
 	| 'form'
 	| 'products'
 	| 'project'
-	| 'accordion';
+	| 'accordion'
+	| 'shape';
 
 const PATHS: Record<BlockIconType, ReactNode> = {
 	// Type / text box
@@ -117,6 +118,14 @@ const PATHS: Record<BlockIconType, ReactNode> = {
 			<rect x="3" y="4" width="18" height="16" rx="2" />
 			<path d="M7 9h10M7 13h6" />
 			<path d="m14.5 16.5 2 2 3-3.5" />
+		</>
+	),
+	// Line, arrow, rectangle
+	shape: (
+		<>
+			<path d="M3 6h18" />
+			<path d="M3 12h13m0 0-3-3m3 3-3 3" />
+			<rect x="3" y="17" width="10" height="4" rx="0.5" />
 		</>
 	),
 	// Stacked rows, top one open with a plus

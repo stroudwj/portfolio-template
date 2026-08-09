@@ -611,6 +611,20 @@ export type PageBlock =
 		}
 	| {
 			id: string;
+			type: 'shape';
+			/** Three primitives only — this is deliberately not a drawing tool. */
+			shape: 'line' | 'arrow' | 'rectangle';
+			/** Stroke color. Absent = the theme ink (text color). */
+			color?: string;
+			/** Stroke width in px. Absent = 1 (hairline). */
+			strokeWidth?: number;
+			/** Arrows only: which way the head points. Absent = 'right'. */
+			direction?: 'right' | 'left' | 'up' | 'down';
+			/** Freeform placement within its section canvas; shapes are born freeform. */
+			layout?: ImageLayout;
+		}
+	| {
+			id: string;
 			type: 'accordion';
 			/** Full-width rows in order; each title toggles its body text open. */
 			items: AccordionItem[];

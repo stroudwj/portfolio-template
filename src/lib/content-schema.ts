@@ -327,6 +327,17 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 			}),
 		),
 	}),
+	// Canvas shape primitives: hairline rules, arrows, and outline rectangles.
+	// Deliberately three shapes and axis-aligned — not a drawing tool.
+	passthrough({
+		id: z.string(),
+		type: z.literal('shape'),
+		shape: z.enum(['line', 'arrow', 'rectangle']),
+		color: z.string().optional(),
+		strokeWidth: z.number().min(1).max(24).optional(),
+		direction: z.enum(['right', 'left', 'up', 'down']).optional(),
+		layout: imageLayoutSchema.optional(),
+	}),
 	// Full-width accordion rows: display-scale titles with +/− toggles over body
 	// text. Renders as native <details> grouped one-open-at-a-time, so published
 	// sites need no script and no-JS readers can still open every row.

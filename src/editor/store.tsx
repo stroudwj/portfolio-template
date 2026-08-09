@@ -992,6 +992,13 @@ export interface EditorContextValue {
 		blockId: string,
 		patch: Partial<Extract<PageBlock, { type: 'form' }>>,
 	): void;
+	/** Shapes are born freeform: placed on the section canvas at add time. */
+	addShapeBlock(key: string, shape: 'line' | 'arrow' | 'rectangle', sectionId?: string): void;
+	updateShapeBlock(
+		key: string,
+		blockId: string,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'shape' }>, 'id' | 'type'>>,
+	): void;
 	addAccordionBlock(key: string, sectionId?: string): void;
 	updateAccordionBlock(
 		key: string,
@@ -2841,6 +2848,29 @@ export function EditorProvider({
 					block.id === blockId && block.type === 'form' ? { ...block, ...patch, id: block.id, type: 'form' } : block,
 				),
 			true, `page:${key}:form:${blockId}:${Object.keys(patch).sort().join(',')}`),
+		addShapeBlock: (key, shape, sectionId) =>
+			patchPage(key, (page) => {
+				const current = docRef.current;
+				const canvasBottom = current ? freeCanvasBottomInSection(current, page, sectionId) : null;
+				const y = (canvasBottom ?? 0) + 2;
+				// Born freeform, sized per primitive: a wide hairline, a shorter arrow,
+				// a modest rectangle. The artist drags/resizes from there.
+				const layout =
+					shape === 'rectangle'
+						? { x: 30, y, w: 40, ar: 1.5 }
+						: shape === 'arrow'
+							? { x: 35, y, w: 30, ar: 6 }
+							: { x: 25, y, w: 50, ar: 25 };
+				return appendBlockToSection(page, { id: uid('shape'), type: 'shape', shape, layout }, sectionId);
+			}),
+		updateShapeBlock: (key, blockId, patch) =>
+			patchBlocks(key, (blocks) =>
+				blocks.map((block) =>
+					block.id === blockId && block.type === 'shape'
+						? { ...block, ...patch, id: block.id, type: 'shape' }
+						: block,
+				),
+			true, `page:${key}:shape:${blockId}:${Object.keys(patch).sort().join(',')}`),
 		addAccordionBlock: (key, sectionId) =>
 			patchPage(key, (page) =>
 				appendBlockToSection(page, {
