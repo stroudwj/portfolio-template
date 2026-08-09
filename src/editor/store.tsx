@@ -573,6 +573,7 @@ export function applyTemplateToDoc(
 	// and adopts the slot's layout — the template dictates positions.
 	const queue = [...works];
 	const newGalleries: Record<string, ImageEntry[]> = {};
+	const hungIds = new Map<string, string>(); // template slot id → hung work id
 	for (const config of homeConfigs) {
 		const target = renamed(config.folder);
 		if (newGalleries[target]) continue; // two blocks sharing a folder hang it once
@@ -583,6 +584,7 @@ export function applyTemplateToDoc(
 			}
 			const hung = cloneEntryForGroup(queue.shift()!);
 			hung.meta.layout = slot.meta.layout ? { ...slot.meta.layout } : undefined;
+			hungIds.set(slot.id, hung.id);
 			report.rehung += 1;
 			return hung;
 		});
@@ -595,6 +597,35 @@ export function applyTemplateToDoc(
 			newGalleries[lastFolder] = [...(newGalleries[lastFolder] ?? []), hung];
 			report.overflow += 1;
 		}
+	}
+
+	// The template's phone arrangement pins slot ids; hung works carry fresh
+	// ids, so the arrangement must follow them or the draft fails validation
+	// on its next load.
+	const remapMobileKey = (key: string) => {
+		const slotId = key.startsWith('image:') ? hungIds.get(key.slice('image:'.length)) : undefined;
+		return slotId ? `image:${slotId}` : key;
+	};
+	const remapMobile = (config: GalleryConfig): GalleryConfig =>
+		config.mobile
+			? {
+					...config,
+					mobile: {
+						...config.mobile,
+						order: config.mobile.order.map(remapMobileKey),
+						items: config.mobile.items
+							? Object.fromEntries(
+									Object.entries(config.mobile.items).map(([key, style]) => [remapMobileKey(key), style]),
+								)
+							: config.mobile.items,
+					},
+				}
+			: config;
+	if (hungIds.size) {
+		if (newHome.gallery) newHome.gallery = remapMobile(newHome.gallery);
+		newHome.blocks = (newHome.blocks ?? []).map((block) =>
+			block.type === 'images' ? { ...block, gallery: remapMobile(block.gallery) } : block,
+		);
 	}
 
 	const galleries: Record<string, ImageEntry[]> = {};

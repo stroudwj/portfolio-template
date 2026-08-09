@@ -22,6 +22,8 @@ import {
 } from '../src/editor/lib/templates';
 import { SAMPLE_ARTWORK } from '../src/editor/lib/sample-artwork';
 import { applyTemplateToDoc } from '../src/editor/store';
+import { parseAndMigrateEditorDoc } from '../src/editor/lib/doc-schema';
+import type { Content, GalleryConfig, PageConfig } from '../src/lib/content';
 import type { EditorDoc, ImageEntry } from '../src/editor/lib/types';
 
 function ready(id: string): ReadyStarterRecipe {
@@ -231,6 +233,69 @@ describe('applyTemplateToDoc', () => {
 		// One work re-hung into the first slot, four sample frames remain.
 		expect(applied.galleries['selected-work-2']).toHaveLength(5);
 		expect(applied.galleries['selected-work-2'][0].assetId).not.toBeNull();
+	});
+
+	it('remaps the template phone arrangement onto the hung works (regression: stale ids wedged the draft)', () => {
+		const painter = ready('painter');
+		const content = JSON.parse(JSON.stringify(painter.content)) as Content;
+		const homeConfig = (page: PageConfig): GalleryConfig => {
+			const config =
+				page.gallery ??
+				page.blocks?.flatMap((block) => (block.type === 'images' ? [block.gallery] : []))[0];
+			if (!config) throw new Error('template home has no gallery config');
+			return config;
+		};
+		// Author a phone arrangement on the template pinned to its slot ids, the
+		// way a studio-saved starter would carry one.
+		const slotIds = Object.values(content.galleries[homeConfig(content.pages.home).folder].items).map(
+			(meta) => meta.id,
+		);
+		homeConfig(content.pages.home).mobile = { mode: 'custom', order: slotIds.map((id) => `image:${id}`) };
+
+		const { doc, works, seriesKey } = builtDoc(3);
+		doc.content.galleries[seriesKey] = { items: {} }; // content-level twin builtDoc omits
+		const { doc: applied, report } = applyTemplateToDoc(doc, content);
+		expect(report.rehung).toBe(3);
+
+		// The arrangement now points at the hung works' fresh ids (unfilled
+		// sample slots keep theirs), so the applied doc must survive a browser
+		// save → load round trip instead of failing validation.
+		const appliedOrder = homeConfig(applied.content.pages.home).mobile?.order ?? [];
+		const appliedEntries = applied.galleries[homeConfig(applied.content.pages.home).folder];
+		expect(appliedOrder).toEqual(appliedEntries.map((entry) => `image:${entry.id}`));
+		expect(appliedEntries.slice(0, 3).map((entry) => entry.assetId)).toEqual(
+			works.map((work) => work.assetId),
+		);
+		expect(() => parseAndMigrateEditorDoc(JSON.parse(JSON.stringify(applied)))).not.toThrow();
+	});
+});
+
+describe('parseAndMigrateEditorDoc phone-arrangement self-heal', () => {
+	it('drops a stale phone arrangement instead of refusing to open the draft', () => {
+		// A draft as the pre-fix applyTemplate could leave it: home's phone
+		// arrangement pins an image id that no longer exists in the group.
+		const { doc, seriesKey } = builtDoc(2);
+		doc.content.galleries[seriesKey] = { items: {} }; // content-level twin builtDoc omits
+		const home = doc.content.pages.home;
+		const config = home.gallery ?? (home.blocks?.find((block) => block.type === 'images') as { gallery: GalleryConfig } | undefined)?.gallery;
+		if (!config) throw new Error('blank home has no gallery config');
+		config.mobile = { mode: 'custom', order: ['image:ghost-id-from-a-replaced-slot'] };
+
+		const healed = parseAndMigrateEditorDoc(JSON.parse(JSON.stringify(doc)));
+		const healedConfig =
+			healed.content.pages.home.gallery ??
+			(healed.content.pages.home.blocks?.find((block) => block.type === 'images') as { gallery: GalleryConfig } | undefined)?.gallery;
+		expect(healedConfig?.mobile).toBeUndefined();
+
+		// A valid arrangement on another page is untouched by the heal.
+		const again = builtDoc(2);
+		again.doc.content.galleries[again.seriesKey] = { items: {} };
+		const seriesConfig = again.doc.content.pages['harbor-paintings'].gallery;
+		if (!seriesConfig) throw new Error('series page has no gallery config');
+		again.doc.galleries['harbor-paintings'] = [again.works[0]];
+		seriesConfig.mobile = { mode: 'custom', order: [`image:${again.works[0].id}`] };
+		const kept = parseAndMigrateEditorDoc(JSON.parse(JSON.stringify(again.doc)));
+		expect(kept.content.pages['harbor-paintings'].gallery?.mobile).toEqual(seriesConfig.mobile);
 	});
 });
 

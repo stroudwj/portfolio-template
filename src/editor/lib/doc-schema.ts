@@ -148,7 +148,7 @@ export const editorDocSchema = passthrough({
 						ctx.addIssue({
 							code: 'custom',
 							path: ['content', 'pages', pageKey, 'mobile'],
-							message: 'Phone image arrangement points to an item that no longer exists',
+							message: STALE_MOBILE_ARRANGEMENT,
 						});
 				}
 			}
@@ -163,6 +163,8 @@ export const editorDocSchema = passthrough({
 		});
 	}
 });
+
+const STALE_MOBILE_ARRANGEMENT = 'Phone image arrangement points to an item that no longer exists';
 
 export class UnsupportedEditorDocVersionError extends Error {
 	constructor(
@@ -380,7 +382,38 @@ export function parseAndMigrateEditorDoc(raw: unknown): EditorDoc {
 		}
 		migrated.workbenchFolders = [...folders];
 	}
-	const parsed = editorDocSchema.safeParse(migrated);
+	let parsed = editorDocSchema.safeParse(migrated);
+	// A phone arrangement is a derived preference pinned to item ids. Template
+	// swaps and deletions can orphan those pins (a pre-fix applyTemplate did
+	// exactly that); drop the arrangement on the affected pages and retry
+	// rather than making the entire draft impossible to open.
+	if (!parsed.success) {
+		const stalePages = new Set(
+			parsed.error.issues
+				.filter(
+					(issue) =>
+						issue.message === STALE_MOBILE_ARRANGEMENT &&
+						issue.path[0] === 'content' &&
+						issue.path[1] === 'pages',
+				)
+				.map((issue) => String(issue.path[2])),
+		);
+		if (stalePages.size && isObject(migrated) && isObject(migrated.content)) {
+			const pages = (migrated.content as MutableObject).pages;
+			if (isObject(pages)) {
+				for (const pageKey of stalePages) {
+					const page = pages[pageKey];
+					if (!isObject(page)) continue;
+					if (isObject(page.gallery)) delete page.gallery.mobile;
+					if (Array.isArray(page.blocks))
+						for (const block of page.blocks)
+							if (isObject(block) && block.type === 'images' && isObject(block.gallery))
+								delete block.gallery.mobile;
+				}
+				parsed = editorDocSchema.safeParse(migrated);
+			}
+		}
+	}
 	if (!parsed.success) {
 		const detail = parsed.error.issues
 			.slice(0, 3)
