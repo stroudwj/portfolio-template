@@ -636,12 +636,18 @@ describe('content compatibility', () => {
 });
 
 describe('browser draft compatibility', () => {
-	it('accepts a phone-only page heading position and rejects stale gallery item keys', () => {
+	it('accepts a phone-only page heading position and heals stale gallery item keys', () => {
 		const doc = blankDoc();
 		doc.content.pages.home.mobile = { mode: 'custom', order: ['page:heading', 'block:selected-works-images'] };
 		expect(() => parseAndMigrateEditorDoc(doc)).not.toThrow();
+		// A stale image pin (e.g. from a pre-fix template apply) drops the
+		// arrangement rather than wedging the draft — see parseAndMigrateEditorDoc.
 		firstImagesBlock(doc.content.pages.home).gallery.mobile = { mode: 'custom', order: ['image:missing'] };
-		expect(() => parseAndMigrateEditorDoc(doc)).toThrow(/no longer exists/i);
+		const healed = parseAndMigrateEditorDoc(doc);
+		expect(firstImagesBlock(healed.content.pages.home).gallery.mobile).toBeUndefined();
+		// The page-level arrangement survives the gallery-level heal (its block
+		// key is separately migrated to a section key on parse).
+		expect(healed.content.pages.home.mobile?.order?.[0]).toBe('page:heading');
 	});
 
 	it('migrates the former public-email fallback into an independent, encoded form delivery email', () => {
