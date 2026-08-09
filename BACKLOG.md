@@ -838,3 +838,47 @@ in different clothes. William is the acceptance test.
 **Out of scope.** The other 18 templates (batch 3 resumes after sign-off), carousels,
 booking/scheduling integrations, per-element motion UI (spec 13), copying Mosley's text
 (sample copy stays ours), webfont shipping.
+
+---
+
+## 23. Starter webfonts — self-hosted, OFL-only, subset — `queued` (decide after spec 22 sign-off)
+
+**Goal.** Let starter templates ship real display typography instead of system-stack
+approximations: each template may bundle up to ~2 self-hosted webfont faces (subset,
+OFL-licensed), closing the last fidelity gap against the Squarespace sources.
+
+**Why.** Batch 1/2 translations substitute system stacks (SOURCES.md ledger: Gilda →
+Didot/Bodoni, Halyard → Avenir, etc.). At display scale the type IS the design. Decision
+deliberately deferred until after spec 22: if the fidelity sprint's layout/device work
+makes conservatory read faithfully with system stacks, William may drop this spec.
+
+**Hard fences (William approved the tradeoff on these terms, 2026-08-09):**
+- **Self-hosted only.** No Google CDN request from published sites — visitor privacy
+  (GDPR precedent against Google Fonts CDN) and the FAQ's no-third-party shutdown promise.
+- **OFL-licensed faces only**, vetted per face; record license + source in the registry.
+- **Subset** (Latin, only the weights used); target ≤ ~150KB added per site; pick a
+  `font-display` strategy deliberately and note the artifact it accepts.
+- **Starters-only.** Templates declare bundled faces; there is NO user-facing font
+  browser, no arbitrary-font picker. That would be its own future spec.
+
+**Verify first.** How custom fonts already work (an earlier feature added user custom
+fonts — find it before inventing a parallel path), what staticgen/publish uploads to R2,
+what the lifetime-export zip includes (fonts MUST ride in the zip — a download that
+fetches fonts remotely breaks "own it forever"), and how the runtime manifest treats
+binary assets (starter JSON is deliberately unhashed; decide fonts' status explicitly).
+
+**Files.** Font files under a starters asset path, starter/theme-preset schema for
+declared faces, `staticgen` + publish upload + export zip, `lib/templates.ts` validation
+(license metadata required), template studio round-trip, tests.
+
+**Requirements.**
+- Published site + editor preview + exported zip all render the bundled faces offline.
+- A starter with no declared fonts behaves exactly as today (system stacks stay the
+  default and the fallback).
+- Re-translate the batch 1–2 display faces (per SOURCES.md substitution ledger) to their
+  closest OFL equivalents; update the ledger with the chosen face + license.
+- Font binaries excluded from unnecessary duplication (dedupe shared faces across
+  starters).
+
+**Out of scope.** User font browser/arbitrary uploads beyond the existing custom-font
+feature, non-OFL/commercial faces, CJK or extended subsets, variable-font axes UI.
