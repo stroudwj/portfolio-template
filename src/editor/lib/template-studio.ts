@@ -59,9 +59,10 @@ export function resolveStudioContent(
 	return { name: preset.name, content: contentWithThemePreset(cloneContent(host), preset.tokens) };
 }
 
-/** The preset payload: theme tokens minus per-site custom font attachments. */
+/** The preset payload: theme tokens minus per-site custom font attachments and
+ * the motion vocabulary — presets are color/typography; starters carry motion. */
 export function presetTokensFromTheme(theme: Theme): Theme {
-	const { customFonts: _customFonts, ...tokens } = theme;
+	const { customFonts: _customFonts, motion: _motion, ...tokens } = theme;
 	return tokens as Theme;
 }
 

@@ -380,6 +380,14 @@ export const themeSchema = passthrough({
 	stabilizeNavigation: z.boolean().optional(),
 	stabilizeLogo: z.boolean().optional(),
 	backgroundTexture: z.enum(['corkboard', 'blackboard', 'wood', 'fence', 'concrete']).optional(),
+	motion: passthrough({
+		intensity: z.enum(['off', 'subtle', 'full']).optional(),
+		reveal: z.boolean().optional(),
+		hover: z.boolean().optional(),
+		hoverCaptions: z.boolean().optional(),
+		heroParallax: z.boolean().optional(),
+		stagger: z.boolean().optional(),
+	}).optional(),
 	customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
 });
 

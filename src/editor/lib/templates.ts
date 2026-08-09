@@ -493,13 +493,17 @@ export function compatibleThemePresets(doc: Pick<EditorDoc, 'content'>): ThemePr
 }
 
 /** Apply only design tokens. User pages, media, copy, and custom font files stay
- * attached to the document. */
+ * attached to the document. Motion is part of a template's feel, not a color
+ * scheme: a preset that declares it wins, otherwise the site keeps its own. */
 export function contentWithThemePreset(content: Content, theme: Theme): Content {
 	return {
 		...content,
 		theme: {
 			...JSON.parse(JSON.stringify(theme)),
 			customFonts: content.theme.customFonts,
+			...(theme.motion || !content.theme.motion
+				? {}
+				: { motion: JSON.parse(JSON.stringify(content.theme.motion)) }),
 		},
 	};
 }

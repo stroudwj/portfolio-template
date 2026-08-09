@@ -235,8 +235,33 @@ export interface Theme {
 	stabilizeLogo?: boolean;
 	/** A site-wide physical wall surface behind the portfolio. */
 	backgroundTexture?: 'corkboard' | 'blackboard' | 'wood' | 'fence' | 'concrete';
+	/** The site's motion feel — a small shared vocabulary every template can
+	 * preset and one Design dial adjusts. Absent = off (exactly the pre-motion
+	 * rendering), so older sites never change appearance. */
+	motion?: SiteMotionConfig;
 	/** Fonts uploaded in the editor, available alongside the factory list. */
 	customFonts?: CustomFont[];
+}
+
+/** The one site-level motion dial. Absent and 'off' render identically. */
+export type SiteMotionIntensity = 'off' | 'subtle' | 'full';
+
+/** Site-wide motion vocabulary (spec: motion primitives). Primitives are CSS-driven
+ * decorations — they may transform and fade but never change layout. Unset
+ * primitive flags default to the house feel (reveal/hover/stagger on; the two
+ * opinionated ones, heroParallax and hoverCaptions, stay opt-in for templates). */
+export interface SiteMotionConfig {
+	intensity?: SiteMotionIntensity;
+	/** Sections fade and rise as they enter the viewport. */
+	reveal?: boolean;
+	/** Gallery images zoom slightly under the pointer. */
+	hover?: boolean;
+	/** Image titles fade in over gallery images on hover. */
+	hoverCaptions?: boolean;
+	/** The page's first section drifts at a reduced scroll rate. */
+	heroParallax?: boolean;
+	/** Images hang onto the wall in sequence when a page loads. */
+	stagger?: boolean;
 }
 
 /** The navigation layouts an artist can pick from the Design area. */

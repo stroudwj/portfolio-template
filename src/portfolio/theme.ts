@@ -30,6 +30,7 @@ type ThemeVarKey = Exclude<
 	| 'stabilizeNavigation'
 	| 'stabilizeLogo'
 	| 'backgroundTexture'
+	| 'motion'
 >;
 
 const VARS: Array<[string, ThemeVarKey]> = [
