@@ -8,7 +8,6 @@
     "footer": "Made with hangwork.art",
     "creative": {
       "grain": 3,
-      "slowReveal": true,
       "pageTransition": "fade"
     }
   },
@@ -198,8 +197,8 @@
       ],
       "sectionMotion": {
         "section:salon": {
-          "effect": "drift",
-          "intensity": 35
+          "effect": "sequence",
+          "intensity": 45
         }
       },
       "sectionBleed": {
