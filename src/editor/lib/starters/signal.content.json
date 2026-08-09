@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Photography portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
+  },
+  "theme": {
+    "backgroundColor": "#ffffff",
+    "textColor": "#000d7a",
+    "mutedTextColor": "#5a5f9e",
+    "accentColor": "#0016d0",
+    "fontFamily": "Verdana, Geneva, sans-serif",
+    "headingFontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+    "logoScale": 130,
+    "pageHeadingScale": 140,
+    "pageHeadingPosition": "left",
+    "logoPosition": "left",
+    "navStyle": "topbar",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "full",
+      "reveal": true,
+      "hover": true,
+      "stagger": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Signal"
+    },
+    {
+      "path": "works",
+      "label": "Works"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Two heavy sentences: what you shoot, and why it matters. The photographs in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name}",
+      "label": "Signal",
+      "description": "Big landscapes under bigger type.",
+      "blocks": [
+        {
+          "id": "intro",
+          "type": "text",
+          "text": "A photographer of the far West — rivers, domes, and the roads that barely reach them.",
+          "style": "subheading",
+          "flowLayout": {
+            "x": 4,
+            "w": 92
+          }
+        },
+        {
+          "id": "cluster-1-images",
+          "type": "images",
+          "gallery": {
+            "folder": "cluster-1",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:cluster-1-link": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "First cluster"
+        },
+        {
+          "id": "cluster-1-link",
+          "type": "text",
+          "text": "THE WORK 〉",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "THE WORK 〉",
+                  "fontSize": 110,
+                  "bold": true
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "link": "/works",
+          "layout": {
+            "x": 0,
+            "y": 34,
+            "w": 96,
+            "h": 15,
+            "z": 10
+          }
+        },
+        {
+          "id": "cluster-2-images",
+          "type": "images",
+          "gallery": {
+            "folder": "cluster-2",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:cluster-2-link": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Second cluster"
+        },
+        {
+          "id": "cluster-2-link",
+          "type": "text",
+          "text": "ABOUT 〉",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "ABOUT 〉",
+                  "fontSize": 110,
+                  "bold": true
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "link": "/about",
+          "layout": {
+            "x": 0,
+            "y": 42,
+            "w": 72,
+            "h": 15,
+            "z": 10
+          }
+        },
+        {
+          "id": "colophon-images",
+          "type": "images",
+          "gallery": {
+            "folder": "signal-colophon",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:signal-name": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Signature"
+        },
+        {
+          "id": "signal-name",
+          "type": "text",
+          "text": "YOUR NAME",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "YOUR NAME",
+                  "fontSize": 144,
+                  "bold": true
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 12,
+            "w": 100,
+            "h": 18,
+            "z": 10
+          }
+        },
+        {
+          "id": "signal-note",
+          "type": "text",
+          "text": "Prints and books ship each month — write for the current list.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Prints and books ship each month — write for the current list.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 34,
+            "w": 46,
+            "h": 6,
+            "z": 10
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "intro",
+          "name": "Intro",
+          "blockIds": [
+            "intro"
+          ]
+        },
+        {
+          "id": "cluster-1",
+          "name": "First cluster",
+          "blockIds": [
+            "cluster-1-images",
+            "cluster-1-link"
+          ]
+        },
+        {
+          "id": "cluster-2",
+          "name": "Second cluster",
+          "blockIds": [
+            "cluster-2-images",
+            "cluster-2-link"
+          ]
+        },
+        {
+          "id": "colophon",
+          "name": "Signature",
+          "blockIds": [
+            "colophon-images",
+            "signal-name",
+            "signal-note"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:cluster-1": {
+          "effect": "reveal",
+          "intensity": 45
+        },
+        "section:cluster-2": {
+          "effect": "reveal",
+          "intensity": 45
+        }
+      },
+      "sectionBleed": {
+        "section:cluster-1": true,
+        "section:cluster-2": true
+      }
+    },
+    "works": {
+      "title": "Works — {name}",
+      "label": "Works",
+      "description": "The full set, three to a row.",
+      "heading": "Works",
+      "blocks": [
+        {
+          "id": "works-intro",
+          "type": "text",
+          "text": "The full set — three to a row, captions on hover.",
+          "style": "body"
+        },
+        {
+          "id": "works-images",
+          "type": "images",
+          "gallery": {
+            "folder": "works",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 3
+          },
+          "name": "Works"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "works-intro",
+            "works-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "cluster-1": {
+      "items": {
+        "01-river-view-down-valley-cathedral-rock-on-lef.jpg": {
+          "id": "sample-photographer-met-285861-v1",
+          "sampleAssetId": "photographer-met-285861-v1",
+          "title": "River View Down Valley, Cathedral Rock on Left",
+          "alt": "Still water reflects tall pines while pale Yosemite cliffs recede into haze.",
+          "description": "Carleton E. Watkins. River View Down Valley, Cathedral Rock on Left, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285861",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 33,
+            "ar": 1.2549,
+            "z": 1
+          }
+        },
+        "02-yosemite-falls-river-view-2637-feet.jpg": {
+          "id": "sample-photographer-met-286426-v1",
+          "sampleAssetId": "photographer-met-286426-v1",
+          "title": "Yosemite Falls, River View, 2637 Feet",
+          "alt": "A broad granite ridge rises beyond a riverbank crowded with dark conifers.",
+          "description": "Carleton E. Watkins. Yosemite Falls, River View, 2637 Feet, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286426",
+          "layout": {
+            "x": 33,
+            "y": 12,
+            "w": 33,
+            "ar": 1.23648,
+            "z": 2
+          }
+        },
+        "03-tutucanula-el-capitan-4000-feet.jpg": {
+          "id": "sample-photographer-met-286457-v1",
+          "sampleAssetId": "photographer-met-286457-v1",
+          "title": "Tutucanula, El Capitan, 4000 Feet",
+          "alt": "El Capitan towers above a quiet river and a low band of pine trees.",
+          "description": "Carleton E. Watkins. Tutucanula, El Capitan, 4000 Feet, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286457",
+          "layout": {
+            "x": 70,
+            "y": 3,
+            "w": 33,
+            "ar": 1.23457,
+            "z": 3
+          }
+        }
+      }
+    },
+    "cluster-2": {
+      "items": {
+        "01-cascade-nevada-fall-on-left-view-above-verna.jpg": {
+          "id": "sample-photographer-met-285860-v1",
+          "sampleAssetId": "photographer-met-285860-v1",
+          "title": "Cascade, Nevada Fall on Left, View above Vernal Fall",
+          "alt": "White water runs through smooth granite shelves beneath a dense stand of pines.",
+          "description": "Carleton E. Watkins. Cascade, Nevada Fall on Left, View above Vernal Fall, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285860",
+          "layout": {
+            "x": 0,
+            "y": 8,
+            "w": 33,
+            "ar": 1.23648,
+            "z": 1
+          }
+        },
+        "02-cathedral-rock.jpg": {
+          "id": "sample-photographer-met-286425-v1",
+          "sampleAssetId": "photographer-met-286425-v1",
+          "title": "Cathedral Rock",
+          "alt": "The sheer face of Cathedral Rock fills the frame above a line of conifers.",
+          "description": "Carleton E. Watkins. Cathedral Rock, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286425",
+          "layout": {
+            "x": 33,
+            "y": 0,
+            "w": 33,
+            "ar": 1.18256,
+            "z": 2
+          }
+        },
+        "03-view-on-the-columbia-cascades.jpg": {
+          "id": "sample-photographer-met-262612-v1",
+          "sampleAssetId": "photographer-met-262612-v1",
+          "title": "View on the Columbia, Cascades",
+          "alt": "The Columbia River bends past wooded banks toward faint mountains on the horizon.",
+          "description": "Carleton E. Watkins. View on the Columbia, Cascades, 1867. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/262612",
+          "layout": {
+            "x": 70,
+            "y": 16,
+            "w": 33,
+            "ar": 1.26783,
+            "z": 3
+          }
+        }
+      }
+    },
+    "signal-colophon": {
+      "items": {
+        "01-lower-yosemite-falls.jpg": {
+          "id": "sample-photographer-met-286511-v1",
+          "sampleAssetId": "photographer-met-286511-v1",
+          "title": "Lower Yosemite Falls",
+          "alt": "A bright vertical waterfall cuts through a shadowed wall of rock and trees.",
+          "description": "Carleton E. Watkins. Lower Yosemite Falls, 1860s. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286511",
+          "layout": {
+            "x": 78,
+            "y": 0,
+            "w": 22,
+            "ar": 0.79563,
+            "z": 1
+          }
+        }
+      }
+    },
+    "works": {
+      "items": {
+        "01-cape-horn-near-celilo.jpg": {
+          "id": "sample-photographer-met-283222-v1",
+          "sampleAssetId": "photographer-met-283222-v1",
+          "title": "Cape Horn near Celilo",
+          "alt": "A massive column of rock rises beside a river and a straight rail line.",
+          "description": "Carleton E. Watkins. Cape Horn near Celilo, 1867. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/283222"
+        },
+        "02-mount-shasta-from-the-north.jpg": {
+          "id": "sample-photographer-met-285772-v1",
+          "sampleAssetId": "photographer-met-285772-v1",
+          "title": "Mount Shasta from the North",
+          "alt": "Snow-covered Mount Shasta rises above a dark open plain and distant tree line.",
+          "description": "Carleton E. Watkins. Mount Shasta from the North, 1870. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285772"
+        },
+        "03-the-domes-from-sentinel-dome.jpg": {
+          "id": "sample-photographer-met-286049-v1",
+          "sampleAssetId": "photographer-met-286049-v1",
+          "title": "The Domes from Sentinel Dome",
+          "alt": "A sunlit granite dome rises beyond forested slopes viewed from a high ridge.",
+          "description": "Carleton E. Watkins. The Domes from Sentinel Dome, 1866. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286049"
+        },
+        "04-river-view-down-valley-cathedral-rock-on-lef.jpg": {
+          "id": "sample-photographer-met-285861-v1-b",
+          "sampleAssetId": "photographer-met-285861-v1",
+          "title": "River View Down Valley, Cathedral Rock on Left",
+          "alt": "Still water reflects tall pines while pale Yosemite cliffs recede into haze.",
+          "description": "Carleton E. Watkins. River View Down Valley, Cathedral Rock on Left, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/285861"
+        },
+        "05-cathedral-rock.jpg": {
+          "id": "sample-photographer-met-286425-v1-b",
+          "sampleAssetId": "photographer-met-286425-v1",
+          "title": "Cathedral Rock",
+          "alt": "The sheer face of Cathedral Rock fills the frame above a line of conifers.",
+          "description": "Carleton E. Watkins. Cathedral Rock, 1861. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/286425"
+        },
+        "06-view-on-the-columbia-cascades.jpg": {
+          "id": "sample-photographer-met-262612-v1-b",
+          "sampleAssetId": "photographer-met-262612-v1",
+          "title": "View on the Columbia, Cascades",
+          "alt": "The Columbia River bends past wooded banks toward faint mountains on the horizon.",
+          "description": "Carleton E. Watkins. View on the Columbia, Cascades, 1867. The Metropolitan Museum of Art.",
+          "link": "https://www.metmuseum.org/art/collection/search/262612"
+        }
+      }
+    }
+  }
+}

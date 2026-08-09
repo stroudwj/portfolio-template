@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#ffffff",
+  "textColor": "#1a1a1a",
+  "mutedTextColor": "#8c887f",
+  "accentColor": "#b9b19e",
+  "fontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+  "headingFontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+  "logoScale": 100,
+  "logoPosition": "left",
+  "pageHeadingScale": 110,
+  "pageHeadingPosition": "left",
+  "navStyle": "minimal",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

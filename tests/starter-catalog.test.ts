@@ -64,6 +64,11 @@ describe('discipline-led starter catalog', () => {
 			'atelier',
 			'contact-sheet',
 			'runway',
+			'promenade',
+			'still-room',
+			'signal',
+			'clearing',
+			'marmalade',
 		]);
 		const photographer = STARTER_RECIPES.find(
 			(recipe) => recipe.id === 'photographer',
@@ -206,9 +211,15 @@ describe('discipline-led starter catalog', () => {
 		expect(preview.galleries['selected-work'][0].src).toContain(
 			'assets/starters/painter/01-two-sisters.jpg',
 		);
+		// The spec-14 batch presets that also cover {full-bleed, dense, freeform}
+		// joined this list when batch 2 landed; the curated pair still leads.
 		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
 			'gallery-linen',
 			'night-gallery',
+			'studio-white',
+			'almond-paper',
+			'signal-blue',
+			'marmalade-white',
 		]);
 	});
 
@@ -253,6 +264,10 @@ describe('discipline-led starter catalog', () => {
 		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
 			'gallery-linen',
 			'night-gallery',
+			'studio-white',
+			'almond-paper',
+			'signal-blue',
+			'marmalade-white',
 		]);
 	});
 
@@ -278,13 +293,17 @@ describe('discipline-led starter catalog', () => {
 		}
 	});
 
-	it('keeps the spec-14 batch-1 media byte-for-byte tied to the NGA rights manifest', () => {
+	it('keeps the spec-14 batch media byte-for-byte tied to the NGA rights manifest', () => {
+		// Slot counts include cross-folder reuses (a sample hung in two rooms).
 		const expectedCounts = {
-			conservatory: 10,
-			masthead: 14,
+			conservatory: 15,
+			masthead: 20,
 			atelier: 18,
-			'contact-sheet': 9,
-			runway: 10,
+			'contact-sheet': 13,
+			runway: 13,
+			promenade: 9,
+			clearing: 10,
+			marmalade: 13,
 		} as const;
 		for (const starterId of Object.keys(expectedCounts) as Array<keyof typeof expectedCounts>) {
 			const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === starterId)!;
@@ -361,9 +380,20 @@ describe('discipline-led starter catalog', () => {
 		expect(overlappingPairs).toBeGreaterThanOrEqual(2);
 		expect(new Set(layouts.map((layout) => layout.z)).size).toBe(layouts.length);
 		expect(entries.every((entry) => !!entry.meta.effects?.mount)).toBe(true);
+		// Every spec-14 preset covering {full-bleed, freeform, longform} matches
+		// this doc too; the curated pair still leads the list.
 		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
 			'studio-corkboard',
 			'vitrine',
+			'conservatory-green',
+			'poster-white',
+			'studio-white',
+			'almond-paper',
+			'backstage-black',
+			'plaster-white',
+			'still-cream',
+			'signal-blue',
+			'marmalade-white',
 		]);
 	});
 
@@ -382,6 +412,15 @@ describe('discipline-led starter catalog', () => {
 		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
 			'studio-corkboard',
 			'vitrine',
+			'conservatory-green',
+			'poster-white',
+			'studio-white',
+			'almond-paper',
+			'backstage-black',
+			'plaster-white',
+			'still-cream',
+			'signal-blue',
+			'marmalade-white',
 		]);
 	});
 

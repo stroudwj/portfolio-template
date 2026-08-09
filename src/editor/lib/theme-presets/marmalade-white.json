@@ -1,0 +1,16 @@
+{
+  "backgroundColor": "#fdfdfd",
+  "textColor": "#1d1d1d",
+  "mutedTextColor": "#767676",
+  "accentColor": "#ff340a",
+  "fontFamily": "Arial, \"Helvetica Neue\", Helvetica, sans-serif",
+  "headingFontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+  "logoScale": 120,
+  "logoPosition": "left",
+  "pageHeadingScale": 140,
+  "pageHeadingPosition": "left",
+  "navStyle": "topbar",
+  "fullscreenMobileMenu": true,
+  "automaticTextContrast": true,
+  "stabilizeNavigation": true
+}

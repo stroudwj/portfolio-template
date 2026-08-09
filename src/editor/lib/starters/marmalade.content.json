@@ -1,0 +1,638 @@
+{
+  "schemaVersion": 5,
+  "site": {
+    "name": "Your Name",
+    "headerMode": "name",
+    "description": "Drawing portfolio",
+    "favicon": "favicon.svg",
+    "footer": "Made with hangwork.art"
+  },
+  "theme": {
+    "backgroundColor": "#fdfdfd",
+    "textColor": "#1d1d1d",
+    "mutedTextColor": "#767676",
+    "accentColor": "#ff340a",
+    "fontFamily": "Arial, \"Helvetica Neue\", Helvetica, sans-serif",
+    "headingFontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+    "logoScale": 120,
+    "pageHeadingScale": 140,
+    "pageHeadingPosition": "left",
+    "logoPosition": "left",
+    "navStyle": "topbar",
+    "fullscreenMobileMenu": true,
+    "automaticTextContrast": true,
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": true,
+      "hover": true,
+      "stagger": true
+    }
+  },
+  "nav": [
+    {
+      "path": "",
+      "label": "Portfolio"
+    },
+    {
+      "path": "select-works",
+      "label": "Select works"
+    },
+    {
+      "path": "about",
+      "label": "About"
+    }
+  ],
+  "profile": {
+    "image": "",
+    "bio": "Name the rooms your drawings have hung in, and the ones you want next. The drawings in this starter are museum Open Access samples and cannot be published as your work."
+  },
+  "contact": {
+    "email": ""
+  },
+  "social": [],
+  "resume": {
+    "label": "Résumé",
+    "url": ""
+  },
+  "pages": {
+    "home": {
+      "title": "{name} — Portfolio",
+      "label": "Portfolio",
+      "description": "One loud word, twice, with the work between.",
+      "blocks": [
+        {
+          "id": "poster-images",
+          "type": "images",
+          "gallery": {
+            "folder": "poster",
+            "alt": "Drawing",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:poster-word-1": {
+                  "hidden": true
+                },
+                "text:poster-word-2": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Poster"
+        },
+        {
+          "id": "poster-email",
+          "type": "text",
+          "text": "studio@example.com",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "studio@example.com",
+                  "fontSize": 14
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 2,
+            "w": 30,
+            "h": 3,
+            "z": 5
+          }
+        },
+        {
+          "id": "poster-word-1",
+          "type": "text",
+          "text": "PORTFOLIO",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "PORTFOLIO",
+                  "fontSize": 118
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "w": 100,
+            "h": 15,
+            "z": 1
+          }
+        },
+        {
+          "id": "poster-word-2",
+          "type": "text",
+          "text": "PORTFOLIO",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "PORTFOLIO",
+                  "fontSize": 118
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 22,
+            "w": 100,
+            "h": 15,
+            "z": 3
+          }
+        },
+        {
+          "id": "poster-intro",
+          "type": "text",
+          "text": "Drawings in charcoal and graphite — heads, hands, and the studies behind larger rooms.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Drawings in charcoal and graphite — heads, hands, and the studies behind larger rooms.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 56,
+            "w": 40,
+            "h": 12,
+            "z": 5
+          }
+        },
+        {
+          "id": "poster-name",
+          "type": "text",
+          "text": "Your Name",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Your Name",
+                  "fontSize": 20,
+                  "bold": true
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 55,
+            "y": 78,
+            "w": 42,
+            "h": 4,
+            "z": 5
+          }
+        },
+        {
+          "id": "poster-role",
+          "type": "text",
+          "text": "Draughtsman & muralist",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Draughtsman & muralist",
+                  "fontSize": 28
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "layout": {
+            "x": 55,
+            "y": 83,
+            "w": 42,
+            "h": 6,
+            "z": 5
+          }
+        },
+        {
+          "id": "select-images",
+          "type": "images",
+          "gallery": {
+            "folder": "select",
+            "alt": "Drawing",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Select works"
+        },
+        {
+          "id": "select-title",
+          "type": "text",
+          "text": "Select Works",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Select Works",
+                  "fontSize": 28
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "layout": {
+            "x": 0,
+            "y": 2,
+            "w": 37,
+            "h": 5,
+            "z": 10
+          }
+        },
+        {
+          "id": "select-note",
+          "type": "text",
+          "text": "Five studies from the last year, and one sheet that would not stay small.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Five studies from the last year, and one sheet that would not stay small.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 50,
+            "y": 36,
+            "w": 46,
+            "h": 10,
+            "z": 10
+          }
+        },
+        {
+          "id": "select-latest",
+          "type": "text",
+          "text": "Latest project",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Latest project",
+                  "fontSize": 28
+                }
+              ]
+            }
+          ],
+          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "layout": {
+            "x": 50,
+            "y": 50,
+            "w": 37,
+            "h": 5,
+            "z": 10
+          }
+        },
+        {
+          "id": "select-latest-note",
+          "type": "text",
+          "text": "A mural cartoon at full scale — showing early next year.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A mural cartoon at full scale — showing early next year.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 50,
+            "y": 57,
+            "w": 46,
+            "h": 5,
+            "z": 10
+          }
+        },
+        {
+          "id": "exhibitions-title",
+          "type": "text",
+          "text": "Exhibitions",
+          "style": "heading"
+        },
+        {
+          "id": "exhibitions-col-1",
+          "type": "text",
+          "text": "Figure Room — drawings, 2026",
+          "style": "body",
+          "flowLayout": {
+            "x": 0,
+            "w": 29
+          }
+        },
+        {
+          "id": "exhibitions-col-2",
+          "type": "text",
+          "text": "The Long Wall — studies, 2025",
+          "style": "body",
+          "flowLayout": {
+            "x": 33,
+            "w": 29
+          }
+        },
+        {
+          "id": "exhibitions-col-3",
+          "type": "text",
+          "text": "First Sheets — group show, 2024",
+          "style": "body",
+          "flowLayout": {
+            "x": 66,
+            "w": 29
+          }
+        }
+      ],
+      "sections": [
+        {
+          "id": "poster",
+          "name": "Poster",
+          "blockIds": [
+            "poster-images",
+            "poster-email",
+            "poster-word-1",
+            "poster-word-2",
+            "poster-intro",
+            "poster-name",
+            "poster-role"
+          ]
+        },
+        {
+          "id": "select",
+          "name": "Select works",
+          "blockIds": [
+            "select-images",
+            "select-title",
+            "select-note",
+            "select-latest",
+            "select-latest-note"
+          ]
+        },
+        {
+          "id": "exhibitions",
+          "name": "Exhibitions",
+          "blockIds": [
+            "exhibitions-title",
+            "exhibitions-col-1",
+            "exhibitions-col-2",
+            "exhibitions-col-3"
+          ]
+        }
+      ],
+      "sectionMotion": {
+        "section:poster": {
+          "effect": "reveal",
+          "intensity": 40
+        },
+        "section:select": {
+          "effect": "reveal",
+          "intensity": 30
+        }
+      },
+      "sectionColors": {
+        "section:poster": "#ff340a",
+        "section:select": "#f2f2f2"
+      }
+    },
+    "select-works": {
+      "title": "Select works — {name}",
+      "label": "Select works",
+      "description": "The sheets that travel, three to a row.",
+      "heading": "Select works",
+      "blocks": [
+        {
+          "id": "select-works-intro",
+          "type": "text",
+          "text": "The sheets that travel — three to a row.",
+          "style": "body"
+        },
+        {
+          "id": "select-works-images",
+          "type": "images",
+          "gallery": {
+            "folder": "select-works",
+            "alt": "Drawing",
+            "order": "asc",
+            "layout": "grid",
+            "columns": 3
+          },
+          "name": "Select works"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "select-works-intro",
+            "select-works-images"
+          ]
+        }
+      ]
+    },
+    "about": {
+      "title": "About — {name}",
+      "label": "About",
+      "heading": "About",
+      "blocks": [
+        {
+          "id": "about",
+          "type": "about"
+        }
+      ],
+      "sections": [
+        {
+          "id": "main",
+          "name": "Main section",
+          "blockIds": [
+            "about"
+          ]
+        }
+      ]
+    }
+  },
+  "galleries": {
+    "poster": {
+      "items": {
+        "01-bust-of-a-man.jpg": {
+          "id": "sample-drawing-nga-184301-v1",
+          "sampleAssetId": "drawing-nga-184301-v1",
+          "title": "Bust of a Man",
+          "alt": "The image is a sketch of a man shown from the shoulders up.",
+          "description": "John Singer Sargent. Bust of a Man, 1880-1905. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184301.html",
+          "layout": {
+            "x": 50,
+            "y": 10,
+            "w": 48,
+            "ar": 0.75244,
+            "z": 2
+          }
+        }
+      }
+    },
+    "select": {
+      "items": {
+        "01-en-route-pour-la-peche-setting-out-to-fish.jpg": {
+          "id": "sample-drawing-nga-184331-v1",
+          "sampleAssetId": "drawing-nga-184331-v1",
+          "title": "En route pour la pêche (Setting Out to Fish)",
+          "alt": "This drawing depicts a group of people standing together, most of them facing left.",
+          "description": "John Singer Sargent. En route pour la pêche (Setting Out to Fish), 1878. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184331.html",
+          "layout": {
+            "x": 0,
+            "y": 8,
+            "w": 16,
+            "ar": 1.54104,
+            "z": 1
+          }
+        },
+        "02-figure-studies-of-a-nude-youth.jpg": {
+          "id": "sample-drawing-nga-62960-v1",
+          "sampleAssetId": "drawing-nga-62960-v1",
+          "title": "Figure Studies of a Nude Youth",
+          "alt": "Figure Studies of a Nude Youth: an open-access artwork from the National Gallery of Art.",
+          "description": "John Singer Sargent. Figure Studies of a Nude Youth. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.62960.html",
+          "layout": {
+            "x": 21,
+            "y": 8,
+            "w": 16,
+            "ar": 1.2963,
+            "z": 1
+          }
+        },
+        "03-forest-ramsau-germany.jpg": {
+          "id": "sample-drawing-nga-184264-v1",
+          "sampleAssetId": "drawing-nga-184264-v1",
+          "title": "Forest, Ramsau, Germany",
+          "alt": "Forest, Ramsau, Germany: an open-access artwork from the National Gallery of Art.",
+          "description": "John Singer Sargent. Forest, Ramsau, Germany, 1871. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184264.html",
+          "layout": {
+            "x": 42,
+            "y": 8,
+            "w": 16,
+            "ar": 1.33431,
+            "z": 1
+          }
+        },
+        "04-head-of-a-boy-and-the-entrance-to-a-shack.jpg": {
+          "id": "sample-drawing-nga-197320-v1",
+          "sampleAssetId": "drawing-nga-197320-v1",
+          "title": "Head of a Boy; and the Entrance to a Shack",
+          "alt": "This drawing shows a young person's profile and an interior view of a rustic structure.",
+          "description": "John Singer Sargent. Head of a Boy; and the Entrance to a Shack, 1871. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.197320.html",
+          "layout": {
+            "x": 63,
+            "y": 8,
+            "w": 16,
+            "ar": 1.36159,
+            "z": 1
+          }
+        },
+        "05-head-of-a-man.jpg": {
+          "id": "sample-drawing-nga-184996-v1",
+          "sampleAssetId": "drawing-nga-184996-v1",
+          "title": "Head of a Man",
+          "alt": "The image displays a close-up of a person's head and a portion of the neck, with the face shown in profile.",
+          "description": "John Singer Sargent. Head of a Man, 1875-1880. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184996.html",
+          "layout": {
+            "x": 84,
+            "y": 8,
+            "w": 16,
+            "ar": 0.87406,
+            "z": 1
+          }
+        },
+        "06-studies-for-judgment.jpg": {
+          "id": "sample-drawing-nga-185018-v1",
+          "sampleAssetId": "drawing-nga-185018-v1",
+          "title": "Studies for \"Judgment\"",
+          "alt": "Studies for \"Judgment\": an open-access artwork from the National Gallery of Art.",
+          "description": "John Singer Sargent. Studies for \"Judgment\", 1903-1916. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.185018.html",
+          "layout": {
+            "x": 0,
+            "y": 26,
+            "w": 41,
+            "ar": 0.77586,
+            "z": 1
+          }
+        }
+      }
+    },
+    "select-works": {
+      "items": {
+        "01-hintersee-germany.jpg": {
+          "id": "sample-drawing-nga-184265-v1",
+          "sampleAssetId": "drawing-nga-184265-v1",
+          "title": "Hintersee, Germany",
+          "alt": "This image shows a pencil sketch of a natural landscape with rocky formations and vegetation.",
+          "description": "John Singer Sargent. Hintersee, Germany, 1871. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184265.html"
+        },
+        "02-lake-shore.jpg": {
+          "id": "sample-drawing-nga-194571-v1",
+          "sampleAssetId": "drawing-nga-194571-v1",
+          "title": "Lake Shore",
+          "alt": "This drawing depicts a landscape view from a rocky shoreline, drawn in gray lines.",
+          "description": "John Singer Sargent. Lake Shore, 1868-1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.194571.html"
+        },
+        "03-lake-shore-menaggio-recto.jpg": {
+          "id": "sample-drawing-nga-184330-v1",
+          "sampleAssetId": "drawing-nga-184330-v1",
+          "title": "Lake Shore, Menaggio [recto]",
+          "alt": "The image shows a calm body of water with a mountainous backdrop.",
+          "description": "John Singer Sargent. Lake Shore, Menaggio [recto], 1869. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184330.html"
+        },
+        "04-man-with-curly-hair.jpg": {
+          "id": "sample-drawing-nga-184277-v1",
+          "sampleAssetId": "drawing-nga-184277-v1",
+          "title": "Man with Curly Hair",
+          "alt": "The image features a pencil drawing of a man's head and upper torso in a three-quarter view, facing left.",
+          "description": "John Singer Sargent. Man with Curly Hair, 1872. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184277.html"
+        },
+        "05-studies-for-apollo-and-the-muses.jpg": {
+          "id": "sample-drawing-nga-184315-v1",
+          "sampleAssetId": "drawing-nga-184315-v1",
+          "title": "Studies for \"Apollo and the Muses\"",
+          "alt": "Studies for \"Apollo and the Muses\": an open-access artwork from the National Gallery of Art.",
+          "description": "John Singer Sargent. Studies for \"Apollo and the Muses\", c. 1921. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184315.html"
+        },
+        "06-studies-for-gassed.jpg": {
+          "id": "sample-drawing-nga-184995-v1",
+          "sampleAssetId": "drawing-nga-184995-v1",
+          "title": "Studies for \"Gassed\"",
+          "alt": "This drawing depicts six different views of a person's head and upper shoulders.",
+          "description": "John Singer Sargent. Studies for \"Gassed\", 1918-1919. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.184995.html"
+        }
+      }
+    }
+  }
+}

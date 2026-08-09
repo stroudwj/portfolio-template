@@ -401,7 +401,7 @@ motion preview scrubbing, any new primitive.
 
 ---
 
-## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 `merged` 2026-08-09: conservatory/masthead/atelier/contact-sheet/runway + NGA sample catalog; revision pass required after spec 21, then batches 2–3)
+## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 merged + revision pass built, batch 2 built 2026-08-09 on worktree-spec-14-revision-batch-2 awaiting merge: revision rebuilds the five to the signature-device bar with full placement/scroll depth/edge bleed; batch 2 adds promenade/still-room/signal/clearing/marmalade; batch 3 remains: Reseda, Ortiz, Mycelium, Beaumont, Cami, Hawley, Minetta, Tepito, Zion)
 
 **Goal.** Translate the curated Squarespace portfolio designs in
 `src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork

@@ -5,21 +5,19 @@
     "headerMode": "name",
     "description": "Photography portfolio",
     "favicon": "favicon.svg",
-    "footer": "Made with hangwork.art",
-    "creative": {
-      "slowReveal": true,
-      "pageTransition": "fade"
-    }
+    "footer": "Made with hangwork.art"
   },
   "theme": {
     "backgroundColor": "#fafafa",
     "textColor": "#161616",
-    "mutedTextColor": "#6e6e6e",
+    "mutedTextColor": "#6d6d6d",
     "accentColor": "#1c1c1c",
-    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "fontFamily": "-apple-system, \"Segoe UI\", Roboto, Arial, sans-serif",
     "headingFontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
-    "pageHeadingScale": 120,
+    "logoScale": 110,
+    "pageHeadingScale": 130,
     "pageHeadingPosition": "left",
+    "logoPosition": "left",
     "navStyle": "topbar",
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
@@ -27,7 +25,7 @@
     "motion": {
       "intensity": "subtle",
       "reveal": true,
-      "stagger": true
+      "hover": true
     }
   },
   "nav": [
@@ -50,7 +48,7 @@
   ],
   "profile": {
     "image": "",
-    "bio": "Introduce the studio — what you photograph, who commissions it, and how a project runs. The photographs in this starter are public-domain museum samples and cannot be published as your work."
+    "bio": "A studio statement belongs here: what you photograph, how you work, and where commissions fit. The photographs in this starter are museum Open Access samples and cannot be published as your work."
   },
   "contact": {
     "email": ""
@@ -64,8 +62,7 @@
     "home": {
       "title": "{name} — Studio",
       "label": "Studio",
-      "description": "A working studio — projects first, process close behind.",
-      "heading": "Studio",
+      "description": "A working studio: one hero, a statement, and current projects.",
       "blocks": [
         {
           "id": "hero-image",
@@ -74,35 +71,197 @@
             "folder": "hero",
             "alt": "Photograph",
             "order": "asc",
-            "layout": "grid",
-            "columns": 1
+            "layout": "freeform"
           },
           "name": "Hero"
         },
         {
-          "id": "statement",
+          "id": "hero-statement",
           "type": "text",
-          "text": "A working studio — projects first, process close behind.",
-          "style": "body"
+          "text": "A photography studio for slow, deliberate pictures of the built world.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A photography studio for slow, deliberate pictures of the built world.",
+                  "fontSize": 40
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 86,
+            "w": 92,
+            "h": 16,
+            "z": 10
+          }
         },
         {
-          "id": "index-images",
+          "id": "hero-sub",
+          "type": "text",
+          "text": "Documenting gardens, storefronts, and the quiet corners cities forget.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Documenting gardens, storefronts, and the quiet corners cities forget.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 42,
+            "y": 104,
+            "w": 54,
+            "h": 6,
+            "z": 10
+          }
+        },
+        {
+          "id": "projects-heading",
+          "type": "text",
+          "text": "Projects",
+          "style": "heading"
+        },
+        {
+          "id": "row1-title",
+          "type": "text",
+          "text": "Gardens",
+          "style": "subheading",
+          "flowLayout": {
+            "x": 0,
+            "w": 33
+          }
+        },
+        {
+          "id": "row1-note",
+          "type": "text",
+          "text": "Statues, ponds, and hedges photographed at first light.",
+          "style": "body",
+          "flowLayout": {
+            "x": 0,
+            "w": 29
+          }
+        },
+        {
+          "id": "row1-image",
           "type": "images",
           "gallery": {
-            "folder": "index",
+            "folder": "row-gardens",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Gardens row"
+        },
+        {
+          "id": "row2-title",
+          "type": "text",
+          "text": "Storefronts",
+          "style": "subheading",
+          "flowLayout": {
+            "x": 0,
+            "w": 33
+          }
+        },
+        {
+          "id": "row2-note",
+          "type": "text",
+          "text": "Shopfronts and signs, catalogued before they vanish.",
+          "style": "body",
+          "flowLayout": {
+            "x": 0,
+            "w": 29
+          }
+        },
+        {
+          "id": "row2-image",
+          "type": "images",
+          "gallery": {
+            "folder": "row-storefronts",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Storefronts row"
+        },
+        {
+          "id": "row3-title",
+          "type": "text",
+          "text": "Interiors",
+          "style": "subheading",
+          "flowLayout": {
+            "x": 0,
+            "w": 33
+          }
+        },
+        {
+          "id": "row3-note",
+          "type": "text",
+          "text": "Rooms as their owners left them.",
+          "style": "body",
+          "flowLayout": {
+            "x": 0,
+            "w": 29
+          }
+        },
+        {
+          "id": "row3-image",
+          "type": "images",
+          "gallery": {
+            "folder": "row-interiors",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform"
+          },
+          "name": "Interiors row"
+        },
+        {
+          "id": "cta-heading",
+          "type": "text",
+          "text": "Commissions",
+          "style": "heading"
+        },
+        {
+          "id": "cta-body",
+          "type": "text",
+          "text": "From a single object to a whole neighborhood survey — write and describe what should be photographed.",
+          "style": "body",
+          "flowLayout": {
+            "x": 42,
+            "w": 54
+          }
+        },
+        {
+          "id": "closing-heading",
+          "type": "text",
+          "text": "The studio",
+          "style": "heading"
+        },
+        {
+          "id": "closing-body",
+          "type": "text",
+          "text": "Prints are made in-house; editions are small and documented.",
+          "style": "body",
+          "flowLayout": {
+            "x": 42,
+            "w": 54
+          }
+        },
+        {
+          "id": "closing-strip",
+          "type": "images",
+          "gallery": {
+            "folder": "strip",
             "alt": "Photograph",
             "order": "asc",
             "layout": "grid",
             "columns": 3
           },
-          "name": "Selected projects"
-        },
-        {
-          "id": "index-caption",
-          "type": "text",
-          "text": "Selected projects — each series opens as its own page.",
-          "align": "center",
-          "style": "body"
+          "name": "Studio strip"
         }
       ],
       "sections": [
@@ -110,22 +269,42 @@
           "id": "hero",
           "name": "Hero",
           "blockIds": [
-            "hero-image"
+            "hero-image",
+            "hero-statement",
+            "hero-sub"
           ]
         },
         {
-          "id": "statement",
-          "name": "Statement",
+          "id": "projects",
+          "name": "Projects",
           "blockIds": [
-            "statement"
+            "projects-heading",
+            "row1-title",
+            "row1-note",
+            "row1-image",
+            "row2-title",
+            "row2-note",
+            "row2-image",
+            "row3-title",
+            "row3-note",
+            "row3-image"
           ]
         },
         {
-          "id": "index",
-          "name": "Project index",
+          "id": "cta",
+          "name": "Commissions",
           "blockIds": [
-            "index-images",
-            "index-caption"
+            "cta-heading",
+            "cta-body"
+          ]
+        },
+        {
+          "id": "closing",
+          "name": "The studio",
+          "blockIds": [
+            "closing-heading",
+            "closing-body",
+            "closing-strip"
           ]
         }
       ],
@@ -134,22 +313,29 @@
           "effect": "reveal",
           "intensity": 35
         },
-        "section:index": {
+        "section:projects": {
           "effect": "reveal",
           "intensity": 30
         }
+      },
+      "sectionColors": {
+        "section:cta": "#e7e7e2",
+        "section:closing": "#1c1c1c"
+      },
+      "sectionBleed": {
+        "section:hero": true
       }
     },
     "gardens": {
       "title": "Gardens — {name}",
       "label": "Gardens",
-      "description": "Saint-Cloud and Sceaux, out of season.",
+      "description": "A case study in six photographs.",
       "heading": "Gardens",
       "blocks": [
         {
           "id": "gardens-intro",
           "type": "text",
-          "text": "Saint-Cloud and Sceaux, out of season — water, hedges, and empty steps.",
+          "text": "Versailles, Sceaux, and Saint-Cloud — the formal garden as a patient sitter.",
           "style": "body"
         },
         {
@@ -159,8 +345,7 @@
             "folder": "gardens",
             "alt": "Photograph",
             "order": "asc",
-            "layout": "grid",
-            "columns": 2
+            "layout": "grid"
           },
           "name": "Gardens"
         },
@@ -170,8 +355,7 @@
           "project": {
             "template": "artwork",
             "year": "1901–1926",
-            "medium": "Albumen and gelatin silver prints",
-            "exhibitionHistory": "National Gallery of Art, Open Access"
+            "medium": "Albumen and gelatin silver prints"
           }
         }
       ],
@@ -186,7 +370,7 @@
         },
         {
           "id": "section-project",
-          "name": "Project details",
+          "name": "Details",
           "blockIds": [
             "gardens-project"
           ]
@@ -199,13 +383,13 @@
     "storefronts": {
       "title": "Storefronts — {name}",
       "label": "Storefronts",
-      "description": "Shop windows and signs — the city addressed directly.",
+      "description": "A case study in five photographs.",
       "heading": "Storefronts",
       "blocks": [
         {
           "id": "storefronts-intro",
           "type": "text",
-          "text": "Shop windows and signs — the city addressed directly.",
+          "text": "Signs, awnings, and window displays — commerce as still life.",
           "style": "body"
         },
         {
@@ -215,8 +399,7 @@
             "folder": "storefronts",
             "alt": "Photograph",
             "order": "asc",
-            "layout": "grid",
-            "columns": 2
+            "layout": "grid"
           },
           "name": "Storefronts"
         }
@@ -262,11 +445,75 @@
           "title": "Parc de Sceaux",
           "alt": "The image shows a set of stone steps leading up to a grassy area.",
           "description": "Eugène Atget. Parc de Sceaux, 1925. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.124991.html"
+          "link": "https://www.nga.gov/collection/art-object-page.124991.html",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "ar": 1.27213,
+            "z": 1
+          }
         }
       }
     },
-    "index": {
+    "row-gardens": {
+      "items": {
+        "01-parc-de-sceaux.jpg": {
+          "id": "sample-photography-nga-124988-v1",
+          "sampleAssetId": "photography-nga-124988-v1",
+          "title": "Parc de Sceaux",
+          "alt": "The image displays a stone staircase leading to an elegant building with large windows.",
+          "description": "Eugène Atget. Parc de Sceaux, 1925. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124988.html",
+          "layout": {
+            "x": 70,
+            "y": 0,
+            "w": 33,
+            "ar": 1.28967,
+            "z": 1
+          }
+        }
+      }
+    },
+    "row-storefronts": {
+      "items": {
+        "01-cour-de-rouen.jpg": {
+          "id": "sample-photography-nga-124978-v1",
+          "sampleAssetId": "photography-nga-124978-v1",
+          "title": "Cour de Rouen",
+          "alt": "The image shows an elevated view of the upper parts of an old, weathered building facade.",
+          "description": "Eugène Atget. Cour de Rouen, 1922. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124978.html",
+          "layout": {
+            "x": 74,
+            "y": 0,
+            "w": 28,
+            "ar": 0.79106,
+            "z": 1
+          }
+        }
+      }
+    },
+    "row-interiors": {
+      "items": {
+        "01-interior-of-a-working-class-home-rue-de-roma.jpg": {
+          "id": "sample-photography-nga-131771-v1",
+          "sampleAssetId": "photography-nga-131771-v1",
+          "title": "Interior of a Working Class Home, rue de Romainville",
+          "alt": "The image displays a richly decorated room featuring a large mirror above a fireplace mantel, a detailed clock, candelabras, and a figurine.",
+          "description": "Eugène Atget. Interior of a Working Class Home, rue de Romainville, 1909-10. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.131771.html",
+          "layout": {
+            "x": 76,
+            "y": 0,
+            "w": 26,
+            "ar": 0.81905,
+            "z": 1
+          }
+        }
+      }
+    },
+    "strip": {
       "items": {
         "01-cour-du-dragon-dragon-court.jpg": {
           "id": "sample-photography-nga-222106-v1",
@@ -291,30 +538,6 @@
           "alt": "Notre-Dame: an open-access photograph from the National Gallery of Art.",
           "description": "Eugène Atget. Notre-Dame, 1922. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.124979.html"
-        },
-        "04-the-steps-at-saint-cloud.jpg": {
-          "id": "sample-photography-nga-106293-v1",
-          "sampleAssetId": "photography-nga-106293-v1",
-          "title": "The Steps at Saint-Cloud",
-          "alt": "The Steps at Saint-Cloud: an open-access photograph from the National Gallery of Art.",
-          "description": "Eugène Atget. The Steps at Saint-Cloud, 1906. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.106293.html"
-        },
-        "05-luxembourg-anne-of-brittany.jpg": {
-          "id": "sample-photography-nga-109004-v1",
-          "sampleAssetId": "photography-nga-109004-v1",
-          "title": "Luxembourg, Anne of Brittany",
-          "alt": "The image shows a sculpture of a figure in robes on an ornate pedestal.",
-          "description": "Eugène Atget. Luxembourg, Anne of Brittany, 1923-1926. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.109004.html"
-        },
-        "06-pont-marie.jpg": {
-          "id": "sample-photography-nga-124973-v1",
-          "sampleAssetId": "photography-nga-124973-v1",
-          "title": "Pont Marie",
-          "alt": "Pont Marie: an open-access photograph from the National Gallery of Art.",
-          "description": "Eugène Atget. Pont Marie, 1912. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.124973.html"
         }
       }
     },
@@ -328,7 +551,7 @@
           "description": "Eugène Atget. Saint-Cloud, 1922. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.124980.html"
         },
-        "02-saint-cloud-h-tre.jpg": {
+        "02-saint-cloud-hetre.jpg": {
           "id": "sample-photography-nga-124976-v1",
           "sampleAssetId": "photography-nga-124976-v1",
           "title": "Saint-Cloud (Hêtre)",
@@ -336,7 +559,7 @@
           "description": "Eugène Atget. Saint-Cloud (Hêtre), 1919/1921. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.124976.html"
         },
-        "03-nymph-as-bagatelle.jpg": {
+        "03-nympheas-bagatelle.jpg": {
           "id": "sample-photography-nga-124986-v1",
           "sampleAssetId": "photography-nga-124986-v1",
           "title": "Nymphéas (Bagatelle)",
@@ -352,7 +575,7 @@
           "description": "Eugène Atget. Parc de Sceaux, c. 1925. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.112170.html"
         },
-        "05-roseaux-tang-du-plessis-piquet.jpg": {
+        "05-roseaux-etang-du-plessis-piquet.jpg": {
           "id": "sample-photography-nga-124975-v1",
           "sampleAssetId": "photography-nga-124975-v1",
           "title": "Roseaux, Étang du Plessis-Piquet",

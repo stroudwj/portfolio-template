@@ -5,40 +5,34 @@
     "headerMode": "name",
     "description": "Photography portfolio",
     "favicon": "favicon.svg",
-    "footer": "Made with hangwork.art",
-    "creative": {
-      "film": {
-        "preset": "fine-grain",
-        "intensity": 6
-      },
-      "pageTransition": "gallery"
-    }
+    "footer": "Made with hangwork.art"
   },
   "theme": {
     "backgroundColor": "#fffdf6",
-    "textColor": "#171512",
-    "mutedTextColor": "#8a7a66",
-    "accentColor": "#ab8155",
+    "textColor": "#191919",
+    "mutedTextColor": "#77705f",
+    "accentColor": "#ab8055",
     "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
     "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
-    "pageHeadingScale": 170,
+    "logoScale": 130,
+    "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
+    "logoPosition": "left",
     "navStyle": "topbar",
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
     "motion": {
-      "intensity": "full",
+      "intensity": "subtle",
       "reveal": true,
       "hover": true,
-      "hoverCaptions": true,
       "stagger": true
     }
   },
   "nav": [
     {
       "path": "",
-      "label": "Photographs"
+      "label": "Contact sheet"
     },
     {
       "path": "field-notes",
@@ -51,7 +45,7 @@
   ],
   "profile": {
     "image": "",
-    "bio": "Introduce your photographic practice — subjects, assignments, and how prints leave the studio. The photographs in this starter are public-domain museum samples and cannot be published as your work."
+    "bio": "One paragraph on where the camera has been pointing lately. The photographs in this starter are museum Open Access samples and cannot be published as your work."
   },
   "contact": {
     "email": ""
@@ -63,16 +57,30 @@
   },
   "pages": {
     "home": {
-      "title": "{name} — Photographs",
-      "label": "Photographs",
-      "description": "Documentary work, printed honest — the grid is the argument.",
-      "heading": "Photographs",
+      "title": "{name} — Contact sheet",
+      "label": "Contact sheet",
+      "description": "The working wall — every frame worth keeping.",
+      "heading": "Currently photographing the working city",
       "blocks": [
         {
           "id": "statement",
           "type": "text",
-          "text": "Documentary work, printed honest — the grid is the argument.",
-          "style": "body"
+          "text": "What catches your eye when the street is not loud, fast, or crowded?",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "What catches your eye when the street is not loud, fast, or crowded?",
+                  "fontSize": 36
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "flowLayout": {
+            "x": 0,
+            "w": 92
+          }
         },
         {
           "id": "sheet-images",
@@ -85,15 +93,89 @@
             "columns": 3
           },
           "name": "Contact sheet"
+        },
+        {
+          "id": "signature-host",
+          "type": "images",
+          "gallery": {
+            "folder": "colophon",
+            "alt": "Photograph",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:signature-name": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Signature"
+        },
+        {
+          "id": "signature-name",
+          "type": "text",
+          "text": "Your Name",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Your Name",
+                  "fontSize": 144
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 2,
+            "w": 70,
+            "h": 32,
+            "z": 10
+          }
+        },
+        {
+          "id": "signature-links",
+          "type": "text",
+          "text": "Field notes ↗ — About ↗",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Field notes ↗ — About ↗",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 70,
+            "y": 6,
+            "w": 28,
+            "h": 5,
+            "z": 10
+          }
         }
       ],
       "sections": [
         {
           "id": "main",
-          "name": "Main section",
+          "name": "Contact sheet",
           "blockIds": [
             "statement",
             "sheet-images"
+          ]
+        },
+        {
+          "id": "signature",
+          "name": "Signature",
+          "blockIds": [
+            "signature-host",
+            "signature-name",
+            "signature-links"
           ]
         }
       ],
@@ -104,20 +186,19 @@
         }
       },
       "headingKinetic": {
-        "effect": "marquee",
-        "speed": 120
+        "effect": "marquee"
       }
     },
     "field-notes": {
       "title": "Field notes — {name}",
       "label": "Field notes",
-      "description": "Frames from the edge of the assignment.",
+      "description": "Slower frames between assignments.",
       "heading": "Field notes",
       "blocks": [
         {
           "id": "notes-intro",
           "type": "text",
-          "text": "Three frames that would not sit still — notes from the edge of the assignment.",
+          "text": "Slower frames between assignments — people at work, mid-task.",
           "style": "body"
         },
         {
@@ -208,19 +289,15 @@
           "description": "Lewis Hine. John Pento, 14 years old, Daniel and Angelo Pento, 7 years old, selling newspapers, Hartford, Connecticut, March 1909. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.194350.html"
         },
-        "06-title-from-caption-on-object-read-all-about.jpg": {
+        "06-title-from-caption-on-object-read-all-about-.jpg": {
           "id": "sample-photography-nga-218187-v1",
           "sampleAssetId": "photography-nga-218187-v1",
           "title": "Title from caption on object: \"Read All About It!\"",
           "alt": "Title from caption on object: \"Read All About It!\": an open-access photograph from the National Gallery of Art.",
           "description": "Lewis Hine. Title from caption on object: \"Read All About It!\", April 1912. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.218187.html"
-        }
-      }
-    },
-    "field-notes": {
-      "items": {
-        "01-soldier-thrown-in-air.jpg": {
+        },
+        "07-soldier-thrown-in-air.jpg": {
           "id": "sample-photography-nga-92317-v1",
           "sampleAssetId": "photography-nga-92317-v1",
           "title": "Soldier Thrown in Air",
@@ -228,7 +305,7 @@
           "description": "Lewis Hine. Soldier Thrown in Air, 1917. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.92317.html"
         },
-        "02-edward-st-germain-and-his-sister-delia-mill.jpg": {
+        "08-edward-st-germain-and-his-sister-delia-mill-.jpg": {
           "id": "sample-photography-nga-197799-v1",
           "sampleAssetId": "photography-nga-197799-v1",
           "title": "Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909",
@@ -236,8 +313,55 @@
           "description": "Lewis Hine. Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909, April 1909. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.197799.html"
         },
-        "03-wagon-boy-or-tail-boy-helping-to-load-the-wa.jpg": {
+        "09-wagon-boy-or-tail-boy-helping-to-load-the-wa.jpg": {
           "id": "sample-photography-nga-164188-v1",
+          "sampleAssetId": "photography-nga-164188-v1",
+          "title": "Wagon boy or \"tail boy\" helping to load the wagon",
+          "alt": "This is a photograph of a street scene in front of a shop.",
+          "description": "Lewis Hine. Wagon boy or \"tail boy\" helping to load the wagon, c. 1914. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.164188.html"
+        }
+      }
+    },
+    "colophon": {
+      "items": {
+        "01-soldier-thrown-in-air.jpg": {
+          "id": "sample-photography-nga-92317-v1-c",
+          "sampleAssetId": "photography-nga-92317-v1",
+          "title": "Soldier Thrown in Air",
+          "alt": "This black-and-white photograph shows a group of men in dark shirts with dark, wide-brimmed hats.",
+          "description": "Lewis Hine. Soldier Thrown in Air, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.92317.html",
+          "layout": {
+            "x": 78,
+            "y": 26,
+            "w": 18,
+            "ar": 1.26968,
+            "z": 1
+          }
+        }
+      }
+    },
+    "field-notes": {
+      "items": {
+        "01-soldier-thrown-in-air.jpg": {
+          "id": "sample-photography-nga-92317-v1-b",
+          "sampleAssetId": "photography-nga-92317-v1",
+          "title": "Soldier Thrown in Air",
+          "alt": "This black-and-white photograph shows a group of men in dark shirts with dark, wide-brimmed hats.",
+          "description": "Lewis Hine. Soldier Thrown in Air, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.92317.html"
+        },
+        "02-edward-st-germain-and-his-sister-delia-mill-.jpg": {
+          "id": "sample-photography-nga-197799-v1-b",
+          "sampleAssetId": "photography-nga-197799-v1",
+          "title": "Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909",
+          "alt": "The image shows a group of young individuals standing in front of a wooden building with horizontal siding.",
+          "description": "Lewis Hine. Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909, April 1909. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.197799.html"
+        },
+        "03-wagon-boy-or-tail-boy-helping-to-load-the-wa.jpg": {
+          "id": "sample-photography-nga-164188-v1-b",
           "sampleAssetId": "photography-nga-164188-v1",
           "title": "Wagon boy or \"tail boy\" helping to load the wagon",
           "alt": "This is a photograph of a street scene in front of a shop.",

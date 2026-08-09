@@ -27,7 +27,8 @@ Near-duplicate groups (pick ≥1 per group, cut the rest):
 - **H — agency/service statement sites (not work-first portfolios):** Adri, Sawyer, Agaro, Nolan, Sackett
 - **I — bio/CV narrative pages (image-light):** Hart, Otto, (Suhama text-only)
 
-## Translation ledger — batch 1 (2026-08-09, branch worktree-spec-14-batch-1)
+## Translation ledger — batch 1 (2026-08-09, branch worktree-spec-14-batch-1;
+## revision pass + batch 2: 2026-08-09, branch worktree-spec-14-revision-batch-2)
 
 The first five keepers are translated into Hangwork starters. Fonts: the renderer
 ships no webfonts (templates cannot carry font files), so each substitution below is
@@ -44,10 +45,39 @@ NGA assistive text).
 | Keo | `contact-sheet` | `almond-paper` | Lewis Hine (9) | Poppins → Futura/Century Gothic stack; Halyard → Avenir |
 | Gilden | `runway` | `backstage-black` | Amedeo Modigliani (10) | Syne → Futura/Century Gothic stack; Source Sans Pro → Helvetica Neue |
 
-Batch-1 device notes: the giant-wordmark devices (Mosley/Reflect/Gilden) are carried
-by `logoScale` 220–300 with `logoPosition: center`; Keo's marquee ticker is
-`headingKinetic: marquee`; Reflect's shop is out of scope for a starter (Stripe links
-are per-artist) and was not translated.
+Batch-1 device notes (as revised): the giant-wordmark devices (Mosley/Reflect/
+Gilden) are canvas TEXT blocks at display scale (richText runs up to 144pt in
+the heading stack) layered with the images — no longer flattened into the site
+header; `logoScale` eased to 110–150 so the header does not double the name.
+The giant texts hide on phones (`gallery.mobile` items — phone stacking renders
+fixed-pt type oversized) where the header wordmark carries identity. Every home
+now places its full image set across source-matching scroll depth, with spec-21
+edge bleed (x < 0 / x+w > 100, `sectionBleed`) where the sources crop the
+viewport. Keo's marquee ticker stays `headingKinetic: marquee`; Reflect's shop
+is out of scope for a starter (Stripe links are per-artist) and was not
+translated. Bellows' "The Germans Arrive" (NGA 133761) is deliberately NOT
+placed in conservatory — a WWI atrocity scene is wrong for a starter sample.
+Revision font changes: atelier body Pragmatica → system grotesque
+(-apple-system/Segoe UI/Roboto), runway body Source Sans Pro → Seravek/Gill
+Sans — Helvetica Neue body is capped at two templates (conservatory, masthead).
+
+## Translation ledger — batch 2 (2026-08-09, branch worktree-spec-14-revision-batch-2)
+
+| Keeper | Hangwork template id | Theme preset | Imagery | Font substitutions |
+|---|---|---|---|---|
+| Bergen | `promenade` | `plaster-white` | Emily Sargent (9) | ltc-bodoni-175 → Didot/Bodoni stack; proxima-nova → Optima/Candara |
+| Cimen | `still-room` | `still-cream` | Met sculpture (8, reused) | Playfair Display → Baskerville stack; Rubik → Trebuchet MS/Verdana |
+| Aue Sobol | `signal` | `signal-blue` | Watkins Met photos (12, reused) | nunito-sans 900 → Arial Black stack; body → Verdana |
+| Arthur | `clearing` | `clearing-white` | Eugène Atget (10) | Karla → Seravek/Gill Sans stack |
+| Quinn | `marmalade` | `marmalade-white` | J. S. Sargent drawings (13) | minion-pro-condensed-display → Iowan Old Style/Palatino; body → Arial |
+
+Batch-2 device notes: Cimen's full-width VIDEO hero becomes a statement laid
+over paired object tiles — starters cannot ship video files; the artist can
+swap in their own embed. Quinn's giant orange type becomes white type on an
+orange-red `sectionColors` block (text runs cannot carry a color, so the
+source's figure/ground is inverted — the orange + doubled condensed serif
+still read as Quinn at a glance). Aue Sobol's whole-site klein-ink text color
+is the theme `textColor` (#000d7a on white), not a per-run color.
 
 Batch 1 flagged two uncataloged masters (`photography/filmseries copy/` and
 `photography/photoseries1 copy/`) as provenance-unknown. **Resolved 2026-08-09 (spec
@@ -83,17 +113,17 @@ Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 | cut | McCurry | https://mccurry-fluid-demo.squarespace.com/ | C dup of Reseda: same masthead-wordmark + work-category bones in a serif skin |
 | keep → `contact-sheet` | Keo | https://keo-fluid-demo.squarespace.com/ | D pick: big sans statement + dense lightbox grid + marquee ticker; cleanest light grid portfolio |
 | keep → `runway` | Gilden | https://gilden-fluid-demo.squarespace.com/ | Single: dark fashion portfolio — watermark wordmark behind hero + numbered case list |
-| keep | Cimen | https://cimen-fluid-demo.squarespace.com/ | Single: cream quiet editorial with full-width video hero; maps to our video-on-canvas |
-| keep | Aue Sobol | https://aue-sobol-fluid-demo.squarespace.com/ | Single: huge klein-blue centered wordmark + bold statement; shop + gallery author layout |
-| keep | Arthur | https://arthur-fluid-demo.squarespace.com/ | Single: sparse asymmetric photo scatter with heavy whitespace — freeform-canvas showcase |
-| keep | Quinn | https://quinn-fluid-demo.squarespace.com/ | Single: light ground, repeated giant serif PORTFOLIO in orange over a gray block + case list |
+| keep → `still-room` | Cimen | https://cimen-fluid-demo.squarespace.com/ | Single: cream quiet editorial with full-width video hero; maps to our video-on-canvas |
+| keep → `signal` | Aue Sobol | https://aue-sobol-fluid-demo.squarespace.com/ | Single: huge klein-blue centered wordmark + bold statement; shop + gallery author layout |
+| keep → `clearing` | Arthur | https://arthur-fluid-demo.squarespace.com/ | Single: sparse asymmetric photo scatter with heavy whitespace — freeform-canvas showcase |
+| keep → `marmalade` | Quinn | https://quinn-fluid-demo.squarespace.com/ | Single: light ground, repeated giant serif PORTFOLIO in orange over a gray block + case list |
 | keep | Reseda | https://reseda-fluid-demo.squarespace.com/ | C pick: massive grotesque masthead + tagline + stacked collection galleries |
 | keep | Ortiz | https://ortiz-fluid-demo.squarespace.com/ | Single: cream + chartreuse color-blocking, organic scalloped image mask, serif display name |
 | cut | Agaro | https://agaro-fluid-demo.squarespace.com/ | H: marketing-agency services page on flat violet; no gallery bones |
 | keep | Mycelium | https://mycelium-fluid-demo.squarespace.com/ | Single: dark immersive photo-essay — video hero, lowercase captions, themed sections, print shop |
 | cut | Balboa | https://balboa-fluid-demo.squarespace.com/ | D dup: statement + image-grid bands with text interludes ≈ Keo bones |
 | keep | Beaumont | https://beaumont-fluid-demo.squarespace.com/ | F pick: quiet titled client-project index grid + short bio |
-| keep | Bergen | https://bergen-fluid-demo.squarespace.com/ | B second pick, distinct device: centered didone mission + full-bleed category image bands |
+| keep → `promenade` | Bergen | https://bergen-fluid-demo.squarespace.com/ | B second pick, distinct device: centered didone mission + full-bleed category image bands |
 | keep | Cami | https://cami-fluid-demo.squarespace.com/ | Single: flat camel ground, bold sans statement + stacked named case rows |
 | cut | Elliott | https://elliott-fluid-demo.squarespace.com/ | Structurally a fullscreen numbered slideshow (carousel) — out of scope per spec |
 | cut | Falodu | https://falodu-fluid-demo.squarespace.com/ | D dup: centered serif statement + one image row; thin subset of Keo/Balboa |

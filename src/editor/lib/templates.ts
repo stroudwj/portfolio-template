@@ -13,6 +13,11 @@ import posterWhiteTokens from './theme-presets/poster-white.json';
 import studioWhiteTokens from './theme-presets/studio-white.json';
 import almondPaperTokens from './theme-presets/almond-paper.json';
 import backstageBlackTokens from './theme-presets/backstage-black.json';
+import plasterWhiteTokens from './theme-presets/plaster-white.json';
+import stillCreamTokens from './theme-presets/still-cream.json';
+import signalBlueTokens from './theme-presets/signal-blue.json';
+import clearingWhiteTokens from './theme-presets/clearing-white.json';
+import marmaladeWhiteTokens from './theme-presets/marmalade-white.json';
 import painterContentRaw from './starters/painter.content.json';
 import photographerContentRaw from './starters/photographer.content.json';
 import worksOnPaperContentRaw from './starters/works-on-paper.content.json';
@@ -22,6 +27,11 @@ import mastheadContentRaw from './starters/masthead.content.json';
 import atelierContentRaw from './starters/atelier.content.json';
 import contactSheetContentRaw from './starters/contact-sheet.content.json';
 import runwayContentRaw from './starters/runway.content.json';
+import promenadeContentRaw from './starters/promenade.content.json';
+import stillRoomContentRaw from './starters/still-room.content.json';
+import signalContentRaw from './starters/signal.content.json';
+import clearingContentRaw from './starters/clearing.content.json';
+import marmaladeContentRaw from './starters/marmalade.content.json';
 
 // Template data lives in JSON files beside this module so the dev-only template
 // studio can save edits without touching hashed runtime source. Both parsers run
@@ -147,16 +157,18 @@ const vitrine: ThemePreset = {
 	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
 };
 
-// The spec-14 batch-1 presets (translated Squarespace keepers, SOURCES.md) each
-// support exactly the traits their starter's content detects, so none of them
-// covers an existing starter's trait set — the older compatible-preset lists
-// stay unchanged.
+// The spec-14 presets (translated Squarespace keepers, SOURCES.md) each
+// support exactly the traits their starter's content detects. The revision
+// pass added display-type text blocks to every batch-1 home, so those starters
+// now detect longform-case-study (and atelier a freeform hero) — each preset
+// grew the same traits, and starters whose old alternates (gallery-linen,
+// night-gallery) no longer cover them dropped to their own preset only.
 const conservatoryGreen: ThemePreset = {
 	id: 'conservatory-green',
 	name: 'Conservatory Green',
 	description: 'Deep green walls and didone headings — a night salon for bold work.',
 	tokens: presetTokens(conservatoryGreenTokens),
-	supportedTraits: ['full-bleed-media', 'freeform-canvas'],
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
 };
 
 const posterWhite: ThemePreset = {
@@ -164,7 +176,7 @@ const posterWhite: ThemePreset = {
 	name: 'Poster White',
 	description: 'Pure white behind one loud grotesque masthead — the work supplies the color.',
 	tokens: presetTokens(posterWhiteTokens),
-	supportedTraits: ['full-bleed-media', 'freeform-canvas'],
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
 };
 
 const studioWhite: ThemePreset = {
@@ -172,7 +184,7 @@ const studioWhite: ThemePreset = {
 	name: 'Studio White',
 	description: 'Editorial white with quiet type and room for process notes.',
 	tokens: presetTokens(studioWhiteTokens),
-	supportedTraits: ['full-bleed-media', 'dense-grid', 'longform-case-study'],
+	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
 };
 
 const almondPaper: ThemePreset = {
@@ -180,7 +192,7 @@ const almondPaper: ThemePreset = {
 	name: 'Almond Paper',
 	description: 'Warm cream and caramel around a disciplined grid.',
 	tokens: presetTokens(almondPaperTokens),
-	supportedTraits: ['full-bleed-media', 'dense-grid'],
+	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
 };
 
 const backstageBlack: ThemePreset = {
@@ -188,7 +200,48 @@ const backstageBlack: ThemePreset = {
 	name: 'Backstage Black',
 	description: 'Near-black with high-contrast type — runway light for portrait work.',
 	tokens: presetTokens(backstageBlackTokens),
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+};
+
+// Spec-14 batch-2 presets (Bergen, Cimen, Aue Sobol, Arthur, Quinn keepers).
+const plasterWhite: ThemePreset = {
+	id: 'plaster-white',
+	name: 'Plaster White',
+	description: 'White halls, didone headings, and full-width painted bands.',
+	tokens: presetTokens(plasterWhiteTokens),
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+};
+
+const stillCream: ThemePreset = {
+	id: 'still-cream',
+	name: 'Still Cream',
+	description: 'Warm cream and taupe around patient object studies.',
+	tokens: presetTokens(stillCreamTokens),
+	supportedTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+};
+
+const signalBlue: ThemePreset = {
+	id: 'signal-blue',
+	name: 'Signal Blue',
+	description: 'Heavy ink-blue type on white — every headline a signal.',
+	tokens: presetTokens(signalBlueTokens),
+	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
+};
+
+const clearingWhite: ThemePreset = {
+	id: 'clearing-white',
+	name: 'Clearing White',
+	description: 'White space as a material — quiet type, bone accents.',
+	tokens: presetTokens(clearingWhiteTokens),
 	supportedTraits: ['full-bleed-media', 'freeform-canvas'],
+};
+
+const marmaladeWhite: ThemePreset = {
+	id: 'marmalade-white',
+	name: 'Marmalade',
+	description: 'Off-white, one hot orange, and a giant condensed serif.',
+	tokens: presetTokens(marmaladeWhiteTokens),
+	supportedTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
 };
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -203,6 +256,11 @@ export const THEME_PRESETS: ThemePreset[] = [
 	studioWhite,
 	almondPaper,
 	backstageBlack,
+	plasterWhite,
+	stillCream,
+	signalBlue,
+	clearingWhite,
+	marmaladeWhite,
 ];
 
 const painterSelectedIds = [
@@ -521,17 +579,19 @@ function spec(
 
 const conservatoryContent: Content = starterContent(conservatoryContentRaw);
 
-/** The night salon (from Mosley): a giant serif wordmark over a scattered
- * freeform collage on deep green, with a quieter portraits room behind it. */
+/** The night salon (from Mosley): a giant serif name in canvas display type
+ * laid over a scattered collage that scrolls for screens — small cluster,
+ * statement, big alternating wall, one full-width band — with a quieter
+ * portraits room behind it. Every catalog Bellows hangs somewhere. */
 const conservatoryRecipe: StarterRecipe = {
 	id: 'conservatory',
 	name: 'Conservatory',
 	discipline: 'Painting',
 	disciplines: ['painting', 'drawing'],
 	tagline: 'A night salon — bold work scattered under a giant serif name.',
-	description: 'Ten George Bellows paintings on deep green: a freeform salon wall and a portraits room.',
-	requiredTraits: ['full-bleed-media', 'freeform-canvas'],
-	compatibleThemeIds: ['conservatory-green', 'night-gallery'],
+	description: 'Fifteen George Bellows paintings on deep green: a screens-deep salon wall and a portraits room.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['conservatory-green'],
 	defaultThemeId: 'conservatory-green',
 	readiness: 'ready',
 	gallerySpecs: [
@@ -539,8 +599,13 @@ const conservatoryRecipe: StarterRecipe = {
 			'painting-nga-46557-v1',
 			'painting-nga-46558-v1',
 			'painting-nga-61351-v1',
-			'painting-nga-69392-v1',
+			'painting-nga-61355-v1',
 			'painting-nga-46559-v1',
+			'painting-nga-30667-v1',
+			'painting-nga-61247-v1',
+			'painting-nga-134485-v1',
+			'painting-nga-61354-v1',
+			'painting-nga-69392-v1',
 		]),
 		spec('conservatory-portraits', 'portraits', 'Portraits', 'series', [
 			'painting-nga-30743-v1',
@@ -556,37 +621,45 @@ const conservatoryRecipe: StarterRecipe = {
 
 const mastheadContent: Content = starterContent(mastheadContentRaw);
 
-/** The poster wall (from Reflect): a full-width bold sans wordmark crossing a
- * vivid freeform collage on white, with a two-column works wall behind it. */
+/** The poster wall (from Reflect): a full-width bold sans masthead in canvas
+ * display type crossing a three-screen collage whose images bleed off the
+ * right edge, with a statement and a longer works wall behind it. Every
+ * catalog Morisot hangs somewhere. */
 const mastheadRecipe: StarterRecipe = {
 	id: 'masthead',
 	name: 'Masthead',
 	discipline: 'Painting',
 	disciplines: ['painting', 'illustration-design'],
 	tagline: 'One loud masthead crossing a vivid collage on white.',
-	description: 'Fourteen Berthe Morisot paintings: a bright freeform front wall and a longer works wall.',
-	requiredTraits: ['full-bleed-media', 'freeform-canvas'],
-	compatibleThemeIds: ['poster-white', 'gallery-linen'],
+	description: 'Twenty Berthe Morisot paintings: a screens-deep front wall and a longer works wall.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['poster-white'],
 	defaultThemeId: 'poster-white',
 	readiness: 'ready',
 	gallerySpecs: [
 		spec('masthead-collage', 'collage', 'Front wall', 'selected-work', [
 			'painting-nga-42285-v1',
-			'painting-nga-52192-v1',
 			'painting-nga-89682-v1',
-			'painting-nga-66426-v1',
 			'painting-nga-46660-v1',
+			'painting-nga-66426-v1',
+			'painting-nga-52192-v1',
 			'painting-nga-46661-v1',
+			'painting-nga-46525-v1',
+			'painting-nga-42648-v1',
+			'painting-nga-52193-v1',
+			'painting-nga-52194-v1',
 		]),
 		spec('masthead-works', 'works', 'Works', 'series', [
-			'painting-nga-52193-v1',
 			'painting-nga-52191-v1',
-			'painting-nga-52194-v1',
 			'painting-nga-131028-v1',
 			'painting-nga-93068-v1',
 			'painting-nga-52305-v1',
-			'painting-nga-46525-v1',
 			'painting-nga-164943-v1',
+			'painting-nga-42652-v1',
+			'painting-nga-42650-v1',
+			'painting-nga-42654-v1',
+			'painting-nga-42649-v1',
+			'painting-nga-42653-v1',
 		]),
 	],
 	content: mastheadContent,
@@ -595,29 +668,36 @@ const mastheadRecipe: StarterRecipe = {
 
 const atelierContent: Content = starterContent(atelierContentRaw);
 
-/** The studio editorial (from Radian): photo hero, statement, and a project
- * index on white, with two case-study series pages. All grids — the only
- * batch-1 starter that reads as long-form. */
+/** The studio editorial (from Radian): a full-bleed photo hero with the
+ * statement under it, project rows whose images cross the right edge, a
+ * color-blocked commissions band and a near-black studio band, with two
+ * case-study series pages. */
 const atelierRecipe: StarterRecipe = {
 	id: 'atelier',
 	name: 'Atelier',
 	discipline: 'Photography',
 	disciplines: ['photography', 'illustration-design'],
-	tagline: 'A white studio editorial — hero, statement, project index.',
-	description: 'Eighteen Eugène Atget photographs across a hero, a project index, and two case-study series.',
-	requiredTraits: ['full-bleed-media', 'dense-grid', 'longform-case-study'],
+	tagline: 'A white studio editorial — hero, statement, project rows.',
+	description: 'Eighteen Eugène Atget photographs across a full-bleed hero, three project rows, and two case-study series.',
+	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
 	compatibleThemeIds: ['studio-white'],
 	defaultThemeId: 'studio-white',
 	readiness: 'ready',
 	gallerySpecs: [
 		spec('atelier-hero', 'hero', 'Hero', 'selected-work', ['photography-nga-124991-v1']),
-		spec('atelier-index', 'index', 'Project index', 'selected-work', [
+		spec('atelier-row-gardens', 'row-gardens', 'Gardens row', 'selected-work', [
+			'photography-nga-124988-v1',
+		]),
+		spec('atelier-row-storefronts', 'row-storefronts', 'Storefronts row', 'selected-work', [
+			'photography-nga-124978-v1',
+		]),
+		spec('atelier-row-interiors', 'row-interiors', 'Interiors row', 'selected-work', [
+			'photography-nga-131771-v1',
+		]),
+		spec('atelier-strip', 'strip', 'Studio strip', 'selected-work', [
 			'photography-nga-222106-v1',
 			'photography-nga-124994-v1',
 			'photography-nga-124979-v1',
-			'photography-nga-106293-v1',
-			'photography-nga-109004-v1',
-			'photography-nga-124973-v1',
 		]),
 		spec('atelier-gardens', 'gardens', 'Gardens', 'case-study', [
 			'photography-nga-124980-v1',
@@ -641,17 +721,18 @@ const atelierRecipe: StarterRecipe = {
 
 const contactSheetContent: Content = starterContent(contactSheetContentRaw);
 
-/** The disciplined grid (from Keo): a bold statement, a marquee heading, and a
- * dense three-column lightbox grid on warm cream. */
+/** The disciplined grid (from Keo): a bold statement, a marquee heading, the
+ * complete set in a dense three-column grid, and a giant signature wordmark
+ * closing the page the way Keo's footer does. */
 const contactSheetRecipe: StarterRecipe = {
 	id: 'contact-sheet',
 	name: 'Contact Sheet',
 	discipline: 'Photography',
 	disciplines: ['photography', 'painting'],
-	tagline: 'A statement, a marquee, and a dense lightbox grid.',
-	description: 'Nine Lewis Hine photographs: a three-column grid on cream plus a field-notes page.',
-	requiredTraits: ['full-bleed-media', 'dense-grid'],
-	compatibleThemeIds: ['almond-paper', 'gallery-linen', 'night-gallery'],
+	tagline: 'A statement, a marquee, a dense grid, and a giant signature.',
+	description: 'Nine Lewis Hine photographs: the whole set in a three-column grid on cream, signed off in display type.',
+	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['almond-paper'],
 	defaultThemeId: 'almond-paper',
 	readiness: 'ready',
 	gallerySpecs: [
@@ -662,6 +743,12 @@ const contactSheetRecipe: StarterRecipe = {
 			'photography-nga-213988-v1',
 			'photography-nga-194350-v1',
 			'photography-nga-218187-v1',
+			'photography-nga-92317-v1',
+			'photography-nga-197799-v1',
+			'photography-nga-164188-v1',
+		]),
+		spec('contact-sheet-colophon', 'colophon', 'Signature', 'selected-work', [
+			'photography-nga-92317-v1',
 		]),
 		spec('contact-sheet-field-notes', 'field-notes', 'Field notes', 'series', [
 			'photography-nga-92317-v1',
@@ -675,23 +762,29 @@ const contactSheetRecipe: StarterRecipe = {
 
 const runwayContent: Content = starterContent(runwayContentRaw);
 
-/** The dark runway (from Gilden): a watermark wordmark over a low-lit portrait
- * hero, with numbered case pages ("01 — Portraits", "02 — Figures") in the nav. */
+/** The dark runway (from Gilden): a full-width display wordmark over a low-lit
+ * hero, then a numbered case index (01/02/03) whose images cross the right
+ * edge, leading to the numbered rooms in the nav. */
 const runwayRecipe: StarterRecipe = {
 	id: 'runway',
 	name: 'Runway',
 	discipline: 'Painting',
 	disciplines: ['painting', 'photography'],
-	tagline: 'A dark runway — watermark wordmark and numbered case pages.',
-	description: 'Ten Amedeo Modigliani portraits on near-black with a two-work hero and numbered rooms.',
-	requiredTraits: ['full-bleed-media', 'freeform-canvas'],
-	compatibleThemeIds: ['backstage-black', 'night-gallery'],
+	tagline: 'A dark runway — display wordmark and a numbered case index.',
+	description: 'Ten Amedeo Modigliani portraits on near-black: a wordmark hero and numbered rooms 01–03.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['backstage-black'],
 	defaultThemeId: 'backstage-black',
 	readiness: 'ready',
 	gallerySpecs: [
 		spec('runway-hero', 'hero', 'Front of house', 'selected-work', [
 			'painting-nga-46522-v1',
 			'painting-nga-46651-v1',
+		]),
+		spec('runway-index', 'index', 'Numbered rooms', 'selected-work', [
+			'painting-nga-46647-v1',
+			'painting-nga-46520-v1',
+			'painting-nga-46646-v1',
 		]),
 		spec('runway-portraits', 'portraits', 'Portraits', 'series', [
 			'painting-nga-46647-v1',
@@ -710,6 +803,201 @@ const runwayRecipe: StarterRecipe = {
 	coverSampleAssetId: 'painting-nga-46522-v1',
 };
 
+// ---------------------------------------------------------------------------
+// Spec-14 batch 2: five starters translated from the SOURCES.md keepers
+// (Bergen, Cimen, Aue Sobol, Arthur, Quinn). Sculpture and photography reuse
+// existing catalog imagery; the rest draws on unused NGA entries.
+
+const promenadeContent: Content = starterContent(promenadeContentRaw);
+
+/** The painted halls (from Bergen): a centered didone mission, then three
+ * full-width watercolor bands, each answered by a hall title and a small
+ * study hung on the right edge. */
+const promenadeRecipe: StarterRecipe = {
+	id: 'promenade',
+	name: 'Promenade',
+	discipline: 'Painting',
+	disciplines: ['painting', 'photography'],
+	tagline: 'A mission statement and three full-width painted halls.',
+	description: 'Nine Emily Sargent watercolors: three edge-to-edge halls with studies, plus a sketchbook page.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['plaster-white'],
+	defaultThemeId: 'plaster-white',
+	readiness: 'ready',
+	gallerySpecs: [
+		spec('promenade-hall-1', 'hall-1', 'Hall 1 — band', 'selected-work', ['painting-nga-222879-v1']),
+		spec('promenade-hall-1-side', 'hall-1-side', 'Hall 1 — study', 'selected-work', ['painting-nga-222877-v1']),
+		spec('promenade-hall-2', 'hall-2', 'Hall 2 — band', 'selected-work', ['painting-nga-222884-v1']),
+		spec('promenade-hall-2-side', 'hall-2-side', 'Hall 2 — study', 'selected-work', ['painting-nga-222880-v1']),
+		spec('promenade-hall-3', 'hall-3', 'Hall 3 — band', 'selected-work', ['painting-nga-222875-v1']),
+		spec('promenade-hall-3-side', 'hall-3-side', 'Hall 3 — study', 'selected-work', ['painting-nga-222874-v1']),
+		spec('promenade-sketchbook', 'sketchbook', 'Sketchbook', 'series', [
+			'painting-nga-222876-v1',
+			'painting-nga-222873-v1',
+			'painting-nga-222881-v1',
+		]),
+	],
+	content: promenadeContent,
+	coverSampleAssetId: 'painting-nga-222879-v1',
+};
+
+const stillRoomContent: Content = starterContent(stillRoomContentRaw);
+
+/** The still room (from Cimen): a cream editorial of paired object studies —
+ * statement over the first pair, Work and Commissions pairs with a right
+ * bleed, and a marquee + giant serif signature to close. */
+const stillRoomRecipe: StarterRecipe = {
+	id: 'still-room',
+	name: 'Still Room',
+	discipline: 'Sculpture',
+	disciplines: ['sculpture', 'photography'],
+	tagline: 'Quiet cream rooms of paired object studies.',
+	description: 'Eight Open Access sculpture studies in paired tiles on warm cream, signed off in display serif.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['still-cream', 'vitrine'],
+	defaultThemeId: 'still-cream',
+	readiness: 'ready',
+	gallerySpecs: [
+		spec('still-room-statement', 'statement', 'Statement', 'selected-work', [
+			'sculptor-met-544227-v1',
+			'sculptor-met-254587-v1',
+		]),
+		spec('still-room-work-pair', 'work-pair', 'Work', 'selected-work', [
+			'sculptor-met-255417-v1',
+			'sculptor-met-248268-v1',
+		]),
+		spec('still-room-commissions-pair', 'commissions-pair', 'Commissions', 'selected-work', [
+			'sculptor-met-248579-v1',
+			'sculptor-met-255275-v1',
+		]),
+		spec('still-room-colophon', 'colophon', 'Signature', 'selected-work', ['sculptor-met-257603-v1']),
+		spec('still-room-collection', 'collection', 'Collection', 'series', [
+			'sculptor-met-257603-v1',
+			'sculptor-met-251838-v1',
+			'sculptor-met-544227-v1',
+			'sculptor-met-255417-v1',
+		]),
+	],
+	content: stillRoomContent,
+	coverSampleAssetId: 'sculptor-met-544227-v1',
+};
+
+const signalContent: Content = starterContent(signalContentRaw);
+
+/** The signal (from Aue Sobol): heavy ink-blue type on white — offset photo
+ * clusters crossed by giant linked headlines, closed by a giant name. */
+const signalRecipe: StarterRecipe = {
+	id: 'signal',
+	name: 'Signal',
+	discipline: 'Photography',
+	disciplines: ['photography', 'illustration-design'],
+	tagline: 'Heavy blue headlines laid across offset photo clusters.',
+	description: 'Twelve Carleton Watkins landscapes under giant ink-blue display links and a closing wordmark.',
+	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['signal-blue'],
+	defaultThemeId: 'signal-blue',
+	readiness: 'ready',
+	gallerySpecs: [
+		spec('signal-cluster-1', 'cluster-1', 'First cluster', 'selected-work', [
+			'photographer-met-285861-v1',
+			'photographer-met-286426-v1',
+			'photographer-met-286457-v1',
+		]),
+		spec('signal-cluster-2', 'cluster-2', 'Second cluster', 'selected-work', [
+			'photographer-met-285860-v1',
+			'photographer-met-286425-v1',
+			'photographer-met-262612-v1',
+		]),
+		spec('signal-colophon', 'signal-colophon', 'Signature', 'selected-work', ['photographer-met-286511-v1']),
+		spec('signal-works', 'works', 'Works', 'series', [
+			'photographer-met-283222-v1',
+			'photographer-met-285772-v1',
+			'photographer-met-286049-v1',
+			'photographer-met-285861-v1',
+			'photographer-met-286425-v1',
+			'photographer-met-262612-v1',
+		]),
+	],
+	content: signalContent,
+	coverSampleAssetId: 'photographer-met-285861-v1',
+};
+
+const clearingContent: Content = starterContent(clearingContentRaw);
+
+/** The clearing (from Arthur): six photographs scattered across two and a
+ * half screens of white with one crossing the right edge — and not a word of
+ * copy on the canvas. */
+const clearingRecipe: StarterRecipe = {
+	id: 'clearing',
+	name: 'Clearing',
+	discipline: 'Photography',
+	disciplines: ['photography', 'drawing'],
+	tagline: 'Six photographs and a great deal of air.',
+	description: 'Ten Eugène Atget photographs: a sparse asymmetric scatter, an index page, and nothing extra.',
+	requiredTraits: ['full-bleed-media', 'freeform-canvas'],
+	compatibleThemeIds: ['clearing-white', 'gallery-linen'],
+	defaultThemeId: 'clearing-white',
+	readiness: 'ready',
+	gallerySpecs: [
+		spec('clearing-scatter', 'clearing', 'Clearing', 'selected-work', [
+			'photography-nga-124992-v1',
+			'photography-nga-124987-v1',
+			'photography-nga-136283-v1',
+			'photography-nga-124982-v1',
+			'photography-nga-115379-v1',
+			'photography-nga-124996-v1',
+		]),
+		spec('clearing-index', 'index', 'Index', 'series', [
+			'photography-nga-136284-v1',
+			'photography-nga-124989-v1',
+			'photography-nga-131732-v1',
+			'photography-nga-124995-v1',
+		]),
+	],
+	content: clearingContent,
+	coverSampleAssetId: 'photography-nga-124992-v1',
+};
+
+const marmaladeContent: Content = starterContent(marmaladeContentRaw);
+
+/** The marmalade poster (from Quinn): PORTFOLIO twice in giant condensed
+ * serif with the hero drawing sandwiched between, on an orange-red block —
+ * the source's orange type inverted into a ground — then a gray select-works
+ * block and an exhibitions list. */
+const marmaladeRecipe: StarterRecipe = {
+	id: 'marmalade',
+	name: 'Marmalade',
+	discipline: 'Drawing',
+	disciplines: ['drawing', 'illustration-design'],
+	tagline: 'One loud word, twice, with the work between.',
+	description: 'Thirteen John Singer Sargent drawings behind a doubled display wordmark on orange and gray blocks.',
+	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
+	compatibleThemeIds: ['marmalade-white'],
+	defaultThemeId: 'marmalade-white',
+	readiness: 'ready',
+	gallerySpecs: [
+		spec('marmalade-poster', 'poster', 'Poster', 'selected-work', ['drawing-nga-184301-v1']),
+		spec('marmalade-select', 'select', 'Select works', 'selected-work', [
+			'drawing-nga-184331-v1',
+			'drawing-nga-62960-v1',
+			'drawing-nga-184264-v1',
+			'drawing-nga-197320-v1',
+			'drawing-nga-184996-v1',
+			'drawing-nga-185018-v1',
+		]),
+		spec('marmalade-select-works', 'select-works', 'Select works page', 'series', [
+			'drawing-nga-184265-v1',
+			'drawing-nga-194571-v1',
+			'drawing-nga-184330-v1',
+			'drawing-nga-184277-v1',
+			'drawing-nga-184315-v1',
+			'drawing-nga-184995-v1',
+		]),
+	],
+	content: marmaladeContent,
+	coverSampleAssetId: 'drawing-nga-184301-v1',
+};
+
 export const STARTER_RECIPES: StarterRecipe[] = [
 	painterRecipe,
 	photographerRecipe,
@@ -721,6 +1009,11 @@ export const STARTER_RECIPES: StarterRecipe[] = [
 	atelierRecipe,
 	contactSheetRecipe,
 	runwayRecipe,
+	promenadeRecipe,
+	stillRoomRecipe,
+	signalRecipe,
+	clearingRecipe,
+	marmaladeRecipe,
 ];
 
 export type ReadyStarterRecipe = StarterRecipe & { content: Content };
