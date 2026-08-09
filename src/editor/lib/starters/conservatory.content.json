@@ -19,7 +19,7 @@
     "accentColor": "#8ea38b",
     "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
     "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
-    "logoScale": 220,
+    "logoScale": 140,
     "pageHeadingScale": 150,
     "pageHeadingPosition": "center",
     "logoPosition": "center",
@@ -72,9 +72,115 @@
             "folder": "salon",
             "alt": "Painting",
             "order": "asc",
-            "layout": "freeform"
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:salon-name": {
+                  "hidden": true
+                },
+                "text:salon-cta": {
+                  "hidden": true
+                }
+              }
+            }
           },
           "name": "Salon wall"
+        },
+        {
+          "id": "salon-name",
+          "type": "text",
+          "text": "Your Name",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Your Name",
+                  "fontSize": 144
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 2,
+            "y": 16,
+            "w": 96,
+            "h": 18,
+            "z": 20
+          }
+        },
+        {
+          "id": "salon-statement",
+          "type": "text",
+          "text": "Painter of the loud city — night crowds, riverlight, and rooms that will not sit still.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Painter of the loud city — night crowds, riverlight, and rooms that will not sit still.",
+                  "fontSize": 40
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "layout": {
+            "x": 16,
+            "y": 76,
+            "w": 68,
+            "h": 26,
+            "z": 12
+          }
+        },
+        {
+          "id": "salon-cta",
+          "type": "text",
+          "text": "Portraits",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Portraits",
+                  "fontSize": 110
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "link": "/portraits",
+          "layout": {
+            "x": 4,
+            "y": 388,
+            "w": 60,
+            "h": 14,
+            "z": 12
+          }
+        },
+        {
+          "id": "salon-cta-note",
+          "type": "text",
+          "text": "A quieter room, two to a row.",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "A quieter room, two to a row.",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "layout": {
+            "x": 68,
+            "y": 396,
+            "w": 28,
+            "h": 4,
+            "z": 12
+          }
         }
       ],
       "sections": [
@@ -82,7 +188,11 @@
           "id": "salon",
           "name": "Salon wall",
           "blockIds": [
-            "salon-images"
+            "salon-images",
+            "salon-name",
+            "salon-statement",
+            "salon-cta",
+            "salon-cta-note"
           ]
         }
       ],
@@ -91,6 +201,9 @@
           "effect": "drift",
           "intensity": 35
         }
+      },
+      "sectionBleed": {
+        "section:salon": true
       }
     },
     "portraits": {
@@ -161,11 +274,11 @@
           "description": "George Bellows. Blue Morning, 1909. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46557.html",
           "layout": {
-            "x": 6,
-            "y": 8,
-            "w": 30,
+            "x": 27,
+            "y": 6,
+            "w": 15,
             "ar": 1.28289,
-            "z": 3
+            "z": 2
           }
         },
         "02-the-lone-tenement.jpg": {
@@ -176,9 +289,9 @@
           "description": "George Bellows. The Lone Tenement, 1909. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46558.html",
           "layout": {
-            "x": 52,
-            "y": 13,
-            "w": 34,
+            "x": 84,
+            "y": 6,
+            "w": 15,
             "ar": 1.33562,
             "z": 2
           }
@@ -191,26 +304,26 @@
           "description": "George Bellows. Anne with a Japanese Parasol, 1917. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.61351.html",
           "layout": {
-            "x": 36,
-            "y": 27,
-            "w": 20,
+            "x": -6,
+            "y": 26,
+            "w": 14,
             "ar": 0.60366,
-            "z": 5
+            "z": 2
           }
         },
-        "04-new-york.jpg": {
-          "id": "sample-painting-nga-69392-v1",
-          "sampleAssetId": "painting-nga-69392-v1",
-          "title": "New York",
-          "alt": "We look slightly down onto a crush of pedestrians, horse-drawn carriages, wagons, and streetcars enclosed by a row of densely spaced buildings and skyscrapers opposite us in this horizontal painting.",
-          "description": "George Bellows. New York, 1911. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.69392.html",
+        "04-tennis-tournament.jpg": {
+          "id": "sample-painting-nga-61355-v1",
+          "sampleAssetId": "painting-nga-61355-v1",
+          "title": "Tennis Tournament",
+          "alt": "This painting shows a dynamic scene of a green tennis court with a player in action near the bottom-right corner, their hand extended behind their head and one leg in the air.",
+          "description": "George Bellows. Tennis Tournament, 1920. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61355.html",
           "layout": {
-            "x": 10,
-            "y": 45,
-            "w": 36,
-            "ar": 1.44751,
-            "z": 4
+            "x": 61,
+            "y": 38,
+            "w": 15,
+            "ar": 1.11977,
+            "z": 2
           }
         },
         "05-nude-with-red-hair.jpg": {
@@ -221,10 +334,85 @@
           "description": "George Bellows. Nude with Red Hair, 1920. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46559.html",
           "layout": {
-            "x": 62,
-            "y": 49,
-            "w": 24,
+            "x": 27,
+            "y": 46,
+            "w": 14,
             "ar": 0.76647,
+            "z": 2
+          }
+        },
+        "06-both-members-of-this-club.jpg": {
+          "id": "sample-painting-nga-30667-v1",
+          "sampleAssetId": "painting-nga-30667-v1",
+          "title": "Both Members of This Club",
+          "alt": "From a darkened arena around a boxing ring, we look up at two bare chested men, one with pale, white skin and the other with brown skin, who lock arms in a boxing match in this horizontal painting.",
+          "description": "George Bellows. Both Members of This Club, 1909. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.30667.html",
+          "layout": {
+            "x": 4,
+            "y": 118,
+            "w": 41,
+            "ar": 1.40144,
+            "z": 1
+          }
+        },
+        "07-club-night.jpg": {
+          "id": "sample-painting-nga-61247-v1",
+          "sampleAssetId": "painting-nga-61247-v1",
+          "title": "Club Night",
+          "alt": "Two men wearing brief-like shorts, shoes, and boxing gloves curl toward each other as they grapple in the middle of a boxing ring in this horizontal painting.",
+          "description": "George Bellows. Club Night, 1907. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61247.html",
+          "layout": {
+            "x": 61,
+            "y": 145,
+            "w": 30,
+            "ar": 1.23866,
+            "z": 1
+          }
+        },
+        "08-forty-two-kids.jpg": {
+          "id": "sample-painting-nga-134485-v1",
+          "sampleAssetId": "painting-nga-134485-v1",
+          "title": "Forty-two Kids",
+          "alt": "From a high vantage point, we look down ontp a group of dozens of boys who stand, sit, stretch, sprawl, or dangle their legs off a rough wooden pier that juts out from the lower left corner into a dark river in this horizonal painting.",
+          "description": "George Bellows. Forty-two Kids, 1907. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.134485.html",
+          "layout": {
+            "x": 76,
+            "y": 178,
+            "w": 32,
+            "ar": 1.44292,
+            "z": 1
+          }
+        },
+        "09-nude-with-hexagonal-quilt.jpg": {
+          "id": "sample-painting-nga-61354-v1",
+          "sampleAssetId": "painting-nga-61354-v1",
+          "title": "Nude with Hexagonal Quilt",
+          "alt": "This painting shows a reclining nude female figure on an upholstered couch.",
+          "description": "George Bellows. Nude with Hexagonal Quilt, 1924. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.61354.html",
+          "layout": {
+            "x": 4,
+            "y": 196,
+            "w": 22,
+            "ar": 1.22973,
+            "z": 1
+          }
+        },
+        "10-new-york.jpg": {
+          "id": "sample-painting-nga-69392-v1",
+          "sampleAssetId": "painting-nga-69392-v1",
+          "title": "New York",
+          "alt": "We look slightly down onto a crush of pedestrians, horse-drawn carriages, wagons, and streetcars enclosed by a row of densely spaced buildings and skyscrapers opposite us in this horizontal painting.",
+          "description": "George Bellows. New York, 1911. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.69392.html",
+          "layout": {
+            "x": 0,
+            "y": 268,
+            "w": 100,
+            "ar": 1.44751,
             "z": 1
           }
         }

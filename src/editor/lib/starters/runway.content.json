@@ -7,18 +7,19 @@
     "favicon": "favicon.svg",
     "footer": "Made with hangwork.art",
     "creative": {
-      "pageTransition": "curtain"
+      "grain": 2,
+      "pageTransition": "fade"
     }
   },
   "theme": {
     "backgroundColor": "#101010",
-    "textColor": "#f4f2ee",
-    "mutedTextColor": "#98938b",
-    "accentColor": "#d9d5cd",
-    "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "textColor": "#f2f2f2",
+    "mutedTextColor": "#9a9a9a",
+    "accentColor": "#d8d8d8",
+    "fontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
     "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
-    "logoScale": 260,
-    "pageHeadingScale": 190,
+    "logoScale": 130,
+    "pageHeadingScale": 140,
     "pageHeadingPosition": "center",
     "logoPosition": "center",
     "navStyle": "centered",
@@ -26,10 +27,9 @@
     "automaticTextContrast": true,
     "stabilizeNavigation": true,
     "motion": {
-      "intensity": "full",
+      "intensity": "subtle",
       "reveal": true,
-      "hover": true,
-      "heroParallax": true
+      "hover": true
     }
   },
   "nav": [
@@ -52,7 +52,7 @@
   ],
   "profile": {
     "image": "",
-    "bio": "One line on who you paint, one on how it feels in the room. The paintings in this starter are museum Open Access samples and cannot be published as your work."
+    "bio": "Two lines are enough backstage: who you paint, and why the light stays low. The paintings in this starter are museum Open Access samples and cannot be published as your work."
   },
   "contact": {
     "email": ""
@@ -66,18 +66,227 @@
     "home": {
       "title": "{name}",
       "label": "Front of house",
-      "description": "Portraits lit low, the name over everything.",
+      "description": "A dark runway — numbered rooms behind one watermark name.",
       "blocks": [
         {
           "id": "hero-images",
           "type": "images",
           "gallery": {
             "folder": "hero",
-            "alt": "Portrait",
+            "alt": "Painting",
+            "order": "asc",
+            "layout": "freeform",
+            "mobile": {
+              "mode": "custom",
+              "order": [],
+              "items": {
+                "text:runway-wordmark": {
+                  "hidden": true
+                }
+              }
+            }
+          },
+          "name": "Front of house"
+        },
+        {
+          "id": "runway-wordmark",
+          "type": "text",
+          "text": "YOUR NAME",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "YOUR NAME",
+                  "fontSize": 144,
+                  "bold": true
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 2,
+            "w": 100,
+            "h": 18,
+            "z": 20
+          }
+        },
+        {
+          "id": "runway-roles",
+          "type": "text",
+          "text": "Painter — portraits, figures, and the faces between",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Painter — portraits, figures, and the faces between",
+                  "fontSize": 22
+                }
+              ],
+              "align": "center"
+            }
+          ],
+          "layout": {
+            "x": 25,
+            "y": 92,
+            "w": 50,
+            "h": 6,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-images",
+          "type": "images",
+          "gallery": {
+            "folder": "index",
+            "alt": "Painting",
             "order": "asc",
             "layout": "freeform"
           },
-          "name": "Front of house"
+          "name": "Numbered rooms"
+        },
+        {
+          "id": "index-01",
+          "type": "text",
+          "text": "01",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "01",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-01-title",
+          "type": "text",
+          "text": "Portraits",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Portraits",
+                  "fontSize": 64
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "link": "/portraits",
+          "layout": {
+            "x": 5,
+            "y": 0,
+            "w": 50,
+            "h": 9,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-02",
+          "type": "text",
+          "text": "02",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "02",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "layout": {
+            "x": 37,
+            "y": 34,
+            "w": 4,
+            "h": 4,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-02-title",
+          "type": "text",
+          "text": "Figures",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Figures",
+                  "fontSize": 64
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "link": "/figures",
+          "layout": {
+            "x": 42,
+            "y": 34,
+            "w": 50,
+            "h": 9,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-03",
+          "type": "text",
+          "text": "03",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "03",
+                  "fontSize": 16
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "layout": {
+            "x": 0,
+            "y": 68,
+            "w": 4,
+            "h": 4,
+            "z": 12
+          }
+        },
+        {
+          "id": "index-03-title",
+          "type": "text",
+          "text": "About",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "About",
+                  "fontSize": 64
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "link": "/about",
+          "layout": {
+            "x": 5,
+            "y": 68,
+            "w": 42,
+            "h": 9,
+            "z": 12
+          }
         }
       ],
       "sections": [
@@ -85,7 +294,22 @@
           "id": "hero",
           "name": "Front of house",
           "blockIds": [
-            "hero-images"
+            "hero-images",
+            "runway-wordmark",
+            "runway-roles"
+          ]
+        },
+        {
+          "id": "index",
+          "name": "Numbered rooms",
+          "blockIds": [
+            "index-images",
+            "index-01",
+            "index-01-title",
+            "index-02",
+            "index-02-title",
+            "index-03",
+            "index-03-title"
           ]
         }
       ],
@@ -93,19 +317,27 @@
         "section:hero": {
           "effect": "pin",
           "intensity": 35
+        },
+        "section:index": {
+          "effect": "reveal",
+          "intensity": 35
         }
+      },
+      "sectionBleed": {
+        "section:hero": true,
+        "section:index": true
       }
     },
     "portraits": {
       "title": "Portraits — {name}",
       "label": "01 — Portraits",
-      "description": "The numbered wall — sitters in order of appearance.",
-      "heading": "Portraits",
+      "description": "The first room: portraits under low light.",
+      "heading": "01 — Portraits",
       "blocks": [
         {
           "id": "portraits-intro",
           "type": "text",
-          "text": "The numbered wall — sitters in order of appearance.",
+          "text": "The first room — portraits under low light.",
           "style": "body"
         },
         {
@@ -135,13 +367,13 @@
     "figures": {
       "title": "Figures — {name}",
       "label": "02 — Figures",
-      "description": "Full-length studies — cut, color, and line.",
-      "heading": "Figures",
+      "description": "The second room: figures and seated poses.",
+      "heading": "02 — Figures",
       "blocks": [
         {
           "id": "figures-intro",
           "type": "text",
-          "text": "Full-length studies — cut, color, and line.",
+          "text": "The second room — figures, seated and turning.",
           "style": "body"
         },
         {
@@ -149,7 +381,7 @@
           "type": "images",
           "gallery": {
             "folder": "figures",
-            "alt": "Portrait",
+            "alt": "Figure",
             "order": "asc",
             "layout": "grid",
             "columns": 2
@@ -200,14 +432,11 @@
           "description": "Amedeo Modigliani. Chaim Soutine, 1918. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46522.html",
           "layout": {
-            "x": 30,
-            "y": 2,
-            "w": 34,
+            "x": 14,
+            "y": 22,
+            "w": 46,
             "ar": 0.64689,
             "z": 2
-          },
-          "effects": {
-            "reveal": "rise"
           }
         },
         "02-woman-with-red-hair.jpg": {
@@ -218,21 +447,67 @@
           "description": "Amedeo Modigliani. Woman with Red Hair, 1917. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46651.html",
           "layout": {
-            "x": 60,
-            "y": 30,
-            "w": 22,
+            "x": 64,
+            "y": 40,
+            "w": 28,
             "ar": 0.65959,
+            "z": 3
+          }
+        }
+      }
+    },
+    "index": {
+      "items": {
+        "01-madame-amedee-woman-with-cigarette.jpg": {
+          "id": "sample-painting-nga-46647-v1-b",
+          "sampleAssetId": "painting-nga-46647-v1",
+          "title": "Madame Amédée (Woman with Cigarette)",
+          "alt": "This painting shows a portrait of a woman, depicted from the thighs up.",
+          "description": "Amedeo Modigliani. Madame Amédée (Woman with Cigarette), 1918. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46647.html",
+          "layout": {
+            "x": 66,
+            "y": 4,
+            "w": 38,
+            "ar": 0.64422,
             "z": 1
-          },
-          "effects": {
-            "reveal": "rise"
+          }
+        },
+        "02-girl-in-a-green-blouse.jpg": {
+          "id": "sample-painting-nga-46520-v1-b",
+          "sampleAssetId": "painting-nga-46520-v1",
+          "title": "Girl in a Green Blouse",
+          "alt": "Shown from the lap up, a pale-skinned woman with an oval face and long neck sits facing us in this vertical painting.",
+          "description": "Amedeo Modigliani. Girl in a Green Blouse, 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46520.html",
+          "layout": {
+            "x": 8,
+            "y": 38,
+            "w": 30,
+            "ar": 0.55271,
+            "z": 1
+          }
+        },
+        "03-adrienne-woman-with-bangs.jpg": {
+          "id": "sample-painting-nga-46646-v1-b",
+          "sampleAssetId": "painting-nga-46646-v1",
+          "title": "Adrienne (Woman with Bangs)",
+          "alt": "A woman with peachy skin and dark auburn hair is shown from her chest up sitting in a wooden chair in this vertical portrait painting.",
+          "description": "Amedeo Modigliani. Adrienne (Woman with Bangs), 1917. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.46646.html",
+          "layout": {
+            "x": 66,
+            "y": 72,
+            "w": 36,
+            "ar": 0.69011,
+            "z": 1
           }
         }
       }
     },
     "portraits": {
       "items": {
-        "01-madame-am-d-e-woman-with-cigarette.jpg": {
+        "01-madame-amedee-woman-with-cigarette.jpg": {
           "id": "sample-painting-nga-46647-v1",
           "sampleAssetId": "painting-nga-46647-v1",
           "title": "Madame Amédée (Woman with Cigarette)",
@@ -240,7 +515,7 @@
           "description": "Amedeo Modigliani. Madame Amédée (Woman with Cigarette), 1918. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46647.html"
         },
-        "02-caf-singer.jpg": {
+        "02-cafe-singer.jpg": {
           "id": "sample-painting-nga-46519-v1",
           "sampleAssetId": "painting-nga-46519-v1",
           "title": "Café Singer",
@@ -256,7 +531,7 @@
           "description": "Amedeo Modigliani. Madame Kisling, c. 1917. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.46650.html"
         },
-        "04-l-on-bakst.jpg": {
+        "04-leon-bakst.jpg": {
           "id": "sample-painting-nga-46648-v1",
           "sampleAssetId": "painting-nga-46648-v1",
           "title": "Léon Bakst",
