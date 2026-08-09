@@ -579,40 +579,53 @@ function spec(
 
 const conservatoryContent: Content = starterContent(conservatoryContentRaw);
 
-/** The night salon (from Mosley): a giant serif name in canvas display type
- * laid over a scattered collage that scrolls for screens — small cluster,
- * statement, big alternating wall, one full-width band — with a quieter
- * portraits room behind it. Every catalog Bellows hangs somewhere. */
+/** The night salon (from Mosley): a one-pager home — giant serif name over a
+ * bleeding hero cluster, an eyebrow-and-statement bio device, a captioned
+ * scatter, a display-type services accordion, a giant BOOK/A WALL call to
+ * action, and a booking form — with Bio, Portfolio, and Awards rooms behind
+ * it. Every catalog Bellows hangs somewhere; four repeat across rooms. */
 const conservatoryRecipe: StarterRecipe = {
 	id: 'conservatory',
 	name: 'Conservatory',
 	discipline: 'Painting',
 	disciplines: ['painting', 'drawing'],
 	tagline: 'A night salon — bold work scattered under a giant serif name.',
-	description: 'Fifteen George Bellows paintings on deep green: a screens-deep salon wall and a portraits room.',
+	description: 'Fifteen George Bellows paintings on deep green: a seven-part night salon with bio, portfolio, and awards rooms.',
 	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
 	compatibleThemeIds: ['conservatory-green'],
 	defaultThemeId: 'conservatory-green',
 	readiness: 'ready',
 	gallerySpecs: [
-		spec('conservatory-salon', 'salon', 'Salon wall', 'selected-work', [
+		spec('conservatory-hero', 'hero', 'Hero wall', 'selected-work', [
 			'painting-nga-46557-v1',
 			'painting-nga-46558-v1',
 			'painting-nga-61351-v1',
 			'painting-nga-61355-v1',
 			'painting-nga-46559-v1',
+		]),
+		spec('conservatory-statement', 'statement', 'Bio statement', 'series', [
+			'painting-nga-61354-v1',
+		]),
+		spec('conservatory-scatter', 'scatter', 'Series scatter', 'series', [
 			'painting-nga-30667-v1',
 			'painting-nga-61247-v1',
 			'painting-nga-134485-v1',
-			'painting-nga-61354-v1',
 			'painting-nga-69392-v1',
 		]),
-		spec('conservatory-portraits', 'portraits', 'Portraits', 'series', [
-			'painting-nga-30743-v1',
-			'painting-nga-57491-v1',
+		spec('conservatory-bio', 'bio', 'Bio wall', 'series', [
+			'painting-nga-61353-v1',
 			'painting-nga-61352-v1',
 			'painting-nga-30742-v1',
-			'painting-nga-61353-v1',
+		]),
+		spec('conservatory-portfolio', 'portfolio', 'Portfolio scatter', 'series', [
+			'painting-nga-30743-v1',
+			'painting-nga-57491-v1',
+			'painting-nga-61355-v1',
+			'painting-nga-61247-v1',
+			'painting-nga-46559-v1',
+		]),
+		spec('conservatory-awards', 'awards', 'Awards wall', 'series', [
+			'painting-nga-69392-v1',
 		]),
 	],
 	content: conservatoryContent,

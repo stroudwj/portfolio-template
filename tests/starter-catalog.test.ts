@@ -296,7 +296,7 @@ describe('discipline-led starter catalog', () => {
 	it('keeps the spec-14 batch media byte-for-byte tied to the NGA rights manifest', () => {
 		// Slot counts include cross-folder reuses (a sample hung in two rooms).
 		const expectedCounts = {
-			conservatory: 15,
+			conservatory: 19,
 			masthead: 20,
 			atelier: 18,
 			'contact-sheet': 13,
