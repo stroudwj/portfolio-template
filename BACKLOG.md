@@ -93,7 +93,7 @@ against DESIGN.md voice, mobile/360px check. Files: `src/components/Landing.astr
 
 ---
 
-## 4. og:image + twitter card on remaining product pages — `queued`
+## 4. og:image + twitter card on remaining product pages — `merged` (2026-08-08)
 
 `faq/`, `guide/`, `learn/[slug]`, legal pages each hand-roll their `<head>` with no `og:image`.
 Add the shared card image + `summary_large_image` to each. Optional (flag first): factor a
@@ -145,7 +145,7 @@ raw address; old drafts with plain `recipientEmail` still work.
 > `public/assets/starters/new-starters-aug-8/` (photography/painting/drawing, public-domain
 > masters) — unusable until each gets a rights entry in `sample-artwork.ts`.
 
-## 8. Workbench Finder-parity — `queued`
+## 8. Workbench Finder-parity — `merged` (2026-08-08)
 
 **Goal.** Make the asset workbench (`src/editor/components/AssetWorkbench.tsx`) feel like a
 real Finder window: an accurate list view, a compact list density with very skinny rows, and
@@ -182,7 +182,7 @@ schema change.
 
 ---
 
-## 9. Guided crop & light demo in the workbench — `queued`
+## 9. Guided crop & light demo in the workbench — `merged` (2026-08-08)
 
 **Goal.** A short, skippable guided example in the workbench first-run: take one deliberately
 unprofessional-looking sample photo of an artwork and walk the user through cropping to a
@@ -220,7 +220,7 @@ changes to the cropZoom pipeline itself.
 
 ---
 
-## 10. Series folders → one-time page build on workbench exit — `built` (branch worktree-spec-10-series-build, awaiting review/merge)
+## 10. Series folders → one-time page build on workbench exit — `merged` (2026-08-09)
 
 **Goal.** Connect the intake's series answers to the workbench and the page structure:
 series-named folders wait in the workbench; when the user finishes sorting and hits an
@@ -275,7 +275,7 @@ change, nested folders, any doc schema change.
 
 ---
 
-## 11. Discipline template picker + auto-placement — `built` (branch worktree-spec-11-template-picker, awaiting review/merge)
+## 11. Discipline template picker + auto-placement — `merged` (2026-08-09)
 
 **Goal.** After the workbench build (or straight away for already-organized users), offer a
 picker of modern landing-page templates filtered by the discipline chosen at intake —
@@ -325,7 +325,7 @@ the starter JSON format; the runtime manifest (starter JSON is deliberately unha
 
 ---
 
-## 12. Motion primitives + template motion vocabulary — `queued`
+## 12. Motion primitives + template motion vocabulary — `merged` (2026-08-09)
 
 **Goal.** A small set of reusable motion primitives in the portfolio renderer, declared per
 site in the doc's theme (navStyle precedent) so starter templates can each carry their own
@@ -401,7 +401,7 @@ motion preview scrubbing, any new primitive.
 
 ---
 
-## 14. Template catalog production — the 42 → ~15 starters — `queued` (after 11 + 12; multi-session)
+## 14. Template catalog production — the 42 → ~15 starters — `running` (curation approved; batch 1 in review) (after 11 + 12; multi-session)
 
 **Goal.** Translate the curated Squarespace portfolio designs in
 `src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork
@@ -462,7 +462,7 @@ carousels/sliders.
 
 ---
 
-## 15. Editor panel polish: squished controls + hover help tips — `queued`
+## 15. Editor panel polish: squished controls + hover help tips — `review`
 
 **Goal.** Fix layout defects in the images-block editor panel at narrow sidebar widths, and
 replace the panel's verbose inline helper paragraphs with a small reusable "?" hover tip
@@ -502,3 +502,215 @@ Reproduce the squish: the sidebar has a drag-to-resize separator; test at its mi
 
 **Out of scope.** Redesigning panel structure, onboarding flows (specs 9/10 own their
 copy), renderer/published-site changes, a tooltip library dependency.
+
+---
+
+## 16. Beta PT 2: editor chrome & panel fixes — `queued`
+
+Source: beta tester round 2 (2026-08-06). Screenshots in
+[docs/feedback/2026-08-06-pt2/](docs/feedback/2026-08-06-pt2/README.md) — each item links
+its shot; read the image before fixing the item. Editor-only (`src/editor/`): no
+renderer/manifest impact expected. Overlaps spec 15's panel components — coordinate if
+both run at once.
+
+**Goal.** Fix a batch of editor-panel bugs and small UX gaps the tester hit while building
+a real multi-page site.
+
+**Verify first.** Reproduce each bug in the dev editor (`npm run dev` →
+`/portfolio-template/editor`) before fixing; a few may already be fixed on main. Find
+components by searching for visible strings/behaviors, not assumed file names.
+
+**Requirements.**
+- **Ellipsis menus are exclusive** ([ellipsis-menus-stack.png](docs/feedback/2026-08-06-pt2/ellipsis-menus-stack.png)):
+  opening any per-image "…" popover closes every other open one; clicking outside closes it.
+- **Click-on-canvas scrolls to the clicked image** ([click-image-scroll.png](docs/feedback/2026-08-06-pt2/click-image-scroll.png)):
+  today clicking an image in the preview scrolls the sidebar to the *top of its images
+  block*. Instead scroll to that image's own row/entry and give it a highlight that fades
+  out (~2s) so the eye lands on it. Use an existing token color at low opacity per DESIGN.md.
+- **Reorder buttons can't become Delete under the cursor** ([earlier-delete-misclick.png](docs/feedback/2026-08-06-pt2/earlier-delete-misclick.png)):
+  repeatedly clicking "↑ Earlier" must never land the next click on "Delete image" (menu
+  position shifts as the row moves). Keep the menu anchored/stationary while open, and add
+  "send to top" / "send to bottom" actions alongside Earlier/Later.
+- **Workbench copy feedback** ([copy-to-menu.png](docs/feedback/2026-08-06-pt2/copy-to-menu.png)):
+  after "Copy to → Image workbench" show a brief toast ("Sent to workbench"); add a
+  one-step "Copy to workbench" action so it doesn't require opening the dropdown.
+- **Preview-expand blank-space bug** ([product-blank-space-sidebar-open.png](docs/feedback/2026-08-06-pt2/product-blank-space-sidebar-open.png),
+  [preview-expand-blank-bug.png](docs/feedback/2026-08-06-pt2/preview-expand-blank-bug.png),
+  [preview-expand-expected.png](docs/feedback/2026-08-06-pt2/preview-expand-expected.png)):
+  with the sidebar open, expanding the preview (top-right arrows) leaves an enormous blank
+  area / wrong layout — the editor panel isn't collapsed properly and the view doesn't
+  reflect the real site ([preview-published-unclear.png](docs/feedback/2026-08-06-pt2/preview-published-unclear.png)).
+  Hiding the sidebar first then expanding renders correctly. Repro on a page with a
+  product block. Expanded preview must render identically regardless of prior sidebar state.
+- **Collapse button legibility** ([collapse-button-toolbar.png](docs/feedback/2026-08-06-pt2/collapse-button-toolbar.png)):
+  the `<` toolbar button collapses the editor panel but reads as browser back. Swap to a
+  panel-collapse glyph (sidebar-with-arrow) + tooltip ("Hide panel").
+- **Add-section ergonomics**: creating a section/block from anywhere scrolls+focuses the
+  sidebar to the new section; add an "Add section" button at the bottom of the page panel
+  too ([add-section-bottom.png](docs/feedback/2026-08-06-pt2/add-section-bottom.png)); the
+  white pull bar morphing into "+ Add section" on touch confused the tester
+  ([pull-bar-add-section.png](docs/feedback/2026-08-06-pt2/pull-bar-add-section.png)) —
+  keep drag working, make the affordances visually distinct.
+- **Numeric crop inputs** ([crop-lightbox-sliders.png](docs/feedback/2026-08-06-pt2/crop-lightbox-sliders.png)):
+  Zoom/Brightness/Contrast sliders each get a small numeric field (type a value, both stay
+  in sync).
+- **Card thumbnails from the workbench** ([thumbnail-card-picker.png](docs/feedback/2026-08-06-pt2/thumbnail-card-picker.png)):
+  the card thumbnail "+" currently only takes a file upload; also allow picking from the
+  workbench and cropping (reuse the crop lightbox).
+- **Details mode reachability** ([compact-details-toggle.png](docs/feedback/2026-08-06-pt2/compact-details-toggle.png),
+  [details-from-ellipsis.png](docs/feedback/2026-08-06-pt2/details-from-ellipsis.png)):
+  the Compact/Details toggle is unreachable when scrolled deep in a long list — keep it
+  sticky/visible, and add "Open details" to the per-image "…" menu.
+- Merge gate per header; `npm run check` + `npm test` clean.
+
+**Out of scope.** Renderer/published-site changes (spec 17), grid/batch workflow (spec 18),
+custom-cursor size (needs design decision), guest-book feature.
+
+---
+
+## 17. Beta PT 2: renderer bugs, styling options, more mounts — `queued`
+
+Source: beta tester round 2 (2026-08-06). Screenshots in
+[docs/feedback/2026-08-06-pt2/](docs/feedback/2026-08-06-pt2/README.md). Touches
+`src/portfolio/` (+ `doc-schema.ts` for the new options) → **manifest regen required**
+(`npm run runtime:generate`, commit `.hangwork/` with the change). New schema fields are
+optional-with-defaults, no version bump (navStyle precedent).
+
+**Goal.** Fix rendering bugs visible on the tester's published-style preview, add the
+styling options they asked for as *options* (not global changes), and expand the
+mounts/fixtures catalog they love.
+
+**Verify first.** Reproduce each bug in the editor preview AND in a built site
+(`npm run build`) — several may be staticgen-specific. Check what the Mount dropdown
+already offers ([mount-dropdown-current.png](docs/feedback/2026-08-06-pt2/mount-dropdown-current.png)).
+
+**Requirements — bugs.**
+- **Whole-page background not applied everywhere** ([whole-page-bg-not-applied.png](docs/feedback/2026-08-06-pt2/whole-page-bg-not-applied.png)):
+  page background set to `#ffffff` but the region behind a freeform signature image and the
+  footer keeps the textured background. Whole-page color must paint behind every section,
+  signature, and footer.
+- **False "This page is empty" placeholder** ([empty-page-placeholder.png](docs/feedback/2026-08-06-pt2/empty-page-placeholder.png)):
+  the "This page is empty… add something" text renders over a page that clearly has images.
+  Find the emptiness check and make it match reality.
+- **Freeform footer image clipped** ([footer-image-cutoff.png](docs/feedback/2026-08-06-pt2/footer-image-cutoff.png)):
+  a freeform image placed near the footer gets cut off and resizing doesn't fix it —
+  container overflow/height bug.
+- **Stray scrollbar on captioned freeform images** ([freeform-caption-scrollbar.png](docs/feedback/2026-08-06-pt2/freeform-caption-scrollbar.png)
+  vs expected [freeform-caption-expected.png](docs/feedback/2026-08-06-pt2/freeform-caption-expected.png)):
+  freeform + bottom caption shows an internal scrollbar.
+- **"On hover: Still" ignored on grid images**: with hover set to Still (and page-level
+  wobble on), grid images still zoom/wobble on hover. Per-image Still must win over
+  page/group motion everywhere. (The tester's separate "grid overrides freeform rules"
+  complaint is likely this same leak — recheck after fixing.)
+
+**Requirements — options (all opt-in, defaults preserve current look).**
+- **Link underline toggle** ([link-underline.png](docs/feedback/2026-08-06-pt2/link-underline.png)):
+  a per-site theme option (and ideally per-link override) to remove underlines from text
+  links — an *option*, not a global removal.
+- **Text-box background color**: text blocks get an optional background color (existing
+  ColorSwatchPicker + auto-contrast rules).
+- **Texture opacity + hue shift**: textured page backgrounds get opacity and hue-shift
+  controls (non-destructive, like brightness/contrast in crop & light).
+- **Segment transitions** ([segment-divider.png](docs/feedback/2026-08-06-pt2/segment-divider.png)):
+  option to fade/dither the boundary between differently-colored sections; divider color
+  currently only affects the line & ornament — let it follow section color sensibly.
+
+**Requirements — mounts & fixtures.**
+- New Mount options beyond none/tape/nail/hook/frame: **gallery mat**, more wooden-frame
+  styles, **colorful thumbtack**, **four-corner** variants (nailed/taped/tacked at all four
+  corners), **photo corners**. Match the physical style of existing mounts (DESIGN.md).
+- **Fixture toggle from the preview**: switch an image's mount (tape/nail/etc.) directly
+  from the canvas selection UI, not only the sidebar dropdown.
+- Merge gate per header; migration tests: old drafts without new fields parse; a draft
+  using each new option round-trips; `npm run runtime:generate` committed.
+
+**Out of scope.** Editor chrome (spec 16), smart grid (spec 18), new motion work (specs
+12/13), custom cursors.
+
+---
+
+## 18. Beta PT 2: smart grid + batch image workflow — `queued`
+
+Source: beta tester round 2 (2026-08-06); see
+[docs/feedback/2026-08-06-pt2/README.md](docs/feedback/2026-08-06-pt2/README.md). Run
+**after spec 17 merges** — touches both `src/editor/` and `src/portfolio/` grid code →
+manifest regen required. The tester's framing: "the next hurdle. recreate this by
+uploading 25-50 images and trying to arrange them."
+
+**Goal.** Make Grid mode intelligent by default — an aspect-aware mosaic that places mixed
+horizontal/vertical pieces together well — and add the batch tools needed to arrange a
+25–50 image page without per-image fiddling.
+
+**Verify first.** Read the current grid implementation (uniform grid mode: columns/crop —
+see the canvas-image-system history) before designing. Confirm where grid layout lives
+(renderer vs editor) and how `ImageLayout` interacts with grid mode.
+
+**Requirements — smart grid.**
+- **"Smart grid" toggle, ON by default** for new grids (existing docs keep their current
+  uniform behavior until toggled): packs images by original aspect ratio into an
+  auto-adjusting mosaic — mixed horizontal + vertical pieces, no forced square crops.
+- A **"gallery wall" variance option**: slightly randomized sizes within the mosaic so it
+  reads like a hung gallery wall, not a spreadsheet. Deterministic per doc (seeded), so
+  publish matches preview.
+- **Variable columns** and **grid gap controls** (horizontal + vertical whitespace
+  independently).
+- Toggling smart grid off returns to the current uniform grid; nothing about a doc that
+  never touches the toggle changes visually (migration test).
+
+**Requirements — batch tools.**
+- **Clear all image settings** (per block): resets hanging/mount/hover/crop overrides to
+  page defaults, with confirm.
+- **Reset all crops** and a **unified "crop/zoom all"** control for grid mode: set one
+  frame/zoom for the whole block, then optionally nudge individual images.
+- **Shuffle order** for a whole image group.
+- All batch actions are single undo steps (Cmd+Z restores the previous arrangement).
+- **Verify clause:** load 25–50 images into one page (sample masters under
+  `public/assets/starters/` are fine), arrange with smart grid + batch tools, publish-build
+  it, and screenshot the result. This workflow is the acceptance test.
+- Merge gate per header; manifest regen committed.
+
+**Out of scope.** Freeform-mode changes, workbench features (spec 8 owns Finder-parity),
+per-image motion (spec 13), renderer bugs (spec 17).
+
+---
+
+## 19. Catalog William's own film & photo-series masters — `queued` (unblocks spec 14 batches)
+
+**Goal.** The two uncataloged master sets that batch 1 correctly refused to touch —
+`public/assets/starters/new-starters-aug-8/photography/filmseries copy/` (film01–10) and
+`photoseries1 copy/` (vj01–10, PNGs) — are **William Stroud's own photographs; he granted
+sample-use rights in-session 2026-08-09.** Catalog them properly so later spec 14 batches
+can hang them in templates.
+
+**Why.** Batch 1 flagged them as provenance-unknown and left them out (the right call).
+With rights now settled, they're the only genuinely contemporary photo sets in the pool —
+valuable for film-series and photo-essay templates (Mycelium, Minetta, Zion styles) where
+1900s public-domain material reads as a history site.
+
+**Verify first.** Read batch 1's flag in `src/editor/lib/starters/SOURCES.md` and the
+existing `sample-artwork.ts` entry shape (accession/provenance fields, url format, how
+creator/title render in UI tooltips: "Sample: <creator>, <title>"). Check what format/size
+the catalog's existing images use — the vj set is PNG; convert to compressed JPEG matching
+house conventions unless transparency is load-bearing (it won't be for photos).
+
+**Files.** `public/assets/starters/new-starters-aug-8/photography/` (rename the two
+folders URL-safe, no spaces — e.g. `film-series/`, `photo-series/` — matching batch 1's
+rename convention), `src/editor/lib/sample-artwork.ts`, SOURCES.md (clear the flag,
+note the resolution).
+
+**Requirements.**
+- Creator: "William Stroud". Titles: short neutral descriptive titles per image (from
+  looking at each — no filename-as-title like "vj07"). Rights note: owner-provided,
+  sample-use in Hangwork starters; no external accession numbers (these are not museum
+  works — the catalog entry shape must tolerate that; extend the type minimally if it
+  demands an accession).
+- Compress/convert to match existing catalog file sizes (the sets must not exceed the
+  size norms of neighboring sample images).
+- `validateStarterCatalog` + existing tests pass; images render in the editor's sample
+  picker with correct attribution.
+- If ANY image in these folders looks like it might not be William's own (contains
+  recognizable third-party artwork, watermarks, other people as the subject without
+  obvious consent), skip it and flag it in SOURCES.md rather than cataloging.
+
+**Out of scope.** Using them in templates (later spec 14 batches do that), touching the
+museum-sourced sets, republishing masters at full resolution.
