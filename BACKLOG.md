@@ -795,7 +795,7 @@ motion), template content changes (spec 14's revision uses this once merged).
 
 ---
 
-## 22. Conservatory fidelity sprint — one template to indistinguishable — `queued` (pauses spec 14 batch 3)
+## 22. Conservatory fidelity sprint — one template to indistinguishable — `running` (steps 1+2 built on `worktree-spec-22-conservatory-fidelity`; do step 2b, then step 3, in a FRESH session)
 
 **Goal.** Make `conservatory` a faithful stand-in for mosley.squarespace.com — every page,
 not just the landing — and in doing so produce the vetted capability list the other 18
@@ -830,6 +830,42 @@ spec is the umbrella):**
   recalibrate subtle (and re-check `full`).
 **Check SOURCES.md batch notes and the (a) list before building any of these — and if the
 audit finds a gap not listed here, add it to the table rather than silently expanding scope.**
+
+**Status 2026-08-09.** Steps 1+2 are DONE and committed on
+`worktree-spec-22-conservatory-fidelity` (audit table in SOURCES.md with William's
+approvals recorded; accordion block, canvas shapes, three-zone nav, footer name+columns,
+and the motion data fix all landed; `npm run check` 0 errors, `npm test` 283/283 green).
+The prior session ran out of context — continue on the SAME branch in a fresh session.
+Review found conservatory renders BLANK in the template studio. Two pre-existing renderer
+bugs (both reproduce on the integration branch too — NOT regressions from this branch's
+work) block step 3 and must be fixed first:
+
+**Step 2b — render blockers (fix these before touching step 3):**
+- **Sample-asset URLs drop the slash after the base.** Every starter image src comes out
+  as `/portfolio-templateassets/starters/...` (404, so the whole wall is blank). The join
+  is `` `${import.meta.env.BASE_URL}${artwork.url}` `` in `sampleArtworkUrl`
+  (src/editor/lib/sample-artwork.ts, ~line 903): in dev `BASE_URL` is `/portfolio-template`
+  with no trailing slash while catalog `url` values are relative (`assets/starters/...`).
+  Fix with a join helper that guarantees exactly one slash (BASE_URL may be `/`,
+  `/portfolio-template`, or `/portfolio-template/` — handle all three), and grep for other
+  bare `BASE_URL` concatenations while there. Verify both entry paths: the template studio
+  (`?template-studio=starter:conservatory`) AND applying conservatory through the normal
+  template picker. Add a test pinning the joined URL shape.
+- **`reveal`/`sequence` never fire on tall sections.** `SectionMotion.tsx` observes
+  sections with `threshold: 0.14` (+ rootMargin `0px 0px -8% 0px`). IntersectionObserver's
+  ratio is visible-height ÷ section-height, so a spec-21 deep canvas (salon wall is
+  ~4,400px) in a ~700px preview iframe tops out near 0.13 — the threshold can never be
+  crossed, `motion-visible` is never added, and every canvas item sits at opacity 0
+  forever. That is the "template doesn't render" symptom even after images are fixed, and
+  it will hit ANY tall section on published sites on small screens too. Fix so tall
+  sections still trigger (e.g. per-section `threshold: Math.min(0.14, fraction-of-section
+  a full viewport can cover)`, or observe with threshold 0 + a rootMargin that requires
+  meaningful entry); for `sequence`, consider whether observing per-item serves Mosley's
+  staggered entrance better. Keep `prefers-reduced-motion` and the phone gate intact.
+- **Acceptance for 2b:** open the template studio on conservatory with the browser pane
+  VISIBLE (a hidden pane freezes IntersectionObserver and fakes "no motion" — see
+  SOURCES.md note), confirm all 10 salon images render and play their staggered entrance
+  on scroll, on both desktop and phone preview widths.
 
 **Step 3 — apply.** Revise conservatory's JSON in the template studio using the new
 capabilities until a side-by-side scroll-through of every page reads as the same design
