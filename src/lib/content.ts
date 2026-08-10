@@ -222,6 +222,10 @@ export interface SignatureData {
 export interface CustomFont {
 	name: string;
 	file: string;
+	/** @font-face font-weight descriptor — a weight ("500") or a variable range
+	 * ("400 800"). Declared by bundled starter faces; absent for user uploads
+	 * (the descriptor then defaults to normal, exactly the pre-spec-23 rule). */
+	weight?: string;
 }
 
 export interface Theme {

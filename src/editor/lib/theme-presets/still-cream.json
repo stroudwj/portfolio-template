@@ -4,7 +4,7 @@
   "mutedTextColor": "#8a8177",
   "accentColor": "#625448",
   "fontFamily": "\"Trebuchet MS\", Verdana, sans-serif",
-  "headingFontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+  "headingFontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
   "logoScale": 120,
   "logoPosition": "center",
   "pageHeadingScale": 140,

@@ -13,7 +13,7 @@
     "mutedTextColor": "#5a5f9e",
     "accentColor": "#0016d0",
     "fontFamily": "Verdana, Geneva, sans-serif",
-    "headingFontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+    "headingFontFamily": "\"Nunito Sans\", \"Arial Black\", \"Avenir Next\", Arial, sans-serif",
     "logoScale": 130,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
@@ -27,7 +27,10 @@
       "reveal": true,
       "hover": true,
       "stagger": true
-    }
+    },
+    "customFonts": [
+      { "name": "Nunito Sans", "file": "fonts/nunito-sans-900-latin.woff2", "weight": "900" }
+    ]
   },
   "nav": [
     {
@@ -106,7 +109,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "fontFamily": "\"Nunito Sans\", \"Arial Black\", \"Avenir Next\", Arial, sans-serif",
           "link": "/works",
           "layout": {
             "x": 0,
@@ -151,7 +154,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "fontFamily": "\"Nunito Sans\", \"Arial Black\", \"Avenir Next\", Arial, sans-serif",
           "link": "/about",
           "layout": {
             "x": 0,
@@ -196,7 +199,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Arial Black\", \"Avenir Next\", Arial, sans-serif",
+          "fontFamily": "\"Nunito Sans\", \"Arial Black\", \"Avenir Next\", Arial, sans-serif",
           "layout": {
             "x": 0,
             "y": 12,

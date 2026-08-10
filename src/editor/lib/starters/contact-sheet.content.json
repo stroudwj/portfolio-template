@@ -13,7 +13,7 @@
     "mutedTextColor": "#77705f",
     "accentColor": "#ab8055",
     "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
-    "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+    "headingFontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
     "logoScale": 130,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
@@ -27,7 +27,10 @@
       "reveal": true,
       "hover": true,
       "stagger": true
-    }
+    },
+    "customFonts": [
+      { "name": "Poppins", "file": "fonts/poppins-500-latin.woff2", "weight": "500" }
+    ]
   },
   "nav": [
     {
@@ -76,7 +79,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "flowLayout": {
             "x": 0,
             "w": 92
@@ -128,7 +131,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
             "x": 0,
             "y": 2,

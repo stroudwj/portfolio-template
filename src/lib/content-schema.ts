@@ -444,7 +444,9 @@ export const themeSchema = passthrough({
 		stagger: z.boolean().optional(),
 		scene: sectionMotionSchema.optional(),
 	}).optional(),
-	customFonts: z.array(passthrough({ name: z.string(), file: z.string() })).optional(),
+	customFonts: z
+		.array(passthrough({ name: z.string(), file: z.string(), weight: z.string().optional() }))
+		.optional(),
 });
 
 /** Runtime validation for the JSON boundary. Object schemas deliberately preserve

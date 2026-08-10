@@ -13,7 +13,7 @@
     "mutedTextColor": "#8a8177",
     "accentColor": "#625448",
     "fontFamily": "\"Trebuchet MS\", Verdana, sans-serif",
-    "headingFontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+    "headingFontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
     "logoScale": 120,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
@@ -26,7 +26,10 @@
       "intensity": "subtle",
       "reveal": true,
       "hover": true
-    }
+    },
+    "customFonts": [
+      { "name": "Playfair Display", "file": "fonts/playfair-display.woff2", "weight": "400 900" }
+    ]
   },
   "nav": [
     {
@@ -85,7 +88,7 @@
               ]
             }
           ],
-          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "fontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
           "layout": {
             "x": 0,
             "y": 4,
@@ -119,7 +122,7 @@
               ]
             }
           ],
-          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "fontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
           "layout": {
             "x": 0,
             "y": 66,
@@ -198,7 +201,7 @@
               ]
             }
           ],
-          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "fontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
           "layout": {
             "x": 0,
             "y": 85,
@@ -312,7 +315,7 @@
               "align": "center"
             }
           ],
-          "fontFamily": "Baskerville, \"Palatino Linotype\", Georgia, serif",
+          "fontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
           "layout": {
             "x": 6,
             "y": 10,

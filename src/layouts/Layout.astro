@@ -56,7 +56,7 @@ const textureVars = textureTuned
 // Uploaded fonts become @font-face rules ahead of the theme variables that use them.
 const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
 	const url = getFontUrl(font.file);
-	return url ? [{ name: font.name, url }] : [];
+	return url ? [{ name: font.name, url, weight: font.weight }] : [];
 });
 // The html/body theming lives in THIS rendered string — not a `<style is:global>`
 // block — because Astro bundles static styles from every imported component into the

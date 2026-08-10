@@ -334,9 +334,9 @@ export default function ThemeEditor() {
 						{f.name}
 					</span>
 					{(
-						theme.fontFamily === customFontValue(f.name) ||
-						theme.headingFontFamily === customFontValue(f.name) ||
-						textBoxFonts.has(customFontValue(f.name))
+						theme.fontFamily.includes(f.name) ||
+						(theme.headingFontFamily ?? '').includes(f.name) ||
+						[...textBoxFonts].some((value) => value.includes(f.name))
 					) && <span className="count">in use</span>}
 					<button
 						type="button"

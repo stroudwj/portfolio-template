@@ -471,7 +471,7 @@ export async function buildBundle(doc: EditorDoc): Promise<PortfolioBundle> {
 			if (blob) {
 				const file = `fonts/${sanitizeFilename(slot.filename || font.name)}`;
 				files.push({ path: `src/assets/${file}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
-				kept.push({ name: font.name, file });
+				kept.push({ ...font, file });
 			} else if (font.file) {
 				kept.push(font);
 				referencedFiles.add(`src/assets/${font.file}`);

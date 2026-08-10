@@ -13,7 +13,7 @@
     "mutedTextColor": "#767676",
     "accentColor": "#ff340a",
     "fontFamily": "Arial, \"Helvetica Neue\", Helvetica, sans-serif",
-    "headingFontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+    "headingFontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
     "logoScale": 120,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
@@ -27,7 +27,10 @@
       "reveal": true,
       "hover": true,
       "stagger": true
-    }
+    },
+    "customFonts": [
+      { "name": "Cormorant", "file": "fonts/cormorant-latin.woff2", "weight": "500 700" }
+    ]
   },
   "nav": [
     {
@@ -121,7 +124,7 @@
               "align": "center"
             }
           ],
-          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "fontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
           "layout": {
             "x": 0,
             "y": 6,
@@ -145,7 +148,7 @@
               "align": "center"
             }
           ],
-          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "fontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
           "layout": {
             "x": 0,
             "y": 22,
@@ -213,7 +216,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "fontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
           "layout": {
             "x": 55,
             "y": 83,
@@ -247,7 +250,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "fontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
           "layout": {
             "x": 0,
             "y": 2,
@@ -292,7 +295,7 @@
               ]
             }
           ],
-          "fontFamily": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
+          "fontFamily": "Cormorant, \"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif",
           "layout": {
             "x": 50,
             "y": 50,

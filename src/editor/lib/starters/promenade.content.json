@@ -13,7 +13,7 @@
     "mutedTextColor": "#6e687a",
     "accentColor": "#32273b",
     "fontFamily": "Optima, Candara, \"Segoe UI\", sans-serif",
-    "headingFontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+    "headingFontFamily": "\"Bodoni Moda\", Didot, \"Bodoni MT\", \"Times New Roman\", serif",
     "logoScale": 120,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "center",
@@ -26,7 +26,10 @@
       "intensity": "subtle",
       "reveal": true,
       "hover": true
-    }
+    },
+    "customFonts": [
+      { "name": "Bodoni Moda", "file": "fonts/bodoni-moda-latin.woff2", "weight": "400 700" }
+    ]
   },
   "nav": [
     {
@@ -75,7 +78,7 @@
               "align": "center"
             }
           ],
-          "fontFamily": "Didot, \"Bodoni MT\", \"Times New Roman\", serif",
+          "fontFamily": "\"Bodoni Moda\", Didot, \"Bodoni MT\", \"Times New Roman\", serif",
           "flowLayout": {
             "x": 25,
             "w": 50

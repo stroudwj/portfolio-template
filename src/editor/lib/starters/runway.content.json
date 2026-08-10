@@ -17,7 +17,7 @@
     "mutedTextColor": "#9a9a9a",
     "accentColor": "#d8d8d8",
     "fontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
-    "headingFontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+    "headingFontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
     "logoScale": 130,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "center",
@@ -30,7 +30,10 @@
       "intensity": "subtle",
       "reveal": true,
       "hover": true
-    }
+    },
+    "customFonts": [
+      { "name": "Syne", "file": "fonts/syne-latin.woff2", "weight": "400 800" }
+    ]
   },
   "nav": [
     {
@@ -104,7 +107,7 @@
               "align": "center"
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
             "x": 0,
             "y": 2,
@@ -161,7 +164,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
             "x": 0,
             "y": 0,
@@ -184,7 +187,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "link": "/portraits",
           "layout": {
             "x": 5,
@@ -208,7 +211,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
             "x": 37,
             "y": 34,
@@ -231,7 +234,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "link": "/figures",
           "layout": {
             "x": 42,
@@ -255,7 +258,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
             "x": 0,
             "y": 68,
@@ -278,7 +281,7 @@
               ]
             }
           ],
-          "fontFamily": "Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "fontFamily": "Syne, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "link": "/about",
           "layout": {
             "x": 5,

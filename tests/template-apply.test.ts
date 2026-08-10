@@ -215,6 +215,31 @@ describe('applyTemplateToDoc', () => {
 		).toEqual(works.map((work) => work.assetId));
 	});
 
+	it('carries the template’s bundled faces; the artist’s own font keeps its name', () => {
+		const { doc } = builtDoc(3);
+		doc.content.theme.customFonts = [
+			{ name: 'Cormorant', file: 'fonts/my-cormorant.woff2' },
+			{ name: 'Studio Sans', file: 'fonts/studio-sans.woff2' },
+		];
+
+		// A template that declares a face the artist doesn't have: it comes along.
+		const applied = applyTemplateToDoc(doc, ready('conservatory').content).doc;
+		const fonts = applied.content.theme.customFonts ?? [];
+		expect(fonts).toContainEqual({
+			name: 'Gilda Display',
+			file: 'fonts/gilda-display.woff2',
+			weight: '400',
+		});
+		expect(fonts).toContainEqual({ name: 'Studio Sans', file: 'fonts/studio-sans.woff2' });
+
+		// A name collision: the artist's uploaded font keeps the name.
+		const collided = applyTemplateToDoc(doc, ready('marmalade').content).doc;
+		const collidedFonts = collided.content.theme.customFonts ?? [];
+		expect(collidedFonts.filter((font) => font.name === 'Cormorant')).toEqual([
+			{ name: 'Cormorant', file: 'fonts/my-cormorant.woff2' },
+		]);
+	});
+
 	it('renames template folders that collide with a page the artist keeps', () => {
 		const painter = ready('painter');
 		const { doc } = builtDoc(1, 'Selected work');
