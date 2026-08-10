@@ -1189,7 +1189,7 @@ required).
 
 ---
 
-## 28. Better motion icon — replace ∿ everywhere it appears — `queued`
+## 28. Better motion icon — replace ∿ everywhere it appears — `built` (2026-08-10, on worktree-spec-28-motion-icon awaiting merge. Recon: the squiggle survived in exactly one JSX site — the shared SectionMotionPicker trigger chip — plus a CSS comment; the page- and site-level scene pickers are plain selects with no glyph, so one component covers every motion surface. Replaced with a new shared `motion` PanelIcon in ui/panel-icons.tsx (speed lines trailing a dot, outline stroke per DESIGN.md), sized 14px in the chip. Recon grep re-run: zero ∿ under src/. Labels, HelpTips, and the popover untouched; eyeballed rest "Motion" and active "Sequence" chip states at panel scale. `npm run check` 0 errors, `npm test` 328/328, manifest regenerated.)
 
 **Goal.** Find every place the editor uses the ∿ squiggle as the motion glyph — the
 per-section chip (spec 24 made it a labeled chip naming the active scene), the

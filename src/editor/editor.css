@@ -7586,7 +7586,7 @@ a.live-url:hover {
 .motion-scene-choice > span {
 	font-weight: 500;
 }
-/* The trigger names itself ("∿ Motion", or the active scene like "∿ Sequence")
+/* The trigger names itself ("Motion", or the active scene like "Sequence")
    so the control reads as words, not decoration, in the section header row. */
 .motion-scene-trigger {
 	display: inline-flex;
@@ -7596,9 +7596,9 @@ a.live-url:hover {
 	padding: 0 8px;
 	font-size: 12px;
 }
-.motion-scene-trigger > span {
-	font-size: 15px;
-	line-height: 1;
+.motion-scene-trigger .panel-icon {
+	width: 14px;
+	height: 14px;
 }
 
 /* ---- Design: effects & flourishes ---- */
