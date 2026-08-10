@@ -5990,6 +5990,16 @@ a.live-url:hover {
 	padding-block: 4px;
 	font-size: 11px;
 }
+/* A question row's four columns need ~350px of card, which the panel only has
+   once the sidebar is dragged past ~465px. Below that the panel (not just a
+   phone viewport) stacks the row so Required and ✕ never clip at the card
+   edge — widening the sidebar brings the compact four-column rows back. */
+@container (max-width: 400px) {
+	.block-field-grid,
+	.form-field-row {
+		grid-template-columns: 1fr;
+	}
+}
 @container (max-width: 330px) {
 	.page-section-editor-head {
 		grid-template-columns: 28px minmax(0, 1fr);
@@ -6260,6 +6270,49 @@ a.live-url:hover {
 	border-radius: 4px;
 	padding: 10px 12px;
 	margin: 10px 0;
+}
+/* An open card's body caps at roughly the panel height actually on screen and
+   becomes the one scroll region when its content runs longer — the card head
+   and the rest of the panel stay in reach (spec 26). The negative margin puts
+   the scrollport at the card's inner edge so children with small negative
+   margins (the image list heading) aren't clipped by the overflow. */
+.block-body {
+	min-width: 0;
+	max-height: clamp(260px, calc(100dvh - 300px), 1100px);
+	margin: 0 -12px;
+	padding: 0 12px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+/* Inside a capped body the Compact/Details heading sticks to the body's own
+   scrollport — the panel's 92px sticky ladder doesn't exist in here. */
+.block-body .image-list-heading {
+	top: 0;
+}
+/* The resize grip at a card's foot: same quiet bar as the sidebar resizer —
+   --wall-2 at rest, Klein only under the pointer or keyboard focus. */
+.block-body-resizer {
+	position: relative;
+	height: 11px;
+	margin: 2px -12px -8px;
+	cursor: row-resize;
+	touch-action: none;
+}
+.block-body-resizer::after {
+	content: '';
+	position: absolute;
+	inset: 4px 12px;
+	border-radius: 2px;
+	background: var(--wall-2);
+	transition: inset 120ms ease, background 120ms ease;
+}
+.block-body-resizer:hover::after,
+.block-body-resizer:focus-visible::after {
+	inset: 2px 12px;
+	background: var(--klein);
+}
+.block-body-resizer:focus-visible {
+	outline: none;
 }
 .block-head {
 	display: flex;
