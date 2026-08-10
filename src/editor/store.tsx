@@ -893,8 +893,13 @@ export interface EditorContextValue {
 	setTextFlowLayout(key: string, blockId: string, layout: TextFlowLayout | undefined): void;
 	/** Pin a text block to the page canvas (or undefined to return it to the flow). */
 	setTextLayout(key: string, blockId: string, layout: TextLayout | undefined): void;
-	/** Change gallery display settings (freeform/grid, columns, crop aspect). */
-	setGalleryConfig(key: string, patch: Partial<Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'mobile'>>): void;
+	/** Change gallery display settings (freeform/grid, columns, crop aspect, smart grid, gaps). */
+	setGalleryConfig(
+		key: string,
+		patch: Partial<
+			Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'smartGrid' | 'galleryWall' | 'gapX' | 'gapY' | 'mobile'>
+		>,
+	): void;
 	/** Ensure the page has a primary freeform image group, optionally inserting it before a block. */
 	addFreeformGallery(key: string, beforeBlockId?: string, sectionId?: string): void;
 	/** Add an extra image group (its own folder + canvas/grid) to the page. */
@@ -909,6 +914,10 @@ export interface EditorContextValue {
 				| 'layout'
 				| 'columns'
 				| 'aspect'
+				| 'smartGrid'
+				| 'galleryWall'
+				| 'gapX'
+				| 'gapY'
 				| 'carousel'
 				| 'carouselFit'
 				| 'carouselFrame'
@@ -1080,6 +1089,16 @@ export interface EditorContextValue {
 	removeGalleryImage(folder: string, id: string): void;
 	moveGalleryImage(folder: string, from: number, to: number): void;
 	updateGalleryMeta(folder: string, id: string, patch: Partial<ImageMeta>): void;
+	/** Randomly reorder a whole image group. One undo step restores the old order. */
+	shuffleGalleryImages(folder: string): void;
+	/** Reset every image's artwork effects (hanging/mount/hover/arrival) and crop
+	 *  overrides to the page defaults. One undo step; callers confirm first. */
+	clearGalleryImageSettings(folder: string): void;
+	/** Remove every image's crop/zoom/focus override in one undo step. */
+	resetGalleryCrops(folder: string): void;
+	/** Give every image in the group the same crop frame and zoom (one undo step);
+	 *  individual images can still be nudged afterwards. */
+	applyGalleryCropAll(folder: string, aspect: string | undefined, zoom: number): void;
 	/** Overwrite many images' freeform positions at once (id -> layout), e.g. when
 	 *  adopting the Grid arrangement as the freeform starting point. */
 	setGalleryLayouts(folder: string, layouts: Record<string, ImageLayout>): void;
@@ -3790,6 +3809,51 @@ export function EditorProvider({
 					},
 				})),
 		moveGalleryImage: (folder, from, to) => patchGallery(folder, (entries) => arrayMove(entries, from, to)),
+		shuffleGalleryImages: (folder) =>
+			patchGallery(folder, (entries) => {
+				if (entries.length < 2) return entries;
+				// Fisher–Yates; nudge the last card forward if the deal came back identical.
+				const shuffled = [...entries];
+				for (let i = shuffled.length - 1; i > 0; i--) {
+					const j = Math.floor(Math.random() * (i + 1));
+					[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+				}
+				return shuffled.every((entry, i) => entry === entries[i])
+					? [shuffled[shuffled.length - 1], ...shuffled.slice(0, -1)]
+					: shuffled;
+			}),
+		clearGalleryImageSettings: (folder) =>
+			patchGallery(folder, (entries) =>
+				entries.map((entry) => ({
+					...entry,
+					meta: {
+						...entry.meta,
+						effects: undefined,
+						cropAspect: undefined,
+						cropZoom: undefined,
+						focusX: undefined,
+						focusY: undefined,
+					},
+				})),
+			),
+		resetGalleryCrops: (folder) =>
+			patchGallery(folder, (entries) =>
+				entries.map((entry) => ({
+					...entry,
+					meta: { ...entry.meta, cropAspect: undefined, cropZoom: undefined, focusX: undefined, focusY: undefined },
+				})),
+			),
+		applyGalleryCropAll: (folder, aspect, zoom) =>
+			patchGallery(folder, (entries) =>
+				entries.map((entry) => ({
+					...entry,
+					meta: {
+						...entry.meta,
+						cropAspect: aspect,
+						cropZoom: zoom > 1 ? Math.round(zoom * 100) / 100 : undefined,
+					},
+				})),
+			),
 		updateGalleryMeta: (folder, id, patch) => {
 			// An image move and every metadata edit are undoable. The first layout an
 			// image receives is automatic canvas flow, so that one commit stays out of

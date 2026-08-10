@@ -29,6 +29,7 @@ import {
 	clampLayout,
 	columnEdges,
 	columnSpans,
+	DEFAULT_AR,
 	EDGE_SNAP,
 	MIN_W,
 	nearestEdge,
@@ -39,6 +40,7 @@ import {
 	snapToEdges,
 } from './canvasLayout';
 import { guideById, useGridPrefs } from './gridPrefs';
+import { gridGap, lastRowSpacer, packSmartRows, rowTargetSum, wallJitter } from './smartGrid';
 import { artworkAdjustFilter, artworkEffectClass, artworkEffectStyle } from './artworkEffects';
 import './Gallery.css';
 import './ArtworkEffects.css';
@@ -243,6 +245,25 @@ export default function Gallery({
 			}),
 		[isPhone, renderedImages, settings?.mobile?.items],
 	);
+	// Smart grid: aspect ratios measured from the loaded pixels when the caller
+	// couldn't supply them (the editor preview resolves blob URLs without
+	// dimensions; published builds always pass `ar`, so this never runs there).
+	const [smartArs, setSmartArs] = useState<Record<string, number>>({});
+	const measureSmartAr = useCallback((key: string, el: HTMLImageElement) => {
+		if (!el.naturalWidth || !el.naturalHeight) return;
+		const ar = el.naturalWidth / el.naturalHeight;
+		setSmartArs((m) => (m[key] !== undefined ? m : { ...m, [key]: ar }));
+	}, []);
+	const smartMode = settings?.layout === 'grid' && settings.smartGrid === true;
+	const smartLayout = useMemo(() => {
+		if (!smartMode) return null;
+		const ars = renderedImages.map(
+			({ img, i }) =>
+				parseAspect(img.cropAspect) ?? img.ar ?? smartArs[imagePhoneKey(img, i)] ?? DEFAULT_AR,
+		);
+		const columns = uniformColumns(settings?.columns);
+		return { ars, rows: packSmartRows(ars, columns), target: rowTargetSum(ars, columns) };
+	}, [smartMode, renderedImages, smartArs, settings?.columns]);
 	const carouselEntries = useMemo(
 		() =>
 			renderedImages.filter(({ img, i }) => {
@@ -1030,12 +1051,114 @@ export default function Gallery({
 						)}
 					</section>
 				</>
+			) : smartLayout ? (
+				<div
+					className={`smart-grid ${settings?.galleryWall ? 'gallery-wall' : ''}`}
+					style={{
+						'--gap-x': `${gridGap(settings?.gapX)}rem`,
+						'--gap-y': `${gridGap(settings?.gapY)}rem`,
+						'--mobile-cols': String(settings?.mobile?.columns ?? 1),
+					} as CSSProperties}
+				>
+					{smartLayout.rows.map((row, rowIndex) => {
+						const spacer =
+							rowIndex === smartLayout.rows.length - 1 && smartLayout.rows.length > 1
+								? lastRowSpacer(row.map((entry) => smartLayout.ars[entry]), smartLayout.target)
+								: 0;
+						return (
+							<div className="smart-row" key={renderedImages[row[0]].img.id ?? row[0]}>
+								{row.map((entry) => {
+									const { img, i } = renderedImages[entry];
+									const ar = smartLayout.ars[entry];
+									const href = editable ? undefined : imageClickHref(img);
+									const phoneKey = imagePhoneKey(img, i);
+									const jitter = settings?.galleryWall ? wallJitter(img.id ?? phoneKey) : null;
+									return (
+										<div
+											className={`smart-item ${artworkEffectClass(img)}${jitter ? ` wall-y-${jitter.alignY}` : ''}`}
+											style={{
+												...phoneItemVars(settings, phoneKey, i),
+												...artworkEffectStyle(img),
+												'--flex-ar': String(ar),
+											} as CSSProperties}
+											key={img.id ?? `${img.src}-${i}`}
+										>
+											<span
+												className={`smart-art${jitter ? ` wall-x-${jitter.alignX}` : ''}${img.cropAspect || (img.cropZoom ?? 1) > 1 ? ' has-native-crop' : ''}`}
+												style={jitter ? ({ '--wall-scale': String(Math.round(jitter.scale * 1000) / 1000) } as CSSProperties) : undefined}
+											>
+												<img
+													src={img.src}
+													srcSet={img.srcSet}
+													alt={img.decorative ? '' : img.alt || img.title || alt}
+													className={!editable && !href ? 'lightbox-trigger' : undefined}
+													loading="lazy"
+													decoding="async"
+													role={!editable && !href ? 'button' : undefined}
+													tabIndex={!editable && !href ? 0 : undefined}
+													aria-haspopup={!editable && !href ? 'dialog' : undefined}
+													aria-label={
+														!editable && !href
+															? `Open ${img.title || img.alt || alt} in image viewer`
+															: undefined
+													}
+													style={{
+														...nativeCropStyle(img),
+														...(parseAspect(img.cropAspect)
+															? {}
+															: { aspectRatio: String(ar), objectFit: 'cover' as const }),
+													}}
+													onLoad={
+														img.ar === undefined && !parseAspect(img.cropAspect)
+															? (e) => measureSmartAr(phoneKey, e.currentTarget)
+															: undefined
+													}
+													onError={
+														img.sample
+															? (event) => showSampleUnavailable(event.currentTarget)
+															: undefined
+													}
+													onClick={!editable && !href ? (e) => openLightbox(i, e.currentTarget) : undefined}
+													onKeyDown={!editable && !href ? (e) => openFromKeyboard(e, i) : undefined}
+												/>
+												{img.title && (
+													<span className="motion-caption" aria-hidden="true">
+														{img.title}
+													</span>
+												)}
+												{href && (
+													<a
+														className="artwork-link-overlay"
+														href={href}
+														target={externalImageLink(href) ? '_blank' : undefined}
+														rel={externalImageLink(href) ? 'noopener noreferrer' : undefined}
+														aria-label={`Go to ${img.title || img.alt || 'linked image'}`}
+														onClick={(event) => onImageLink?.(href, event)}
+													/>
+												)}
+											</span>
+										</div>
+									);
+								})}
+								{spacer > 0 && (
+									<div
+										className="smart-spacer"
+										style={{ '--flex-ar': String(Math.round(spacer * 1000) / 1000) } as CSSProperties}
+										aria-hidden="true"
+									/>
+								)}
+							</div>
+						);
+					})}
+				</div>
 			) : uniformMode ? (
 				<div
 					className={`uniform-grid ${cellAr ? 'cropped' : ''}`}
 					style={{
 						'--cols': String(cols),
 						'--cell-ar': cellAr ? String(cellAr) : undefined,
+						'--gap-x': `${gridGap(settings?.gapX)}rem`,
+						'--gap-y': `${gridGap(settings?.gapY)}rem`,
 						'--mobile-cols': String(settings?.mobile?.columns ?? 1),
 					} as CSSProperties}
 				>

@@ -411,6 +411,16 @@ export interface GalleryConfig {
 	columns?: number;
 	/** Grid mode: crop ratio like "1:1" or "4:3"; absent = original ratios (no crop). */
 	aspect?: string;
+	/** Grid mode: pack images into aspect-aware justified rows (mixed horizontal/vertical
+	 * pieces, no forced crops). Absent = the classic uniform grid, so existing docs keep
+	 * their current look until the artist flips the toggle. */
+	smartGrid?: boolean;
+	/** Smart grid: seeded per-artwork size/placement variance, like a hung gallery wall. */
+	galleryWall?: boolean;
+	/** Grid gaps in rem — between images in a row (gapX) and between rows (gapY).
+	 * Absent = the historic 1.25rem. */
+	gapX?: number;
+	gapY?: number;
 	/** Extra image groups may opt into a one-image-at-a-time, click-through carousel. */
 	carousel?: boolean;
 	/** Carousel image sizing: fit shows the full image; fill crops it to the frame. */

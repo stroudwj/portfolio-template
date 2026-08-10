@@ -325,8 +325,81 @@
 .uniform-grid {
 	display: grid;
 	grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
-	gap: 1.25rem;
+	gap: var(--gap-y, 1.25rem) var(--gap-x, 1.25rem);
 	align-items: start;
+}
+
+/* ---- Smart grid (aspect-aware mosaic) ----
+   Justified rows: within a row every item gets flex-grow equal to its aspect
+   ratio over a zero basis, so widths are proportional to ratios and every
+   image in the row renders at the same height — mixed horizontal and vertical
+   pieces, no forced crops. Row membership is computed in Gallery.tsx. */
+.smart-grid {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-y, 1.25rem);
+}
+
+.smart-row {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--gap-x, 1.25rem);
+}
+
+.smart-item {
+	position: relative;
+	flex: var(--flex-ar, 1) 1 0%;
+	min-width: 0;
+}
+
+/* Invisible flex filler that keeps a sparse last row from stretching. */
+.smart-spacer {
+	flex: var(--flex-ar, 1) 1 0%;
+	min-width: 0;
+}
+
+/* The artwork box inside a cell — full cell normally; the gallery-wall option
+   shrinks it by a seeded per-piece factor so the mosaic hangs like a wall of
+   frames instead of lining up like a spreadsheet. */
+.smart-art {
+	position: relative;
+	display: block;
+	width: calc(var(--wall-scale, 1) * 100%);
+}
+
+.smart-art.has-native-crop {
+	overflow: hidden;
+}
+
+.smart-art img {
+	width: 100%;
+	height: auto;
+	display: block;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+}
+
+.smart-art img.lightbox-trigger {
+	cursor: zoom-in;
+}
+
+.smart-art img.lightbox-trigger:hover {
+	transform: scale(1.02);
+	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Seeded gallery-wall placement of the shrunken artwork inside its cell. */
+.gallery-wall .smart-art.wall-x-center {
+	margin-inline: auto;
+}
+.gallery-wall .smart-art.wall-x-end {
+	margin-inline-start: auto;
+}
+.gallery-wall .smart-item.wall-y-center {
+	align-self: center;
+}
+.gallery-wall .smart-item.wall-y-end {
+	align-self: flex-end;
 }
 
 .uniform-item {
@@ -389,6 +462,28 @@
 		grid-template-columns: repeat(var(--mobile-cols, 1), minmax(0, 1fr));
 	}
 	.gallery-root[data-phone-ready='true'] .uniform-item {
+		display: var(--mobile-display, block);
+		order: var(--mobile-order, initial);
+	}
+	/* The mosaic collapses to the same simple phone grid: rows dissolve
+	   (display: contents) and every artwork fills its column at natural size. */
+	.smart-grid {
+		display: grid;
+		grid-template-columns: repeat(var(--mobile-cols, 1), minmax(0, 1fr));
+		gap: var(--gap-y, 1.25rem) var(--gap-x, 1.25rem);
+	}
+	.smart-row {
+		display: contents;
+	}
+	.smart-spacer {
+		display: none;
+	}
+	.smart-art,
+	.gallery-wall .smart-art {
+		width: 100%;
+		margin-inline: 0;
+	}
+	.gallery-root[data-phone-ready='true'] .smart-item {
 		display: var(--mobile-display, block);
 		order: var(--mobile-order, initial);
 	}
