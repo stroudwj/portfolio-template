@@ -108,7 +108,7 @@ export default function Hero({
 				onKeyDown={editable ? moveWithKeyboard : undefined}
 			>
 				{kinetic?.effect === 'marquee' ? (
-					<KineticMarquee duplicateText={heading}>{heading}</KineticMarquee>
+					<KineticMarquee duplicate={heading}>{heading}</KineticMarquee>
 				) : (
 					<KineticInline text={heading} config={kinetic} />
 				)}

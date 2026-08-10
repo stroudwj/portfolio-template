@@ -744,7 +744,7 @@ const contactSheetRecipe: StarterRecipe = {
 	discipline: 'Photography',
 	disciplines: ['photography', 'painting'],
 	tagline: 'A statement, a marquee, a dense grid, and a giant signature.',
-	description: 'Nine Lewis Hine photographs: the whole set in a three-column grid on cream, signed off in display type.',
+	description: 'Twelve vintage street photographs — Lewis Hine and Eugène Atget in a four-column contact grid on white, signed off in display type.',
 	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas', 'longform-case-study'],
 	compatibleThemeIds: ['almond-paper'],
 	defaultThemeId: 'almond-paper',
@@ -760,6 +760,9 @@ const contactSheetRecipe: StarterRecipe = {
 			'photography-nga-92317-v1',
 			'photography-nga-197799-v1',
 			'photography-nga-164188-v1',
+			'photography-nga-197731-v1',
+			'photography-nga-170445-v1',
+			'photography-nga-124974-v1',
 		]),
 		spec('contact-sheet-colophon', 'colophon', 'Signature', 'selected-work', [
 			'photography-nga-92317-v1',

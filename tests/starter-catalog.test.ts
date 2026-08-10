@@ -307,7 +307,7 @@ describe('discipline-led starter catalog', () => {
 			conservatory: 19,
 			masthead: 20,
 			atelier: 18,
-			'contact-sheet': 13,
+			'contact-sheet': 16,
 			runway: 13,
 			promenade: 9,
 			clearing: 10,
