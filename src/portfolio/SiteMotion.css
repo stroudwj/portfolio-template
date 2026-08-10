@@ -31,12 +31,18 @@
 
 /* Hover captions: the title rises over the artwork under the pointer. The span
    is always in the markup (Gallery.tsx renders it whenever a title exists) and
-   only this root class makes it visible, so the primitive is pure CSS. */
+   only this root class makes it visible, so the primitive is pure CSS.
+   Per-image choices from the same vocabulary: artwork-hover-none opts a piece
+   out, artwork-hover-caption opts one in even when the site primitive is off —
+   both only while the site motion dial is on (a motion-site-* root exists). */
 .motion-caption {
 	display: none;
 }
 
-.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption {
+.motion-site-captions :is(.masonry-item, .uniform-item):not(.artwork-hover-none) > .motion-caption,
+:is(.motion-site-subtle, .motion-site-full)
+	:is(.masonry-item, .uniform-item).artwork-hover-caption
+	> .motion-caption {
 	display: block;
 	position: absolute;
 	left: 0;
@@ -56,7 +62,10 @@
 	pointer-events: none;
 }
 
-.motion-site-captions :is(.masonry-item, .uniform-item):hover > .motion-caption {
+.motion-site-captions :is(.masonry-item, .uniform-item):not(.artwork-hover-none):hover > .motion-caption,
+:is(.motion-site-subtle, .motion-site-full)
+	:is(.masonry-item, .uniform-item).artwork-hover-caption:hover
+	> .motion-caption {
 	opacity: 1;
 	transform: translateY(0);
 }
@@ -132,7 +141,10 @@
 		transition: none;
 	}
 
-	.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption {
+	.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption,
+	:is(.motion-site-subtle, .motion-site-full)
+		:is(.masonry-item, .uniform-item).artwork-hover-caption
+		> .motion-caption {
 		transition: none;
 		transform: none;
 	}

@@ -18,7 +18,7 @@ export default function SectionMotionRuntime({
 	signature,
 }: {
 	root: HTMLElement | null;
-	/** Changes whenever a section preset is added, removed, or adjusted. */
+	/** Changes whenever a scene is added, removed, or adjusted at any level. */
 	signature: string;
 }) {
 	useEffect(() => {
@@ -33,9 +33,28 @@ export default function SectionMotionRuntime({
 		const phone = win.matchMedia('(max-width: 639px)');
 		let frame = 0;
 		let observer: IntersectionObserver | undefined;
+		/** Elements whose entrance has played. React owns className, so an edit
+		 * that re-renders a section (color, bleed) silently drops our
+		 * `motion-visible`; this set is the durable record that lets the class
+		 * guard below put it back instead of leaving the section invisible. */
+		const entered = new WeakSet<HTMLElement>();
 
 		const enabled = (section: HTMLElement): boolean =>
 			!reduced.matches && (!phone.matches || section.dataset.motionPhone === 'true');
+
+		const markEntered = (el: HTMLElement) => {
+			entered.add(el);
+			el.classList.add('motion-visible');
+			el.classList.remove('motion-pending');
+		};
+
+		const classGuard = new win.MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				const el = mutation.target as HTMLElement;
+				if (entered.has(el) && !el.classList.contains('motion-visible'))
+					el.classList.add('motion-visible');
+			}
+		});
 
 		const revealAllDisabled = () => {
 			for (const section of sections) {
@@ -45,7 +64,7 @@ export default function SectionMotionRuntime({
 			}
 		};
 
-		const observe = () => {
+		const observe = (replay: boolean) => {
 			observer?.disconnect();
 			// A visibility-ratio threshold can never fire on a section much taller
 			// than the viewport (the ratio tops out at viewport ÷ section height),
@@ -55,10 +74,8 @@ export default function SectionMotionRuntime({
 				(entries) => {
 					for (const entry of entries) {
 						if (entry.isIntersecting) {
-							const target = entry.target as HTMLElement;
-							target.classList.add('motion-visible');
-							target.classList.remove('motion-pending');
-							observer?.unobserve(target);
+							markEntered(entry.target as HTMLElement);
+							observer?.unobserve(entry.target);
 						}
 					}
 				},
@@ -67,18 +84,35 @@ export default function SectionMotionRuntime({
 			for (const section of sections) {
 				if (!enabled(section)) continue;
 				const effect = section.dataset.motionEffect;
-				if (effect === 'reveal') observer.observe(section);
-				else if (effect === 'sequence') {
+				if (effect === 'reveal') {
+					// A scene change (replay) strips the entered state so the entrance
+					// plays again — the editor's live preview of what a visitor sees on
+					// load. Media flips (rotation, reduced-motion) keep it, so published
+					// sites never re-animate content the visitor already has.
+					if (replay) entered.delete(section);
+					if (entered.has(section)) section.classList.add('motion-visible');
+					else {
+						section.classList.remove('motion-visible');
+						observer.observe(section);
+					}
+				} else if (effect === 'sequence') {
 					// Items enter individually so a wall deeper than the viewport
 					// staggers with the scroll. Hiding is opt-in (motion-pending) so
 					// items this pass never saw fail visible, not stuck at opacity 0.
-					section.classList.add('motion-visible');
+					markEntered(section);
 					for (const item of section.querySelectorAll<HTMLElement>(SEQUENCE_ITEMS)) {
-						if (item.classList.contains('motion-visible')) continue;
+						if (replay) {
+							entered.delete(item);
+							item.classList.remove('motion-visible');
+						}
+						if (entered.has(item) || item.classList.contains('motion-visible')) {
+							markEntered(item);
+							continue;
+						}
 						item.classList.add('motion-pending');
 						observer.observe(item);
 					}
-				} else section.classList.add('motion-visible');
+				} else markEntered(section);
 			}
 		};
 
@@ -90,12 +124,17 @@ export default function SectionMotionRuntime({
 				const effect = section.dataset.motionEffect;
 				if (effect !== 'drift' && effect !== 'scrub') continue;
 				const rect = section.getBoundingClientRect();
-				const progress = clamp01((viewport - rect.top) / (viewport + rect.height));
 				const strength = Math.min(Math.max(Number(section.dataset.motionStrength) || 45, 1), 100);
 				if (effect === 'drift') {
+					const progress = clamp01((viewport - rect.top) / (viewport + rect.height));
 					section.style.setProperty('--motion-y', `${((0.5 - progress) * strength * 1.35).toFixed(2)}px`);
 					continue;
 				}
+				// Scrub completes while the section is still readable: progress hits 1
+				// as its top reaches ~15% of the viewport. Normalizing over the section
+				// height instead would keep it translucent and blurred until it had
+				// fully scrolled past — sharp only once nobody can see it.
+				const progress = clamp01((viewport - rect.top) / (viewport * 0.85));
 				section.style.setProperty('--motion-y', `${((1 - progress) * strength * 0.7).toFixed(2)}px`);
 				section.style.setProperty('--motion-scale', (0.94 + progress * 0.06).toFixed(4));
 				section.style.setProperty('--motion-opacity', (0.45 + progress * 0.55).toFixed(3));
@@ -106,26 +145,30 @@ export default function SectionMotionRuntime({
 		const schedule = () => {
 			if (!frame) frame = win.requestAnimationFrame(updateContinuous);
 		};
-		const reset = () => {
+		const reset = (replay: boolean) => {
 			revealAllDisabled();
-			observe();
+			observe(replay);
 			schedule();
 		};
+		const resetKeepEntered = () => reset(false);
 
 		root.classList.add('motion-runtime-ready');
-		reset();
+		reset(true);
+		for (const section of sections)
+			classGuard.observe(section, { attributes: true, attributeFilter: ['class'] });
 		win.addEventListener('scroll', schedule, { passive: true });
 		win.addEventListener('resize', schedule, { passive: true });
-		reduced.addEventListener('change', reset);
-		phone.addEventListener('change', reset);
+		reduced.addEventListener('change', resetKeepEntered);
+		phone.addEventListener('change', resetKeepEntered);
 		return () => {
 			root.classList.remove('motion-runtime-ready');
 			observer?.disconnect();
+			classGuard.disconnect();
 			if (frame) win.cancelAnimationFrame(frame);
 			win.removeEventListener('scroll', schedule);
 			win.removeEventListener('resize', schedule);
-			reduced.removeEventListener('change', reset);
-			phone.removeEventListener('change', reset);
+			reduced.removeEventListener('change', resetKeepEntered);
+			phone.removeEventListener('change', resetKeepEntered);
 		};
 	}, [root, signature]);
 

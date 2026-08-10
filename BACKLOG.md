@@ -367,7 +367,24 @@ scroll-jacking, page transitions, any motion-authoring UI, JS animation librarie
 
 ---
 
-## 13. Per-element motion tools — `review` (built 2026-08-09 on `worktree-spec-13-motion-tools`, unmerged; William's review found gaps → spec 24 continues on the same branch)
+## 13. Per-element motion tools — `merged` (2026-08-09, on integration/specs-14r-19; spec 24 revision landed on the same branch)
+
+Built entirely as UI over spec 22's existing `sectionMotion` schema — the one
+schema change is new optional values on existing fields ('none' joins the
+effect enum; 'none'/'caption' join effects.hover), no new fields, no version
+bump. Per section: a scroll-scene popover (∿, ColorSwatchPicker pattern) in the
+section header settings row beside color/bleed, with Inherit / five effects /
+Off + strength + phone; the existing Scroll scenes list in Mobile & advanced now
+shares the same choices — its old "Still" label was a lie post-spec-12 (deleting
+the entry means inherit, and Off was inexpressible; that was William's "no
+ability to tweak the motion"). Per image: Edit panel's On hover select gains
+Show title / Still, riding artwork-hover-* classes; the caption value is gated
+on a motion-site-* root class so the site dial at Off wins, while pre-existing
+lift/tilt/zoom/mono keep their standalone behavior (old drafts unchanged).
+Verified live in the template studio against conservatory (sequence 45 ground
+truth reads back; Off strips all motion markup from the hero while siblings
+keep theirs; Inherit resolves the site reveal). 292/292 tests, check clean,
+manifest regenerated. Remaining: merge to integration.
 
 **Goal.** Let users vary motion below the site level: per-section/per-gallery scroll-reveal
 on or off, and per-image hover treatment choice — surfaced inside the existing section
@@ -959,7 +976,7 @@ feature, non-OFL/commercial faces, CJK or extended subsets, variable-font axes U
 
 ---
 
-## 24. Motion tools revision — cascade, preview fidelity, discoverability — `built` (2026-08-09 on `worktree-spec-13-motion-tools` at f49b9c4, with spec 13; awaiting William's review + merge. Verify-first found: reveal sections vanished after className-changing edits (React wiped the runtime's motion-visible — fixed with a MutationObserver guard + entered-state WeakSet); scrub was never sharp while readable (curve renormalized to complete at 15% viewport); the Strength slider was dead for reveal/sequence (scene changes now replay entrances); and the spec-12 dial did not actually gate hand-authored scenes (now a true master switch — painter/photographer/sculptor got a muted vocabulary so their authored scenes survive). Cascade landed as theme.motion.scene + page.motion over the existing shape, resolved by resolveSectionScene; conservatory's ten entries regression-tested identical. The ∿ button is now a labeled chip naming the active scene.)
+## 24. Motion tools revision — cascade, preview fidelity, discoverability — `merged` (2026-08-09, on integration/specs-14r-19 with spec 13; William's hands-on review remains. Verify-first found: reveal sections vanished after className-changing edits (React wiped the runtime's motion-visible — fixed with a MutationObserver guard + entered-state WeakSet); scrub was never sharp while readable (curve renormalized to complete at 15% viewport); the Strength slider was dead for reveal/sequence (scene changes now replay entrances); and the spec-12 dial did not actually gate hand-authored scenes (now a true master switch — painter/photographer/sculptor got a muted vocabulary so their authored scenes survive). Cascade landed as theme.motion.scene + page.motion over the existing shape, resolved by resolveSectionScene; conservatory's ten entries regression-tested identical. The ∿ button is now a labeled chip naming the active scene.)
 
 **Goal.** Iterate on spec 13's per-section motion tools from William's hands-on review
 (2026-08-09, in the template studio on conservatory). Three findings, in priority order:

@@ -23,7 +23,13 @@
     "navStyle": "centered",
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
-    "stabilizeNavigation": true
+    "stabilizeNavigation": true,
+    "motion": {
+      "intensity": "subtle",
+      "reveal": false,
+      "hover": false,
+      "stagger": false
+    }
   },
   "nav": [
     {

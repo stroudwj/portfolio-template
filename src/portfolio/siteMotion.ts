@@ -12,6 +12,8 @@ export interface ResolvedSiteMotion {
 	hoverCaptions: boolean;
 	heroParallax: boolean;
 	stagger: boolean;
+	/** Site-level default scroll scene (spec 24). Absent = the house feel. */
+	scene?: SectionMotionConfig;
 }
 
 /**
@@ -31,6 +33,7 @@ export function resolveSiteMotion(motion: SiteMotionConfig | undefined): Resolve
 		hoverCaptions: motion.hoverCaptions === true,
 		heroParallax: motion.heroParallax === true,
 		stagger: motion.stagger !== false,
+		scene: motion.scene,
 	};
 }
 
@@ -65,4 +68,24 @@ export function siteSectionMotion(
 		return { effect: 'drift', intensity: subtle ? 16 : 32, phone: false };
 	if (resolved.reveal) return { effect: 'reveal', intensity: subtle ? 24 : 45, phone: true };
 	return undefined;
+}
+
+/**
+ * The one inherit chain (spec 24), resolved top-down: a section's own entry,
+ * else the page-wide scene, else the site's default scene, else the spec-12
+ * house feel. The Site motion dial stays the master switch — when it is off
+ * (resolved = null) nothing moves, hand-authored entries included — and
+ * 'none' at any level pins that scope still instead of falling through.
+ * Absent = inherit, the spec-13/22 convention.
+ */
+export function resolveSectionScene(
+	resolved: ResolvedSiteMotion | null,
+	authored: SectionMotionConfig | undefined,
+	pageScene: SectionMotionConfig | undefined,
+	isFirstPart: boolean,
+): SectionMotionConfig | undefined {
+	if (!resolved) return undefined;
+	const pick = authored ?? pageScene ?? resolved.scene;
+	if (pick) return pick.effect === 'none' ? undefined : pick;
+	return siteSectionMotion(resolved, isFirstPart);
 }
