@@ -663,9 +663,11 @@ export default function PortfolioPage({
 								texts={canvasTexts}
 							inlineTextEditing={inlineTextEditing}
 								embeds={canvasEmbeds}
+								canvasWidgets={canvasWidgets}
 								editable={!!textLayoutChange}
 								onTextLayout={textLayoutChange}
 								onEmbedLayout={embedLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
 								onDeleteSelection={deleteFromCanvas('')}
 								onSelectBlock={selectInnerBlock}
 							/>
@@ -735,9 +737,11 @@ export default function PortfolioPage({
 								texts={canvasTexts}
 							inlineTextEditing={inlineTextEditing}
 								embeds={canvasEmbeds}
+								canvasWidgets={canvasWidgets}
 								editable={!!embedLayoutChange}
 								onTextLayout={textLayoutChange}
 								onEmbedLayout={embedLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
 								onDeleteSelection={deleteFromCanvas('')}
 								onSelectBlock={selectInnerBlock}
 							/>
@@ -1085,12 +1089,23 @@ export default function PortfolioPage({
 				if (block.layout) {
 					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
 					return (
-						<div key={block.id} className="page-content-wrapper standalone-widget-canvas">
+						<div
+							key={block.id}
+							className={`page-content-wrapper standalone-widget-canvas${
+								canvasTexts.length ? ' standalone-text-box-canvas' : ''
+							}`}
+						>
 							<Gallery
 								images={[]}
+								texts={canvasTexts}
+								inlineTextEditing={inlineTextEditing}
+								embeds={canvasEmbeds}
 								canvasWidgets={canvasWidgets}
 								editable={!!canvasWidgetLayoutChange}
+								onTextLayout={textLayoutChange}
+								onEmbedLayout={embedLayoutChange}
 								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onDeleteSelection={deleteFromCanvas('')}
 								onSelectBlock={selectInnerBlock}
 							/>
 						</div>
@@ -1109,12 +1124,23 @@ export default function PortfolioPage({
 				if (block.layout) {
 					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
 					return (
-						<div key={block.id} className="page-content-wrapper standalone-widget-canvas">
+						<div
+							key={block.id}
+							className={`page-content-wrapper standalone-widget-canvas${
+								canvasTexts.length ? ' standalone-text-box-canvas' : ''
+							}`}
+						>
 							<Gallery
 								images={[]}
+								texts={canvasTexts}
+								inlineTextEditing={inlineTextEditing}
+								embeds={canvasEmbeds}
 								canvasWidgets={canvasWidgets}
 								editable={!!canvasWidgetLayoutChange}
+								onTextLayout={textLayoutChange}
+								onEmbedLayout={embedLayoutChange}
 								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onDeleteSelection={deleteFromCanvas('')}
 								onSelectBlock={selectInnerBlock}
 							/>
 						</div>

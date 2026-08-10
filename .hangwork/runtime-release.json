@@ -791,8 +791,8 @@
       "gitBlobSha": "c2b40d098cc17fbc71a14de9be18282be98207b1"
     },
     "src/portfolio/PortfolioPage.tsx": {
-      "sha256": "aab47a6eacd1d412919fe28d54220ab0f6efa0b3a44a7b64bde8443b8aaf6a34",
-      "gitBlobSha": "a0bf2659235cd217946496537e3893ae7918cd78"
+      "sha256": "e90fa36d0c7ade1953779a89a1202d4eb959c178342cde9b84e04c1fd488aa4c",
+      "gitBlobSha": "399595ed27385ebf7709286ec054579b6ac2639b"
     },
     "src/portfolio/Products.css": {
       "sha256": "3cfb69c98e79aa4f2820db524507fbf792cd087444fcb9301d8c595c1afd78e8",

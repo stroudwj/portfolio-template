@@ -272,6 +272,17 @@ Class: **fixed** · **skipped** (with reason). Same divergence bar as spec 22.
 | 14 | /work page | Portfolio index with hover-follow images | skipped — capability gap, out of spec scope (field-notes keeps its 2-col grid) |
 | 15 | /about page | Statement + contact + global footer | skipped — our About block is the product's About by design |
 
+Publish-path check (real in-browser staticgen, spec-18 recipe): sample stripping
+removes every grid image, and dropping the empty images host exposed a second
+renderer gap — the standalone-canvas fallback rendered EITHER texts OR
+shape/divider widgets depending on which block type anchored the section first,
+so the published-unmodified starter lost its ticker, name, and links (shapes
+anchored). Fixed by unifying all four standalone anchor branches in
+PortfolioPage to render texts + embeds + widgets in one canvas. Verified: the
+published index.html now carries 1 marquee track / 2 copies both at 35pt with
+the aria-hidden duplicate, both hairlines, the full-bleed section, rightward
+kinetic keyframes, and the Poppins face + OFL license.
+
 Regression: still-room (the only other marquee user — its ticker now renders
 both copies at run size and drifts right) and masthead eyeballed in template
 studio after the renderer edits; no layout change. Phone: name hidden (existing
