@@ -20,6 +20,8 @@ export type PanelIconType =
 	| 'info'
 	| 'back'
 	| 'forward'
+	| 'panel-collapse'
+	| 'panel-open'
 	| 'sparkle'
 	| 'pencil'
 	| 'layers'
@@ -130,6 +132,22 @@ const PATHS: Record<PanelIconType, ReactNode> = {
 	),
 	back: <path d="m14 6-6 6 6 6" />,
 	forward: <path d="m10 6 6 6-6 6" />,
+	// Sidebar with an inward arrow — collapse the editing panel
+	'panel-collapse': (
+		<>
+			<rect x="3" y="4" width="18" height="16" rx="2" />
+			<path d="M9 4v16" />
+			<path d="m16.5 9-3 3 3 3" />
+		</>
+	),
+	// Sidebar with an outward arrow — bring the editing panel back
+	'panel-open': (
+		<>
+			<rect x="3" y="4" width="18" height="16" rx="2" />
+			<path d="M9 4v16" />
+			<path d="m13.5 9 3 3-3 3" />
+		</>
+	),
 	// Four-point star
 	sparkle: <path d="M12 4l1.8 6.2L20 12l-6.2 1.8L12 20l-1.8-6.2L4 12l6.2-1.8L12 4Z" />,
 	pencil: (

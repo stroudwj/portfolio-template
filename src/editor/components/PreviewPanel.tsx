@@ -243,10 +243,20 @@ function DeviceFrame({
 			const pageKey =
 				element?.dataset.previewPage ??
 				element?.parentElement?.closest<HTMLElement>('[data-preview-page]')?.dataset.previewPage;
+			// Which artwork, not just which block: canvas items carry their entry id
+			// in the selection key; grid items are matched later by the img src.
+			const canvasKey = target?.closest<HTMLElement>('[data-canvas-selection-key]')
+				?.dataset.canvasSelectionKey;
+			const imageId = canvasKey?.startsWith('image:')
+				? canvasKey.slice('image:'.length)
+				: undefined;
+			const imageSrc =
+				target?.tagName === 'IMG' ? target.getAttribute('src') ?? undefined : undefined;
 			// Canvas widgets can sit inside a different block's freeform host. Let
 			// React finish the pointer event first, then make the closest marker the
 			// authoritative selection so the host cannot overwrite its child.
-			if (blockId && pageKey) queueMicrotask(() => selectPreviewBlock(pageKey, blockId));
+			if (blockId && pageKey)
+				queueMicrotask(() => selectPreviewBlock(pageKey, blockId, { imageId, imageSrc }));
 		};
 		doc.addEventListener('pointerdown', selectBlock, true);
 		return () => doc.removeEventListener('pointerdown', selectBlock, true);
@@ -313,6 +323,7 @@ function DesktopDeviceFrame({
 	onRedo,
 	openTextLinksInNewTab,
 	typeMotionPreview,
+	remeasureKey,
 }: {
 	children: React.ReactElement;
 	onEscape?: () => void;
@@ -320,6 +331,11 @@ function DesktopDeviceFrame({
 	onRedo?: () => void;
 	openTextLinksInNewTab?: boolean;
 	typeMotionPreview?: TypeMotionPreviewRequest;
+	/** Layout switches that resize the host outside its own render (fullscreen,
+	 * hiding the sidebar). Remeasuring on the switch itself keeps the frame
+	 * correct even when the ResizeObserver notification for the jump is lost —
+	 * the expanded preview must render the same regardless of prior panel state. */
+	remeasureKey?: string;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 1100, height: 700 });
@@ -334,7 +350,7 @@ function DesktopDeviceFrame({
 		const observer = new ResizeObserver(update);
 		observer.observe(host);
 		return () => observer.disconnect();
-	}, []);
+	}, [remeasureKey]);
 	const viewportWidth = Math.max(1100, size.width);
 	const scale = Math.min(1, size.width / viewportWidth);
 	const viewportHeight = Math.max(600, size.height / scale);
@@ -700,14 +716,10 @@ export default function PreviewPanel({
 						className={`preview-tool-button${sidebarHidden ? ' active' : ''}`}
 						aria-pressed={sidebarHidden}
 						aria-label={sidebarHidden ? 'Show the editing panel' : 'Hide the editing panel'}
-						title={
-							sidebarHidden
-								? 'Show the editing panel'
-								: 'Hide the editing panel — keep editing right on the page'
-						}
+						title={sidebarHidden ? 'Show panel' : 'Hide panel'}
 						onClick={onToggleSidebar}
 					>
-						<PanelIcon type={sidebarHidden ? 'forward' : 'back'} />
+						<PanelIcon type={sidebarHidden ? 'panel-open' : 'panel-collapse'} />
 					</button>
 				)}
 				<div className="device-toggle" role="group" aria-label="Preview device">
@@ -767,6 +779,11 @@ export default function PreviewPanel({
 					>
 						<PanelIcon type="design" />
 					</button>
+				)}
+				{fullscreen && (
+					<span className="preview-fullscreen-note">
+						Shown exactly as your published site
+					</span>
 				)}
 				<span className="preview-toolbar-spacer" />
 				<button
@@ -1036,6 +1053,7 @@ export default function PreviewPanel({
 						onRedo={editor.redo}
 						openTextLinksInNewTab={!fullscreen}
 						typeMotionPreview={typeMotionPreview}
+						remeasureKey={`${fullscreen ? 'full' : 'framed'}:${sidebarHidden ? 'solo' : 'panel'}`}
 					>
 						<>
 							{portfolio}

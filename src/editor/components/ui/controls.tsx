@@ -279,13 +279,21 @@ const SELECT_PREVIEW_BLOCK_EVENT = 'editor-select-preview-block';
 export interface PreviewBlockSelection {
 	pageKey: string;
 	blockId: string;
+	/** Gallery entry id when the click landed on a specific artwork (canvas items). */
+	imageId?: string;
+	/** The clicked <img>'s src — lets grid images resolve to their entry. */
+	imageSrc?: string;
 }
 
 /** Keep the live preview and the matching block card in the page editor in sync. */
-export function selectPreviewBlock(pageKey: string, blockId: string) {
+export function selectPreviewBlock(
+	pageKey: string,
+	blockId: string,
+	image?: { imageId?: string; imageSrc?: string },
+) {
 	window.dispatchEvent(
 		new CustomEvent<PreviewBlockSelection>(SELECT_PREVIEW_BLOCK_EVENT, {
-			detail: { pageKey, blockId },
+			detail: { pageKey, blockId, ...image },
 		}),
 	);
 }
@@ -297,6 +305,63 @@ export function onSelectPreviewBlock(
 		fn((event as CustomEvent<PreviewBlockSelection>).detail);
 	window.addEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
 	return () => window.removeEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
+}
+
+const REVEAL_GALLERY_IMAGE_EVENT = 'editor-reveal-gallery-image';
+
+export interface GalleryImageReveal {
+	folder: string;
+	entryId: string;
+}
+
+/** Scroll the editing column to one image's row and flash it — clicking an
+ *  artwork in the preview lands the eye on that row, not the block top. */
+export function revealGalleryImage(folder: string, entryId: string) {
+	window.dispatchEvent(
+		new CustomEvent<GalleryImageReveal>(REVEAL_GALLERY_IMAGE_EVENT, {
+			detail: { folder, entryId },
+		}),
+	);
+}
+
+export function onRevealGalleryImage(
+	fn: (reveal: GalleryImageReveal) => void,
+): () => void {
+	const handler = (event: Event) =>
+		fn((event as CustomEvent<GalleryImageReveal>).detail);
+	window.addEventListener(REVEAL_GALLERY_IMAGE_EVENT, handler);
+	return () => window.removeEventListener(REVEAL_GALLERY_IMAGE_EVENT, handler);
+}
+
+const EDITOR_TOAST_EVENT = 'editor-toast';
+
+/** One quiet confirmation line ("Sent to workbench") from anywhere in the editor. */
+export function showEditorToast(message: string) {
+	window.dispatchEvent(new CustomEvent<string>(EDITOR_TOAST_EVENT, { detail: message }));
+}
+
+/** Renders the shared toast; mounted once near the editor root. */
+export function EditorToastHost() {
+	const [toast, setToast] = useState<string | null>(null);
+	const timerRef = useRef<number | undefined>(undefined);
+	useEffect(() => {
+		const handler = (event: Event) => {
+			setToast((event as CustomEvent<string>).detail);
+			window.clearTimeout(timerRef.current);
+			timerRef.current = window.setTimeout(() => setToast(null), 3200);
+		};
+		window.addEventListener(EDITOR_TOAST_EVENT, handler);
+		return () => {
+			window.removeEventListener(EDITOR_TOAST_EVENT, handler);
+			window.clearTimeout(timerRef.current);
+		};
+	}, []);
+	if (!toast) return null;
+	return (
+		<div className="editor-toast" role="status" aria-live="polite">
+			{toast}
+		</div>
+	);
 }
 
 export function Section({

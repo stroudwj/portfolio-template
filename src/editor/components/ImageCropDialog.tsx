@@ -29,6 +29,58 @@ const ratioOf = (value: string | undefined): number | undefined => {
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(Math.max(value, min), max);
 
+/** A slider's typed twin: edits flow both ways, and half-typed numbers hold
+ *  until they parse (or the field commits on blur/Enter). */
+function SliderNumberInput({
+	value,
+	min,
+	max,
+	step,
+	suffix,
+	ariaLabel,
+	onChange,
+}: {
+	value: number;
+	min: number;
+	max: number;
+	step: number;
+	suffix: string;
+	ariaLabel: string;
+	onChange: (value: number) => void;
+}) {
+	const [draft, setDraft] = useState<string | null>(null);
+	const apply = (raw: string) => {
+		const parsed = Number(raw);
+		if (Number.isFinite(parsed) && raw.trim() !== '') onChange(clamp(parsed, min, max));
+	};
+	return (
+		<span className="crop-number-field">
+			<input
+				type="number"
+				min={min}
+				max={max}
+				step={step}
+				aria-label={ariaLabel}
+				value={draft ?? String(value)}
+				onChange={(event) => {
+					setDraft(event.target.value);
+					apply(event.target.value);
+				}}
+				onBlur={(event) => {
+					setDraft(null);
+					apply(event.target.value);
+				}}
+				onKeyDown={(event) => {
+					if (event.key !== 'Enter') return;
+					setDraft(null);
+					apply(event.currentTarget.value);
+				}}
+			/>
+			{suffix}
+		</span>
+	);
+}
+
 const MAX_VIEWPORT_WIDTH_PX = 560;
 const MAX_VIEWPORT_HEIGHT_VH = 52;
 
@@ -199,12 +251,34 @@ export default function ImageCropDialog({
 					</div>
 				</div>
 				<label className="crop-zoom-control">
-					<span>Zoom <output>{zoom.toFixed(2)}×</output></span>
+					<span>
+						Zoom
+						<SliderNumberInput
+							value={Math.round(zoom * 100) / 100}
+							min={1}
+							max={6}
+							step={0.01}
+							suffix="×"
+							ariaLabel="Zoom factor"
+							onChange={setZoom}
+						/>
+					</span>
 					<input type="range" min={1} max={6} step={0.01} value={zoom} onChange={(event) => setZoom(Number(event.target.value))} />
 				</label>
 				<div className="crop-light-controls" role="group" aria-label="Light adjustments">
 					<label className="crop-zoom-control">
-						<span>Brightness <output>{Math.round(brightness)}%</output></span>
+						<span>
+							Brightness
+							<SliderNumberInput
+								value={Math.round(brightness)}
+								min={50}
+								max={150}
+								step={1}
+								suffix="%"
+								ariaLabel="Brightness percent"
+								onChange={setBrightness}
+							/>
+						</span>
 						<input
 							type="range"
 							min={50}
@@ -215,7 +289,18 @@ export default function ImageCropDialog({
 						/>
 					</label>
 					<label className="crop-zoom-control">
-						<span>Contrast <output>{Math.round(contrast)}%</output></span>
+						<span>
+							Contrast
+							<SliderNumberInput
+								value={Math.round(contrast)}
+								min={50}
+								max={150}
+								step={1}
+								suffix="%"
+								ariaLabel="Contrast percent"
+								onChange={setContrast}
+							/>
+						</span>
 						<input
 							type="range"
 							min={50}

@@ -3,12 +3,22 @@
 // controls how much metadata is shown. The list collapses to a one-line summary
 // so pages with many images stay scannable in the panel.
 import {
+	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	type PointerEvent as ReactPointerEvent,
+	type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditor } from '../store';
-import { HelpTip, Section } from './ui/controls';
+import {
+	HelpTip,
+	Section,
+	onRevealGalleryImage,
+	revealGalleryImage,
+	showEditorToast,
+} from './ui/controls';
 import { ImageDrop } from './ui/ImageDrop';
 import { SortableList, SortableItem } from './ui/Sortable';
 import { getAssetPreviewUrl } from '../lib/assets';
@@ -230,6 +240,107 @@ export function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 	);
 }
 
+/** The per-image "…" menu. Menus are exclusive (opening one closes every other),
+ *  a click outside closes them, and the popover renders in a portal at a fixed
+ *  screen position captured when it opened — so reordering the row underneath
+ *  ("↑ Earlier") never shifts the buttons under the cursor. */
+let lastImageMenuToken = 0;
+const IMAGE_MENU_OPEN_EVENT = 'editor-image-card-menu-open';
+const IMAGE_MENU_WIDTH = 250;
+
+function ImageCardActionsMenu({
+	label,
+	children,
+}: {
+	label: string;
+	children: (close: () => void) => ReactNode;
+}) {
+	const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const popoverRef = useRef<HTMLDivElement>(null);
+	const tokenRef = useRef(0);
+	const close = () => setPosition(null);
+	const toggle = () => {
+		if (position) return close();
+		const anchor = triggerRef.current?.getBoundingClientRect();
+		if (!anchor) return;
+		tokenRef.current = ++lastImageMenuToken;
+		window.dispatchEvent(
+			new CustomEvent<number>(IMAGE_MENU_OPEN_EVENT, { detail: tokenRef.current }),
+		);
+		setPosition({
+			top: anchor.bottom + 5,
+			left: Math.max(8, anchor.right - IMAGE_MENU_WIDTH),
+		});
+	};
+	useEffect(() => {
+		if (!position) return;
+		const onOtherOpen = (event: Event) => {
+			if ((event as CustomEvent<number>).detail !== tokenRef.current) close();
+		};
+		const onPointerDown = (event: PointerEvent) => {
+			const target = event.target as Node | null;
+			if (!target) return;
+			if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+			close();
+		};
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') close();
+		};
+		// The fixed popover can't follow its row out of view — close instead of drifting.
+		const onScroll = () => close();
+		window.addEventListener(IMAGE_MENU_OPEN_EVENT, onOtherOpen);
+		document.addEventListener('pointerdown', onPointerDown, true);
+		window.addEventListener('keydown', onKey);
+		window.addEventListener('scroll', onScroll, true);
+		window.addEventListener('resize', onScroll);
+		return () => {
+			window.removeEventListener(IMAGE_MENU_OPEN_EVENT, onOtherOpen);
+			document.removeEventListener('pointerdown', onPointerDown, true);
+			window.removeEventListener('keydown', onKey);
+			window.removeEventListener('scroll', onScroll, true);
+			window.removeEventListener('resize', onScroll);
+		};
+	}, [position]);
+	// Keep the whole popover on screen once its real height is known.
+	useLayoutEffect(() => {
+		if (!position) return;
+		const popover = popoverRef.current;
+		if (!popover) return;
+		const box = popover.getBoundingClientRect();
+		const margin = 8;
+		if (box.bottom > window.innerHeight - margin)
+			popover.style.top = `${Math.max(margin, window.innerHeight - box.height - margin)}px`;
+	}, [position]);
+	return (
+		<>
+			<button
+				type="button"
+				ref={triggerRef}
+				className="image-card-actions-trigger"
+				aria-label={label}
+				title={label}
+				aria-haspopup="true"
+				aria-expanded={!!position}
+				onClick={toggle}
+			>
+				•••
+			</button>
+			{position &&
+				createPortal(
+					<div
+						ref={popoverRef}
+						className="image-card-actions-popover"
+						style={{ top: position.top, left: position.left }}
+					>
+						{children(close)}
+					</div>,
+					document.body,
+				)}
+		</>
+	);
+}
+
 export default function ImageCollectionEditor({
 	folder,
 	title,
@@ -255,6 +366,30 @@ export default function ImageCollectionEditor({
 	const [compact, setCompact] = useState(true);
 	const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 	const [cropEntryId, setCropEntryId] = useState<string | null>(null);
+	/** The row briefly highlighted after a preview click or "Open details". */
+	const [flashEntryId, setFlashEntryId] = useState<string | null>(null);
+	const flashTimer = useRef<number | undefined>(undefined);
+	const rootRef = useRef<HTMLDivElement>(null);
+	useEffect(
+		() =>
+			onRevealGalleryImage((reveal) => {
+				if (reveal.folder !== folder) return;
+				setCollapsed(false);
+				window.clearTimeout(flashTimer.current);
+				setFlashEntryId(reveal.entryId);
+				flashTimer.current = window.setTimeout(() => setFlashEntryId(null), 2100);
+				// Two frames: one for the un-collapse/details render, one for layout.
+				requestAnimationFrame(() =>
+					requestAnimationFrame(() => {
+						rootRef.current
+							?.querySelector(`[data-image-entry="${CSS.escape(reveal.entryId)}"]`)
+							?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					}),
+				);
+			}),
+		[folder],
+	);
+	useEffect(() => () => window.clearTimeout(flashTimer.current), []);
 	const [pendingUpload, setPendingUpload] = useState<{
 		files: File[];
 		replaceEntryId?: string;
@@ -301,7 +436,7 @@ export default function ImageCollectionEditor({
 	};
 
 	const body = (
-		<div className={`image-collection-editor${focusedUi ? ' image-group-editor' : ''}`}>
+		<div ref={rootRef} className={`image-collection-editor${focusedUi ? ' image-group-editor' : ''}`}>
 			{entries.length > 0 && !focusedUi && (
 				<button type="button" className="collapse-toggle" onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed}>
 					<span className="collapse-chevron" aria-hidden="true">
@@ -418,7 +553,8 @@ export default function ImageCollectionEditor({
 											<SortableItem key={entry.id} id={entry.id}>
 												{(handle) => (
 													<div
-														className={`card ${isDetailed ? 'image-card-detailed' : 'image-card-compact'}${focusedUi ? ' image-group-card' : ''}${isDetailed && focusedUi ? ' is-editing' : ''}`}
+														className={`card ${isDetailed ? 'image-card-detailed' : 'image-card-compact'}${focusedUi ? ' image-group-card' : ''}${isDetailed && focusedUi ? ' is-editing' : ''}${flashEntryId === entry.id ? ' image-card-flash' : ''}`}
+														data-image-entry={entry.id}
 													>
 														<button
 															type="button"
@@ -791,114 +927,165 @@ export default function ImageCollectionEditor({
 																	{isDetailed ? 'Close' : 'Edit'}
 																</button>
 															)}
-															<details className="image-card-actions-menu">
-																<summary
-																	aria-label={`More actions for ${artworkName}`}
-																	title={`More actions for ${artworkName}`}
-																>
-																	•••
-																</summary>
-																<div className="image-card-actions-popover">
-																	<label>
-																		<span>Hanging</span>
-																				<select
-																					className="select-input"
-																					aria-label={`Hanging for ${artworkName}`}
-																					value={artworkHangingMode}
-																					onChange={(event) => {
-																						const mode = event.target.value;
-																						patchEffects({
-																							hang: mode === 'on' ? true : mode === 'off' ? false : undefined,
-																							skew: mode === 'on' ? artworkEffects?.skew ?? -0.75 : undefined,
-																						});
-																					}}
-																				>
-																					<option value="">Use page setting</option>
-																					<option value="on">Hang this piece</option>
-																					<option value="off">Keep piece straight</option>
-																		</select>
-																	</label>
-																	<label>
-																		<span>Copy</span>
-																		<select
-																			className="select-input"
-																			aria-label={`Copy ${artworkName} to another image group`}
-																			defaultValue=""
-																			onChange={(event) => {
-																				const destination = event.target.value;
-																				if (destination)
-																					transferGalleryImage(
-																						folder,
-																						entry.id,
-																						destination,
-																						false,
-																					);
-																				event.target.value = '';
-																			}}
-																		>
-																			<option value="">Copy to…</option>
-																			<option value={WORKBENCH_FOLDER}>Image workbench</option>
-																			{moveTargets.map((target) => (
-																				<option key={target.folder} value={target.folder}>
-																					{target.label}
-																				</option>
-																			))}
-																		</select>
-																	</label>
-																	<label>
-																		<span>Move</span>
-																		<select
-																			className="select-input"
-																			aria-label={`Move ${artworkName} to another image group`}
-																			defaultValue=""
-																			onChange={(event) => {
-																				const destination = event.target.value;
-																				if (destination)
-																					transferGalleryImage(
-																						folder,
-																						entry.id,
-																						destination,
-																						true,
-																					);
-																				event.target.value = '';
-																			}}
-																		>
-																			<option value="">Move to…</option>
-																			<option value={WORKBENCH_FOLDER}>Image workbench</option>
-																			{moveTargets.map((target) => (
-																				<option key={target.folder} value={target.folder}>
-																					{target.label}
-																				</option>
-																			))}
-																		</select>
-																	</label>
-																	<div className="image-card-order-actions">
+															<ImageCardActionsMenu label={`More actions for ${artworkName}`}>
+																{(closeMenu) => (
+																	<>
 																		<button
 																			type="button"
-																			className="btn-secondary"
-																			disabled={idx === 0}
-																			onClick={() => moveGalleryImage(folder, idx, idx - 1)}
+																			className="btn-secondary image-card-workbench-copy"
+																			onClick={() => {
+																				transferGalleryImage(
+																					folder,
+																					entry.id,
+																					WORKBENCH_FOLDER,
+																					false,
+																				);
+																				showEditorToast('Sent to workbench');
+																				closeMenu();
+																			}}
 																		>
-																			↑ Earlier
+																			Copy to workbench
+																		</button>
+																		<label>
+																			<span>Hanging</span>
+																			<select
+																				className="select-input"
+																				aria-label={`Hanging for ${artworkName}`}
+																				value={artworkHangingMode}
+																				onChange={(event) => {
+																					const mode = event.target.value;
+																					patchEffects({
+																						hang: mode === 'on' ? true : mode === 'off' ? false : undefined,
+																						skew: mode === 'on' ? artworkEffects?.skew ?? -0.75 : undefined,
+																					});
+																				}}
+																			>
+																				<option value="">Use page setting</option>
+																				<option value="on">Hang this piece</option>
+																				<option value="off">Keep piece straight</option>
+																			</select>
+																		</label>
+																		<label>
+																			<span>Copy</span>
+																			<select
+																				className="select-input"
+																				aria-label={`Copy ${artworkName} to another image group`}
+																				defaultValue=""
+																				onChange={(event) => {
+																					const destination = event.target.value;
+																					event.target.value = '';
+																					if (!destination) return;
+																					transferGalleryImage(folder, entry.id, destination, false);
+																					showEditorToast(
+																						destination === WORKBENCH_FOLDER
+																							? 'Sent to workbench'
+																							: `Copied to ${
+																									moveTargets.find((target) => target.folder === destination)
+																										?.label ?? 'the other group'
+																								}`,
+																					);
+																					closeMenu();
+																				}}
+																			>
+																				<option value="">Copy to…</option>
+																				<option value={WORKBENCH_FOLDER}>Image workbench</option>
+																				{moveTargets.map((target) => (
+																					<option key={target.folder} value={target.folder}>
+																						{target.label}
+																					</option>
+																				))}
+																			</select>
+																		</label>
+																		<label>
+																			<span>Move</span>
+																			<select
+																				className="select-input"
+																				aria-label={`Move ${artworkName} to another image group`}
+																				defaultValue=""
+																				onChange={(event) => {
+																					const destination = event.target.value;
+																					event.target.value = '';
+																					if (!destination) return;
+																					transferGalleryImage(folder, entry.id, destination, true);
+																					showEditorToast(
+																						destination === WORKBENCH_FOLDER
+																							? 'Moved to workbench'
+																							: `Moved to ${
+																									moveTargets.find((target) => target.folder === destination)
+																										?.label ?? 'the other group'
+																								}`,
+																					);
+																					closeMenu();
+																				}}
+																			>
+																				<option value="">Move to…</option>
+																				<option value={WORKBENCH_FOLDER}>Image workbench</option>
+																				{moveTargets.map((target) => (
+																					<option key={target.folder} value={target.folder}>
+																						{target.label}
+																					</option>
+																				))}
+																			</select>
+																		</label>
+																		<div className="image-card-order-actions">
+																			<button
+																				type="button"
+																				className="btn-secondary"
+																				disabled={idx === 0}
+																				onClick={() => moveGalleryImage(folder, idx, idx - 1)}
+																			>
+																				↑ Earlier
+																			</button>
+																			<button
+																				type="button"
+																				className="btn-secondary"
+																				disabled={idx === entries.length - 1}
+																				onClick={() => moveGalleryImage(folder, idx, idx + 1)}
+																			>
+																				↓ Later
+																			</button>
+																			<button
+																				type="button"
+																				className="btn-secondary"
+																				disabled={idx === 0}
+																				onClick={() => moveGalleryImage(folder, idx, 0)}
+																			>
+																				Send to top
+																			</button>
+																			<button
+																				type="button"
+																				className="btn-secondary"
+																				disabled={idx === entries.length - 1}
+																				onClick={() => moveGalleryImage(folder, idx, entries.length - 1)}
+																			>
+																				Send to bottom
+																			</button>
+																		</div>
+																		<button
+																			type="button"
+																			className="btn-secondary image-card-open-details"
+																			onClick={() => {
+																				if (focusedUi) setExpandedEntryId(entry.id);
+																				else setCompact(false);
+																				closeMenu();
+																				revealGalleryImage(folder, entry.id);
+																			}}
+																		>
+																			Open details
 																		</button>
 																		<button
 																			type="button"
-																			className="btn-secondary"
-																			disabled={idx === entries.length - 1}
-																			onClick={() => moveGalleryImage(folder, idx, idx + 1)}
+																			className="btn-ghost danger image-card-delete"
+																			onClick={() => {
+																				closeMenu();
+																				removeGalleryImage(folder, entry.id);
+																			}}
 																		>
-																			↓ Later
+																			Delete image
 																		</button>
-																	</div>
-																	<button
-																		type="button"
-																		className="btn-ghost danger image-card-delete"
-																		onClick={() => removeGalleryImage(folder, entry.id)}
-																	>
-																		Delete image
-																	</button>
-																</div>
-															</details>
+																	</>
+																)}
+															</ImageCardActionsMenu>
 														</div>
 													</div>
 												)}

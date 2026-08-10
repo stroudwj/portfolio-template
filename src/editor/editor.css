@@ -2772,11 +2772,19 @@ select.select-input {
 .card.row .card-fields {
 	flex-direction: row;
 }
+/* Sticks just below the workspace nav so Compact/Details stays reachable no
+   matter how deep a long image list is scrolled. */
 .image-list-heading {
+	position: sticky;
+	top: 92px;
+	z-index: 9;
 	display: flex;
 	align-items: flex-end;
 	justify-content: space-between;
 	gap: 10px;
+	margin: 0 -4px;
+	padding: 6px 4px;
+	background: var(--paper);
 }
 .image-list-heading .muted {
 	flex: 1;
@@ -2854,10 +2862,7 @@ select.select-input {
 	align-items: center;
 	justify-content: flex-end;
 }
-.image-card-actions-menu {
-	position: relative;
-}
-.image-card-actions-menu > summary {
+.image-card-actions-trigger {
 	display: grid;
 	width: 32px;
 	height: 32px;
@@ -2870,21 +2875,17 @@ select.select-input {
 	font-weight: 700;
 	letter-spacing: 1px;
 	line-height: 1;
-	list-style: none;
 	cursor: pointer;
 }
-.image-card-actions-menu > summary::-webkit-details-marker {
-	display: none;
-}
-.image-card-actions-menu[open] > summary {
+.image-card-actions-trigger[aria-expanded='true'] {
 	border-color: var(--klein);
 	box-shadow: var(--focus-ring);
 }
+/* Rendered in a portal at a fixed position captured when the menu opened, so
+   reorder actions can move the row without the buttons shifting mid-click. */
 .image-card-actions-popover {
-	position: absolute;
-	top: calc(100% + 5px);
-	right: 0;
-	z-index: 60;
+	position: fixed;
+	z-index: 260;
 	display: grid;
 	width: min(250px, calc(100vw - 32px));
 	gap: 8px;
@@ -2893,6 +2894,26 @@ select.select-input {
 	border-radius: 6px;
 	background: var(--paper);
 	box-shadow: 0 12px 30px rgba(20, 20, 20, 0.18);
+}
+.image-card-workbench-copy,
+.image-card-open-details {
+	font-size: 11px;
+}
+/* Landing highlight after a preview click: the sanctioned Klein focus tint,
+   fading out so the eye finds the row and the wall goes quiet again. */
+.image-card-flash {
+	animation: image-card-flash 2s ease-out forwards;
+}
+@keyframes image-card-flash {
+	0%,
+	45% {
+		background-color: rgba(0, 47, 167, 0.12);
+		border-color: var(--klein);
+	}
+	100% {
+		background-color: var(--paper);
+		border-color: var(--wall-2);
+	}
 }
 .image-card-actions-popover > label {
 	display: grid;
@@ -3208,6 +3229,13 @@ select.select-input {
 }
 .preview-toolbar-spacer {
 	flex: 1;
+}
+/* Quiet answer to "is this the real site?" while the preview is fullscreen. */
+.preview-fullscreen-note {
+	margin-left: 6px;
+	color: var(--ink-soft);
+	font-size: 13px;
+	white-space: nowrap;
 }
 .preview-expand {
 	white-space: nowrap;
@@ -4374,6 +4402,29 @@ a.resume-name:hover {
 	justify-content: space-between;
 	font-size: 12px;
 	font-weight: 600;
+}
+/* The typed twin beside each crop slider. */
+.crop-number-field {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	color: var(--ink-soft);
+	font-weight: 400;
+}
+.crop-number-field input {
+	width: 58px;
+	padding: 3px 6px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--ink);
+	font: inherit;
+	text-align: right;
+}
+.crop-number-field input:focus {
+	border-color: var(--klein);
+	box-shadow: var(--focus-ring);
+	outline: none;
 }
 .crop-reset { justify-self: start; }
 
@@ -5710,6 +5761,17 @@ a.live-url:hover {
 }
 .section-add-block .page-add-block-menu {
 	top: calc(100% + 5px);
+}
+/* Bottom-of-panel "Add section": opens upward so the menu stays on screen. */
+.page-add-section-bottom {
+	margin-top: 4px;
+	align-self: flex-start;
+}
+.page-add-section-bottom .page-add-block-menu {
+	top: auto;
+	bottom: calc(100% + 5px);
+	right: auto;
+	left: 0;
 }
 .empty-section-note {
 	margin: 8px 2px 2px;
@@ -7259,6 +7321,49 @@ a.live-url:hover {
 	object-fit: cover;
 	border-radius: 3px;
 	display: block;
+}
+.child-thumb-actions {
+	display: grid;
+	justify-items: start;
+	gap: 1px;
+	margin-top: 3px;
+}
+.child-thumb-actions .btn-link {
+	font-size: 10px;
+}
+/* Workbench chooser for a card thumbnail: click a photo, then crop it. */
+.child-thumb-workbench-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+	gap: 8px;
+	max-height: 50vh;
+	overflow-y: auto;
+}
+.child-thumb-workbench-grid button {
+	display: grid;
+	gap: 4px;
+	padding: 6px;
+	border: 1px solid var(--wall-2);
+	border-radius: 4px;
+	background: var(--paper);
+	font-size: 10px;
+	color: var(--ink-soft);
+	cursor: pointer;
+	text-align: left;
+}
+.child-thumb-workbench-grid button:hover {
+	border-color: var(--ink-soft);
+}
+.child-thumb-workbench-grid img {
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 3px;
+}
+.child-thumb-workbench-grid span {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 .nested-pages {
 	margin-top: 12px;

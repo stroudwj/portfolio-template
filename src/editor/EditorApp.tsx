@@ -27,6 +27,7 @@ import {
 import { parseStudioIntent, type TemplateStudioIntent } from './lib/template-studio';
 import { consumeIntakeIntent } from './lib/onboarding';
 import {
+	EditorToastHost,
 	expandSection,
 	onPreviewTypeMotion,
 	onRevealEditorSection,
@@ -815,6 +816,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 					{signInToast}
 				</div>
 			)}
+			<EditorToastHost />
 			{/* Post-intake account door: one gentle ask, easy to defer. */}
 			{!studio && showSaveSetup && account.status === 'signed-out' && (
 				<SignInModal

@@ -13,6 +13,7 @@ import {
 	previewTypeMotion,
 	onSelectPreviewBlock,
 	onRevealEditorSection,
+	revealGalleryImage,
 	showEditorTab,
 } from './ui/controls';
 import { ColorSwatchPicker } from './ui/ColorSwatchPicker';
@@ -22,11 +23,12 @@ import {
 	nextSectionMotion,
 } from './ui/SectionMotionPicker';
 import { PanelIcon } from './ui/panel-icons';
+import CardThumbPicker from './CardThumbPicker';
 import ImageCollectionEditor from './ImageCollectionEditor';
 import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArrangementEditor';
-import { ImageDrop } from './ui/ImageDrop';
 import { BlockIcon } from './ui/block-icons';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
+import { sampleArtworkUrl } from '../lib/sample-artwork';
 import {
 	embedKindForInput,
 	embedKindLabel,
@@ -646,11 +648,6 @@ export default function PageEditor({
 			return { ...current, [key]: collapsed };
 		});
 	};
-	const expandEditorBlock = (blockId: string) => {
-		const key = collapseItemKey('block', blockId);
-		storePageItemCollapse(key, false);
-		setCollapsedEditorItems((current) => ({ ...current, [key]: false }));
-	};
 	useEffect(
 		() =>
 			onSelectPreviewBlock((selection) => {
@@ -674,6 +671,34 @@ export default function PageEditor({
 					return next;
 				});
 				if (!autoScrollSelected) return;
+				// A click on a specific artwork lands on that image's own row, not the
+				// block top. Canvas items name their entry id; grid clicks are resolved
+				// through the clicked img's src.
+				const currentDoc = editorRef.current.doc;
+				const currentPage = currentDoc?.content.pages[pageKey];
+				const clickedBlock = currentPage?.blocks?.find(
+					(candidate) => candidate.id === selection.blockId,
+				);
+				const clickedFolder =
+					clickedBlock?.type === 'images'
+						? clickedBlock.gallery.folder
+						: clickedBlock?.type === 'gallery'
+							? currentPage?.gallery?.folder
+							: undefined;
+				if (clickedFolder && currentDoc && (selection.imageId || selection.imageSrc)) {
+					const galleryEntries = currentDoc.galleries[clickedFolder] ?? [];
+					const clickedEntry = selection.imageId
+						? galleryEntries.find((candidate) => candidate.id === selection.imageId)
+						: galleryEntries.find(
+								(candidate) =>
+									(getAssetPreviewUrl(candidate.assetId) ??
+										sampleArtworkUrl(candidate.sampleAssetId)) === selection.imageSrc,
+							);
+					if (clickedEntry) {
+						requestAnimationFrame(() => revealGalleryImage(clickedFolder, clickedEntry.id));
+						return;
+					}
+				}
 				requestAnimationFrame(() => {
 					const target = pageContentRef.current
 						?.querySelector<HTMLElement>(`[data-editor-block="${CSS.escape(selection.blockId)}"]`);
@@ -844,16 +869,34 @@ export default function PageEditor({
 		addMenuRef.current?.removeAttribute('open');
 		action();
 		if (!scrollToNewBlock) return;
-		requestAnimationFrame(() =>
-			requestAnimationFrame(() => {
-				const added = Array.from(
-					pageContentRef.current?.querySelectorAll<HTMLElement>('[data-editor-block]') ?? [],
-				).find((element) => !before.has(element.dataset.editorBlock ?? ''));
+		// Find the added block in the store (not the DOM): a brand-new section's
+		// card rests collapsed, so its block never renders until we open both.
+		// setTimeout rather than rAF — the store commit lands with the next flush
+		// either way, and timeouts still run when the tab isn't painting.
+		window.setTimeout(() => {
+			const currentPage = editorRef.current.doc?.content.pages[pageKey];
+			const added = (currentPage?.blocks ?? []).find((block) => !before.has(block.id));
+			if (!added) return;
+			const owner = currentPage ? sectionForBlockIn(currentPage, added.id) : undefined;
+			setCollapsedEditorItems((current) => {
+				const next = { ...current };
 				// New blocks open ready to edit even though blocks rest collapsed.
-				if (added?.dataset.editorBlock) expandEditorBlock(added.dataset.editorBlock);
-				added?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			}),
-		);
+				const blockKey = collapseItemKey('block', added.id);
+				next[blockKey] = false;
+				storePageItemCollapse(blockKey, false);
+				if (owner) {
+					const sectionKey = collapseItemKey('section', owner.id);
+					next[sectionKey] = false;
+					storePageItemCollapse(sectionKey, false);
+				}
+				return next;
+			});
+			window.setTimeout(() => {
+				pageContentRef.current
+					?.querySelector<HTMLElement>(`[data-editor-block="${CSS.escape(added.id)}"]`)
+					?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}, 50);
+		}, 0);
 	};
 
 	const closeBlockMenus = () => {
@@ -3025,15 +3068,10 @@ export default function PageEditor({
 								const child = doc.content.pages[item.page];
 								const childName = item.label || child?.label || item.page;
 								const targetName = child?.label || (item.page === 'home' ? 'Home' : item.page);
-								const thumbUrl = getAssetPreviewUrl(doc.pageThumbs[item.page]?.assetId ?? null);
 								return (
 									<article className={`subpage-card${item.layout ? ' is-freeform' : ''}`} key={item.id}>
 										<div className="subpage-card-main">
-											<div className="child-thumb-picker">
-												<ImageDrop ariaLabel={`Choose a thumbnail for ${childName}`} onFiles={(files) => editor.setPageThumb(item.page, files[0])}>
-													{thumbUrl ? <img className="child-thumb" src={thumbUrl} alt="" /> : <span>＋</span>}
-												</ImageDrop>
-											</div>
+											<CardThumbPicker page={item.page} label={childName} />
 											<div className="subpage-card-copy">
 												<span>Card {childIndex + 1}</span>
 												<TextInput
@@ -3501,6 +3539,17 @@ export default function PageEditor({
 						);
 					})}
 				</div>
+				{/* The list can run long — a second door to a new section waits at the
+				    bottom so nobody has to scroll back up to the Content header. */}
+				<details className="page-add-block section-add-block page-add-section-bottom">
+					<summary
+						className="btn-secondary"
+						aria-label={`Add a section to the bottom of ${pageName}`}
+					>
+						＋ Add section
+					</summary>
+					<div className="page-add-block-menu">{addBlockMenuItems(NEW_SECTION_ID)}</div>
+				</details>
 			</div>
 			<details className="page-editor-advanced">
 				<summary>
@@ -3865,7 +3914,11 @@ export default function PageEditor({
 								onClick={() => {
 									const name = newSubpageName.trim();
 									if (!name) return;
-									editor.addChildPage(pendingSubpage.parentKey, name, pendingSubpage.sectionId);
+									// Through runAdd so a freshly created cards section opens
+									// and the panel scrolls to it.
+									runAdd(() =>
+										editor.addChildPage(pendingSubpage.parentKey, name, pendingSubpage.sectionId),
+									);
 									setNewSubpageName(null);
 									setPendingSubpage(null);
 								}}
@@ -3884,7 +3937,13 @@ export default function PageEditor({
 							onKeyDown={(event) => {
 								if (event.key !== 'Enter' || !newSubpageName.trim()) return;
 								event.preventDefault();
-								editor.addChildPage(pendingSubpage.parentKey, newSubpageName.trim(), pendingSubpage.sectionId);
+								runAdd(() =>
+									editor.addChildPage(
+										pendingSubpage.parentKey,
+										newSubpageName.trim(),
+										pendingSubpage.sectionId,
+									),
+								);
 								setNewSubpageName(null);
 								setPendingSubpage(null);
 							}}

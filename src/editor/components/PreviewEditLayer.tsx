@@ -37,6 +37,7 @@ import {
 	expandSection,
 	onSelectPreviewBlock,
 	revealEditorSection,
+	selectPreviewBlock,
 	showEditorTab,
 } from './ui/controls';
 import { RichTextToolbar } from './RichTextEditor';
@@ -409,6 +410,9 @@ export default function PreviewEditLayer({
 			onPickFromWorkbench(added.gallery.folder);
 		}
 		setSelectedId(added.id);
+		// The editing column follows along: its section and card open and the
+		// panel scrolls there, so a preview-side add never lands "nowhere".
+		selectPreviewBlock(pageKey, added.id);
 		// A fresh text block goes straight into typing, Squarespace-style.
 		if (added.type === 'text') onInlineTextEdit(added.id);
 		requestAnimationFrame(() => {
@@ -961,8 +965,14 @@ export default function PreviewEditLayer({
 						type="button"
 						className="pv-ui pv-add-bar"
 						style={{
+							// Straddles the boundary (so the pointer never crosses a dead gap)
+							// but sits to the RIGHT of the white pull bar at center: touch taps
+							// were reading the two stacked controls as one morphing button.
 							top: hoverSectionRect.top + hoverSectionRect.height - 14,
-							left: hoverSectionRect.left + hoverSectionRect.width / 2,
+							left: Math.min(
+								hoverSectionRect.left + hoverSectionRect.width / 2 + 128,
+								hoverSectionRect.left + hoverSectionRect.width - 78,
+							),
 						}}
 						title="Start a new section — pick its first block"
 						onClick={() => openPicker(NEW_SECTION_ID, hoverSectionRect)}
