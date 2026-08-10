@@ -6,6 +6,7 @@
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { SectionMotionConfig, SectionMotionEffect } from '../../../lib/content';
+import { PanelIcon } from './panel-icons';
 
 export const SECTION_MOTION_CHOICES: Array<{
 	value: SectionMotionEffect | '';
@@ -174,7 +175,7 @@ export function SectionMotionPicker({
 				aria-expanded={open}
 				title="Motion — how this section moves as visitors scroll"
 			>
-				<span aria-hidden="true">∿</span>
+				<PanelIcon type="motion" />
 				{value ? SECTION_MOTION_SHORT[value.effect] : 'Motion'}
 			</button>
 			{typeof document !== 'undefined' && popover ? createPortal(popover, document.body) : null}

@@ -38,7 +38,8 @@ export type PanelIconType =
 	| 'redo'
 	| 'chevron'
 	| 'duplicate'
-	| 'workbench';
+	| 'workbench'
+	| 'motion';
 
 const PATHS: Record<PanelIconType, ReactNode> = {
 	// Two stacked sheets
@@ -238,6 +239,15 @@ const PATHS: Record<PanelIconType, ReactNode> = {
 		<>
 			<rect x="9" y="9" width="11.5" height="11.5" rx="2" />
 			<path d="M6.5 15h-1A1.5 1.5 0 0 1 4 13.5v-8A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5v1" />
+		</>
+	),
+	// A piece in motion: speed lines trailing a moving dot
+	motion: (
+		<>
+			<circle cx="15.5" cy="12" r="4.8" />
+			<path d="M4 7.5h5.5" />
+			<path d="M2.5 12h6.5" />
+			<path d="M4 16.5h5.5" />
 		</>
 	),
 };
