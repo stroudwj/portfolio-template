@@ -963,7 +963,7 @@ booking/scheduling integrations, per-element motion UI (spec 13), copying Mosley
 
 ---
 
-## 23. Starter webfonts — self-hosted, OFL-only, subset — `queued` (decide after spec 22 sign-off)
+## 23. Starter webfonts — self-hosted, OFL-only, subset — `queued` (unblocked 2026-08-10: spec 22 signed off and merged)
 
 **Goal.** Let starter templates ship real display typography instead of system-stack
 approximations: each template may bundle up to ~2 self-hosted webfont faces (subset,
