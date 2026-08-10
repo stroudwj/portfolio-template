@@ -885,6 +885,7 @@ export interface EditorContextValue {
 		richText: RichTextParagraph[],
 	): void;
 	setTextFont(key: string, blockId: string, fontFamily: string | undefined): void;
+	setTextBackground(key: string, blockId: string, background: string | undefined): void;
 	setTextAlign(key: string, blockId: string, align: TextAlign): void;
 	setTextStyle(key: string, blockId: string, style: TextStyle): void;
 	setTextLink(key: string, blockId: string, link: string): void;
@@ -1128,6 +1129,7 @@ export interface EditorContextValue {
 	setSectionColor(key: string, partKey: string, color: string | undefined): void;
 	/** Full bleed for one page section: its freeform canvas spans the viewport. */
 	setSectionBleed(key: string, partKey: string, bleed: boolean): void;
+	setSectionFade(key: string, partKey: string, fade: 'fade' | 'dither' | undefined): void;
 	/** Scroll choreography for one page section. */
 	setSectionMotion(key: string, partKey: string, motion: SectionMotionConfig | undefined): void;
 	/** Page-wide scroll scene (undefined = inherit the site scene). */
@@ -2344,6 +2346,18 @@ export function EditorProvider({
 						? { ...block, fontFamily: fontFamily || undefined }
 						: block,
 				),
+			),
+		setTextBackground: (key, blockId, background) =>
+			patchBlocks(
+				key,
+				(blocks) =>
+					blocks.map((block) =>
+						block.id === blockId && block.type === 'text'
+							? { ...block, background: background || undefined }
+							: block,
+					),
+				true,
+				`page:${key}:text-background:${blockId}`,
 			),
 		setTextAlign: (key, blockId, align) =>
 			patchBlocks(key, (blocks) =>
@@ -4118,6 +4132,18 @@ export function EditorProvider({
 				},
 				true,
 				`page:${key}:sectionbleed:${partKey}`,
+			),
+		setSectionFade: (key, partKey, fade) =>
+			patchPage(
+				key,
+				(page) => {
+					const next = { ...(page.sectionFades ?? {}) };
+					if (fade) next[partKey] = fade;
+					else delete next[partKey];
+					return { ...page, sectionFades: Object.keys(next).length ? next : undefined };
+				},
+				true,
+				`page:${key}:sectionfade:${partKey}`,
 			),
 		setSectionMotion: (key, partKey, motion) =>
 			patchPage(

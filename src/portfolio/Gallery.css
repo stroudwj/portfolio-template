@@ -58,7 +58,7 @@
 	}
 }
 
-.masonry-item img:hover {
+.masonry-item:not(.artwork-hover-none) img:hover {
 	transform: scale(1.02);
 	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
@@ -383,7 +383,7 @@
 	cursor: zoom-in;
 }
 
-.smart-art img.lightbox-trigger:hover {
+.smart-art:not(.artwork-hover-none) img.lightbox-trigger:hover {
 	transform: scale(1.02);
 	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
@@ -445,7 +445,7 @@
 	cursor: zoom-in;
 }
 
-.uniform-item img.lightbox-trigger:hover {
+.uniform-item:not(.artwork-hover-none) img.lightbox-trigger:hover {
 	transform: scale(1.02);
 	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
@@ -563,6 +563,12 @@
 	height: 100%;
 	overflow: auto;
 	container-type: inline-size;
+}
+
+/* Carousel widgets: the frame fills the box and the title/count hang below it,
+   exactly like the standalone canvas carousel — never inside a scrollbox. */
+.canvas-widget-content.canvas-widget-overflow {
+	overflow: visible;
 }
 
 .canvas-widget-content > .gallery-root,
@@ -770,6 +776,27 @@
 .canvas-layer-toolbar .canvas-lock-button.locked {
 	color: #002fa7;
 	background: rgba(0, 47, 167, 0.08);
+}
+/* Fixture switcher: the mount dropdown lives on the toolbar so a piece can be
+   re-hung without opening the sidebar. */
+.canvas-layer-toolbar .canvas-mount-control {
+	display: inline-flex;
+	align-items: center;
+}
+.canvas-layer-toolbar .canvas-mount-select {
+	max-width: 118px;
+	height: 26px;
+	padding: 0 4px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: #6b6963;
+	font: inherit;
+	cursor: pointer;
+}
+.canvas-layer-toolbar .canvas-mount-select:hover {
+	background: #e5e1da;
+	color: #1a1a1a;
 }
 .canvas-layer-toolbar .canvas-delete-button:hover {
 	background: rgba(161, 39, 44, 0.08);

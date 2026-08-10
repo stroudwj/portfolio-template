@@ -1,5 +1,24 @@
 import type { ResolvedImage } from './types';
+import type { ArtworkMount } from '../lib/content';
 import type { CSSProperties } from 'react';
+
+/** Every mount choice in display order — the sidebar dropdown and the canvas
+ * fixture switcher must always offer the same catalog. */
+export const ARTWORK_MOUNTS: Array<{ value: ArtworkMount | ''; label: string }> = [
+	{ value: '', label: 'None' },
+	{ value: 'tape', label: 'Permanent tape' },
+	{ value: 'nail', label: 'Nail' },
+	{ value: 'tack', label: 'Thumbtack' },
+	{ value: 'hook', label: 'Picture hook' },
+	{ value: 'frame', label: 'Physical frame' },
+	{ value: 'frame-oak', label: 'Oak frame' },
+	{ value: 'frame-walnut', label: 'Walnut frame' },
+	{ value: 'mat', label: 'Gallery mat' },
+	{ value: 'corners-nail', label: 'Nailed corners' },
+	{ value: 'corners-tape', label: 'Taped corners' },
+	{ value: 'corners-tack', label: 'Tacked corners' },
+	{ value: 'photo-corners', label: 'Photo corners' },
+];
 
 /** Stable classes shared by grid, legacy masonry, carousel and freeform artwork. */
 export function artworkEffectClass(image: ResolvedImage): string {

@@ -8,6 +8,7 @@ import type {
 	TextStyle,
 } from '../lib/content';
 import { richTextPlainText } from '../lib/richText';
+import { backgroundBlockVars } from './theme';
 import { clampTextFlowLayout } from './canvasLayout';
 import { safeHref } from './safeHref';
 import InlineTextEditor, { type InlineTextEditing } from './InlineTextEditor';
@@ -38,6 +39,10 @@ interface TextContentProps {
 	richText?: RichTextParagraph[];
 	fontFamily?: string;
 	style?: TextStyle;
+	/** Optional card color behind the words (auto-contrast text applies). */
+	background?: string;
+	/** The theme's automaticTextContrast setting (default true). */
+	backgroundAutoContrast?: boolean;
 	link?: string;
 	className?: string;
 	kinetic?: KineticTextConfig;
@@ -110,6 +115,8 @@ export function TextContent({
 	richText,
 	fontFamily,
 	style = 'body',
+	background,
+	backgroundAutoContrast = true,
 	link,
 	className,
 	kinetic,
@@ -117,9 +124,15 @@ export function TextContent({
 }: TextContentProps) {
 	const href = safeHref(link);
 	const motionClass = kineticClass(kinetic);
-	const motionStyle = kineticStyle(kinetic);
+	// The card color rides the same --color-bg/--color-text vars color blocking
+	// uses, so the words stay legible on any chosen background.
+	const backgroundClass = background ? 'has-text-background' : undefined;
+	const motionStyle = {
+		...kineticStyle(kinetic),
+		...(background ? backgroundBlockVars(background, backgroundAutoContrast) : {}),
+	};
 	if (richText) {
-		const classes = ['text-block-content', 'rich-text-content', motionClass, className].filter(Boolean).join(' ');
+		const classes = ['text-block-content', 'rich-text-content', motionClass, backgroundClass, className].filter(Boolean).join(' ');
 		if (kinetic?.effect === 'marquee') {
 			const plainText = richTextPlainText(richText);
 			const formattedText = richText.map((paragraph, paragraphIndex) => (
@@ -171,7 +184,7 @@ export function TextContent({
 		) : (
 			linkedContent
 		);
-	const classes = ['text-block-content', `text-style-${style}`, motionClass, className].filter(Boolean).join(' ');
+	const classes = ['text-block-content', `text-style-${style}`, motionClass, backgroundClass, className].filter(Boolean).join(' ');
 	const textStyle = { ...(fontFamily ? { fontFamily } : {}), ...motionStyle };
 
 	switch (style) {
@@ -195,6 +208,8 @@ export default function TextBlock({
 	fontFamily,
 	align,
 	style = 'body',
+	background,
+	backgroundAutoContrast,
 	link,
 	kinetic,
 	flowLayout,
@@ -206,6 +221,8 @@ export default function TextBlock({
 	fontFamily?: string;
 	align?: TextAlign;
 	style?: TextStyle;
+	background?: string;
+	backgroundAutoContrast?: boolean;
 	link?: string;
 	kinetic?: KineticTextConfig;
 	flowLayout?: TextFlowLayout;
@@ -241,6 +258,8 @@ export default function TextBlock({
 					richText={richText}
 					fontFamily={fontFamily}
 					style={style}
+					background={background}
+					backgroundAutoContrast={backgroundAutoContrast}
 					link={link}
 					kinetic={kinetic}
 					kineticTarget={kineticTarget}

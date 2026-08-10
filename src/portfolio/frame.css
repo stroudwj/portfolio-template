@@ -59,6 +59,47 @@ body.texture-concrete {
 	background-blend-mode: multiply;
 }
 
+/* Tuned texture (strength / hue shift): a background-image layer has no opacity
+   or filter, so the texture moves onto an overlay covering the content column.
+   Untuned themes never take this path and keep the plain background rules. */
+.portfolio-root.texture-tuned,
+body.texture-tuned {
+	background-image: none;
+}
+
+.texture-tuned .portfolio-container::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background-size: 720px 720px;
+	opacity: calc(var(--texture-opacity, 100) / 100);
+	filter: hue-rotate(calc(var(--texture-hue, 0) * 1deg));
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+
+.texture-corkboard.texture-tuned .portfolio-container::before {
+	background-image: url('../assets/wall-materials/corkboard.webp');
+}
+
+.texture-blackboard.texture-tuned .portfolio-container::before {
+	background-image: url('../assets/wall-materials/blackboard.webp');
+	mix-blend-mode: luminosity;
+}
+
+.texture-wood.texture-tuned .portfolio-container::before {
+	background-image: url('../assets/wall-materials/wood.webp');
+}
+
+.texture-fence.texture-tuned .portfolio-container::before {
+	background-image: url('../assets/wall-materials/fence.webp');
+}
+
+.texture-concrete.texture-tuned .portfolio-container::before {
+	background-image: url('../assets/wall-materials/concrete.webp');
+}
+
 .sidebar {
 	position: absolute;
 	top: 0;
@@ -109,6 +150,36 @@ body.texture-concrete {
 	background: var(--color-bg);
 	color: var(--color-text);
 	display: flow-root;
+}
+
+/* Segment transitions: the section's top edge blends from whatever renders
+   above it (--section-fade-from) instead of a hard line. 'fade' is a smooth
+   gradient; 'dither' masks the same band into a halftone stipple. */
+.portfolio-page-part.section-fade-fade::before,
+.portfolio-page-part.section-fade-dither::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: clamp(48px, 12vh, 120px);
+	background: var(--section-fade-from, transparent);
+	-webkit-mask-image: linear-gradient(#000, transparent);
+	mask-image: linear-gradient(#000, transparent);
+	pointer-events: none;
+}
+
+.portfolio-page-part.section-fade-dither::before {
+	-webkit-mask-image:
+		radial-gradient(circle, #000 42%, transparent 43%),
+		linear-gradient(#000 25%, transparent 90%);
+	-webkit-mask-size: 7px 7px, 100% 100%;
+	-webkit-mask-composite: source-in;
+	mask-image:
+		radial-gradient(circle, #000 42%, transparent 43%),
+		linear-gradient(#000 25%, transparent 90%);
+	mask-size: 7px 7px, 100% 100%;
+	mask-composite: intersect;
 }
 
 /* ------------------------------------------------------------------ *

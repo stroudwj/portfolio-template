@@ -610,7 +610,38 @@ custom-cursor size (needs design decision), guest-book feature.
 
 ---
 
-## 17. Beta PT 2: renderer bugs, styling options, more mounts — `queued`
+## 17. Beta PT 2: renderer bugs, styling options, more mounts — `review` (2026-08-10, on worktree-spec-17-renderer-pt2, branched from integration/specs-14r-19)
+
+> Outcome. All five bugs root-caused and fixed: (1) whole-page color now suppresses the
+> wall texture for that page (the texture multiply-blended over --color-bg, so white never
+> painted; fixed in Portfolio.tsx + Layout.astro); (2) "This page is empty" was a
+> per-gallery-block check that rendered on published pages and over mixed-canvas sections —
+> published sites now render nothing for an empty gallery, the editor shows a block-scoped
+> hint ("This image group is empty…") or nothing when a canvas sits underneath; (3) the
+> "freeform image near the footer" clip is the footer's freeform box: FooterEditor hardcoded
+> ar:1 and the canvas cover-crops any other ratio with aspect-locked resize — Footer now
+> self-heals the stored ratio in the editor (measure-on-load, 2% tolerance, widget-autoheight
+> pattern) and the footer canvas image letterboxes instead of cropping; (4) the caption
+> scrollbar is `.canvas-widget-content{overflow:auto}` on carousel widgets whose title/count
+> flow below the 100%-height frame — carousels now flag `overflowVisible` and the chrome
+> hangs below like the standalone canvas carousel; (5) hover "Still" now wins everywhere:
+> wobble/color-spin/base zoom rules exclude `.artwork-hover-none`, and — spec 18
+> reconciliation — smart-grid effect classes moved from `.smart-item` to `.smart-art`
+> (whose direct child is the img), so mounts, hover, hang, and light adjustments work in
+> smart grids at all (they were silently dropped before). Also fixed latent spec-13 bug:
+> doc-schema's hover enum lacked 'none'/'caption', so a draft using them failed validation
+> on reload. Options shipped (all optional-with-defaults, no version bump): theme
+> linkUnderline (explicit Underline mark still wins per link), text-block `background`
+> (auto-contrast card), textureOpacity/textureHue (overlay path only when tuned; untouched
+> themes keep byte-identical background rules), per-section `sectionFades` fade/dither
+> (blends from whatever renders above, phone order included). Mounts: mat, oak + walnut
+> wooden frames, thumbtack, nailed/taped/tacked four-corner variants, photo corners — one
+> shared ARTWORK_MOUNTS catalog drives the sidebar dropdown AND a new mount select on the
+> canvas selection toolbar. Verified in the live editor and through the real in-browser
+> staticgen publish (HTML + runtime CSS assertions); 16 new tests in
+> tests/renderer-beta2.test.ts; `npm run check` + `npm test` (328) clean; manifest
+> regenerated. William's hands-on review remains; note the tester's parked "grid overrides
+> freeform rules" complaint should be rechecked after this lands (likely the same leak).
 
 Source: beta tester round 2 (2026-08-06). Screenshots in
 [docs/feedback/2026-08-06-pt2/](docs/feedback/2026-08-06-pt2/README.md). Touches

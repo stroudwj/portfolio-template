@@ -69,6 +69,10 @@ export interface CanvasText {
 	fontFamily?: string;
 	align?: TextAlign;
 	style?: TextStyle;
+	/** Optional card color behind the words (auto-contrast text applies). */
+	background?: string;
+	/** The theme's automaticTextContrast setting (default true). */
+	backgroundAutoContrast?: boolean;
 	link?: string;
 	kinetic?: KineticTextConfig;
 	kineticTarget?: string;

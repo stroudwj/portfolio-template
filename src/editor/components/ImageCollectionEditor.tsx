@@ -23,6 +23,7 @@ import {
 import type { AccessibleImageUpload } from '../lib/image-accessibility';
 import ImageAccessibilityModal from './ImageAccessibilityModal';
 import { showSampleUnavailable } from '../../portfolio/sampleFallback';
+import { ARTWORK_MOUNTS } from '../../portfolio/artworkEffects';
 import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
 import {
 	imageGroupTargets,
@@ -632,11 +633,11 @@ export default function ImageCollectionEditor({
 																						})
 																					}
 																				>
-																					<option value="">None</option>
-																					<option value="tape">Permanent tape</option>
-																					<option value="nail">Nail</option>
-																					<option value="hook">Picture hook</option>
-																					<option value="frame">Physical frame</option>
+																					{ARTWORK_MOUNTS.map((mount) => (
+																						<option key={mount.value || 'none'} value={mount.value}>
+																							{mount.label}
+																						</option>
+																					))}
 																				</select>
 																			</label>
 																			<label>

@@ -53,6 +53,12 @@
 	object-fit: contain;
 }
 
+/* The freeform footer image has no crop controls, so a stored box whose ratio
+   drifted from the image (old square default) must letterbox — never cut art. */
+.site-footer .canvas-item img {
+	object-fit: contain;
+}
+
 /* Display-scale closing name — Mosley's giant footer wordmark. Sized in pt
    but never wider than the viewport. */
 .site-footer-name {

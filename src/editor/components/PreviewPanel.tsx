@@ -577,6 +577,19 @@ export default function PreviewPanel({
 			base={base}
 			onNavigate={navigate}
 			onImageLayout={editable ? (folder, id, layout) => editor.updateGalleryMeta(folder, id, { layout }) : undefined}
+			onImageMount={
+				editable
+					? (folder, id, mount) => {
+							const entry = editor.doc?.galleries[folder]?.find((candidate) => candidate.id === id);
+							const effects = { ...(entry?.meta.effects ?? {}) };
+							if (mount) effects.mount = mount;
+							else delete effects.mount;
+							editor.updateGalleryMeta(folder, id, {
+								effects: Object.keys(effects).length ? effects : undefined,
+							});
+						}
+					: undefined
+			}
 			onProfileImageLayout={editable ? (layout) => editor.setProfileImagePresentation({ imageLayout: layout }) : undefined}
 			onProfileContentLayout={editable ? (layout) => editor.setProfileImagePresentation({ contentLayout: layout }) : undefined}
 			onTextLayout={editable ? (pageKey, blockId, layout) => editor.setTextLayout(pageKey, blockId, layout) : undefined}

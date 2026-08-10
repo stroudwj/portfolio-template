@@ -121,6 +121,22 @@
 	text-underline-offset: 0.16em;
 }
 
+/* Site option: text links without the default underline. An explicit Underline
+   mark (<u> inside the link) keeps its own decoration, so single links can
+   still opt back in. */
+.links-no-underline .text-block-content a {
+	text-decoration: none;
+}
+
+/* Optional card color behind a text block. The vars come from
+   backgroundBlockVars, so auto-contrast text colors ride along. */
+.text-block-content.has-text-background {
+	background: var(--color-bg);
+	color: var(--color-text);
+	padding: 0.9em 1.1em;
+	box-sizing: border-box;
+}
+
 .text-block-content a:hover {
 	color: var(--color-accent);
 }

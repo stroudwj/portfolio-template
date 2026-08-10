@@ -173,6 +173,21 @@ export interface KineticTextConfig {
 	phone?: boolean;
 }
 
+/** The physical mounting treatments an artwork can hang with. */
+export type ArtworkMount =
+	| 'tape'
+	| 'nail'
+	| 'hook'
+	| 'frame'
+	| 'mat'
+	| 'frame-oak'
+	| 'frame-walnut'
+	| 'tack'
+	| 'corners-nail'
+	| 'corners-tape'
+	| 'corners-tack'
+	| 'photo-corners';
+
 /** Curated motion applied to one artwork without changing its layout.
  * hover 'none' keeps this piece still even when the site's hover motion is on;
  * 'caption' shows the title on hover for just this piece (site dial permitting).
@@ -185,7 +200,7 @@ export interface ArtworkEffectConfig {
 	/** Signed artwork rotation in degrees, -6–6. */
 	skew?: number;
 	/** A physical mounting treatment drawn around this artwork. */
-	mount?: 'tape' | 'nail' | 'hook' | 'frame';
+	mount?: ArtworkMount;
 	/** Set false to keep this artwork still on phones. */
 	phone?: boolean;
 }
@@ -258,6 +273,13 @@ export interface Theme {
 	stabilizeLogo?: boolean;
 	/** A site-wide physical wall surface behind the portfolio. */
 	backgroundTexture?: 'corkboard' | 'blackboard' | 'wood' | 'fence' | 'concrete';
+	/** Texture strength as a percentage (0–100). Absent = 100 (full texture). */
+	textureOpacity?: number;
+	/** Texture hue shift in degrees (−180 to 180). Absent = 0 (as shipped). */
+	textureHue?: number;
+	/** false removes the default underline on text links; an explicit Underline
+	 * mark on a linked run still wins. Absent = underlined (the classic look). */
+	linkUnderline?: boolean;
 	/** The site's motion feel — a small shared vocabulary every template can
 	 * preset and one Design dial adjusts. Absent = off (exactly the pre-motion
 	 * rendering), so older sites never change appearance. */
@@ -543,6 +565,8 @@ export type PageBlock =
 			align?: TextAlign;
 			/** Legacy whole-block size/style used when richText is absent. */
 			style?: TextStyle;
+			/** Optional card color behind the words (auto-contrast text applies). */
+			background?: string;
 			link?: string;
 			/** Optional entrance or looping typography treatment for this text box. */
 			kinetic?: KineticTextConfig;
@@ -735,6 +759,9 @@ export interface PageConfig {
 	/** Sections whose freeform canvas spans the viewport instead of the content
 	 * column (x=0/100 become the screen edges), keyed like sectionColors. */
 	sectionBleed?: Record<string, boolean>;
+	/** Per-section top-edge blend into the previous section's color, keyed like
+	 * sectionColors. 'fade' is a smooth gradient; 'dither' a halftone stipple. */
+	sectionFades?: Record<string, 'fade' | 'dither'>;
 	/** Optional typography treatment for the page heading. */
 	headingKinetic?: KineticTextConfig;
 	/** Structured, reusable project facts rendered beneath the page heading. */

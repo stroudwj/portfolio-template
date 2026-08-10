@@ -51,7 +51,7 @@ import {
 	roundTextLayout,
 	textBottom,
 } from './canvasLayout';
-import type { ChildPageItem, ImageLayout, PageBlock } from '../lib/content';
+import type { ArtworkMount, ChildPageItem, ImageLayout, PageBlock } from '../lib/content';
 import type { CanvasWidget } from './CanvasGallery';
 import { pageSections, sectionPartKey } from '../lib/pageSections';
 import { sharedPageTransitionName } from './pageTransitions';
@@ -66,6 +66,8 @@ export interface PortfolioPageProps extends PortfolioData {
 	onNavigate?: (path: string) => void;
 	/** Editor preview: makes gallery images movable/resizable and reports changes. */
 	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
+	/** Editor preview: switches an image's mount from the canvas toolbar. */
+	onImageMount?: (folder: string, imageId: string, mount: ArtworkMount | undefined) => void;
 	/** Editor preview: moves/resizes the About photo on its own freeform canvas. */
 	onProfileImageLayout?: (layout: ImageLayout) => void;
 	/** Editor preview: moves/resizes the About words and links separately. */
@@ -290,6 +292,7 @@ export default function PortfolioPage({
 	base,
 	onNavigate,
 	onImageLayout,
+	onImageMount,
 	onProfileImageLayout,
 	onProfileContentLayout,
 	onTextLayout,
@@ -348,6 +351,10 @@ export default function PortfolioPage({
 		: undefined;
 	const onLayoutChange =
 		onImageLayout && gallery ? (id: string, layout: ImageLayout) => onImageLayout(gallery.folder, id, layout) : undefined;
+	const onMountChange =
+		onImageMount && gallery
+			? (id: string, mount: ArtworkMount | undefined) => onImageMount(gallery.folder, id, mount)
+			: undefined;
 	const textLayoutChange = onTextLayout ? (id: string, layout: TextLayout) => onTextLayout(page, id, layout) : undefined;
 	const embedLayoutChange = onEmbedLayout ? (id: string, layout: ImageLayout) => onEmbedLayout(page, id, layout) : undefined;
 	const embedFlowLayoutChange = onEmbedFlowLayout
@@ -426,6 +433,7 @@ export default function PortfolioPage({
 			);
 		if (host) freeformHostBySection.set(section.id, host.id);
 	}
+	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const canvasTextsBySection = new Map<string, CanvasText[]>();
 	const canvasEmbedsBySection = new Map<string, CanvasEmbed[]>();
 	const canvasWidgetsBySection = new Map<string, CanvasWidget[]>();
@@ -453,6 +461,8 @@ export default function PortfolioPage({
 							fontFamily: block.fontFamily,
 							align: block.align,
 							style: block.style,
+							background: block.background,
+							backgroundAutoContrast: automaticContrast,
 							link: siteHref(block.link, base),
 							kinetic: block.kinetic,
 							kineticTarget: `block:${block.id}`,
@@ -620,7 +630,6 @@ export default function PortfolioPage({
 		...sections.map((section) => sectionPartKey(section.id)),
 	];
 	const automaticPageOrder = new Map(automaticPageKeys.map((key, index) => [key, index]));
-	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const siteMotion = resolveSiteMotion(content.theme.motion);
 	const pagePartVars = (key: string, isFirst: boolean): CSSProperties => {
 		return {
@@ -684,6 +693,8 @@ export default function PortfolioPage({
 							fontFamily={block.fontFamily}
 							align={block.align}
 							style={block.style}
+							background={block.background}
+							backgroundAutoContrast={automaticContrast}
 							link={siteHref(block.link, base)}
 							kinetic={block.kinetic}
 							flowLayout={block.flowLayout}
@@ -698,6 +709,8 @@ export default function PortfolioPage({
 						fontFamily={block.fontFamily}
 						align={block.align}
 						style={block.style}
+						background={block.background}
+						backgroundAutoContrast={automaticContrast}
 						link={siteHref(block.link, base)}
 						kinetic={block.kinetic}
 						flowLayout={block.flowLayout}
@@ -899,11 +912,24 @@ export default function PortfolioPage({
 					content.site.creative?.pageTransition === 'gallery'
 						? ({ viewTransitionName: sharedPageTransitionName(page) } as CSSProperties)
 						: undefined;
+				// "This page is empty" must match reality: only the sole content block
+				// of a heading-less page may speak for the whole page. Anywhere else an
+				// empty gallery gets a block-scoped hint — or nothing when the section's
+				// canvas would sit underneath it.
+				const speaksForPage =
+					blocks.length === 1 && !config.heading?.trim() && !config.project;
+				const galleryEmptyHint =
+					canvasHostId && canvasHostId !== block.id
+						? null
+						: speaksForPage
+							? undefined
+							: 'This image group is empty… add images to it from the sidebar.';
 				const galleryEl = (
 					<Gallery
 						images={images}
 						alt={gallery?.alt}
 						settings={gallery}
+						emptyHint={galleryEmptyHint}
 						autoFlowFloor={autoFlowFloorByHost.get(block.id)}
 						texts={canvasHostId === block.id ? canvasTexts : undefined}
 						inlineTextEditing={inlineTextEditing}
@@ -912,6 +938,7 @@ export default function PortfolioPage({
 						canvasWidgets={canvasHostId === block.id ? canvasWidgets : undefined}
 						editable={!!onLayoutChange}
 						onLayoutChange={onLayoutChange}
+						onImageMount={onMountChange}
 						onTextLayout={textLayoutChange}
 						onEmbedLayout={embedLayoutChange}
 						onCarouselWidgetLayout={canvasWidgetLayoutChange}
@@ -972,6 +999,11 @@ export default function PortfolioPage({
 							images={groupImages}
 							alt={block.gallery.alt}
 							settings={block.gallery}
+							emptyHint={
+								hasCanvas
+									? null
+									: 'This image group is empty… add images to it from the sidebar.'
+							}
 							autoFlowFloor={autoFlowFloorByHost.get(block.id)}
 							texts={canvasHostId === block.id ? canvasTexts : undefined}
 						inlineTextEditing={inlineTextEditing}
@@ -981,6 +1013,11 @@ export default function PortfolioPage({
 							editable={!!onImageLayout}
 							onLayoutChange={
 								onImageLayout ? (id, layout) => onImageLayout(block.gallery.folder, id, layout) : undefined
+							}
+							onImageMount={
+								onImageMount
+									? (id, mount) => onImageMount(block.gallery.folder, id, mount)
+									: undefined
 							}
 							onTextLayout={
 								canvasHostId === block.id ? textLayoutChange : undefined
@@ -1281,6 +1318,17 @@ export default function PortfolioPage({
 			>
 				{pageParts.map((part, partIndex) => {
 					const sectionColor = config.sectionColors?.[part.key];
+					// Segment transition: blend this section's top edge from whatever
+					// actually renders above it (previous part's color, else the page
+					// background) — following the phone order when parts are re-sorted.
+					const fadeMode = config.sectionFades?.[part.key];
+					const fadeFrom = fadeMode
+						? (partIndex > 0
+								? config.sectionColors?.[pageParts[partIndex - 1].key]
+								: undefined) ??
+							config.background ??
+							content.theme.backgroundColor
+						: undefined;
 					// The spec-24 cascade: section entry → page scene → site scene →
 					// spec-12 house feel, with the Site motion dial as master switch and
 					// 'none' pinning its scope still. Shots sections choreograph their own
@@ -1297,6 +1345,7 @@ export default function PortfolioPage({
 					const partStyle = {
 						...pagePartVars(part.key, partIndex === 0),
 						...backgroundBlockVars(sectionColor, automaticContrast),
+						...(fadeFrom ? { '--section-fade-from': fadeFrom } : {}),
 						...(motion ? { '--motion-strength': String(strength) } : {}),
 						...(part.shotsLength && part.shotsFadeStart !== undefined
 							? {
@@ -1310,7 +1359,7 @@ export default function PortfolioPage({
 					} as CSSProperties;
 					return (
 						<div
-							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${config.sectionBleed?.[part.key] ? ' section-full-bleed' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
+							className={`portfolio-page-part ${part.className}${sectionColor ? ' has-section-color' : ''}${fadeMode ? ` section-fade-${fadeMode}` : ''}${config.sectionBleed?.[part.key] ? ' section-full-bleed' : ''}${motion ? ` motion-effect-${motion.effect}` : ''}`}
 							style={partStyle}
 							key={part.key}
 							data-preview-part={part.key}

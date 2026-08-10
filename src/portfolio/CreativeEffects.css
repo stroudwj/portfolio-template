@@ -163,17 +163,22 @@ html[data-page-transition]::view-transition-group(*) {
 }
 
 /* New Fun-tab hover effects share the same artwork target. When both are on,
-   list both animations so one does not cancel the other. */
-.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+   list both animations so one does not cancel the other. A piece whose own
+   hover choice is Still (artwork-hover-none) stays out of every hover motion. */
+.creative-artwork-wobble
+	:is(.masonry-item, .uniform-item, .canvas-item, .smart-art):not(.artwork-hover-none)
+	> img:hover {
 	animation: creative-artwork-wobble 0.42s ease-in-out;
 }
 
-.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+.creative-color-spin
+	:is(.masonry-item, .uniform-item, .canvas-item, .smart-art):not(.artwork-hover-none)
+	> img:hover {
 	animation: creative-color-spin 1.15s linear;
 }
 
 .creative-artwork-wobble.creative-color-spin
-	:is(.masonry-item, .uniform-item, .canvas-item)
+	:is(.masonry-item, .uniform-item, .canvas-item, .smart-art):not(.artwork-hover-none)
 	> img:hover {
 	animation:
 		creative-artwork-wobble 0.42s ease-in-out,
@@ -300,8 +305,8 @@ html[data-page-transition]::view-transition-group(*) {
 		opacity: 0.9;
 	}
 	.creative-slow-reveal :is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)),
-	.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover,
-	.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+	.creative-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item, .smart-art) > img:hover,
+	.creative-color-spin :is(.masonry-item, .uniform-item, .canvas-item, .smart-art) > img:hover {
 		animation: none;
 	}
 	.creative-film {
@@ -331,8 +336,8 @@ html[data-page-transition]::view-transition-group(*) {
 	}
 	.creative-phone-off-slow-reveal
 		:is(.masonry-item, .uniform-item, .canvas-item:not(.canvas-embed-item, .canvas-text-item)),
-	.creative-phone-off-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item) > img:hover,
-	.creative-phone-off-color-spin :is(.masonry-item, .uniform-item, .canvas-item) > img:hover {
+	.creative-phone-off-artwork-wobble :is(.masonry-item, .uniform-item, .canvas-item, .smart-art) > img:hover,
+	.creative-phone-off-color-spin :is(.masonry-item, .uniform-item, .canvas-item, .smart-art) > img:hover {
 		animation: none;
 		filter: none;
 	}

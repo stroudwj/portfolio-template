@@ -69,7 +69,22 @@ const artworkEffectSchema = passthrough({
 	reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
 	hang: z.boolean().optional(),
 	skew: z.number().min(-6).max(6).optional(),
-	mount: z.enum(['tape', 'nail', 'hook', 'frame']).optional(),
+	mount: z
+		.enum([
+			'tape',
+			'nail',
+			'hook',
+			'frame',
+			'mat',
+			'frame-oak',
+			'frame-walnut',
+			'tack',
+			'corners-nail',
+			'corners-tape',
+			'corners-tack',
+			'photo-corners',
+		])
+		.optional(),
 	phone: z.boolean().optional(),
 });
 
@@ -213,6 +228,8 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		fontFamily: z.string().min(1).optional(),
 		align: z.enum(['left', 'center', 'right']).optional(),
 		style: z.enum(['body', 'heading', 'subheading', 'quote']).optional(),
+		/** Optional card color behind the words (auto-contrast text applies). */
+		background: z.string().optional(),
 		link: z.string().optional(),
 		kinetic: kineticTextSchema.optional(),
 		flowLayout: textFlowLayoutSchema.optional(),
@@ -411,6 +428,13 @@ export const themeSchema = passthrough({
 	stabilizeNavigation: z.boolean().optional(),
 	stabilizeLogo: z.boolean().optional(),
 	backgroundTexture: z.enum(['corkboard', 'blackboard', 'wood', 'fence', 'concrete']).optional(),
+	/** Texture strength (0–100, absent = 100) and hue shift in degrees (absent = 0);
+	 * non-destructive, like crop & light. */
+	textureOpacity: z.number().min(0).max(100).optional(),
+	textureHue: z.number().min(-180).max(180).optional(),
+	/** false removes the default underline on text links; an explicit Underline
+	 * mark on a linked run still wins (per-link override). Absent = underlined. */
+	linkUnderline: z.boolean().optional(),
 	motion: passthrough({
 		intensity: z.enum(['off', 'subtle', 'full']).optional(),
 		reveal: z.boolean().optional(),
@@ -558,6 +582,8 @@ export const contentSchema = passthrough({
 			sectionHeights: z.record(z.string(), responsiveSectionHeightSchema).optional(),
 			sectionMotion: z.record(z.string(), sectionMotionSchema).optional(),
 			sectionBleed: z.record(z.string(), z.boolean()).optional(),
+			/** Per-section top-edge blend into the previous section's color. */
+			sectionFades: z.record(z.string(), z.enum(['fade', 'dither'])).optional(),
 			motion: sectionMotionSchema.optional(),
 			headingKinetic: kineticTextSchema.optional(),
 			project: projectDetailsSchema.optional(),
