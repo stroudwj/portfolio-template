@@ -339,19 +339,33 @@ function DesktopDeviceFrame({
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 1100, height: 700 });
+	// The site is laid out at the width it would occupy in THIS browser window —
+	// the same width whether the frame sits in the panel (scaled down to fit) or
+	// fullscreen (host == window, scale 1). Sharing one layout width is what
+	// keeps the editing canvas and the fullscreen preview identical: canvas
+	// geometry is %-of-width while type is fixed-size, so two hosts given
+	// different layout widths genuinely disagree about where text lands.
+	const [windowWidth, setWindowWidth] = useState(() =>
+		typeof window !== 'undefined' ? window.innerWidth : 1100,
+	);
 	useEffect(() => {
 		const host = hostRef.current;
 		if (!host) return;
 		const update = () => {
+			setWindowWidth(window.innerWidth);
 			const box = host.getBoundingClientRect();
 			if (box.width && box.height) setSize({ width: box.width, height: box.height });
 		};
 		update();
 		const observer = new ResizeObserver(update);
 		observer.observe(host);
-		return () => observer.disconnect();
+		window.addEventListener('resize', update);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('resize', update);
+		};
 	}, [remeasureKey]);
-	const viewportWidth = Math.max(1100, size.width);
+	const viewportWidth = Math.max(1100, windowWidth);
 	const scale = Math.min(1, size.width / viewportWidth);
 	const viewportHeight = Math.max(600, size.height / scale);
 	return (
