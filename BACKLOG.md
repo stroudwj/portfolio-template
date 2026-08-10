@@ -671,7 +671,7 @@ already offers ([mount-dropdown-current.png](docs/feedback/2026-08-06-pt2/mount-
 
 ---
 
-## 18. Beta PT 2: smart grid + batch image workflow — `built` (2026-08-09 on `worktree-spec-18-smart-grid` @ 4dd7ca4, branched from integration/specs-14r-19; review + merge remain. Smart grid ON by default for newly-toggled grids, gallery-wall variance seeded per image id, gap sliders, batch shuffle/reset-crops/crop-all/clear-settings each a single undo step. Verified: 32 mixed-ratio images driven through the editor, publish-built via staticgen, published mosaic matches preview; 15 new tests incl. the untouched-doc migration invariant. Note: spec said "run after spec 17 merges" — 17 was still queued, so grid-code conflicts with 17's renderer fixes may need a rebase at merge time.)
+## 18. Beta PT 2: smart grid + batch image workflow — `merged` (2026-08-09, on integration/specs-14r-19; William's hands-on review remains. Smart grid ON by default for newly-toggled grids, gallery-wall variance seeded per image id, gap sliders, batch shuffle/reset-crops/crop-all/clear-settings each a single undo step. Verified: 32 mixed-ratio images driven through the editor, publish-built via staticgen, published mosaic matches preview; 15 new tests incl. the untouched-doc migration invariant. Note: spec said "run after spec 17 merges" — 17 was still queued, so grid-code conflicts with 17's renderer fixes may need a rebase at merge time.)
 
 Source: beta tester round 2 (2026-08-06); see
 [docs/feedback/2026-08-06-pt2/README.md](docs/feedback/2026-08-06-pt2/README.md). Run
