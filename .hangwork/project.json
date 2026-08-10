@@ -335,13 +335,8 @@
       "gitBlobSha": "21bf1ef37a259b59c16530178381ba739dd09113"
     },
     "src/editor/editor.css": {
-<<<<<<< HEAD
-      "sha256": "580f14b409b4f71aa5df796480f661f833dbbebab15327ffdc9325a81e9e6bde",
-      "gitBlobSha": "004abaa6b19ef2aa961b38bf6d107c22b07148d5"
-=======
-      "sha256": "26a894a065fd5c650cfd2faad5a1d2f07081615dd87584a2117dce749f05bdb8",
-      "gitBlobSha": "d4872ec4082dae6f7ffe610e2024c059597b9d8b"
->>>>>>> worktree-spec-28-motion-icon
+      "sha256": "59007c630aaea7ea1b8295599d85defb450a3d682194ea2db57732fb6fab5321",
+      "gitBlobSha": "d281dc58b4ddffd9563d07bf2708e6a58bf18af5"
     },
     "src/editor/lib/account/client.ts": {
       "sha256": "bc6a3503ce9a907ff0b017ff417cad6aa8008d0104a21b64599e4346425ba4fe",
@@ -952,13 +947,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-<<<<<<< HEAD
-      "sha256": "d8553adee2fad55a8db85154d1e7047b337053ddf9749a6c5eff219c4c5d71bc",
-      "gitBlobSha": "13682e1309c686b8bce9b54a51db15a95e66cccd"
-=======
-      "sha256": "aff98823816ca679339c608a01dea4836852931615fe181720a288654ca6f924",
-      "gitBlobSha": "f1f327c3696ab23869448960e00c12ff96664c6a"
->>>>>>> worktree-spec-28-motion-icon
+      "sha256": "f608223fbd3e6a56224f968a8753440bbc282f6d2a6fcaf5515d1e223c6f2d7b",
+      "gitBlobSha": "4c758b38bf8aa244cad53515fdc41eb655076001"
     }
   }
 }
