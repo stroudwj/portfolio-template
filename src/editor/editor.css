@@ -4403,15 +4403,15 @@ a.resume-name:hover {
 	font-size: 12px;
 	font-weight: 600;
 }
-/* The typed twin beside each crop slider. */
-.crop-number-field {
+/* The typed twin beside a slider (crop dialog, grid gap controls). */
+.slider-number-field {
 	display: inline-flex;
 	align-items: center;
 	gap: 3px;
 	color: var(--ink-soft);
 	font-weight: 400;
 }
-.crop-number-field input {
+.slider-number-field input {
 	width: 58px;
 	padding: 3px 6px;
 	border: 1px solid var(--wall-2);
@@ -4421,7 +4421,7 @@ a.resume-name:hover {
 	font: inherit;
 	text-align: right;
 }
-.crop-number-field input:focus {
+.slider-number-field input:focus {
 	border-color: var(--klein);
 	box-shadow: var(--focus-ring);
 	outline: none;
@@ -7217,8 +7217,19 @@ a.live-url:hover {
 	font-size: 13px;
 	align-self: center;
 }
+.grid-gap-option {
+	/* The typed px twin drops below the slider when a nested panel runs narrow,
+	   instead of clipping at the panel edge. */
+	flex-wrap: wrap;
+	row-gap: 4px;
+}
 .grid-gap-option input[type='range'] {
 	width: 72px;
+}
+/* Keep the typed px twin compact so the gap rows fit the narrow panel. */
+.grid-gap-option .slider-number-field input {
+	width: 44px;
+	padding: 2px 4px;
 }
 
 /* Whole-group batch actions (shuffle, reset crops, clear settings, crop all). */

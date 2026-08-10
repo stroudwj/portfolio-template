@@ -31,6 +31,61 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return <textarea className="text-area" {...props} />;
 }
 
+/** A slider's typed twin: edits flow both ways, and half-typed numbers hold
+ *  until they parse (or the field commits on blur/Enter). Out-of-range values
+ *  clamp to the slider's bounds; junk input reverts to the current value. */
+export function SliderNumberInput({
+	value,
+	min,
+	max,
+	step,
+	suffix,
+	ariaLabel,
+	onChange,
+}: {
+	value: number;
+	min: number;
+	max: number;
+	step: number;
+	suffix: string;
+	ariaLabel: string;
+	onChange: (value: number) => void;
+}) {
+	const [draft, setDraft] = useState<string | null>(null);
+	const apply = (raw: string) => {
+		const parsed = Number(raw);
+		if (!Number.isFinite(parsed) || raw.trim() === '') return;
+		const clamped = Math.min(Math.max(parsed, min), max);
+		if (clamped !== value) onChange(clamped);
+	};
+	return (
+		<span className="slider-number-field">
+			<input
+				type="number"
+				min={min}
+				max={max}
+				step={step}
+				aria-label={ariaLabel}
+				value={draft ?? String(value)}
+				onChange={(event) => {
+					setDraft(event.target.value);
+					apply(event.target.value);
+				}}
+				onBlur={(event) => {
+					setDraft(null);
+					apply(event.target.value);
+				}}
+				onKeyDown={(event) => {
+					if (event.key !== 'Enter') return;
+					setDraft(null);
+					apply(event.currentTarget.value);
+				}}
+			/>
+			{suffix}
+		</span>
+	);
+}
+
 export interface InspectorTab<T extends string> {
 	id: T;
 	label: string;
