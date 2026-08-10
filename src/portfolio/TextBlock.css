@@ -90,9 +90,15 @@
 	white-space: pre-wrap;
 }
 
+/* Body leading, capped for oversized custom sizes: 1.75 is reading leading,
+   and a display-scale run (giant wordmarks are body runs with an inline pt
+   size) inheriting it gets a line box ~75% taller than its glyphs — the extra
+   invisible height lands on top of whatever sits below. The cap leaves every
+   run up to 24pt (32px) exactly as before and tightens continuously above
+   that (48px -> 1.5, 96px -> 1.25, 176px -> ~1.14), display-type leading. */
 .rich-text-run.text-size-body {
 	font-size: 1rem;
-	line-height: 1.75;
+	line-height: min(1.75em, calc(1em + 24px));
 }
 
 .rich-text-run.text-size-subheading {
@@ -235,7 +241,7 @@
 }
 .inline-text-editor [data-text-size='body'] {
 	font-size: 1rem;
-	line-height: 1.75;
+	line-height: min(1.75em, calc(1em + 24px));
 }
 .inline-text-editor [data-text-size='subheading'] {
 	font-size: clamp(

@@ -3251,6 +3251,13 @@ select.select-input {
 	z-index: 300;
 	background: var(--paper);
 }
+/* Edge to edge, like the published site in this window: the frame host must be
+   exactly window-width so the site lays out at its real width, unscaled. */
+.preview.preview-fullscreen .preview-surface.desktop-surface {
+	margin: 0;
+	border: none;
+	border-radius: 0;
+}
 
 /* Phone preview: a real iframe viewport at phone width inside a device frame. */
 .preview-surface.phone-surface {
@@ -6549,7 +6556,9 @@ a.live-url:hover {
 }
 .rich-text-editor [data-text-size='body'] {
 	font-size: 15px;
-	line-height: 1.6;
+	/* Same oversized-run cap as the preview (TextBlock.css): a giant inline pt
+	   size must not inherit reading leading and tower over the panel editor. */
+	line-height: min(1.6em, calc(1em + 24px));
 }
 .rich-text-editor [data-text-size='subheading'] {
 	font-size: 20px;

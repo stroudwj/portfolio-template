@@ -1059,7 +1059,7 @@ choreography, motion preview scrubbing, per-block (non-section) motion.
 
 ---
 
-## 25. BUG: editor preview mis-positions text around oversized display headings — `queued`
+## 25. BUG: editor preview mis-positions text around oversized display headings — `built` (2026-08-10, on worktree-spec-25-preview-parity awaiting merge; William's hands-on review remains. Two causes found by the recon: (1) the editing canvas laid the site out at max(1100, panel width) while fullscreen used the window width — canvas geometry is %-of-width but type is fixed pt, so the views genuinely disagreed; both now lay out at max(1100, window.innerWidth) and the fullscreen desktop surface goes edge to edge, host = window width at scale 1. (2) The genuine renderer overlap both views shared: an oversized run (giant wordmarks are body runs with an inline pt size) inherited body leading 1.75, a line box ~75% taller than its glyphs — body-run leading is now min(1.75em, 1em + 24px), identical up to 24pt, display leading above; in-place + panel editor mirrors match. Verified three ways at 1280: editor canvas, fullscreen, and in-browser staticgen output measure identically on the conservatory CTA, all sub-24pt runs keep exact legacy leading, painter/clearing unchanged. Residual truth: a pt-fixed wordmark still collides with %-y neighbors at windows much narrower than the template was authored for — that is the composition, out of scope per the spec.)
 
 **Goal.** The same page renders differently in the editor canvas vs the fullscreen
 "Shown exactly as your published site" preview. Observed on a doc using a huge serif
