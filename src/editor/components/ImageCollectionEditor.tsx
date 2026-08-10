@@ -244,7 +244,10 @@ export function WorkbenchPicker({ targetFolder }: { targetFolder: string }) {
 /** The per-image "…" menu. Menus are exclusive (opening one closes every other),
  *  a click outside closes them, and the popover renders in a portal at a fixed
  *  screen position captured when it opened — so reordering the row underneath
- *  ("↑ Earlier") never shifts the buttons under the cursor. */
+ *  ("↑ Earlier") never shifts the buttons under the cursor. The portal must
+ *  mount inside the editor root (`.editor`), not document.body: every design
+ *  token (surface colors, Inter, ui themes, custom appearance) is scoped to
+ *  that element, and a body-mounted popover renders transparent and unstyled. */
 let lastImageMenuToken = 0;
 const IMAGE_MENU_OPEN_EVENT = 'editor-image-card-menu-open';
 const IMAGE_MENU_WIDTH = 250;
@@ -256,15 +259,18 @@ function ImageCardActionsMenu({
 	label: string;
 	children: (close: () => void) => ReactNode;
 }) {
-	const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+	const [position, setPosition] = useState<{ top: number; left: number; host: Element } | null>(
+		null,
+	);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const popoverRef = useRef<HTMLDivElement>(null);
 	const tokenRef = useRef(0);
 	const close = () => setPosition(null);
 	const toggle = () => {
 		if (position) return close();
-		const anchor = triggerRef.current?.getBoundingClientRect();
-		if (!anchor) return;
+		const trigger = triggerRef.current;
+		const anchor = trigger?.getBoundingClientRect();
+		if (!trigger || !anchor) return;
 		tokenRef.current = ++lastImageMenuToken;
 		window.dispatchEvent(
 			new CustomEvent<number>(IMAGE_MENU_OPEN_EVENT, { detail: tokenRef.current }),
@@ -272,6 +278,7 @@ function ImageCardActionsMenu({
 		setPosition({
 			top: anchor.bottom + 5,
 			left: Math.max(8, anchor.right - IMAGE_MENU_WIDTH),
+			host: trigger.closest('.editor') ?? document.body,
 		});
 	};
 	useEffect(() => {
@@ -336,7 +343,7 @@ function ImageCardActionsMenu({
 					>
 						{children(close)}
 					</div>,
-					document.body,
+					position.host,
 				)}
 		</>
 	);

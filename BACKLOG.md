@@ -1269,7 +1269,7 @@ note other candidates in the outcome line instead).
 
 ---
 
-## 30. BUG: image-row "…" menu renders as a broken see-through overlay — `queued`
+## 30. BUG: image-row "…" menu renders as a broken see-through overlay — `built` (2026-08-10, on worktree-spec-30-image-menu awaiting merge. Root cause: the spec-16 popover portalled to document.body, but every editor design token — surface colors, Inter, ui themes, custom appearance — is scoped to `.editor` (scoping predates spec 16, so the menu was born broken, not a merge collision); outside that scope each `var()` declaration is invalid, so the menu painted transparent in UA-default serif. Fix: the portal now mounts into the trigger's `closest('.editor')`, which also makes dark/contrast/custom-appearance themes inherit correctly — verified opaque paper surface, stacked spec-16 order, exclusivity, Esc/outside-click/scroll close, bottom clamp, copy-to-workbench + toast, and a dark-theme spot check in the browser; regression test `tests/image-menu-popover.test.ts` locks the portal host and the popover's token background. Note found in passing, not fixed here: `.workbench-menu`, `.color-swatch-popover`, and `.motion-scene-popover` still portal to document.body with the same token trap — the latter two paper over it with hardcoded light-theme var() fallbacks, the workbench context menu has none and should be see-through today.)
 
 **Goal.** The per-image "…" menu in the Pages panel (the portal popover spec 16 built:
 Copy to workbench / Use page setting / Copy to… / Move to… / Earlier / Later / Send to

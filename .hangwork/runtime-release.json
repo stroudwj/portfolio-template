@@ -159,8 +159,8 @@
       "gitBlobSha": "c0880bb02c06502e38c981bd1924a675d8250f68"
     },
     "src/editor/components/ImageCollectionEditor.tsx": {
-      "sha256": "f5f026b22e07bf2bf07c83fc1f3050edce5b016d9cf02044286d3e5c29de9400",
-      "gitBlobSha": "fa272e5739c5b83ba91e91e866dc669e38bb66ab"
+      "sha256": "c03aa5852aba826d74ef1f8b855c76255cfb6b4fa17c21f6234324c5c6bf2d1b",
+      "gitBlobSha": "6ca4efa879f5279e881d752ea2906249e40e73ca"
     },
     "src/editor/components/ImageCropDialog.tsx": {
       "sha256": "f8681788e4e6eb3167723a45228f52a1e3197d0a5df6672a6fcbc2b4d1f5d78a",
