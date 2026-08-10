@@ -1458,3 +1458,65 @@ runtime:generate` + commit manifest).
 
 **Out of scope.** Redesigning the toolbar, the layers panel's contents, new block
 types, the accordion-resize work (spec 26).
+
+---
+
+## 34. Text editing consolidation: retire panel text mirror, reliable floating panel, cursor-jump bug — `queued`
+
+Three coupled text-block findings from William (2026-08-10). The direction: in-place
+editing on the canvas is the one way to edit text *content*; the panel keeps *settings*
+only.
+
+**A. Retire the text content editor in the left panel — keep the settings.** The text
+block's card in the Pages panel currently mirrors the text content for editing. Remove
+the content-editing field from the panel; everything else on the card stays (type
+motion, style/size controls, the block's move/delete chrome — whatever settings exist
+today). Content edits happen in place on the canvas. Make discovery obvious: the card
+should point at the canvas ("Edit text on the page" affordance that selects/focuses the
+block), so nobody hunts for the vanished field.
+
+**B. BUG: the floating settings panel must always be available while a text box is
+selected.** With a text block selected on the canvas, the floating panel (the
+PreviewEditLayer chrome) sometimes disappears — and with A landed it becomes the
+primary settings surface, so intermittent is unacceptable. Reproduce first: known
+fragilities in that layer are iframe re-renders/Fast Refresh wiping overlay state,
+scale/remeasure on device-frame changes (specs 16/25 both touched remeasure), and
+selection state lost when the doc re-renders after an edit. Fix the disappearance;
+selection alone must deterministically show it, every time, in both device modes and
+fullscreen-exit.
+
+**C. BUG: cursor teleports to paragraph start while typing.** In-place text editing
+sometimes snaps the caret to the front of the paragraph mid-typing — the classic
+controlled-contenteditable failure: a re-render replaces the DOM text node under the
+caret (often after a store round-trip or a debounced sync). Reproduce, then fix at the
+cause: don't rewrite the contenteditable's DOM while it owns focus (skip the mirror
+update for the actively-edited node, or preserve/restore the selection range across the
+sync). With A landed there is no panel mirror to sync mid-edit, which may remove the
+trigger — verify rather than assume.
+
+**Recon (verify first).** Find the panel text field (PageEditor text-block card), the
+floating panel implementation (PreviewEditLayer — see the spec-16 constraints:
+in-iframe, instanceof→nodeType, iframe scale), and the in-place edit sync path
+(canvas contenteditable → store). Reproduce B and C before changing anything; note
+whether C reproduces only while the panel mirror exists (A may be the fix).
+
+**Files.** `src/editor/components/` (PageEditor card, PreviewEditLayer, canvas edit
+layer), `src/editor/store.tsx` (sync/undo). Editor-only expected; manifest regen only
+if hashed files are touched.
+
+**Requirements.**
+- A: no content-editing field in the panel; all existing settings preserved; the card's
+  "edit on page" affordance selects and focuses the block on the canvas. Undo history
+  unaffected (in-place edits already coalesce — keep that behavior).
+- B: selection ⇒ floating panel visible, deterministically — canvas, both device
+  modes, after fullscreen exit, after Fast Refresh in dev. Add a regression test if the
+  visibility logic is extractable.
+- C: caret never moves except by user action; typing at speed mid-paragraph and after
+  the debounce boundary stays in place. Test the sync-skip/selection-restore logic if
+  it lands somewhere testable.
+- Works for canvas free-form text and normal-flow text blocks alike.
+- `npm run check` + `npm test` pass.
+
+**Out of scope.** Rich-text features (formatting toolbar, links), heading blocks'
+panel treatment beyond what they share with text cards, the accordion work (spec 26),
+mobile/touch editing.
