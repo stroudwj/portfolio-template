@@ -36,11 +36,26 @@ const imageMetaSchema = passthrough({
 	cropZoom: z.number().min(1).max(6).optional(),
 	workbenchFolder: z.string().max(80).optional(),
 	effects: passthrough({
-		hover: z.enum(['lift', 'tilt', 'zoom', 'mono']).optional(),
+		hover: z.enum(['lift', 'tilt', 'zoom', 'mono', 'none', 'caption']).optional(),
 		reveal: z.enum(['fade', 'rise', 'wipe']).optional(),
 		hang: z.boolean().optional(),
 		skew: z.number().min(-6).max(6).optional(),
-		mount: z.enum(['tape', 'nail', 'hook', 'frame']).optional(),
+		mount: z
+			.enum([
+				'tape',
+				'nail',
+				'hook',
+				'frame',
+				'mat',
+				'frame-oak',
+				'frame-walnut',
+				'tack',
+				'corners-nail',
+				'corners-tape',
+				'corners-tack',
+				'photo-corners',
+			])
+			.optional(),
 		phone: z.boolean().optional(),
 	}).optional(),
 });

@@ -22,6 +22,7 @@ import type {
 } from './types';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
+import type { ArtworkMount } from '../lib/content';
 import CanvasGallery, { type CanvasWidget } from './CanvasGallery';
 import { type InlineTextEditing } from './InlineTextEditor';
 import {
@@ -123,6 +124,8 @@ export interface GalleryProps {
 	editable?: boolean;
 	/** Reports a finished move/resize per image (editor only). */
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
+	/** Editor: switches an image's mount right from the canvas toolbar. */
+	onImageMount?: (id: string, mount: ArtworkMount | undefined) => void;
 	/** Reports a finished move/resize per pinned text (editor only). */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned video embed (editor only). */
@@ -149,6 +152,10 @@ export interface GalleryProps {
 	onDeleteCarousel?: () => void;
 	/** Render only the carousel itself; an outer CanvasGallery owns its frame. */
 	embeddedCarousel?: boolean;
+	/** Editor-only guidance when the gallery has nothing to show: the page-empty
+	 * message (default), a caller-supplied block-scoped hint, or nothing (null).
+	 * Published sites always render nothing for an empty gallery. */
+	emptyHint?: string | null;
 	/** Editor preview: keep internal image links inside the preview router. */
 	onImageLink?: (url: string, event: ReactMouseEvent<HTMLElement>) => void;
 	onSelectBlock?: (blockId: string) => void;
@@ -183,6 +190,7 @@ export default function Gallery({
 	editable = false,
 	inlineTextEditing,
 	onLayoutChange,
+	onImageMount,
 	onTextLayout,
 	onEmbedLayout,
 	onBulkLayoutChange,
@@ -196,6 +204,7 @@ export default function Gallery({
 	onCarouselWidgetLayout,
 	onDeleteCarousel,
 	embeddedCarousel = false,
+	emptyHint,
 	onImageLink,
 	onSelectBlock,
 }: GalleryProps) {
@@ -717,9 +726,12 @@ export default function Gallery({
 		canvasWidgets.length === 0 &&
 		!editableEmptyCanvas
 	) {
+		// Guidance belongs to the editor; a published page must never claim it is
+		// empty (an empty image group used to print this over real page content).
+		if (!editable || emptyHint === null) return null;
 		return (
 			<div className="gallery-empty">
-				<p>This page is empty… add some images, text, or embeds.</p>
+				<p>{emptyHint ?? 'This page is empty… add some images, text, or embeds.'}</p>
 			</div>
 		);
 	}
@@ -761,6 +773,10 @@ export default function Gallery({
 		layout: widget.settings.carouselFrame ?? DEFAULT_CAROUSEL_FRAME,
 		freeResize: widget.settings.carouselFreeResize === true,
 		moveImage: widget.settings.carouselMoveImage === true,
+		// Title/count sit under the frame; a scrollbox would hide them behind a
+		// stray scrollbar instead of letting them hang below like the standalone
+		// canvas carousel does.
+		overflowVisible: true,
 		content: (
 			<Gallery
 				key={widget.id}
@@ -1075,17 +1091,22 @@ export default function Gallery({
 									const jitter = settings?.galleryWall ? wallJitter(img.id ?? phoneKey) : null;
 									return (
 										<div
-											className={`smart-item ${artworkEffectClass(img)}${jitter ? ` wall-y-${jitter.alignY}` : ''}`}
+											className={`smart-item${jitter ? ` wall-y-${jitter.alignY}` : ''}`}
 											style={{
 												...phoneItemVars(settings, phoneKey, i),
-												...artworkEffectStyle(img),
 												'--flex-ar': String(ar),
 											} as CSSProperties}
 											key={img.id ?? `${img.src}-${i}`}
 										>
+											{/* Artwork effects live on the box whose direct child is the
+											    img — every ArtworkEffects.css rule targets `> img`, so on
+											    the outer cell they would all silently miss. */}
 											<span
-												className={`smart-art${jitter ? ` wall-x-${jitter.alignX}` : ''}${img.cropAspect || (img.cropZoom ?? 1) > 1 ? ' has-native-crop' : ''}`}
-												style={jitter ? ({ '--wall-scale': String(Math.round(jitter.scale * 1000) / 1000) } as CSSProperties) : undefined}
+												className={`smart-art ${artworkEffectClass(img)}${jitter ? ` wall-x-${jitter.alignX}` : ''}${img.cropAspect || (img.cropZoom ?? 1) > 1 ? ' has-native-crop' : ''}`}
+												style={{
+													...artworkEffectStyle(img),
+													...(jitter ? { '--wall-scale': String(Math.round(jitter.scale * 1000) / 1000) } : {}),
+												} as CSSProperties}
 											>
 												<img
 													src={img.src}
@@ -1228,6 +1249,7 @@ export default function Gallery({
 					autoFlowFloor={autoFlowFloor}
 					editable={editable}
 					onLayoutChange={onLayoutChange}
+					onImageMount={onImageMount}
 					onTextLayout={onTextLayout}
 					onEmbedLayout={onEmbedLayout}
 					onWidgetLayout={onCarouselWidgetLayout}

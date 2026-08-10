@@ -68,6 +68,7 @@
 .canvas-item img,
 .masonry-item img,
 .uniform-item img,
+.smart-art img,
 .inline-carousel-stage img,
 .inline-carousel-image {
 	filter: var(--artwork-adjust, none);
@@ -84,9 +85,47 @@
 		0 10px 22px rgba(0, 0, 0, 0.24);
 }
 
+/* Gallery mat: a wide warm-white window mat with a fine bevel line where the
+   mat meets the art, floating on a soft shadow. */
+.artwork-mount-mat > img,
+.artwork-mount-mat > .canvas-artwork-frame > img,
+.artwork-mount-mat .inline-carousel-stage {
+	box-sizing: border-box;
+	border: clamp(10px, 2vw, 28px) solid #f4f1e9;
+	outline: 1px solid rgba(0, 0, 0, 0.28);
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+		0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+/* Wooden frames: the grain is a repeating diagonal gradient in the border
+   image, one pale oak and one deep walnut beside the classic near-black. */
+.artwork-mount-frame-oak > img,
+.artwork-mount-frame-oak > .canvas-artwork-frame > img,
+.artwork-mount-frame-oak .inline-carousel-stage {
+	box-sizing: border-box;
+	border: clamp(5px, 0.9vw, 15px) solid #b08d57;
+	border-image: repeating-linear-gradient(115deg, #c9a76b 0 3px, #b08d57 3px 7px, #a37e4c 7px 11px) 20;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.3),
+		0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.artwork-mount-frame-walnut > img,
+.artwork-mount-frame-walnut > .canvas-artwork-frame > img,
+.artwork-mount-frame-walnut .inline-carousel-stage {
+	box-sizing: border-box;
+	border: clamp(5px, 0.9vw, 15px) solid #5d4230;
+	border-image: repeating-linear-gradient(115deg, #6b4d38 0 3px, #5d4230 3px 7px, #4a3526 7px 11px) 20;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.4),
+		0 10px 22px rgba(0, 0, 0, 0.24);
+}
+
 .artwork-mount-tape::before,
 .artwork-mount-nail::before,
-.artwork-mount-hook::before {
+.artwork-mount-hook::before,
+.artwork-mount-tack::before {
 	position: absolute;
 	top: 0;
 	left: 50%;
@@ -127,6 +166,90 @@
 	line-height: 1;
 	text-shadow: 0 2px 2px rgba(0,0,0,.28);
 	transform: translate(-50%, -72%) rotate(90deg);
+}
+
+/* A single bright pushpin at the top edge. */
+.artwork-mount-tack::before {
+	content: '';
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, #ff8a80 0 18%, #d3382b 55%, #8e1f16 100%);
+	box-shadow:
+		0 2px 3px rgba(0, 0, 0, 0.32),
+		inset 0 -2px 3px rgba(0, 0, 0, 0.28);
+}
+
+/* Four-corner fixtures: one overlay pseudo carries a background layer per
+   corner, so nails/tape/tacks/photo corners never need extra markup. */
+.artwork-mount-corners-nail::before,
+.artwork-mount-corners-tape::before,
+.artwork-mount-corners-tack::before,
+.artwork-mount-photo-corners::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	pointer-events: none;
+	background-repeat: no-repeat;
+}
+
+.artwork-mount-corners-nail::before {
+	background-image:
+		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%),
+		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%),
+		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%),
+		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%);
+	background-size: 13px 13px;
+	background-position:
+		7px 7px,
+		calc(100% - 7px) 7px,
+		7px calc(100% - 7px),
+		calc(100% - 7px) calc(100% - 7px);
+}
+
+.artwork-mount-corners-tape::before {
+	background-image:
+		linear-gradient(135deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%),
+		linear-gradient(45deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%),
+		linear-gradient(45deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%),
+		linear-gradient(135deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%);
+	background-size: clamp(30px, 18%, 56px) clamp(30px, 18%, 56px);
+	background-position:
+		top -8px left -8px,
+		top -8px right -8px,
+		bottom -8px left -8px,
+		bottom -8px right -8px;
+}
+
+/* Playfully mismatched pins, one color per corner. */
+.artwork-mount-corners-tack::before {
+	background-image:
+		radial-gradient(circle at 35% 30%, #ff8a80 0 18%, #d3382b 55%, #8e1f16 68%, transparent 70%),
+		radial-gradient(circle at 35% 30%, #90caf9 0 18%, #2f6bb0 55%, #1d4373 68%, transparent 70%),
+		radial-gradient(circle at 35% 30%, #ffe082 0 18%, #d9a624 55%, #8f6d12 68%, transparent 70%),
+		radial-gradient(circle at 35% 30%, #a5d6a7 0 18%, #4c8f52 55%, #2d5c32 68%, transparent 70%);
+	background-size: 15px 15px;
+	background-position:
+		6px 6px,
+		calc(100% - 6px) 6px,
+		6px calc(100% - 6px),
+		calc(100% - 6px) calc(100% - 6px);
+}
+
+/* Classic album photo corners holding the print. */
+.artwork-mount-photo-corners::before {
+	background-image:
+		linear-gradient(135deg, #26221f 50%, transparent 51%),
+		linear-gradient(225deg, #26221f 50%, transparent 51%),
+		linear-gradient(45deg, #26221f 50%, transparent 51%),
+		linear-gradient(315deg, #26221f 50%, transparent 51%);
+	background-size: clamp(16px, 12%, 34px) clamp(16px, 12%, 34px);
+	background-position:
+		top left,
+		top right,
+		bottom left,
+		bottom right;
 }
 
 .artwork-reveal-fade {

@@ -1404,6 +1404,15 @@ export default function PageEditor({
 									Reset to page font
 								</button>
 							)}
+							<label className="text-box-background-control">
+								<span>Box color</span>
+								<ColorSwatchPicker
+									label={`Background color for ${textLabel}`}
+									value={block.background}
+									themeColors={themeColors}
+									onChange={(color) => editor.setTextBackground(pageKey, block.id, color)}
+								/>
+							</label>
 						</div>
 						<div className="kinetic-editor-row">
 							<label>
@@ -3475,6 +3484,32 @@ export default function PageEditor({
 												title="Full bleed — this section's canvas spans the whole screen, edge to edge"
 											>
 												↔
+											</button>
+											<button
+												type="button"
+												className={`btn-icon${page.sectionFades?.[partKey] ? ' active' : ''}`}
+												aria-pressed={!!page.sectionFades?.[partKey]}
+												onClick={() =>
+													editor.setSectionFade(
+														pageKey,
+														partKey,
+														page.sectionFades?.[partKey] === undefined
+															? 'fade'
+															: page.sectionFades[partKey] === 'fade'
+																? 'dither'
+																: undefined,
+													)
+												}
+												aria-label={`Top-edge blend for Section ${sectionIndex + 1}, ${section.name} — currently ${page.sectionFades?.[partKey] ?? 'off'}`}
+												title={`Blend this section's top edge from the one above — ${
+													page.sectionFades?.[partKey] === 'fade'
+														? 'Fade (click for Dither)'
+														: page.sectionFades?.[partKey] === 'dither'
+															? 'Dither (click for Off)'
+															: 'Off (click for Fade)'
+												}`}
+											>
+												▒
 											</button>
 											<button
 												type="button"

@@ -21,11 +21,11 @@
 /* Gallery hover: the piece scales up gently, like leaning closer to a work.
    No overflow clipping, so it composes with hanging tilt and mount markers the
    way artwork-hover-tilt does. A per-image artwork-hover-* choice wins. */
-.motion-site-hover :is(.masonry-item, .uniform-item):not([class*='artwork-hover-']) > img {
+.motion-site-hover :is(.masonry-item, .uniform-item, .smart-art):not([class*='artwork-hover-']) > img {
 	transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.motion-site-hover :is(.masonry-item, .uniform-item):not([class*='artwork-hover-']):hover > img {
+.motion-site-hover :is(.masonry-item, .uniform-item, .smart-art):not([class*='artwork-hover-']):hover > img {
 	transform: scale(var(--motion-hover-zoom, 1.03));
 }
 
@@ -39,9 +39,9 @@
 	display: none;
 }
 
-.motion-site-captions :is(.masonry-item, .uniform-item):not(.artwork-hover-none) > .motion-caption,
+.motion-site-captions :is(.masonry-item, .uniform-item, .smart-art):not(.artwork-hover-none) > .motion-caption,
 :is(.motion-site-subtle, .motion-site-full)
-	:is(.masonry-item, .uniform-item).artwork-hover-caption
+	:is(.masonry-item, .uniform-item, .smart-art).artwork-hover-caption
 	> .motion-caption {
 	display: block;
 	position: absolute;
@@ -62,9 +62,9 @@
 	pointer-events: none;
 }
 
-.motion-site-captions :is(.masonry-item, .uniform-item):not(.artwork-hover-none):hover > .motion-caption,
+.motion-site-captions :is(.masonry-item, .uniform-item, .smart-art):not(.artwork-hover-none):hover > .motion-caption,
 :is(.motion-site-subtle, .motion-site-full)
-	:is(.masonry-item, .uniform-item).artwork-hover-caption:hover
+	:is(.masonry-item, .uniform-item, .smart-art).artwork-hover-caption:hover
 	> .motion-caption {
 	opacity: 1;
 	transform: translateY(0);
@@ -135,15 +135,15 @@
 		animation: none;
 	}
 
-	.motion-site-hover :is(.masonry-item, .uniform-item) > img,
-	.motion-site-hover :is(.masonry-item, .uniform-item):hover > img {
+	.motion-site-hover :is(.masonry-item, .uniform-item, .smart-art) > img,
+	.motion-site-hover :is(.masonry-item, .uniform-item, .smart-art):hover > img {
 		transform: none;
 		transition: none;
 	}
 
-	.motion-site-captions :is(.masonry-item, .uniform-item) > .motion-caption,
+	.motion-site-captions :is(.masonry-item, .uniform-item, .smart-art) > .motion-caption,
 	:is(.motion-site-subtle, .motion-site-full)
-		:is(.masonry-item, .uniform-item).artwork-hover-caption
+		:is(.masonry-item, .uniform-item, .smart-art).artwork-hover-caption
 		> .motion-caption {
 		transition: none;
 		transform: none;

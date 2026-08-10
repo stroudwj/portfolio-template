@@ -1,7 +1,7 @@
 // The optional site footer — a small centered line (or a few) at the very
 // bottom of every page, typically a copyright notice or credits. Lives in
 // content.site.footer; absent or empty means no footer at all.
-import { Fragment } from 'react';
+import { Fragment, useEffect } from 'react';
 import type { ResponsiveSectionHeight } from './types';
 import SectionResizeHandle, {
 	responsiveHeightVars,
@@ -60,6 +60,25 @@ export default function Footer({
 	/** Editor preview: switch pages in place for internal column links. */
 	onNavigate?: (path: string) => void;
 }) {
+	// Editor only: freeform footer boxes were historically created square (ar: 1)
+	// while the canvas cover-crops any image whose real proportions differ — and an
+	// image resize keeps ar, so the artist could never uncrop it. Measure the real
+	// ratio and repair the stored layout (2% tolerance, like widget auto-height).
+	useEffect(() => {
+		if (!onImageLayout || !imageSrc || !imageLayout) return;
+		let cancelled = false;
+		const probe = new Image();
+		probe.onload = () => {
+			if (cancelled || !probe.naturalWidth || !probe.naturalHeight) return;
+			const ar = probe.naturalWidth / probe.naturalHeight;
+			if (Math.abs(imageLayout.ar - ar) / ar > 0.02)
+				onImageLayout({ ...imageLayout, ar: Math.round(ar * 1000) / 1000 });
+		};
+		probe.src = imageSrc;
+		return () => {
+			cancelled = true;
+		};
+	}, [onImageLayout, imageSrc, imageLayout]);
 	const shownColumns = (columns ?? [])
 		.map((column) => ({ ...column, links: column.links.filter((link) => link.label.trim()) }))
 		.filter((column) => column.heading?.trim() || column.links.length)

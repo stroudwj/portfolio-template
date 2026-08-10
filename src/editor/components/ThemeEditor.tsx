@@ -154,6 +154,49 @@ export default function ThemeEditor() {
 					))}
 				</div>
 			</Field>
+			{theme.backgroundTexture && (
+				<Field label="Texture tuning" hint="Non-destructive, like crop & light.">
+					<label className="motion-range compact">
+						<span>
+							Strength
+							<output>{theme.textureOpacity ?? 100}%</output>
+						</span>
+						<input
+							type="range"
+							min={0}
+							max={100}
+							step={5}
+							value={theme.textureOpacity ?? 100}
+							aria-label="Texture strength"
+							onChange={(e) =>
+								setTheme({
+									textureOpacity:
+										Number(e.target.value) === 100 ? undefined : Number(e.target.value),
+								})
+							}
+						/>
+					</label>
+					<label className="motion-range compact">
+						<span>
+							Hue shift
+							<output>{theme.textureHue ?? 0}°</output>
+						</span>
+						<input
+							type="range"
+							min={-180}
+							max={180}
+							step={5}
+							value={theme.textureHue ?? 0}
+							aria-label="Texture hue shift"
+							onChange={(e) =>
+								setTheme({
+									textureHue: Number(e.target.value) === 0 ? undefined : Number(e.target.value),
+								})
+							}
+						/>
+					</label>
+				</Field>
+			)}
 			{/* One quiet bar: click a color to change it, copy takes the hex. */}
 			<div className="color-bar" role="group" aria-label="Site colors">
 				{COLOR_FIELDS.map(({ key, label, title }) => {
@@ -203,6 +246,27 @@ export default function ThemeEditor() {
 						type="button"
 						className={`btn-icon btn-chip ${!automaticContrast ? 'active' : ''}`}
 						onClick={() => setTheme({ automaticTextContrast: false })}
+					>
+						Off
+					</button>
+				</div>
+			</Field>
+			<Field
+				label="Underline text links"
+				hint="Off removes the default underline; the Underline button still marks single links."
+			>
+				<div className="chip-row" role="group" aria-label="Underline text links">
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${theme.linkUnderline !== false ? 'active' : ''}`}
+						onClick={() => setTheme({ linkUnderline: undefined })}
+					>
+						On
+					</button>
+					<button
+						type="button"
+						className={`btn-icon btn-chip ${theme.linkUnderline === false ? 'active' : ''}`}
+						onClick={() => setTheme({ linkUnderline: false })}
 					>
 						Off
 					</button>

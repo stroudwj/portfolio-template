@@ -44,6 +44,15 @@ const pageBackground = pageConfig?.background || theme.backgroundColor;
 const pageBgStyle = Object.entries(backgroundBlockVars(pageConfig?.background, automaticContrast))
 	.map(([prop, value]) => `${prop}:${value}`)
 	.join(';');
+// Tuned textures (strength / hue) render on an overlay where opacity and
+// filter exist; untouched themes keep the plain background-image path.
+const textureTuned =
+	!!theme.backgroundTexture &&
+	((theme.textureOpacity !== undefined && theme.textureOpacity !== 100) ||
+		(theme.textureHue !== undefined && theme.textureHue !== 0));
+const textureVars = textureTuned
+	? `;--texture-opacity:${theme.textureOpacity ?? 100};--texture-hue:${theme.textureHue ?? 0}`
+	: '';
 // Uploaded fonts become @font-face rules ahead of the theme variables that use them.
 const fontFaces = (theme.customFonts ?? []).flatMap((font) => {
 	const url = getFontUrl(font.file);
@@ -92,10 +101,12 @@ const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href :
 		<title>{title}</title>
 	</head>
 	<body
-		style={`--hang-strength:${pageConfig?.hangingStrength ?? site.creative?.hangStrength ?? 0.75}`}
+		style={`--hang-strength:${pageConfig?.hangingStrength ?? site.creative?.hangStrength ?? 0.75}${textureVars}`}
 		class:list={{
 			'creative-loose-hang': pageConfig?.hanging ?? site.creative?.looseHang,
-			[`texture-${theme.backgroundTexture}`]: theme.backgroundTexture,
+			[`texture-${theme.backgroundTexture}`]: theme.backgroundTexture && !pageConfig?.background,
+			'texture-tuned': textureTuned && !pageConfig?.background,
+			'links-no-underline': theme.linkUnderline === false,
 			'creative-slow-reveal': site.creative?.slowReveal,
 			'creative-artwork-wobble': site.creative?.artworkWobble,
 			'creative-color-spin': site.creative?.colorSpin,

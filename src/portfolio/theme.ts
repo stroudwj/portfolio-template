@@ -30,6 +30,9 @@ type ThemeVarKey = Exclude<
 	| 'stabilizeNavigation'
 	| 'stabilizeLogo'
 	| 'backgroundTexture'
+	| 'textureOpacity'
+	| 'textureHue'
+	| 'linkUnderline'
 	| 'motion'
 >;
 

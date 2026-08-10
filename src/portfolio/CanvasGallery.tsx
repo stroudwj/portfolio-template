@@ -120,7 +120,8 @@ import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
 import InlineTextEditor, { type InlineTextEditing } from './InlineTextEditor';
 import { automaticPhoneOrder } from './mobileOrder';
-import { artworkEffectClass, artworkEffectStyle } from './artworkEffects';
+import { ARTWORK_MOUNTS, artworkEffectClass, artworkEffectStyle } from './artworkEffects';
+import type { ArtworkMount } from '../lib/content';
 import './Gallery.css';
 import './ArtworkEffects.css';
 
@@ -162,6 +163,8 @@ export interface CanvasGalleryProps {
 	autoFlowFloor?: number;
 	/** Reports a finished move/resize (and the initial auto-flow) per image. */
 	onLayoutChange?: (id: string, layout: ImageLayout) => void;
+	/** Editor: switches the selected image's mount right from the canvas toolbar. */
+	onImageMount?: (id: string, mount: ArtworkMount | undefined) => void;
 	/** Reports a finished move/resize (and height re-measures) per pinned text. */
 	onTextLayout?: (id: string, layout: TextLayout) => void;
 	/** Reports a finished move/resize per pinned hosted embed. */
@@ -189,6 +192,9 @@ export interface CanvasWidget {
 	 *  cards, resizing follows the pointer width-only with no snapping, and the
 	 *  stored aspect ratio is kept in sync with the measured content height. */
 	autoHeight?: boolean;
+	/** Chrome under the frame (a carousel's title/count) hangs below the box like
+	 *  the standalone canvas carousel, instead of scrolling inside it. */
+	overflowVisible?: boolean;
 	/** Editor-only map-style grip shown over widgets whose contents are interactive. */
 	dragLabel?: string;
 	/** Let pointer drags on the widget image reposition that image instead of moving the widget. */
@@ -207,6 +213,7 @@ export default function CanvasGallery({
 	phoneActive = false,
 	autoFlowFloor = 0,
 	onLayoutChange,
+	onImageMount,
 	onTextLayout,
 	onEmbedLayout,
 	onWidgetLayout,
@@ -1623,6 +1630,10 @@ export default function CanvasGallery({
 		selected.size === 1 ? selectionItems().find((item) => selected.has(item.key)) : undefined;
 	const singleLockedImage =
 		singleSelectedItem?.kind === 'image' && (singleSelectedItem.layout as ImageLayout).locked === true;
+	const singleSelectedImage =
+		singleSelectedItem?.kind === 'image'
+			? images.find((img, index) => keyOf(img, index) === singleSelectedItem.id)
+			: undefined;
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -1747,6 +1758,31 @@ export default function CanvasGallery({
 								>
 									<CanvasToolIcon type={singleLockedImage ? 'lock' : 'unlock'} />
 								</button>
+							)}
+							{onImageMount && singleSelectedImage?.id && (
+								<label
+									className="canvas-mount-control"
+									title="Mount — how this piece hangs on the wall"
+									onPointerDown={(event) => event.stopPropagation()}
+								>
+									<select
+										className="canvas-mount-select"
+										aria-label="Mount for the selected image"
+										value={singleSelectedImage.effects?.mount ?? ''}
+										onChange={(event) =>
+											onImageMount(
+												singleSelectedImage.id!,
+												(event.target.value || undefined) as ArtworkMount | undefined,
+											)
+										}
+									>
+										{ARTWORK_MOUNTS.map((mount) => (
+											<option key={mount.value || 'none'} value={mount.value}>
+												{mount.value ? mount.label : 'Mount: none'}
+											</option>
+										))}
+									</select>
+								</label>
 							)}
 						</>
 					)}
@@ -2013,7 +2049,7 @@ export default function CanvasGallery({
 									: undefined
 							}
 						>
-							<div className="canvas-widget-content">{widget.content}</div>
+							<div className={`canvas-widget-content${widget.overflowVisible ? ' canvas-widget-overflow' : ''}`}>{widget.content}</div>
 							{editable && widget.dragLabel && (
 								<button
 									type="button"
@@ -2074,6 +2110,8 @@ export default function CanvasGallery({
 									richText={text.richText}
 									fontFamily={text.fontFamily}
 									style={text.style}
+									background={text.background}
+									backgroundAutoContrast={text.backgroundAutoContrast}
 									link={editable ? undefined : text.link}
 									kinetic={text.kinetic}
 									kineticTarget={text.kineticTarget}

@@ -6,6 +6,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { themeToVars, fontFacesCss, backgroundBlockVars } from './theme';
 import { resolveSiteMotion, siteMotionRootClass } from './siteMotion';
+import type { ArtworkMount } from '../lib/content';
 import './SiteMotion.css';
 import type { ImageLayout, PortfolioData, TextFlowLayout, TextLayout } from './types';
 import type { CanvasLayoutUpdates, CanvasSelection } from './types';
@@ -20,6 +21,8 @@ export interface PortfolioProps extends PortfolioData {
 	onNavigate?: (path: string) => void;
 	/** Editor preview: makes gallery images movable/resizable and reports changes. */
 	onImageLayout?: (folder: string, imageId: string, layout: ImageLayout) => void;
+	/** Editor preview: switches an image's mount from the canvas toolbar. */
+	onImageMount?: (folder: string, imageId: string, mount: ArtworkMount | undefined) => void;
 	onProfileImageLayout?: (layout: ImageLayout) => void;
 	onProfileContentLayout?: (layout: ImageLayout) => void;
 	/** Editor preview: reports a text block placed/moved on the page canvas. */
@@ -74,7 +77,7 @@ export interface PortfolioProps extends PortfolioData {
  * preview (the Astro site composes the same pieces itself, per page, so it can
  * hydrate the gallery island). Every visible component is shared with the site.
  */
-export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onChildCardLabel, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock, inlineTextEditing }: PortfolioProps) {
+export default function Portfolio({ page, content, galleries, profileImageSrc, logoImageSrc, pageThumbs, productImageSrcs, fontFaces, resumeHref, base, onNavigate, onImageLayout, onImageMount, onProfileImageLayout, onProfileContentLayout, onTextLayout, onEmbedLayout, onEmbedFlowLayout, onCanvasLayouts, onDeleteCanvasItems, onCarouselFrame, onWidgetLayout, onChildItemLayout, onChildCardLabel, onCarouselHost, onCarouselFocus, onCarouselZoom, resizeBreakpoint, onSectionHeight, onFooterHeight, onFooterImageLayout, onPageHeadingPosition, editorPreview = false, analytics = false, onSelectBlock, inlineTextEditing }: PortfolioProps) {
 	const current = page === 'home' ? '' : page;
 	// `text` is retained in the schema for older sites, but the editor now has one
 	// canonical header text value: the site name.
@@ -87,15 +90,31 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 	const pageHanging = content.pages[page]?.hanging;
 	const pageHangingStrength = content.pages[page]?.hangingStrength;
 	const automaticContrast = content.theme.automaticTextContrast !== false;
+	// Tuned textures (strength / hue) render on an overlay where opacity and
+	// filter exist; untouched themes keep the plain background-image path.
+	const textureTuned =
+		!!content.theme.backgroundTexture &&
+		((content.theme.textureOpacity !== undefined && content.theme.textureOpacity !== 100) ||
+			(content.theme.textureHue !== undefined && content.theme.textureHue !== 0));
 	const rootStyle = {
 		...themeToVars(content.theme),
 		...backgroundBlockVars(pageBackground, automaticContrast),
 		'--hang-strength': String(pageHangingStrength ?? content.site.creative?.hangStrength ?? 0.75),
+		...(textureTuned
+			? {
+					'--texture-opacity': String(content.theme.textureOpacity ?? 100),
+					'--texture-hue': String(content.theme.textureHue ?? 0),
+				}
+			: {}),
 	} as CSSProperties;
 	const creativeClasses = [
 		siteMotionRootClass(resolveSiteMotion(content.theme.motion)),
 		(pageHanging ?? content.site.creative?.looseHang) && 'creative-loose-hang',
-		content.theme.backgroundTexture && `texture-${content.theme.backgroundTexture}`,
+		// The texture multiply-blends over --color-bg, so it would keep painting on a
+		// page whose explicit whole-page color promises a flat background everywhere.
+		!pageBackground && content.theme.backgroundTexture && `texture-${content.theme.backgroundTexture}`,
+		!pageBackground && textureTuned && 'texture-tuned',
+		content.theme.linkUnderline === false && 'links-no-underline',
 		content.site.creative?.slowReveal && 'creative-slow-reveal',
 		content.site.creative?.artworkWobble && 'creative-artwork-wobble',
 		content.site.creative?.colorSpin && 'creative-color-spin',
@@ -180,6 +199,7 @@ export default function Portfolio({ page, content, galleries, profileImageSrc, l
 					base={base}
 					onNavigate={navigate}
 					onImageLayout={onImageLayout}
+					onImageMount={onImageMount}
 					onProfileImageLayout={onProfileImageLayout}
 					onProfileContentLayout={onProfileContentLayout}
 					onTextLayout={onTextLayout}
