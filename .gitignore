@@ -29,3 +29,4 @@ pnpm-debug.log*
 
 # generated: published-site client runtime (scripts/build-hydration-runtime.mjs)
 public/hangwork-runtime/
+.claude-worktrees/

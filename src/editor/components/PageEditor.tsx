@@ -8,6 +8,7 @@ import {
 	Field,
 	HelpDisclosure,
 	HelpTip,
+	SliderNumberInput,
 	TextInput,
 	Section,
 	previewTypeMotion,
@@ -38,6 +39,7 @@ import {
 import { stripePaymentLink } from '../../portfolio/paymentEmbed';
 import { DEFAULT_CAROUSEL_FRAME, parseAspect, uniformColumns } from '../../portfolio/Gallery';
 import { gridGap, smartGridLayouts } from '../../portfolio/smartGrid';
+import { GAP_PX_MAX, gapPxToRem, gapRemToPx } from '../lib/gap-units';
 import {
 	bottomOf,
 	canvasHeight,
@@ -387,7 +389,9 @@ function GridOptions({
 	label,
 }: {
 	config: GalleryConfig;
-	onPatch: (patch: GalleryPatch) => void;
+	/** The actionKey groups rapid same-control edits (a slider drag, typing in
+	 *  its number field) into a single undo entry. */
+	onPatch: (patch: GalleryPatch, actionKey?: string) => void;
 	label: string;
 	/** Copy this grid arrangement into freeform coordinates, then switch to Freeform. */
 	onAdopt?: () => void;
@@ -461,7 +465,16 @@ function GridOptions({
 					step={0.25}
 					value={gridGap(config.gapX)}
 					aria-label={`Horizontal space between images for ${label}`}
-					onChange={(e) => onPatch({ gapX: Number(e.target.value) })}
+					onChange={(e) => onPatch({ gapX: Number(e.target.value) }, 'gap-x')}
+				/>
+				<SliderNumberInput
+					value={gapRemToPx(gridGap(config.gapX))}
+					min={0}
+					max={GAP_PX_MAX}
+					step={1}
+					suffix="px"
+					ariaLabel={`Horizontal space between images for ${label}, in pixels`}
+					onChange={(px) => onPatch({ gapX: gapPxToRem(px) }, 'gap-x')}
 				/>
 			</label>
 			<label className="grid-option grid-gap-option">
@@ -473,7 +486,16 @@ function GridOptions({
 					step={0.25}
 					value={gridGap(config.gapY)}
 					aria-label={`Vertical space between rows for ${label}`}
-					onChange={(e) => onPatch({ gapY: Number(e.target.value) })}
+					onChange={(e) => onPatch({ gapY: Number(e.target.value) }, 'gap-y')}
+				/>
+				<SliderNumberInput
+					value={gapRemToPx(gridGap(config.gapY))}
+					min={0}
+					max={GAP_PX_MAX}
+					step={1}
+					suffix="px"
+					ariaLabel={`Vertical space between rows for ${label}, in pixels`}
+					onChange={(px) => onPatch({ gapY: gapPxToRem(px) }, 'gap-y')}
 				/>
 			</label>
 			{onAdopt && (
@@ -1996,7 +2018,9 @@ export default function PageEditor({
 										<GridOptions
 											config={page.gallery}
 											label={`${blockHasFreeCanvas ? 'main canvas' : 'main images'} on ${pageName}`}
-											onPatch={(patch) => editor.setGalleryConfig(pageKey, patch)}
+											onPatch={(patch, actionKey) =>
+												editor.setGalleryConfig(pageKey, patch, actionKey ? `page:${pageKey}:gallery:${actionKey}` : undefined)
+											}
 											onAdopt={() =>
 												void adoptGridAsFreeform(page.gallery!, (patch) => editor.setGalleryConfig(pageKey, patch))
 											}
@@ -2037,7 +2061,13 @@ export default function PageEditor({
 				);
 			case 'images': {
 				const groupMode = block.gallery.layout === 'grid' ? 'grid' : 'freeform';
-				const patchGroup = (patch: GalleryPatch) => editor.updateImagesBlock(pageKey, block.id, patch);
+				const patchGroup = (patch: GalleryPatch, actionKey?: string) =>
+					editor.updateImagesBlock(
+						pageKey,
+						block.id,
+						patch,
+						actionKey ? `page:${pageKey}:images:${block.id}:${actionKey}` : undefined,
+					);
 				const groupLabel = `${block.name || `image group ${index + 1}`} on ${pageName}`;
 				const carousel = block.gallery.carousel === true;
 				const hasGroupMobileSettings = phoneItemsFor(block.gallery).length > 0 || !!block.gallery.mobile;

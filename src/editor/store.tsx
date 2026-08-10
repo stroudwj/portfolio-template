@@ -894,12 +894,14 @@ export interface EditorContextValue {
 	setTextFlowLayout(key: string, blockId: string, layout: TextFlowLayout | undefined): void;
 	/** Pin a text block to the page canvas (or undefined to return it to the flow). */
 	setTextLayout(key: string, blockId: string, layout: TextLayout | undefined): void;
-	/** Change gallery display settings (freeform/grid, columns, crop aspect, smart grid, gaps). */
+	/** Change gallery display settings (freeform/grid, columns, crop aspect, smart grid, gaps).
+	 * An actionKey coalesces rapid same-control commits (slider drags, typing) into one undo entry. */
 	setGalleryConfig(
 		key: string,
 		patch: Partial<
 			Pick<GalleryConfig, 'layout' | 'columns' | 'aspect' | 'smartGrid' | 'galleryWall' | 'gapX' | 'gapY' | 'mobile'>
 		>,
+		actionKey?: string,
 	): void;
 	/** Ensure the page has a primary freeform image group, optionally inserting it before a block. */
 	addFreeformGallery(key: string, beforeBlockId?: string, sectionId?: string): void;
@@ -936,6 +938,7 @@ export interface EditorContextValue {
 				| 'mobile'
 			>
 		>,
+		actionKey?: string,
 	): void;
 	/** Give an image group a display name (shown in the editor so groups are tellable apart). */
 	renameImagesBlock(key: string, blockId: string, name: string): void;
@@ -2430,7 +2433,7 @@ export function EditorProvider({
 				return { ...prev, content: { ...prev.content, pages: { ...prev.content.pages, [key]: nextPage } } };
 			}, moved);
 		},
-		setGalleryConfig: (key, patch) =>
+		setGalleryConfig: (key, patch, actionKey) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
 				if (!page?.gallery) return prev;
@@ -2454,7 +2457,7 @@ export function EditorProvider({
 					}
 				}
 				return { ...prev, content: { ...prev.content, pages: { ...prev.content.pages, [key]: nextPage } } };
-			}),
+			}, true, actionKey),
 		addFreeformGallery: (key, beforeBlockId, sectionId) =>
 			commitDoc((prev) => {
 				const page = prev.content.pages[key];
@@ -2558,12 +2561,12 @@ export function EditorProvider({
 					galleries: { ...prev.galleries, [folder]: [] },
 				};
 			}),
-		updateImagesBlock: (key, blockId, patch) =>
+		updateImagesBlock: (key, blockId, patch, actionKey) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) =>
 					b.id === blockId && b.type === 'images' ? { ...b, gallery: { ...b.gallery, ...patch } } : b,
 				),
-			),
+			true, actionKey),
 		renameImagesBlock: (key, blockId, name) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((b) =>

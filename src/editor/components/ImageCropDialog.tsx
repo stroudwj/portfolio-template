@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { Modal } from './ui/Modal';
+import { SliderNumberInput } from './ui/controls';
 
 export interface ImageCropSettings {
 	aspect?: string;
@@ -28,58 +29,6 @@ const ratioOf = (value: string | undefined): number | undefined => {
 };
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(Math.max(value, min), max);
-
-/** A slider's typed twin: edits flow both ways, and half-typed numbers hold
- *  until they parse (or the field commits on blur/Enter). */
-function SliderNumberInput({
-	value,
-	min,
-	max,
-	step,
-	suffix,
-	ariaLabel,
-	onChange,
-}: {
-	value: number;
-	min: number;
-	max: number;
-	step: number;
-	suffix: string;
-	ariaLabel: string;
-	onChange: (value: number) => void;
-}) {
-	const [draft, setDraft] = useState<string | null>(null);
-	const apply = (raw: string) => {
-		const parsed = Number(raw);
-		if (Number.isFinite(parsed) && raw.trim() !== '') onChange(clamp(parsed, min, max));
-	};
-	return (
-		<span className="crop-number-field">
-			<input
-				type="number"
-				min={min}
-				max={max}
-				step={step}
-				aria-label={ariaLabel}
-				value={draft ?? String(value)}
-				onChange={(event) => {
-					setDraft(event.target.value);
-					apply(event.target.value);
-				}}
-				onBlur={(event) => {
-					setDraft(null);
-					apply(event.target.value);
-				}}
-				onKeyDown={(event) => {
-					if (event.key !== 'Enter') return;
-					setDraft(null);
-					apply(event.currentTarget.value);
-				}}
-			/>
-			{suffix}
-		</span>
-	);
-}
 
 const MAX_VIEWPORT_WIDTH_PX = 560;
 const MAX_VIEWPORT_HEIGHT_VH = 52;

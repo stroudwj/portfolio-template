@@ -1228,7 +1228,7 @@ icon changes to non-motion controls, published-site output (no runtime files tou
 
 ---
 
-## 29. Numeric pixel input beside the smart-grid gap sliders — `queued`
+## 29. Numeric pixel input beside the smart-grid gap sliders — `built` (2026-08-10, on worktree-spec-29-gap-input @ 09fb774, awaiting merge. Recon: gaps are stored in rem (slider 0–4rem, renderer emits `--gap-x/y: <v>rem`) and nothing in the portfolio runtime overrides the root font size, so the field honestly speaks px at ×16 (0–64px, same clamps). Reused spec 15's SliderNumberInput from ImageCropDialog — hoisted to ui/controls.tsx, shared by crop dialog + both gap-slider sites. Undo: gap patches now pass an actionKey so typing is one undo per committed edit and a slider drag coalesces to one entry (was one per 0.25 step). Off-step typed values (22px = 1.375rem) store exactly; slider thumb displays the nearest 0.25 step by DOM step-snapping — cosmetic only. Verified: e2e drive typed 22px/9px → preview `--gap-x:1.375rem` → in-browser staticgen index.html emits identical rem; narrow nested-block panel wraps the px field below the slider instead of clipping. Other slider+number candidates noted, not done (out of scope): the batch "Crop & zoom all" zoom slider in PageEditor (shows a read-only × value today) and ThemeEditor's texture strength/hue sliders — SliderNumberInput is now shared in ui/controls.tsx if wanted.)
 
 **Goal.** The smart-grid image-spacing controls (the gap sliders spec 18 added) get a
 small numeric input next to each slider showing the current value in px, editable
