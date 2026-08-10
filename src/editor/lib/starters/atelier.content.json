@@ -13,7 +13,7 @@
     "mutedTextColor": "#6d6d6d",
     "accentColor": "#1c1c1c",
     "fontFamily": "-apple-system, \"Segoe UI\", Roboto, Arial, sans-serif",
-    "headingFontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+    "headingFontFamily": "\"Hanken Grotesk\", Avenir, \"Avenir Next\", Montserrat, sans-serif",
     "logoScale": 110,
     "pageHeadingScale": 130,
     "pageHeadingPosition": "left",
@@ -26,7 +26,10 @@
       "intensity": "subtle",
       "reveal": true,
       "hover": true
-    }
+    },
+    "customFonts": [
+      { "name": "Hanken Grotesk", "file": "fonts/hanken-grotesk-latin.woff2", "weight": "400 700" }
+    ]
   },
   "nav": [
     {
@@ -89,7 +92,7 @@
               ]
             }
           ],
-          "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+          "fontFamily": "\"Hanken Grotesk\", Avenir, \"Avenir Next\", Montserrat, sans-serif",
           "layout": {
             "x": 0,
             "y": 86,

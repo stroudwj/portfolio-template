@@ -30,9 +30,10 @@ Near-duplicate groups (pick ≥1 per group, cut the rest):
 ## Translation ledger — batch 1 (2026-08-09, branch worktree-spec-14-batch-1;
 ## revision pass + batch 2: 2026-08-09, branch worktree-spec-14-revision-batch-2)
 
-The first five keepers are translated into Hangwork starters. Fonts: the renderer
-ships no webfonts (templates cannot carry font files), so each substitution below is
-the closest **system font stack**, not a Google Font. Imagery: National Gallery of
+The first five keepers are translated into Hangwork starters. Fonts: at batch time
+the renderer shipped no webfonts, so each substitution below was the closest
+**system font stack** — since re-translated to self-hosted OFL faces layered over
+those stacks (see “Spec 23 — Starter webfonts” below). Imagery: National Gallery of
 Art open-access masters from `public/assets/starters/new-starters-aug-8/`, cataloged
 in `sample-artwork-nga.ts` (129 entries, generated from NGA open data; alt text from
 NGA assistive text).
@@ -98,6 +99,53 @@ files were deleted; artist folders were renamed to URL-safe names (`george bello
 `bellows`, `sargentdrawingscompress` → `sargent`, `watercolor1` → `emily-sargent`
 (they are Emily Sargent watercolors), `eugeneatget` → `atget`, `lewiswickedhine` →
 `hine`).
+
+## Spec 23 — Starter webfonts (2026-08-10, branch worktree-spec-23-webfonts)
+
+The batch 1–2 display faces are re-translated to their closest OFL equivalents,
+self-hosted from `public/assets/starters/fonts/` (binaries + one OFL.txt per face;
+registry with license evidence in `src/editor/lib/starter-fonts.ts`). Each starter
+declares its face through the existing custom-font contract
+(`theme.customFonts: {name, file, weight}`); the face leads the old system stack,
+which stays as the fallback. Body faces remain system stacks. Publish fetches the
+binary + license from the editor deploy into the site's own `/assets/fonts/`
+(no font CDN request ever); the export zip therefore carries both.
+
+| Template | Source face | OFL face (weights shipped) | File (woff2) | Upstream |
+|---|---|---|---|---|
+| `conservatory` | Gilda Display | Gilda Display (400) — the source face IS OFL | `gilda-display.woff2` 28KB | google/fonts `ofl/gildadisplay` |
+| `masthead` | Clarkson | Archivo (var 400–800) | `archivo-latin.woff2` 33KB | `ofl/archivo` |
+| `atelier` | Halyard Display | Hanken Grotesk (var 400–700) | `hanken-grotesk-latin.woff2` 24KB | `ofl/hankengrotesk` |
+| `contact-sheet` | Poppins | Poppins (500) — source face is OFL | `poppins-500-latin.woff2` 8KB | `ofl/poppins` |
+| `runway` | Syne | Syne (var 400–800) — source face is OFL | `syne-latin.woff2` 38KB | `ofl/syne` |
+| `promenade` | LTC Bodoni 175 | Bodoni Moda (var 400–700, opsz kept) | `bodoni-moda-latin.woff2` 52KB | `ofl/bodonimoda` |
+| `still-room` | Playfair Display | Playfair Display (var 400–900) — source face is OFL | `playfair-display.woff2` 104KB | `ofl/playfairdisplay` |
+| `signal` | Nunito Sans 900 | Nunito Sans (900) — source face is OFL | `nunito-sans-900-latin.woff2` 14KB | `ofl/nunitosans` |
+| `clearing` | Karla | Karla (var 400–700) — source face is OFL; leads body AND heading (Arthur is all-Karla) | `karla-latin.woff2` 24KB | `ofl/karla` |
+| `marmalade` | Minion Pro Condensed Display | Cormorant (var 500–700) | `cormorant-latin.woff2` 60KB | `ofl/cormorant` |
+
+License discipline (all faces OFL 1.1, verified in each upstream OFL.txt):
+- **Reserved Font Names** — Gilda ('Gilda') and Playfair Display ("Playfair
+  Display") declare RFNs, and the OFL treats subsetting as creating a Modified
+  Version that may not keep the name. Those two ship as **pure woff2 conversions
+  of the unmodified masters** (format conversion is accepted as not a
+  modification), which is why Playfair is the largest file. The other eight
+  reserve no names, so they are Latin subsets with variable axes limited to the
+  weights used (headings 400/500, bold runs 700, header logo 800).
+- Every published site that uses a face serves the face's full OFL.txt beside the
+  binary (`/assets/fonts/<face>-OFL.txt`) — redistribution keeps its license,
+  including inside the lifetime-export zip.
+- `font-display: swap` (the pipeline's existing choice, kept deliberately):
+  accepted artifact is a brief flash of the fallback system stack on first paint —
+  never invisible text, and the fallback stacks are the batch 1–2 substitutions,
+  so the flash shows the pre-spec-23 design.
+- Known faux-bold remnants: Gilda Display has a single 400 cut, so the header
+  logo (weight 800) synthesizes; Poppins ships 500 only, same story. Both match
+  the display-scale usage the sources show; revisit only if William flags them.
+- Rebuild recipe (masters from the google/fonts repo, `fonttools` +
+  `pyftsubset --unicodes=<latin> --layout-features='*' --flavor=woff2`, variable
+  axes limited with `fontTools.varLib.instancer`): weights per face as in the
+  table; RFN faces use `fontTools.ttLib.woff2 compress` only.
 
 ## Spec 22 — Conservatory ↔ Mosley gap audit (2026-08-09, step 1; decisions approved by William 2026-08-09)
 

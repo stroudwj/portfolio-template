@@ -7,6 +7,7 @@ import type { EditorDoc, ImageEntry } from './types';
 import { getAssetUrl, getAssetPreviewUrl, uid } from './assets';
 import { parseAndMigrateEditorDoc } from './doc-schema';
 import { sampleArtworkIdForUrl, sampleArtworkUrl } from './sample-artwork';
+import { starterFontUrl } from './starter-fonts';
 
 /** Gray placeholder shown for images referenced by name but not uploaded this session. */
 export const PLACEHOLDER_IMAGE =
@@ -296,11 +297,12 @@ export function docToPortfolioData(doc: EditorDoc): PortfolioData {
 		if (src) productImageSrcs[product.id] = src;
 	}
 
-	// Uploaded fonts render in the preview from their blob URLs; fonts referenced
-	// but not uploaded this session simply fall back to the next family in the stack.
+	// Uploaded fonts render in the preview from their blob URLs; bundled starter
+	// faces load from the editor deployment's own catalog; fonts referenced but
+	// not loadable this session simply fall back to the next family in the stack.
 	const fontFaces = (doc.content.theme.customFonts ?? []).flatMap((font) => {
-		const url = getAssetUrl(doc.fonts[font.name]?.assetId);
-		return url ? [{ name: font.name, url }] : [];
+		const url = getAssetUrl(doc.fonts[font.name]?.assetId) ?? starterFontUrl(font);
+		return url ? [{ name: font.name, url, weight: font.weight }] : [];
 	});
 
 	// A résumé uploaded this session opens from its blob URL in the preview.

@@ -150,6 +150,8 @@ export function backgroundBlockVars(
 export interface FontFace {
 	name: string;
 	url: string;
+	/** Optional font-weight descriptor ("500" or a variable range "400 800"). */
+	weight?: string;
 }
 
 const FONT_FORMATS: Record<string, string> = {
@@ -166,12 +168,15 @@ const FONT_FORMATS: Record<string, string> = {
  */
 export function fontFacesCss(fonts: FontFace[]): string {
 	return fonts
-		.map(({ name, url }) => {
+		.map(({ name, url, weight }) => {
 			const safeName = name.replace(/["\\]/g, '');
 			const safeUrl = url.replace(/["\\]/g, '');
 			const ext = safeUrl.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
 			const format = FONT_FORMATS[ext];
-			return `@font-face{font-family:"${safeName}";src:url("${safeUrl}")${format ? ` format("${format}")` : ''};font-display:swap;}`;
+			// A single weight or a variable range; anything else falls back to the
+			// descriptor-less rule (weight: normal), same as user uploads.
+			const safeWeight = weight && /^\d{1,4}( \d{1,4})?$/.test(weight) ? weight : undefined;
+			return `@font-face{font-family:"${safeName}";src:url("${safeUrl}")${format ? ` format("${format}")` : ''};${safeWeight ? `font-weight:${safeWeight};` : ''}font-display:swap;}`;
 		})
 		.join('');
 }

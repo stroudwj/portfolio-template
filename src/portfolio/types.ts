@@ -140,7 +140,7 @@ export interface PortfolioData {
 	/** Product ID -> resolved catalog image URL. */
 	productImageSrcs?: Record<string, string>;
 	/** Custom fonts with resolved URLs (the editor preview passes blob: URLs). */
-	fontFaces?: Array<{ name: string; url: string }>;
+	fontFaces?: Array<{ name: string; url: string; weight?: string }>;
 	/** Resolved resume URL override (the editor preview passes a blob: URL). */
 	resumeHref?: string;
 }

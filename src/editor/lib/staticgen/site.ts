@@ -19,6 +19,12 @@ import type { Content, PageConfig } from '../../../lib/content';
 import { pageGalleryConfigs } from '../../../lib/content';
 import Portfolio from '../../../portfolio/Portfolio';
 import { fontFacesCss, themeToRootCss } from '../../../portfolio/theme';
+import {
+	starterFontEditorPath,
+	starterFontForCustomFont,
+	starterFontLicenseEditorPath,
+	starterFontLicenseSitePath,
+} from '../starter-fonts';
 import type { PortfolioData, ResolvedImage } from '../../../portfolio/types';
 import type { PortfolioBundle } from '../exporter';
 import { contentJsonString } from '../exporter';
@@ -236,7 +242,11 @@ export async function generateStaticSite(bundle: PortfolioBundle, opts: StaticSi
 		logoImageSrc: content.site.logoImage ? `/assets/${content.site.logoImage}` : undefined,
 		pageThumbs: resolvePageThumbs(content, galleries),
 		productImageSrcs: resolveProductImageSrcs(content),
-		fontFaces: (content.theme.customFonts ?? []).map((font) => ({ name: font.name, url: `/assets/${font.file}` })),
+		fontFaces: (content.theme.customFonts ?? []).map((font) => ({
+			name: font.name,
+			url: `/assets/${font.file}`,
+			weight: font.weight,
+		})),
 	};
 
 	// Head pieces shared by every page (mirrors Layout.astro's themeCss + bodyCss).
@@ -306,6 +316,30 @@ export async function generateStaticSite(bundle: PortfolioBundle, opts: StaticSi
 	// The editable source of truth, republished with the site so any signed-in device
 	// (and any export) can reopen it in the editor.
 	files.push({ path: '_hw/content.json', bytes: textBytes(contentJsonString(content)) });
+
+	// Bundled starter faces whose bytes weren't uploaded this session (no blob in
+	// the doc) ship from the editor deployment's font catalog, with each face's
+	// OFL license text beside the binary — a published site and its export zip
+	// must carry the fonts and their license to stand alone offline.
+	const emittedPaths = new Set(files.map((file) => file.path));
+	for (const font of content.theme.customFonts ?? []) {
+		const face = starterFontForCustomFont(font);
+		if (!face) continue;
+		const shipped: Array<[sitePath: string, editorPath: string]> = [
+			[`assets/${face.file}`, starterFontEditorPath(face)],
+			[`assets/${starterFontLicenseSitePath(face)}`, starterFontLicenseEditorPath(face)],
+		];
+		for (const [sitePath, editorPath] of shipped) {
+			if (emittedPaths.has(sitePath)) continue;
+			const bytes = await fetchEditorAsset(opts.editorBase, editorPath, false);
+			if (!bytes)
+				throw new Error(
+					`The template font “${face.family}” could not be loaded from the editor. Refresh and try again.`,
+				);
+			files.push({ path: sitePath, bytes });
+			emittedPaths.add(sitePath);
+		}
+	}
 
 	// The prebuilt hydration runtime + the favicon set, from the editor's own deploy.
 	const runtime: Array<[string, string, boolean]> = [

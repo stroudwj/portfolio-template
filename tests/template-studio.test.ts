@@ -65,7 +65,15 @@ describe('template studio serialization', () => {
 		const [, item] = Object.entries(tampered.galleries['selected-work'].items)[0];
 		item.description = 'my own credit';
 		item.link = 'https://example.com/not-the-museum';
-		tampered.theme = { ...tampered.theme, customFonts: [{ name: 'X', file: 'x.woff2' }] };
+		// A font outside the bundled catalog (spec 23) is still drift, as is a
+		// catalog face missing its weight declaration.
+		tampered.theme = {
+			...tampered.theme,
+			customFonts: [
+				{ name: 'X', file: 'x.woff2' },
+				{ name: 'Gilda Display', file: 'fonts/gilda-display.woff2' },
+			],
+		};
 
 		const candidates = STARTER_RECIPES.map((recipe) =>
 			recipe.id === 'painter' ? { ...recipe, content: tampered } : recipe,
@@ -73,7 +81,8 @@ describe('template studio serialization', () => {
 		const issues = validateStarterCatalog(candidates);
 		expect(issues.some((issue) => issue.includes('credit'))).toBe(true);
 		expect(issues.some((issue) => issue.includes('object link'))).toBe(true);
-		expect(issues.some((issue) => issue.includes('custom font'))).toBe(true);
+		expect(issues.some((issue) => issue.includes('not a bundled starter face'))).toBe(true);
+		expect(issues.some((issue) => issue.includes('catalog weight'))).toBe(true);
 	});
 
 	it('keeps the pristine catalog free of drift issues', () => {

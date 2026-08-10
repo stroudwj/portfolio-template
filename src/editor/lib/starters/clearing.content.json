@@ -12,8 +12,8 @@
     "textColor": "#1a1a1a",
     "mutedTextColor": "#8c887f",
     "accentColor": "#b9b19e",
-    "fontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
-    "headingFontFamily": "Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+    "fontFamily": "Karla, Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
+    "headingFontFamily": "Karla, Seravek, \"Gill Sans\", \"Gill Sans MT\", Verdana, sans-serif",
     "logoScale": 100,
     "pageHeadingScale": 110,
     "pageHeadingPosition": "left",
@@ -26,7 +26,10 @@
       "intensity": "subtle",
       "reveal": true,
       "hover": false
-    }
+    },
+    "customFonts": [
+      { "name": "Karla", "file": "fonts/karla-latin.woff2", "weight": "400 700" }
+    ]
   },
   "nav": [
     {

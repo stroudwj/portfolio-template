@@ -4,7 +4,7 @@
   "mutedTextColor": "#6f6f6f",
   "accentColor": "#3d3d3d",
   "fontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
-  "headingFontFamily": "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+  "headingFontFamily": "Archivo, \"Helvetica Neue\", Helvetica, Arial, sans-serif",
   "logoScale": 300,
   "logoPosition": "center",
   "pageHeadingScale": 130,

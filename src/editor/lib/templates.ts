@@ -2,6 +2,7 @@ import { pageGalleryConfigs, type Content, type Theme } from '../../lib/content'
 import { parseAndMigrateContent, themeSchema } from '../../lib/content-schema';
 import type { EditorDoc } from './types';
 import { SAMPLE_ARTWORK, aspectDifference, getSampleArtwork, sampleArtworkIdForUrl, type SampleArtwork } from './sample-artwork';
+import { STARTER_FONT_FACES, starterFontForCustomFont } from './starter-fonts';
 import galleryLinenTokens from './theme-presets/gallery-linen.json';
 import nightGalleryTokens from './theme-presets/night-gallery.json';
 import caseStudyPaperTokens from './theme-presets/case-study-paper.json';
@@ -1120,13 +1121,22 @@ export function compatibleThemePresets(doc: Pick<EditorDoc, 'content'>): ThemePr
 
 /** Apply only design tokens. User pages, media, copy, and custom font files stay
  * attached to the document. Motion is part of a template's feel, not a color
- * scheme: a preset that declares it wins, otherwise the site keeps its own. */
+ * scheme: a preset that declares it wins, otherwise the site keeps its own.
+ * Bundled starter faces the incoming theme declares come along (a template's
+ * typography is part of its design); on a name collision the document's own
+ * font keeps the name. */
 export function contentWithThemePreset(content: Content, theme: Theme): Content {
+	const own = content.theme.customFonts ?? [];
+	const ownNames = new Set(own.map((font) => font.name));
+	const bundled = (theme.customFonts ?? []).filter(
+		(font) => !ownNames.has(font.name) && !!starterFontForCustomFont(font),
+	);
+	const customFonts = [...own, ...bundled];
 	return {
 		...content,
 		theme: {
 			...JSON.parse(JSON.stringify(theme)),
-			customFonts: content.theme.customFonts,
+			customFonts: customFonts.length ? JSON.parse(JSON.stringify(customFonts)) : undefined,
 			...(theme.motion || !content.theme.motion
 				? {}
 				: { motion: JSON.parse(JSON.stringify(content.theme.motion)) }),
@@ -1176,8 +1186,13 @@ function starterContentIssues(
 	];
 	for (const [label, value] of fileDependencies)
 		if (value) issues.push(`${recipe.name} ${label} depends on a file the template cannot ship.`);
-	if (content.theme.customFonts?.length)
-		issues.push(`${recipe.name} uses custom font files the template cannot ship.`);
+	for (const font of content.theme.customFonts ?? []) {
+		const face = starterFontForCustomFont(font);
+		if (!face)
+			issues.push(`${recipe.name} font “${font.name}” is not a bundled starter face the template can ship.`);
+		else if (font.weight !== face.weight)
+			issues.push(`${recipe.name} font “${font.name}” must declare the catalog weight “${face.weight}”.`);
+	}
 	if (content.resume?.url && !/^https?:/i.test(content.resume.url))
 		issues.push(`${recipe.name} résumé must be empty or an absolute link.`);
 	for (const [key, page] of Object.entries(content.pages)) {
@@ -1197,6 +1212,26 @@ export function validateStarterCatalog(
 	artworkCatalog: ReadonlyMap<string, SampleArtwork> = SAMPLE_ARTWORK,
 ): string[] {
 	const issues: string[] = [];
+	// The bundled font catalog is part of the rights contract: one file per
+	// family, OFL license evidence on every face, and presets never declare
+	// faces themselves (starters do — presets are color/typography tokens).
+	const fontFamilies = new Set<string>();
+	const fontFiles = new Set<string>();
+	for (const face of STARTER_FONT_FACES) {
+		if (fontFamilies.has(face.family)) issues.push(`Duplicate starter font family: ${face.family}`);
+		fontFamilies.add(face.family);
+		if (fontFiles.has(face.file)) issues.push(`Duplicate starter font file: ${face.file}`);
+		fontFiles.add(face.file);
+		if (!/^fonts\/[a-z0-9-]+\.woff2$/.test(face.file))
+			issues.push(`${face.family} font file must live under fonts/ as a woff2.`);
+		if (!/^\d{1,4}( \d{1,4})?$/.test(face.weight))
+			issues.push(`${face.family} has an invalid font-weight descriptor.`);
+		if (face.license !== 'OFL-1.1' || !face.copyright || !face.source)
+			issues.push(`${face.family} is missing font license evidence.`);
+	}
+	for (const theme of themes)
+		if (theme.tokens.customFonts?.length)
+			issues.push(`${theme.name} may not declare font files — bundled faces are starter-declared.`);
 	const recipeIds = new Set<string>();
 	const sampleIds = new Set<string>();
 	for (const artwork of artworkCatalog.values()) {

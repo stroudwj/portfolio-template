@@ -1,4 +1,5 @@
 import type { Theme } from '../../lib/content';
+import { starterFontForCustomFont } from './starter-fonts';
 
 export const FONT_OPTIONS: Array<{ label: string; value: string }> = [
 	{ label: 'Helvetica — clean sans', value: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
@@ -24,7 +25,7 @@ export const customFontValue = (name: string): string => `"${name}", sans-serif`
 export const fontOptionsForTheme = (theme: Theme): Array<{ label: string; value: string }> => [
 	...FONT_OPTIONS,
 	...(theme.customFonts ?? []).map((font) => ({
-		label: `${font.name} — your font`,
+		label: `${font.name} — ${starterFontForCustomFont(font) ? 'template font' : 'your font'}`,
 		value: customFontValue(font.name),
 	})),
 ];

@@ -31,6 +31,14 @@ import {
 	SAMPLE_UNAVAILABLE_IMAGE,
 	showSampleUnavailable,
 } from '../src/portfolio/sampleFallback';
+import {
+	STARTER_FONT_FACES,
+	starterFontEditorPath,
+	starterFontForCustomFont,
+	starterFontLicenseEditorPath,
+} from '../src/editor/lib/starter-fonts';
+import { fontFacesCss } from '../src/portfolio/theme';
+import { withBase } from '../src/portfolio/types';
 
 function jpegDimensions(bytes: Buffer): { width: number; height: number } {
 	let offset = 2;
@@ -717,5 +725,132 @@ describe('discipline-led starter catalog', () => {
 		expect(stripped.galleries['selected-work']).toHaveLength(1);
 		expect(stripped.galleries['selected-work'][0].filename).toBe('my-painting.jpg');
 		expect(stripped.galleries.collection).toEqual([]);
+	});
+});
+
+// Spec 23: starter webfonts — self-hosted, OFL-only. Every face a starter
+// declares must ship from the repo with its license, stay inside the per-site
+// budget, and ride the existing custom-font pipeline end to end.
+describe('starter webfonts', () => {
+	const declared = AVAILABLE_STARTERS.flatMap((starter) =>
+		(starter.content.theme.customFonts ?? []).map((font) => ({ starter, font })),
+	);
+
+	it('ships every declared face with OFL license evidence, inside the budget', () => {
+		expect(declared.length).toBeGreaterThan(0);
+		for (const starter of AVAILABLE_STARTERS) {
+			const fonts = starter.content.theme.customFonts ?? [];
+			expect(fonts.length).toBeLessThanOrEqual(2);
+			let siteBytes = 0;
+			for (const font of fonts) {
+				const face = starterFontForCustomFont(font);
+				expect(face, `${starter.id} declares a non-catalog font ${font.name}`).toBeTruthy();
+				if (!face) continue;
+				expect(font.weight).toBe(face.weight);
+				siteBytes += readFileSync(`public/${starterFontEditorPath(face)}`).length;
+				const license = readFileSync(`public/${starterFontLicenseEditorPath(face)}`, 'utf8');
+				expect(license).toContain('SIL OPEN FONT LICENSE Version 1.1');
+				expect(license).toContain(face.copyright);
+			}
+			// The spec's ceiling on what fonts may add to a published site.
+			expect(siteBytes).toBeLessThanOrEqual(150 * 1024);
+		}
+	});
+
+	it('backs every catalog face with a real binary and license file', () => {
+		for (const face of STARTER_FONT_FACES) {
+			expect(readFileSync(`public/${starterFontEditorPath(face)}`).length).toBeGreaterThan(0);
+			expect(
+				readFileSync(`public/${starterFontLicenseEditorPath(face)}`, 'utf8'),
+			).toContain('SIL OPEN FONT LICENSE Version 1.1');
+		}
+	});
+
+	it('leads the heading stack with the face each starter declares', () => {
+		for (const { starter, font } of declared)
+			expect(starter.content.theme.headingFontFamily ?? '').toContain(font.name);
+	});
+
+	it('emits weight descriptors for faces that declare one, and rejects junk', () => {
+		expect(fontFacesCss([{ name: 'A', url: '/a.woff2', weight: '400 800' }])).toContain(
+			'font-weight:400 800;',
+		);
+		expect(fontFacesCss([{ name: 'A', url: '/a.woff2' }])).not.toContain('font-weight');
+		expect(fontFacesCss([{ name: 'A', url: '/a.woff2', weight: 'x}injected' }])).not.toContain(
+			'injected',
+		);
+	});
+
+	it('previews a declared face from the editor catalog with its weight range', () => {
+		const stillRoom = AVAILABLE_STARTERS.find((starter) => starter.id === 'still-room')!;
+		const data = docToPortfolioData(initDocFromContent(stillRoom.content));
+		expect(data.fontFaces).toEqual([
+			{
+				name: 'Playfair Display',
+				url: withBase(import.meta.env.BASE_URL, 'assets/starters/fonts/playfair-display.woff2'),
+				weight: '400 900',
+			},
+		]);
+	});
+
+	it('publishes bundled faces and their OFL text into the static site', async () => {
+		const conservatory = AVAILABLE_STARTERS.find((starter) => starter.id === 'conservatory')!;
+		const doc = initDocFromContent(conservatory.content);
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) => {
+				const catalog = String(url).match(/\/(assets\/starters\/fonts\/.+)$/);
+				if (catalog) return new Response(readFileSync(`public/${catalog[1]}`), { status: 200 });
+				return new Response('/* runtime asset */', { status: 200 });
+			}),
+		);
+		try {
+			const bundle = await buildBundle(doc);
+			const site = await generateStaticSite(bundle, {
+				siteUrl: 'https://fonts.example',
+				editorBase: 'https://hangwork.art/',
+			});
+			const paths = site.files.map((file) => file.path);
+			expect(paths).toContain('assets/fonts/gilda-display.woff2');
+			expect(paths).toContain('assets/fonts/gilda-display-OFL.txt');
+			const emitted = site.files.find((file) => file.path === 'assets/fonts/gilda-display.woff2')!;
+			expect(emitted.bytes.length).toBe(
+				readFileSync('public/assets/starters/fonts/gilda-display.woff2').length,
+			);
+			// The font is referenced content: it must reach the _hw/files.json
+			// inventory so reopening the published site re-downloads it.
+			expect(site.assetPaths).toContain('assets/fonts/gilda-display.woff2');
+			const home = new TextDecoder().decode(
+				site.files.find((file) => file.path === 'index.html')!.bytes,
+			);
+			expect(home).toContain('@font-face{font-family:"Gilda Display"');
+			expect(home).toContain('/assets/fonts/gilda-display.woff2');
+			expect(home).toContain('font-display:swap');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('a starter with no declared fonts publishes exactly as before', async () => {
+		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
+		expect(painter.content.theme.customFonts).toBeUndefined();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response('/* runtime asset */', { status: 200 })),
+		);
+		try {
+			const bundle = await buildBundle(initDocFromContent(painter.content));
+			const site = await generateStaticSite(bundle, {
+				siteUrl: 'https://plain.example',
+				editorBase: 'https://hangwork.art/',
+			});
+			expect(site.files.some((file) => file.path.startsWith('assets/fonts/'))).toBe(false);
+			const home = new TextDecoder().decode(
+				site.files.find((file) => file.path === 'index.html')!.bytes,
+			);
+			expect(home).not.toContain('@font-face');
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 });
