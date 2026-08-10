@@ -1405,3 +1405,56 @@ face and note it; spec 23 (starter webfonts) owns adding new ones.
 
 **Out of scope.** Pixel-cloning the reference's images or copy, new starters, spec-23
 webfont infrastructure, editor UI changes (spec 31 owns the KineticText control).
+
+---
+
+## 33. Beta PT 3: invisible new-section text, boundaries on by default, floating buttons → top bar — `queued`
+
+Three beta findings from William (2026-08-10), bundled spec-16 style: independent items,
+fix all three, report each in the outcome line.
+
+**A. BUG: text added to a new section is sometimes invisible.** Add a section, add a
+text block, type — the text sometimes doesn't render in the canvas. Reproduce first and
+pin down "sometimes": likely suspects are the new-section default colors (text color =
+section background?), a motion/entrance state that never fires for freshly-added blocks
+(the spec-24 entered-state machinery — a block added after the scene ran may sit
+permanently hidden awaiting an entrance), or a zero-height/collapsed block. Check
+whether it reproduces in fullscreen preview and staticgen output or only in the canvas —
+that splits renderer vs editor-state causes. Fix the real cause, not a CSS override;
+add a regression test if it lands somewhere testable.
+
+**B. Section boundaries on by default.** The section-boundary outlines toggle in the
+editor canvas should default to ON for everyone (find the existing toggle + where its
+state lives — if it persists per-user, only the initial default changes; an explicit
+user choice to turn it off must stick). Editor-only, no doc-schema change.
+
+**C. "＋ Add block" and layers buttons stop covering the site's navigation.** The two
+floating buttons at the canvas top-left (layers ≋ and "＋ Add block") sit on top of the
+rendered site's nav bar — see spec-30's screenshot era: they overlap the portfolio's
+own menu links. Move both into the editor's top toolbar (the row with the device/grid
+toggles) instead of floating over the page. Keep their functions and shortcuts
+identical; kill the floating overlay entirely so no canvas chrome covers site content.
+DESIGN.md for the toolbar buttons: existing icon style, sentence-case tooltips, no new
+colors.
+
+**Recon (verify first).** For each item, find the current implementation before
+changing it (boundary toggle state, the floating-button container in
+`src/editor/components/` — likely near the PreviewEditLayer/DesktopDeviceFrame chrome).
+Item A needs the repro nailed before any fix.
+
+**Files.** `src/editor/components/` (canvas chrome, toolbar, PageEditor);
+`src/portfolio/` only if item A turns out to be a renderer bug (hashed → `npm run
+runtime:generate` + commit manifest).
+
+**Requirements.**
+- A: text in a fresh section is always visible immediately after typing, in canvas,
+  fullscreen, and published output; regression test where feasible.
+- B: boundaries default ON; an explicit off still persists however the toggle persists
+  today.
+- C: no floating buttons over the rendered page; both live in the top bar, work at
+  narrow window widths without crowding the existing toggles, and the nav bar of every
+  starter is fully clickable in the canvas.
+- `npm run check` + `npm test` pass; manifest regenerated if hashed files touched.
+
+**Out of scope.** Redesigning the toolbar, the layers panel's contents, new block
+types, the accordion-resize work (spec 26).
