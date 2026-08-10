@@ -1314,7 +1314,7 @@ expected.
 
 ---
 
-## 31. Expose the contact-sheet side-scrolling text as an editor feature — `queued`
+## 31. Expose the contact-sheet side-scrolling text as an editor feature — `done — already shipped, verified` (2026-08-10, no code change. Recon found the spec's premise stale: the full KineticText control shipped in "Release motion tools" (94e5292, 2026-07-29) — every text block has a "Type motion" select (Still/Words rise/Letters rise/Lines rise/Marquee) with Tempo + "Use on phones" + ▶ Preview, and every page has the same under Page details → "Heading motion"; both write the exact template schema shape (`block.kinetic` / `page.headingKinetic`, `{effect, speed?, phone?}`). Verified end-to-end by driving the editor on a blank doc: marquee on/off round-trips clean (switching back to Still deletes the key — untouched-doc bytes preserved), canvas preview animates live (canvas + normal-flow text and heading; tempo 150% → 8s track; phone-off class applies; replay button works), `prefers-reduced-motion` stops the animation, and the real in-browser staticgen publish renders both marquees (content.json carries both configs; index.html has 2 tracks/4 copies with the aria-hidden duplicate; kinetic CSS ships). Contact-sheet byte-identical — zero renderer/schema/editor edits, manifest untouched. `npm run check` + `npm test` (328) pass.)
 
 **Goal.** The contact-sheet template has a side-scrolling (marquee) text treatment that
 users can only get by starting from that template — the renderer already ships it
