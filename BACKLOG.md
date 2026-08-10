@@ -854,7 +854,7 @@ motion), template content changes (spec 14's revision uses this once merged).
 
 ---
 
-## 22. Conservatory fidelity sprint — one template to indistinguishable — `built` (steps 1+2+2b+3 done 2026-08-09 on worktree-spec-22-conservatory-fidelity; awaiting William's side-by-side sign-off, then merge — spec 14 batch 3 unblocks after)
+## 22. Conservatory fidelity sprint — one template to indistinguishable — `merged` (on integration/specs-14r-19; William signed off on conservatory 2026-08-10. Batch 3 technically unblocked but deliberately deferred by William — do not start it without his go)
 
 Step 1: 18-row gap audit in starters/SOURCES.md, decisions approved by William
 same day (accept list; footer upgrade; exact #2c332c/white/no-grain palette;
@@ -1056,3 +1056,352 @@ say what the thing does ("Motion"), no new colors.
 
 **Out of scope.** New effects/primitives, keyframe or easing editors, per-image entrance
 choreography, motion preview scrubbing, per-block (non-section) motion.
+
+---
+
+## 25. BUG: editor preview mis-positions text around oversized display headings — `queued`
+
+**Goal.** The same page renders differently in the editor canvas vs the fullscreen
+"Shown exactly as your published site" preview. Observed on a doc using a huge serif
+display heading ("BOOK A WALL"): the caption below it ("Two prizes and a long-list live
+on the Awards page.") sits under the heading in fullscreen, but in the editor canvas it
+overlaps the middle of the heading. The page title ("Workshops" / "Your Name") shows a
+similar overlap in both views, so there may be two issues: an editor-only positioning
+divergence, and a genuine renderer overlap that both views share. Fix so the editor
+canvas matches the published/fullscreen output pixel-for-alt-pixel at the same width.
+
+**Why.** The whole trust model of the editor is WYSIWYG — the fullscreen toolbar
+literally promises "Shown exactly as your published site". Any layout divergence between
+the two makes users fix layouts that were never broken (or ship ones that are).
+
+**Recon (verify first).** Reproduce before touching anything: load a doc with an
+oversized display-type heading followed by a text block, compare editor canvas vs
+fullscreen preview at the same viewport width. Suspects, in order: the
+`DesktopDeviceFrame` scale/remeasure path (spec 16 just reworked its remeasure on
+fullscreen/sidebar switch — this may be a regression or a missed case); editor-only CSS
+leaking into the preview iframe vs the clean published CSS (see the known
+client:only/island CSS traps); font loading timing (heading metrics measured before the
+display font arrives → stale positions in the scaled frame only). Confirm which view
+matches the actual published/staticgen output — that one is "correct".
+
+**Files.** `src/editor/components/` (DesktopDeviceFrame / preview frame, whatever hosts
+the canvas scale), `src/portfolio/` heading + text-block renderer only if the overlap
+reproduces in staticgen output too. Renderer edits touch hashed files → `npm run
+runtime:generate` and commit the manifest.
+
+**Requirements.**
+- Editor canvas and fullscreen preview render this doc identically at equal widths.
+- If the title/name overlap also exists in published output, fix it in the renderer
+  (likely line-height/overflow on the display heading), not with editor-side patches.
+- No visual change to docs that don't use oversized display headings — eyeball a couple
+  of merged starters before/after.
+- `npm run check` + `npm test`; add a regression test only if the cause lands somewhere
+  testable (e.g. staticgen output), otherwise document the manual repro in the PR.
+
+**Out of scope.** New typography controls, redesigning the display-heading scale,
+mobile-preview parity work beyond this bug.
+
+---
+
+## 26. Editor panel accordion sizing — resizable/right-sized block editor — `queued`
+
+**Goal.** The expanded block accordion in the left Pages panel (e.g. the contact-form
+block editor with heading, delivery email, service address, help prose, and the
+questions list) runs far taller than the panel, forcing long inner scrolls in a narrow
+fixed-width box. Give the accordion a better-fitting box: let the open block use the
+available panel height sensibly, and let the user resize it — at minimum a drag-to-resize
+affordance (width, height, or both — decide from what the panel layout can support), or
+an "expand" state that gives a dense editor like the form block more room.
+
+**Why.** William's note from beta use: editing a form inside the current accordion feels
+cramped — the box is the wrong size for the content it holds. Spec 15/16 polished the
+controls inside the panel; this is about the container itself.
+
+**Recon (verify first).** Find the accordion/expanded-card implementation in
+`src/editor/components/PageEditor.tsx` (or wherever spec 16 moved block cards) and check
+what sizing already exists — fixed panel width, any max-height, any existing resize or
+expand affordance — before adding one.
+
+**Files.** `src/editor/components/PageEditor.tsx` and the panel chrome around it;
+`ui/controls.tsx` only if a shared resize handle belongs there. Editor-only — no
+renderer/schema changes, so no manifest regen expected.
+
+**Requirements.**
+- The open accordion body stops double-scrolling awkwardly: it should grow to use the
+  panel height available, with one clear scroll region when content still overflows.
+- Resize affordance per DESIGN.md: subtle handle, no new colors, keyboard-reachable if
+  it's interactive; size choice may persist per-session but doesn't need to be saved in
+  the doc.
+- Dense editors (contact form with its questions list) are the acceptance case: editing
+  one must feel roomy without collapsing other panel functions.
+- No layout regressions in the collapsed card list, the 0x0 hidden-pane trap (spec 15
+  memory), or the sticky Compact/Details heading from spec 16.
+- `npm run check` + `npm test` pass.
+
+**Out of scope.** Detaching the panel into a floating window, redesigning the panel
+navigation, touching the preview canvas, per-block custom layouts beyond the shared
+resize behavior.
+
+---
+
+## 27. Fullscreen preview replays motion like a first visit — `queued`
+
+**Goal.** Entering the fullscreen preview ("Shown exactly as your published site")
+should reset and replay all page motion — section entrances, reveals, sequences — as if
+the visitor just landed on the published page for the first time. Today the preview
+carries over the editor canvas's already-entered state, so the user never sees the
+entrance choreography they authored without a manual reload.
+
+**Why.** The fullscreen preview exists to answer "what will a visitor see?" — and the
+first-load motion IS what a visitor sees first. Right now the one view that promises
+published fidelity is the one place you can't check your entrances.
+
+**Recon (verify first).** Study the spec 13/24 motion runtime before touching it: the
+entered-state WeakSet + MutationObserver guard that keeps `motion-visible` from being
+wiped, and the existing "scene changes replay entrances" path that the Strength slider
+fix added (spec 24). A replay mechanism therefore already exists — the work is
+triggering it on the fullscreen toggle, not building a new one. Find where the
+fullscreen switch lives (`DesktopDeviceFrame` / the toolbar from spec 16, which already
+hooks that transition for its remeasure).
+
+**Files.** `src/editor/components/` (fullscreen toggle → fire the replay), the motion
+runtime module from specs 12/13/24 (expose a reset/replay entry point if scene-change
+replay isn't directly callable). If the runtime file is hashed, `npm run
+runtime:generate` + commit the manifest.
+
+**Requirements.**
+- On entering fullscreen: all entered-state is cleared and entrances/reveals/sequences
+  re-run from their initial hidden state, scroll position reset to top — matching a
+  cold load of the published site.
+- Exiting fullscreen returns to the editor canvas without motion artifacts (no sections
+  stuck hidden — the exact failure class the spec 24 MutationObserver guard fixed).
+- Respects the motion master switch and `prefers-reduced-motion`: when motion is off,
+  fullscreen shows the static page, no replay flash.
+- Published sites unchanged — this is an editor-preview trigger, not a runtime behavior
+  change; verify staticgen output is byte-identical if the runtime module is touched.
+- Works with hand-authored template scenes (conservatory is the regression case, per
+  spec 24) and with docs that have no motion at all (no flash, no errors).
+- `npm run check` + `npm test` pass.
+
+**Out of scope.** A replay button inside the editor canvas itself, motion scrubbing,
+changing any published-site load behavior, mobile-preview replay (nice if free, not
+required).
+
+---
+
+## 28. Better motion icon — replace ∿ everywhere it appears — `queued`
+
+**Goal.** Find every place the editor uses the ∿ squiggle as the motion glyph — the
+per-section chip (spec 24 made it a labeled chip naming the active scene), the
+per-element motion tools from spec 13 (SectionMotionPicker and friends), and any other
+block-level motion affordance — and replace it with one clearly-better icon used
+consistently in all of them. The squiggle reads as "wave/decoration", not "motion".
+
+**Why.** Spec 24's discoverability finding already flagged the bare ∿ as the weak
+point; the label helped, but the glyph itself still doesn't communicate motion. One
+good icon, applied everywhere, beats per-spot improvisation.
+
+**Recon (verify first).** `rg -n "∿" src/editor` (and search for any named
+motion-icon component) to enumerate every usage before designing — the fix is a
+search-and-replace across all of them, not a new icon in one spot. Check how other
+editor icons are implemented (inline SVG? glyph characters?) and follow that pattern.
+
+**Files.** Wherever the recon finds the glyph — expected: `src/editor/components/`
+(section header chip, SectionMotionPicker, motion pickers from specs 13/24) and possibly
+`ui/controls.tsx` if the icon should become a shared component (extend, don't
+duplicate, per the HelpTip precedent). Editor-only; no schema or renderer changes.
+
+**Requirements.**
+- One icon, every motion surface — no site of the old glyph left behind (re-run the
+  recon grep at the end to prove zero remaining hits).
+- The icon must read as motion/animation at 13–16px: think a play-style or
+  motion-lines mark, chosen against DESIGN.md — monochrome, current ink colors, no new
+  colors, works on both panel and canvas-chip backgrounds.
+- If made a shared component, all call sites import it from one place.
+- Labels and HelpTips added by specs 15/24 stay intact — this changes the glyph, not
+  the affordance structure.
+- Eyeball at real panel scale: section header chip, per-element picker, and any canvas
+  overlay usage. `npm run check` + `npm test` pass.
+
+**Out of scope.** Redesigning the motion pickers or chip layout, new motion features,
+icon changes to non-motion controls, published-site output (no runtime files touched).
+
+---
+
+## 29. Numeric pixel input beside the smart-grid gap sliders — `queued`
+
+**Goal.** The smart-grid image-spacing controls (the gap sliders spec 18 added) get a
+small numeric input next to each slider showing the current value in px, editable
+directly: type a number → grid updates, drag the slider → the number follows. Applies
+to every gap slider the smart grid exposes (row/column or single gap — whatever spec
+18 shipped).
+
+**Why.** Sliders are good for feel, bad for precision and repeatability. Artists
+matching a spacing across sections (or copying a value from another site) need to see
+and type the exact number, not eyeball a thumb position.
+
+**Recon (verify first).** Find the spec-18 gap sliders (`rg -ni "gap" src/editor` near
+the smart-grid controls) and check: what unit the doc schema actually stores (px? a
+unitless token? %) and whether a numeric-input-beside-slider pattern already exists
+anywhere in the panels (spec 15 polished these controls — reuse its idioms). If the
+stored unit isn't px, display px only if the conversion is honest at render time;
+otherwise show the stored unit and say so in the label.
+
+**Files.** `src/editor/components/` (the smart-grid/gap control site),
+`ui/controls.tsx` if a shared slider+number field is the right shape (extend, don't
+duplicate). No schema change expected — same stored value, second way to set it.
+
+**Requirements.**
+- Two-way binding: slider drag updates the field live; typing (or arrow keys in the
+  field) updates the grid and the slider. Same min/max clamps as the slider; values
+  outside range clamp, junk input reverts to current value.
+- One undo entry per committed text edit (on blur/Enter), consistent with the
+  slider's undo behavior — follow the spec-18 single-undo discipline.
+- Layout per DESIGN.md and the spec-15 squish fixes: the input is compact (~4ch), 13px,
+  doesn't wrap or crowd the slider in the narrow panel, no new colors.
+- Preview and published output already follow the stored value — verify one publish
+  round-trip that a typed value renders identically in staticgen output.
+- `npm run check` + `npm test` pass.
+
+**Out of scope.** New spacing options or units, per-image spacing, changing slider
+ranges/defaults, applying the pattern to unrelated sliders (do the grid gaps only —
+note other candidates in the outcome line instead).
+
+---
+
+## 30. BUG: image-row "…" menu renders as a broken see-through overlay — `queued`
+
+**Goal.** The per-image "…" menu in the Pages panel (the portal popover spec 16 built:
+Copy to workbench / Use page setting / Copy to… / Move to… / Earlier / Later / Send to
+top / Send to bottom / Open details / Delete image) currently renders bugged: the
+popover has no opaque background, so its items paint directly over the image rows and
+section cards behind it, labels collide with row text ("Copy to workbench" over the
+Image 4 row, stray "Hanging"/"Copy"/"Move" fragments, "Delete image" floating over
+Section 2), and items are scattered rather than stacked in one coherent menu. Fix it so
+the menu is a single opaque, correctly-positioned popover again.
+Screenshot of the broken state:
+[docs/feedback/spec-30-broken-image-menu.png](docs/feedback/spec-30-broken-image-menu.png).
+
+**Why.** This is the only home of destructive and organizational actions per image
+(delete, move, copy); in this state it's unreadable and risks misclicks — a beta
+blocker for the panel work already merged.
+
+**Recon (verify first).** Reproduce first (any doc with image rows → click "…").
+This popover landed in spec 16 as a portal fixed at its opening position, and specs
+merged after it on `integration/specs-14r-19` (17's renderer work, 18's grid controls)
+may have collided with its styles. Check: is the popover's container/background CSS
+missing or overridden (portal mounting outside the scoped style boundary — see the
+known client:only island-CSS trap); did a z-index/stacking or transform change break
+the fixed positioning; or did a merge drop the popover stylesheet? `git log` the
+popover component for recent touches before assuming.
+
+**Files.** The spec-16 popover component in `src/editor/components/` (PageEditor or
+the extracted menu component) and its styles. Editor-only; no schema/renderer changes
+expected.
+
+**Requirements.**
+- The menu renders as one opaque panel per DESIGN.md (existing surface/ink tokens, no
+  new colors), items stacked in the spec-16 order, positioned at the trigger.
+- Spec 16 behaviors intact: exclusive (one open at a time), closes on outside click,
+  Esc, and scroll; actions still fire and the copy/move toast still shows.
+- Check both places the menu opens (image rows and any other "…" trigger that shares
+  the component) and at panel-bottom rows where the popover must flip/clamp on-screen.
+- Add whatever regression check is feasible (even a smoke test that the portal mounts
+  with its background class); `npm run check` + `npm test` pass.
+
+**Out of scope.** New menu items, redesigning the menu, the accordion-resize work
+(spec 26), drag-and-drop changes.
+
+---
+
+## 31. Expose the contact-sheet side-scrolling text as an editor feature — `queued`
+
+**Goal.** The contact-sheet template has a side-scrolling (marquee) text treatment that
+users can only get by starting from that template — the renderer already ships it
+(`src/portfolio/KineticText.tsx` / `KineticText.css`, referenced from
+`contact-sheet.content.json`). Surface it in the editor so any user can turn a text
+block or heading into side-scrolling text and edit its content, on any doc.
+
+**Why.** It's one of the most distinctive moves in the catalog, and today it's
+template-locked: apply contact-sheet or never have it. Template-only renderer features
+keep generating "how do I get that?" beta questions.
+
+**Recon (verify first).** Read `KineticText.tsx` and how `contact-sheet.content.json`
+invokes it — what schema shape drives it today (a block kind? a text-block flag? a
+display-type variant?). Then check the doc-schema and the text-block editor
+(`TextBlock.tsx`, PageEditor's text controls) for any existing partial exposure before
+adding one. The schema shape the template already uses is the contract — expose that,
+don't invent a parallel one.
+
+**Files.** `src/editor/components/PageEditor.tsx` (the control: a style/display option
+on text blocks or headings, following existing option-picker idioms),
+`src/editor/lib/doc-schema.ts` only if the template's shape isn't already representable
+(optional fields, defaults preserve old drafts — the standing convention).
+`src/portfolio/KineticText.*` only for bugs found along the way. Renderer/schema are
+hashed → `npm run runtime:generate` + commit the manifest if touched.
+
+**Requirements.**
+- A text block/heading can be switched to side-scrolling and back in the panel; the
+  editor canvas previews the actual motion (or a paused state if the canvas suppresses
+  motion — match how other motion previews behave, specs 13/24).
+- Editable content, and whatever knobs KineticText already supports (speed/direction/
+  repeat) exposed only if they're already in the template's schema shape — no new
+  capabilities this pass.
+- Respects the motion master switch and `prefers-reduced-motion` the same way the
+  contact-sheet template does today.
+- Contact-sheet renders byte-identical after the change (it's the regression case).
+- Publish round-trip: a doc using the new control renders the marquee in staticgen
+  output. `npm run check` + `npm test` pass.
+
+**Out of scope.** New marquee capabilities (vertical scroll, per-character effects),
+applying it to images, changes to the contact-sheet template content, a general
+"kinetic text" design system.
+
+---
+
+## 32. Contact-sheet fidelity pass against its reference site — `queued`
+
+**Goal.** Side-by-side the reference site
+<https://keo-fluid-demo.squarespace.com/> against our contact-sheet starter
+(`/portfolio-template/editor?template-studio=starter:contact-sheet` on the dev server —
+William runs it at `http://localhost:4406`, but any `npm run dev` port works) and close
+the gaps: animations, fonts, spacing, and sizing, until the starter reads as the same
+design. This is the spec-22 conservatory treatment applied to contact-sheet.
+
+**Why.** Contact-sheet is a signature-device starter; "roughly similar" isn't the bar
+the catalog set in spec 22. A reference this specific deserves a deliberate audit, not
+incidental fixes.
+
+**Recon (verify first).** Load both at the same viewport width and walk the full page
+scroll on each, listing every divergence before editing anything: entrance/scroll
+animations and their timing, the marquee behavior (speed, direction, seamlessness —
+coordinate with spec 31, which exposes KineticText as an editor control; don't fork its
+schema shape), typography (family, weight, size scale, letterspacing, case), spacing
+rhythm (section padding, grid gaps), and element sizing/proportions. Note which gaps
+are template *content/preset* fixes (edit `contact-sheet.content.json` + theme preset
+via template studio — "Save to template" writes the JSON back) vs *renderer* gaps
+(missing capability in `src/portfolio/`). Prefer content/preset fixes; renderer changes
+only for capabilities the design truly needs, per the spec-14 preset-trait discipline.
+
+**Files.** `src/editor/lib/starters/contact-sheet.content.json`, its theme preset in
+`theme-presets/`, `src/portfolio/` only where a capability gap is proven (hashed →
+`npm run runtime:generate` + manifest commit). Fonts: only faces already in the font
+ledger (spec 14) — if the reference's face isn't available, pick the closest ledger
+face and note it; spec 23 (starter webfonts) owns adding new ones.
+
+**Requirements.**
+- Deliverable includes the divergence list with each item marked fixed / deliberately
+  skipped (with reason) — the spec-22 audit format.
+- Template-studio round-trip: changes saved via "Save to template" pass
+  `validateStarterCatalog` and survive `docToTemplateContent` serialization (the
+  template-studio tests stay green).
+- Rights discipline: any new imagery follows the sample-artwork rights catalog; no
+  assets copied from the reference site — layout/motion/typography are what's being
+  matched, never its content or photos.
+- Hidden-pane trap (spec 22 memory): verify motion with the pane visible — a hidden
+  pane fakes "no motion".
+- Other starters unchanged: eyeball two non-contact-sheet starters before/after if the
+  renderer was touched. `npm run check` + `npm test` pass.
+
+**Out of scope.** Pixel-cloning the reference's images or copy, new starters, spec-23
+webfont infrastructure, editor UI changes (spec 31 owns the KineticText control).
