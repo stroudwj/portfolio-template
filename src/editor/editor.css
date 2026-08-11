@@ -3244,6 +3244,18 @@ select.select-input {
 	padding: 0 12px;
 }
 
+/* The empty page-heading band exists only while section-resize handles are on,
+   so it unmounts for fullscreen and remounts on exit — after the motion
+   runtime's scan, where nothing observes it and the reveal CSS would keep it
+   invisible for good (the stuck-hidden class spec 24 fought). It is an
+   invisible spacer with nothing to choreograph; in the editor preview it is
+   never motion-hidden. This sheet is cloned into the preview iframe but never
+   ships with a published site, so the runtime and renderer stay untouched. */
+.motion-runtime-ready .portfolio-page-heading.is-empty-page-heading > .motion-section-inner {
+	opacity: 1 !important;
+	transform: none !important;
+}
+
 /* Fullscreen: the preview takes over the whole browser window (published look). */
 .preview.preview-fullscreen {
 	position: fixed;

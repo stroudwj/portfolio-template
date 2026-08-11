@@ -147,6 +147,7 @@ function DeviceFrame({
 	onRedo,
 	openTextLinksInNewTab = false,
 	typeMotionPreview,
+	scrollResetKey,
 }: {
 	children: React.ReactElement;
 	title: string;
@@ -156,6 +157,10 @@ function DeviceFrame({
 	onRedo?: () => void;
 	openTextLinksInNewTab?: boolean;
 	typeMotionPreview?: TypeMotionPreviewRequest;
+	/** Bumped when the frame should return to the top of the page — a first
+	 * visit starts there, and the frame's scroll otherwise survives re-renders
+	 * because the iframe itself never remounts. */
+	scrollResetKey?: number;
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const rootRef = useRef<Root | null>(null);
@@ -267,6 +272,11 @@ function DeviceFrame({
 	});
 
 	useEffect(() => {
+		if (scrollResetKey === undefined) return;
+		iframeRef.current?.contentWindow?.scrollTo(0, 0);
+	}, [scrollResetKey]);
+
+	useEffect(() => {
 		if (!ready || !typeMotionPreview) return;
 		const frameWindow = iframeRef.current?.contentWindow;
 		const doc = iframeRef.current?.contentDocument;
@@ -324,6 +334,7 @@ function DesktopDeviceFrame({
 	openTextLinksInNewTab,
 	typeMotionPreview,
 	remeasureKey,
+	scrollResetKey,
 }: {
 	children: React.ReactElement;
 	onEscape?: () => void;
@@ -336,6 +347,7 @@ function DesktopDeviceFrame({
 	 * correct even when the ResizeObserver notification for the jump is lost —
 	 * the expanded preview must render the same regardless of prior panel state. */
 	remeasureKey?: string;
+	scrollResetKey?: number;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 1100, height: 700 });
@@ -382,6 +394,7 @@ function DesktopDeviceFrame({
 					onRedo={onRedo}
 					openTextLinksInNewTab={openTextLinksInNewTab}
 					typeMotionPreview={typeMotionPreview}
+					scrollResetKey={scrollResetKey}
 				>
 					{children}
 				</DeviceFrame>
@@ -432,6 +445,19 @@ export default function PreviewPanel({
 		typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches ? 'phone' : 'desktop',
 	);
 	const [fullscreen, setFullscreen] = useState(false);
+	/** Counts fullscreen entries. Keying the preview on it mounts the site fresh
+	 * each time, which IS the motion runtime's replay path: a mount runs
+	 * reset(true) — the same code page navigation (PortfolioPage's key={page})
+	 * and spec-24 scene changes go through — so entrances, reveals, and
+	 * sequences play from their initial hidden state like a visitor's first
+	 * load. Exiting doesn't bump it: the canvas returns with the DOM intact,
+	 * no remount, no re-animation. */
+	const [visitEpoch, setVisitEpoch] = useState(0);
+	const enterFullscreen = () => {
+		// Batched into one commit so the fresh mount happens at fullscreen size.
+		setFullscreen(true);
+		setVisitEpoch((n) => n + 1);
+	};
 	const [typeMotionPreview, setTypeMotionPreview] =
 		useState<TypeMotionPreviewRequest>();
 	/** The text block currently being edited in place on the page, if any. */
@@ -595,6 +621,7 @@ export default function PreviewPanel({
 
 	const portfolio = (
 		<Portfolio
+			key={visitEpoch}
 			page={currentKey}
 			content={data.content}
 			galleries={data.galleries}
@@ -816,7 +843,7 @@ export default function PreviewPanel({
 				<button
 					type="button"
 					className={`preview-tool-button preview-expand${fullscreen ? ' preview-expand-labeled' : ''}`}
-					onClick={() => setFullscreen((f) => !f)}
+					onClick={() => (fullscreen ? setFullscreen(false) : enterFullscreen())}
 					aria-label={fullscreen ? 'Back to the editor' : 'Preview your published site fullscreen'}
 					title={fullscreen ? 'Back to the editor (Esc)' : 'Preview your published site fullscreen'}
 				>
@@ -1067,6 +1094,7 @@ export default function PreviewPanel({
 							onRedo={editor.redo}
 							openTextLinksInNewTab={!fullscreen}
 							typeMotionPreview={typeMotionPreview}
+							scrollResetKey={visitEpoch}
 						>
 							{portfolio}
 						</DeviceFrame>
@@ -1081,6 +1109,7 @@ export default function PreviewPanel({
 						openTextLinksInNewTab={!fullscreen}
 						typeMotionPreview={typeMotionPreview}
 						remeasureKey={`${fullscreen ? 'full' : 'framed'}:${sidebarHidden ? 'solo' : 'panel'}`}
+						scrollResetKey={visitEpoch}
 					>
 						<>
 							{portfolio}
