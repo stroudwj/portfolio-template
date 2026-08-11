@@ -8745,54 +8745,14 @@ a.live-url:hover {
 	height: 14px;
 }
 
-/* Dock: Layers + Add block, pinned to the frame's top-left like a shelf. */
-.pv-dock {
+/* Layers: the page's structure, one quiet row per block. Opened from the
+   preview toolbar (spec 33 — nothing sits over the site's own nav at rest). */
+.pv-layers {
 	position: fixed;
 	top: 12px;
 	left: 12px;
-	display: flex;
-	gap: 6px;
-}
-.pv-dock-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 7px;
-	height: 34px;
-	min-width: 34px;
-	padding: 0 9px;
-	border: 1px solid var(--ink);
-	border-radius: 4px;
-	background: var(--ink);
-	color: var(--paper);
-	font-size: 12.5px;
-	font-weight: 500;
-	white-space: nowrap;
-	cursor: pointer;
-	box-shadow: 0 8px 24px rgba(31, 27, 23, 0.16);
-}
-.pv-dock-button:hover,
-.pv-dock-button.active {
-	background: var(--klein);
-	border-color: var(--klein);
-	color: #faf8f5;
-}
-.pv-dock-button:focus-visible {
-	outline: none;
-	box-shadow: var(--focus-ring);
-}
-.pv-dock-button .panel-icon {
-	width: 17px;
-	height: 17px;
-}
-
-/* Layers: the page's structure, one quiet row per block. */
-.pv-layers {
-	position: fixed;
-	top: 56px;
-	left: 12px;
 	width: 248px;
-	max-height: calc(100vh - 72px);
+	max-height: calc(100vh - 24px);
 	overflow: auto;
 	padding: 12px;
 	box-sizing: border-box;
@@ -8987,7 +8947,7 @@ a.live-url:hover {
 }
 .pv-picker-docked {
 	position: fixed;
-	top: 56px;
+	top: 12px;
 	left: 12px;
 }
 .pv-picker-target {

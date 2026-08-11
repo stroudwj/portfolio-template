@@ -1,5 +1,12 @@
 // Tiny form primitives shared by every editor section.
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import {
+	useEffect,
+	useId,
+	useLayoutEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
 
 export function Field({
@@ -360,6 +367,60 @@ export function onSelectPreviewBlock(
 		fn((event as CustomEvent<PreviewBlockSelection>).detail);
 	window.addEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
 	return () => window.removeEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
+}
+
+const PREVIEW_STRUCTURE_EVENT = 'editor-preview-structure-tool';
+
+/** The page-structure tools — Layers and Add block. Their cards belong beside
+ *  the work, inside the preview iframe, but their buttons belong in the preview
+ *  toolbar so nothing floats over the site's own navigation. The button lives in
+ *  the editor document and the state lives in the iframe's React root, so the
+ *  click travels as an event and the open state comes back through the store
+ *  below. */
+export type PreviewStructureTool = 'layers' | 'add-block';
+
+export function togglePreviewStructureTool(tool: PreviewStructureTool) {
+	window.dispatchEvent(
+		new CustomEvent<PreviewStructureTool>(PREVIEW_STRUCTURE_EVENT, { detail: tool }),
+	);
+}
+
+export function onTogglePreviewStructureTool(
+	fn: (tool: PreviewStructureTool) => void,
+): () => void {
+	const handler = (event: Event) =>
+		fn((event as CustomEvent<PreviewStructureTool>).detail);
+	window.addEventListener(PREVIEW_STRUCTURE_EVENT, handler);
+	return () => window.removeEventListener(PREVIEW_STRUCTURE_EVENT, handler);
+}
+
+export interface PreviewStructureState {
+	layers: boolean;
+	addBlock: boolean;
+}
+
+const NO_STRUCTURE_TOOL: PreviewStructureState = { layers: false, addBlock: false };
+let structureState: PreviewStructureState = NO_STRUCTURE_TOOL;
+const structureListeners = new Set<() => void>();
+
+/** The edit layer reports which structure card is open so the toolbar buttons
+ *  can show it (and so an Escape inside the preview un-presses them). */
+export function setPreviewStructureState(next: PreviewStructureState) {
+	if (next.layers === structureState.layers && next.addBlock === structureState.addBlock)
+		return;
+	structureState = next;
+	for (const fn of structureListeners) fn();
+}
+
+export function usePreviewStructureState(): PreviewStructureState {
+	return useSyncExternalStore(
+		(fn) => {
+			structureListeners.add(fn);
+			return () => structureListeners.delete(fn);
+		},
+		() => structureState,
+		() => NO_STRUCTURE_TOOL,
+	);
 }
 
 const REVEAL_GALLERY_IMAGE_EVENT = 'editor-reveal-gallery-image';

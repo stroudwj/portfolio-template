@@ -25,6 +25,8 @@ import {
 	selectPreviewBlock,
 	onShowPreviewPage,
 	showEditorTab,
+	togglePreviewStructureTool,
+	usePreviewStructureState,
 	type TypeMotionPreviewRequest,
 } from './ui/controls';
 
@@ -518,6 +520,9 @@ export default function PreviewPanel({
 	}, [offerTemplatePickerOnLaunch]);
 	useEffect(() => onOpenTemplatePicker(() => setTemplatePickerOpen(true)), []);
 	const gridPrefs = useGridPrefs();
+	// Which page-structure card the edit layer has open, so the toolbar buttons
+	// that opened it read as pressed.
+	const structureTools = usePreviewStructureState();
 	// Dry run of the build against the live document: whether the button does
 	// anything is DERIVED from what the folders and pages hold right now — no
 	// stored flag, so a build that already happened simply has nothing to do.
@@ -798,6 +803,33 @@ export default function PreviewPanel({
 						<PanelIcon type="phone" />
 					</button>
 				</div>
+				{/* Page structure: the same Layers and Add block tools that used to
+				    float over the page's top-left corner — and over the site's own
+				    navigation with it. The cards still open beside the work. */}
+				{editable && (
+					<>
+						<button
+							type="button"
+							className={`preview-tool-button${structureTools.layers ? ' active' : ''}`}
+							aria-pressed={structureTools.layers}
+							aria-label="Show the layers list for this page"
+							title="Layers — every block on this page"
+							onClick={() => togglePreviewStructureTool('layers')}
+						>
+							<PanelIcon type="layers" />
+						</button>
+						<button
+							type="button"
+							className={`preview-tool-button${structureTools.addBlock ? ' active' : ''}`}
+							aria-pressed={structureTools.addBlock}
+							aria-label="Add a block to this page"
+							title="Add a block to this page"
+							onClick={() => togglePreviewStructureTool('add-block')}
+						>
+							<PanelIcon type="plus" />
+						</button>
+					</>
+				)}
 				{editable && hasFreeformCanvas && <GuideTools />}
 				{!fullscreen && (
 					<button

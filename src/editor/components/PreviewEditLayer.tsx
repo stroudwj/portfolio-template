@@ -36,8 +36,10 @@ import { PanelIcon } from './ui/panel-icons';
 import {
 	expandSection,
 	onSelectPreviewBlock,
+	onTogglePreviewStructureTool,
 	revealEditorSection,
 	selectPreviewBlock,
+	setPreviewStructureState,
 	showEditorTab,
 } from './ui/controls';
 import { RichTextToolbar } from './RichTextEditor';
@@ -51,9 +53,10 @@ interface DocRect {
 }
 
 interface PickerState {
-	/** Section receiving the new block; the dock picker lets you switch it. */
+	/** Section receiving the new block; the toolbar picker lets you switch it. */
 	sectionId: string;
-	/** Doc-coordinate anchor for section pickers; null = fixed under the dock. */
+	/** Doc-coordinate anchor for section pickers; null = the toolbar's own card,
+	 *  pinned to the frame's top-left. */
 	anchor: DocRect | null;
 	/** The "Image" choice asks where the picture comes from before adding. */
 	imageSource?: boolean;
@@ -361,6 +364,21 @@ export default function PreviewEditLayer({
 		return () => frameDoc.removeEventListener('keydown', onKey);
 	}, [frameDoc, picker, layersOpen, inlineTextId]);
 
+	// The buttons that open Layers and the block picker sit in the preview
+	// toolbar, so pressing one leaves focus in the editor document and the frame
+	// never hears Escape. Close from out there too — but only what those buttons
+	// opened, so every other Escape in the editor behaves as it always has.
+	useEffect(() => {
+		if (!picker && !layersOpen) return;
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape') return;
+			if (picker) setPicker(null);
+			else setLayersOpen(false);
+		};
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, [picker, layersOpen]);
+
 	// Clicking a block in the preview (DeviceFrame broadcasts it) selects here too.
 	useEffect(
 		() =>
@@ -665,6 +683,41 @@ export default function PreviewEditLayer({
 	const inlineEditorElement = () =>
 		(frameDoc?.querySelector('[data-inline-text-editor]') as HTMLElement | null) ?? null;
 
+	/** The two page-structure tools. Their buttons sit in the preview toolbar
+	 * (nothing floats over the site's own nav), so the toggles run from there
+	 * through the shared event — and from Escape, exactly as before. */
+	const toggleLayers = () => {
+		setLayersOpen((open) => !open);
+		setPicker(null);
+	};
+	const toggleAddBlock = () => {
+		if (picker) setPicker(null);
+		else
+			openPicker(
+				(selectedSection ?? sections[sections.length - 1])?.id ?? sections[0]?.id ?? '',
+				null,
+			);
+	};
+	const toolActionsRef = useRef({ toggleLayers, toggleAddBlock });
+	toolActionsRef.current = { toggleLayers, toggleAddBlock };
+
+	useEffect(
+		() =>
+			onTogglePreviewStructureTool((tool) =>
+				tool === 'layers'
+					? toolActionsRef.current.toggleLayers()
+					: toolActionsRef.current.toggleAddBlock(),
+			),
+		[],
+	);
+
+	// Report which card is open so the toolbar buttons show their pressed state,
+	// and leave nothing pressed behind when the layer unmounts.
+	useEffect(() => {
+		setPreviewStructureState({ layers: layersOpen, addBlock: !!picker });
+	}, [layersOpen, picker]);
+	useEffect(() => () => setPreviewStructureState({ layers: false, addBlock: false }), []);
+
 	/** Jump the editing column to a Site card (header/footer) and reveal it. */
 	const revealSiteSection = (sectionKey: string) => {
 		expandSection(sectionKey);
@@ -901,9 +954,10 @@ export default function PreviewEditLayer({
 						className="pv-ui pv-section-card"
 						style={{
 							// Tall sections scroll their top edge away; the card stays in view,
-							// pinned below the dock, for as long as the section is hovered.
+							// held just inside the frame's top edge, for as long as the
+							// section is hovered.
 							top: Math.min(
-								Math.max(hoverSectionRect.top + 12, viewTop + 56),
+								Math.max(hoverSectionRect.top + 12, viewTop + 12),
 								hoverSectionRect.top + hoverSectionRect.height - 76,
 							),
 							left: Math.max(12, hoverSectionRect.left + hoverSectionRect.width - 172),
@@ -1174,40 +1228,6 @@ export default function PreviewEditLayer({
 					/>
 				</div>
 			)}
-
-			{/* The dock: Layers + Add block, always in reach. */}
-			<div className="pv-dock pv-ui" role="group" aria-label="Page structure tools">
-				<button
-					type="button"
-					className={`pv-dock-button${layersOpen ? ' active' : ''}`}
-					aria-pressed={layersOpen}
-					aria-label="Show the layers list for this page"
-					title="Layers — every block on this page"
-					onClick={() => {
-						setLayersOpen((open) => !open);
-						setPicker(null);
-					}}
-				>
-					<PanelIcon type="layers" />
-				</button>
-				<button
-					type="button"
-					className="pv-dock-button pv-dock-add"
-					aria-label="Add a block to this page"
-					title="Add a block to this page"
-					onClick={() =>
-						picker
-							? setPicker(null)
-							: openPicker(
-									(selectedSection ?? sections[sections.length - 1])?.id ?? sections[0]?.id ?? '',
-									null,
-								)
-					}
-				>
-					<PanelIcon type="plus" />
-					Add block
-				</button>
-			</div>
 
 			{/* Layers: the page's structure as a floating card. Image groups behave
 			    like Photoshop groups — a chevron opens the images inside; hovering
