@@ -1,13 +1,13 @@
 {
-  "backgroundColor": "#fffdf6",
-  "textColor": "#171512",
+  "backgroundColor": "#ffffff",
+  "textColor": "#000000",
   "mutedTextColor": "#8a7a66",
   "accentColor": "#ab8155",
-  "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+  "fontFamily": "Poppins, Avenir, \"Avenir Next\", Montserrat, sans-serif",
   "headingFontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
   "pageHeadingScale": 170,
   "pageHeadingPosition": "left",
-  "navStyle": "topbar",
+  "navStyle": "centered",
   "fullscreenMobileMenu": true,
   "automaticTextContrast": true,
   "stabilizeNavigation": true

@@ -43,7 +43,7 @@ NGA assistive text).
 | Mosley | `conservatory` | `conservatory-green` | George Bellows (10) | Gilda Display → Didot/Bodoni stack; Clarkson → Helvetica Neue |
 | Reflect | `masthead` | `poster-white` | Berthe Morisot (14) | Clarkson → Helvetica Neue (logo weight 800 carries the masthead) |
 | Radian | `atelier` | `studio-white` | Eugène Atget (18) | Halyard Display → Avenir stack; Pragmatica → Helvetica Neue |
-| Keo | `contact-sheet` | `almond-paper` | Lewis Hine (9) | Poppins → Futura/Century Gothic stack; Halyard → Avenir |
+| Keo | `contact-sheet` | `almond-paper` | Lewis Hine (9) + Atget (3, spec 32) | Poppins → Futura/Century Gothic stack; body Poppins-led (spec 32; supersedes Halyard → Avenir) |
 | Gilden | `runway` | `backstage-black` | Amedeo Modigliani (10) | Syne → Futura/Century Gothic stack; Source Sans Pro → Helvetica Neue |
 
 Batch-1 device notes (as revised): the giant-wordmark devices (Mosley/Reflect/
@@ -239,3 +239,51 @@ Curation status: `-` unreviewed · `keep` · `cut` (with reason)
 | keep | Tepito | https://tepito-fluid-demo.squarespace.com/ | F-adjacent pick: editorial serif intro with italic emphasis + region cards + location section, sage palette |
 | cut | Utica | https://utica-fluid-demo.squarespace.com/ | B dup: bold sans statement + project cards ≈ Radian |
 | keep | Zion | https://zion-fluid-demo.squarespace.com/ | G pick: fullscreen photo cover with category links overlaid — simplest cover-page starter |
+
+## Spec 32 — Contact-sheet ↔ Keo fidelity audit (2026-08-10, branch worktree-spec-32-contact-sheet)
+
+Method: keo-fluid-demo.squarespace.com walked at 1280×800 headless-Chromium and
+DOM-measured (computed type, grid geometry, marquee mechanics via `textPath`
+`startOffset` sampling, `document.getAnimations()`, block config attributes)
+beside `contact-sheet` in template studio at the same 1280px layout width.
+Keo's marquee block config: `data-animation-speed="0.5"`,
+`data-animation-direction="right"`, paused-on-hover. Keo's live computed body
+face is **Poppins** everywhere (the site.css "halyard-display" faces load but
+style nothing on the home page), so the batch-1 "Halyard → Avenir" body mapping
+is superseded: body stack now leads with the bundled Poppins.
+
+Class: **fixed** · **skipped** (with reason). Same divergence bar as spec 22.
+
+| # | Area | Keo (measured) | Outcome |
+|---|---|---|---|
+| 1 | Marquee position | Full-bleed ticker band between grid and footer, 1px hairlines above/below (~273px apart) | **fixed** — page `headingKinetic` removed; ticker is now a canvas text block (35pt run, `kinetic: marquee, speed 50`) inside the signature canvas with `sectionBleed`, between two full-width `shape: line` blocks (first in-catalog use of shape primitives) |
+| 2 | Marquee direction | Drifts **right** at ~30px/s | **fixed** (renderer) — `kinetic-marquee` keyframes flipped to `-50% → 0`; schema has no direction knob and Keo is the design source of the marquee capability. Loop stays seamless (identical copies) |
+| 3 | Marquee speed | ~30px/s | **fixed to the floor** — `speed: 50` (slowest reachable) ≈ 53px/s at 1280. Residual: schema clamps at 50 |
+| 4 | Marquee copies | One continuous track | **fixed** (renderer bug found) — rich-text marquees rendered the aria-hidden duplicate as an unstyled string, so sized runs produced two different-size copies (still-room's 20pt ticker showed it live). Both copies now render the formatted runs; links stripped from the duplicate |
+| 5 | Statement | 51.3px Poppins 400, −3% tracking, lh 1.18, 88% width | **fixed size** — run 36→38pt = 50.7px. Skipped: −3% tracking and lh (no letter-spacing/line-height in richText schema — same gap spec 22 flagged for Mosley); weight 400 (bundled Poppins is the single-file 500 face, spec 23 owns faces) |
+| 6 | Grid | 4 cols, 235×176 uniform 4:3 landscape crops, 96px gutters, 16 imgs | **fixed** — `columns: 4`, `gapX/gapY: 6` (96px), `cropAspect: "4:3"` on every sheet item → 228×171 cells. 12 imgs not 16: catalog has only 9 Hine; 3 unused Atget street scenes added (Cour rue de Valence, Ancien Hôtel des Parlementaires, Hôtel du Cardinal Dubois) — coherent vintage documentary row |
+| 7 | Entrance motion | Per-image fade+scale 0.92→1, 800ms, on viewport entry, no hover effects | **partial** — sequence motion kept (fade+rise is the closest renderer vocabulary; no scale variant), intensity 40→25 for a subtler rise; `motion.hover: false` (Keo has none) |
+| 8 | Palette | Pure white bg, pure black text (site vars: white/black; darkAccent `#ab8055` = our accent already) | **fixed** — theme + almond-paper preset → `#ffffff`/`#000000`; muted + accent unchanged |
+| 9 | Body face | Poppins 400 (17.5px body) | **fixed family** — body stack now `Poppins, Avenir, …` (bundled face; renders at its 500 weight — closest ledger face) |
+| 10 | Nav | Logo left ~24px; links centered, typed-uppercase 17.5px/400; socials right; header absolute (scrolls away) | **fixed shape** — `navStyle: centered` (centered + uppercase), `logoScale 130→75`, `stabilizeNavigation/stabilizeLogo: false`. Skipped: nav link size/weight (renderer CSS 11.5px/700, not data-reachable); social icons right (starter ships no social URLs) |
+| 11 | Giant name | "Keo" 286px, lh 1.0, single line, x=2%vw | **partial** — single line at x=2% restored (box 96 wide, links moved above the name instead of beside it — a 9-char placeholder collides where 3-char "Keo" doesn't). Size stays 192px: richText caps at 144pt |
+| 12 | Footer columns | Two underlined uppercase link columns right of name + "MADE WITH …" | **partial** — links restyled to a stacked underlined column (13pt runs with real `/field-notes` `/about` links); colophon photo sits where Keo's second column would (no real social/email URLs to fill it); centred "Made with hangwork.art" credit stays (product convention) |
+| 13 | Side margins | 26px at 1280 | skipped — page padding is renderer CSS (40px), not data-reachable |
+| 14 | /work page | Portfolio index with hover-follow images | skipped — capability gap, out of spec scope (field-notes keeps its 2-col grid) |
+| 15 | /about page | Statement + contact + global footer | skipped — our About block is the product's About by design |
+
+Publish-path check (real in-browser staticgen, spec-18 recipe): sample stripping
+removes every grid image, and dropping the empty images host exposed a second
+renderer gap — the standalone-canvas fallback rendered EITHER texts OR
+shape/divider widgets depending on which block type anchored the section first,
+so the published-unmodified starter lost its ticker, name, and links (shapes
+anchored). Fixed by unifying all four standalone anchor branches in
+PortfolioPage to render texts + embeds + widgets in one canvas. Verified: the
+published index.html now carries 1 marquee track / 2 copies both at 35pt with
+the aria-hidden duplicate, both hairlines, the full-bleed section, rightward
+kinetic keyframes, and the Poppins face + OFL license.
+
+Regression: still-room (the only other marquee user — its ticker now renders
+both copies at run size and drifts right) and masthead eyeballed in template
+studio after the renderer edits; no layout change. Phone: name hidden (existing
+arrangement), ticker animates, single-col grid, shapes render as thin rules.

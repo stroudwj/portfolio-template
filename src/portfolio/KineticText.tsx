@@ -22,19 +22,21 @@ export function kineticClass(config: KineticTextConfig | undefined): string {
 }
 
 /** Two copies move as one track, so the marquee loops without leaving a blank
- * viewport after the first copy exits. Only the first copy remains semantic. */
+ * viewport after the first copy exits. Only the first copy remains semantic;
+ * the duplicate must render the same formatting (minus links) or the loop
+ * shows two different marquees. */
 export function KineticMarquee({
 	children,
-	duplicateText,
+	duplicate,
 }: {
 	children: ReactNode;
-	duplicateText: string;
+	duplicate: ReactNode;
 }) {
 	return (
 		<span className="kinetic-marquee-track">
 			<span className="kinetic-marquee-copy">{children}</span>
 			<span className="kinetic-marquee-copy" aria-hidden="true">
-				{duplicateText}
+				{duplicate}
 			</span>
 		</span>
 	);

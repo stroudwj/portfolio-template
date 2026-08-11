@@ -134,22 +134,25 @@ export function TextContent({
 	if (richText) {
 		const classes = ['text-block-content', 'rich-text-content', motionClass, backgroundClass, className].filter(Boolean).join(' ');
 		if (kinetic?.effect === 'marquee') {
-			const plainText = richTextPlainText(richText);
-			const formattedText = richText.map((paragraph, paragraphIndex) => (
-				<Fragment key={paragraphIndex}>
-					{paragraphIndex > 0 && ' '}
-					{paragraph.runs.map((run, runIndex) => (
-						<RichRun key={runIndex} run={run} />
-					))}
-				</Fragment>
-			));
+			// Both copies must carry the run formatting or a sized run renders as two
+			// different marquees. Links are stripped from the aria-hidden duplicate so
+			// no focus stop is duplicated.
+			const marqueeRuns = (stripLinks: boolean) =>
+				richText.map((paragraph, paragraphIndex) => (
+					<Fragment key={paragraphIndex}>
+						{paragraphIndex > 0 && ' '}
+						{paragraph.runs.map((run, runIndex) => (
+							<RichRun key={runIndex} run={stripLinks ? { ...run, link: undefined } : run} />
+						))}
+					</Fragment>
+				));
 			return (
 				<div
 					className={classes}
 					style={{ ...(fontFamily ? { fontFamily } : {}), ...motionStyle }}
 					data-kinetic-target={kineticTarget}
 				>
-					<KineticMarquee duplicateText={plainText}>{formattedText}</KineticMarquee>
+					<KineticMarquee duplicate={marqueeRuns(true)}>{marqueeRuns(false)}</KineticMarquee>
 				</div>
 			);
 		}
@@ -180,7 +183,7 @@ export function TextContent({
 	);
 	const content =
 		kinetic?.effect === 'marquee' ? (
-			<KineticMarquee duplicateText={text}>{linkedContent}</KineticMarquee>
+			<KineticMarquee duplicate={text}>{linkedContent}</KineticMarquee>
 		) : (
 			linkedContent
 		);

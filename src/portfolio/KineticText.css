@@ -67,9 +67,15 @@
 	}
 }
 
+/* The track drifts rightward — the direction of the Keo reference ticker the
+   marquee effect was built from. Starting at -50% shows the identical second
+   copy, so the loop point is invisible in either direction. */
 @keyframes kinetic-marquee {
-	to {
+	from {
 		transform: translateX(-50%);
+	}
+	to {
+		transform: translateX(0);
 	}
 }
 

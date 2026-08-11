@@ -22,7 +22,7 @@ describe('motion and reusable project tools', () => {
 	it('renders a continuous marquee track with a hidden duplicate', () => {
 		const html = renderToStaticMarkup(
 			createElement(KineticMarquee, {
-				duplicateText: 'Loop forever',
+				duplicate: 'Loop forever',
 				children: 'Loop forever',
 			}),
 		);

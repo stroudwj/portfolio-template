@@ -8,29 +8,34 @@
     "footer": "Made with hangwork.art"
   },
   "theme": {
-    "backgroundColor": "#fffdf6",
-    "textColor": "#191919",
+    "backgroundColor": "#ffffff",
+    "textColor": "#000000",
     "mutedTextColor": "#77705f",
     "accentColor": "#ab8055",
-    "fontFamily": "Avenir, \"Avenir Next\", Montserrat, sans-serif",
+    "fontFamily": "Poppins, Avenir, \"Avenir Next\", Montserrat, sans-serif",
     "headingFontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
-    "logoScale": 130,
+    "logoScale": 75,
     "pageHeadingScale": 140,
     "pageHeadingPosition": "left",
     "logoPosition": "left",
-    "navStyle": "topbar",
+    "navStyle": "centered",
     "fullscreenMobileMenu": true,
     "automaticTextContrast": true,
-    "stabilizeNavigation": true,
+    "stabilizeNavigation": false,
     "motion": {
       "intensity": "subtle",
       "reveal": true,
-      "hover": true,
+      "hover": false,
       "stagger": true
     },
     "customFonts": [
-      { "name": "Poppins", "file": "fonts/poppins-500-latin.woff2", "weight": "500" }
-    ]
+      {
+        "name": "Poppins",
+        "file": "fonts/poppins-500-latin.woff2",
+        "weight": "500"
+      }
+    ],
+    "stabilizeLogo": false
   },
   "nav": [
     {
@@ -63,7 +68,7 @@
       "title": "{name} — Contact sheet",
       "label": "Contact sheet",
       "description": "The working wall — every frame worth keeping.",
-      "heading": "Currently photographing the working city",
+      "heading": "",
       "blocks": [
         {
           "id": "statement",
@@ -74,7 +79,7 @@
               "runs": [
                 {
                   "text": "What catches your eye when the street is not loud, fast, or crowded?",
-                  "fontSize": 36
+                  "fontSize": 38
                 }
               ]
             }
@@ -93,7 +98,9 @@
             "alt": "Photograph",
             "order": "asc",
             "layout": "grid",
-            "columns": 3
+            "columns": 4,
+            "gapX": 6,
+            "gapY": 6
           },
           "name": "Contact sheet"
         },
@@ -118,6 +125,59 @@
           "name": "Signature"
         },
         {
+          "id": "signature-rule-top",
+          "type": "shape",
+          "shape": "line",
+          "strokeWidth": 1,
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "w": 100,
+            "ar": 100,
+            "z": 5
+          }
+        },
+        {
+          "id": "signature-ticker",
+          "type": "text",
+          "text": "Currently photographing the working city",
+          "richText": [
+            {
+              "runs": [
+                {
+                  "text": "Currently photographing the working city",
+                  "fontSize": 35
+                }
+              ]
+            }
+          ],
+          "fontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
+          "kinetic": {
+            "effect": "marquee",
+            "speed": 50
+          },
+          "layout": {
+            "x": 0,
+            "y": 13,
+            "w": 100,
+            "h": 4,
+            "z": 10
+          }
+        },
+        {
+          "id": "signature-rule-bottom",
+          "type": "shape",
+          "shape": "line",
+          "strokeWidth": 1,
+          "layout": {
+            "x": 0,
+            "y": 25,
+            "w": 100,
+            "ar": 100,
+            "z": 5
+          }
+        },
+        {
           "id": "signature-name",
           "type": "text",
           "text": "Your Name",
@@ -133,32 +193,44 @@
           ],
           "fontFamily": "Poppins, Futura, \"Century Gothic\", \"Trebuchet MS\", sans-serif",
           "layout": {
-            "x": 0,
-            "y": 2,
-            "w": 70,
-            "h": 32,
+            "x": 2,
+            "y": 40,
+            "w": 96,
+            "h": 15,
             "z": 10
           }
         },
         {
           "id": "signature-links",
           "type": "text",
-          "text": "Field notes ↗ — About ↗",
+          "text": "Field notes\nAbout",
           "richText": [
             {
               "runs": [
                 {
-                  "text": "Field notes ↗ — About ↗",
-                  "fontSize": 16
+                  "text": "Field notes",
+                  "link": "/field-notes",
+                  "fontSize": 13,
+                  "underline": true
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "About",
+                  "link": "/about",
+                  "fontSize": 13,
+                  "underline": true
                 }
               ]
             }
           ],
           "layout": {
-            "x": 70,
-            "y": 6,
-            "w": 28,
-            "h": 5,
+            "x": 66,
+            "y": 27,
+            "w": 14,
+            "h": 6,
             "z": 10
           }
         }
@@ -177,6 +249,9 @@
           "name": "Signature",
           "blockIds": [
             "signature-host",
+            "signature-rule-top",
+            "signature-ticker",
+            "signature-rule-bottom",
             "signature-name",
             "signature-links"
           ]
@@ -185,11 +260,11 @@
       "sectionMotion": {
         "section:main": {
           "effect": "sequence",
-          "intensity": 40
+          "intensity": 25
         }
       },
-      "headingKinetic": {
-        "effect": "marquee"
+      "sectionBleed": {
+        "section:signature": true
       }
     },
     "field-notes": {
@@ -258,7 +333,8 @@
           "title": "Hartford Newsboys",
           "alt": "Hartford Newsboys: an open-access photograph from the National Gallery of Art.",
           "description": "Lewis Hine. Hartford Newsboys, 1909. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.115839.html"
+          "link": "https://www.nga.gov/collection/art-object-page.115839.html",
+          "cropAspect": "4:3"
         },
         "02-addie-card-12-years-old-spinner-in-cotton-mi.jpg": {
           "id": "sample-photography-nga-165230-v1",
@@ -266,7 +342,8 @@
           "title": "Addie Card, 12 years old. Spinner in cotton mill, North Pownal, Vermont",
           "alt": "This sepia-toned photograph depicts a young girl standing next to a piece of machinery in an industrial setting.",
           "description": "Lewis Hine. Addie Card, 12 years old. Spinner in cotton mill, North Pownal, Vermont, 1910. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.165230.html"
+          "link": "https://www.nga.gov/collection/art-object-page.165230.html",
+          "cropAspect": "4:3"
         },
         "03-at-the-close-of-the-day-pennsylvania.jpg": {
           "id": "sample-photography-nga-212255-v1",
@@ -274,7 +351,8 @@
           "title": "At the Close of the Day, Pennsylvania",
           "alt": "The image shows a group of miners outside the entrance of a mine.",
           "description": "Lewis Hine. At the Close of the Day, Pennsylvania, January 7, 1911. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.212255.html"
+          "link": "https://www.nga.gov/collection/art-object-page.212255.html",
+          "cropAspect": "4:3"
         },
         "04-8-30-p-m-group-of-newsboys-selling-at-the-de.jpg": {
           "id": "sample-photography-nga-213988-v1",
@@ -282,7 +360,8 @@
           "title": "8:30 P.M. Group of newsboys selling at the depot, Hartford, Connecticut. Smallest boy 11 years old.",
           "alt": "The image depicts six young boys standing in front of a building.",
           "description": "Lewis Hine. 8:30 P.M. Group of newsboys selling at the depot, Hartford, Connecticut. Smallest boy 11 years old., March 1909. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.213988.html"
+          "link": "https://www.nga.gov/collection/art-object-page.213988.html",
+          "cropAspect": "4:3"
         },
         "05-john-pento-14-years-old-daniel-and-angelo-pe.jpg": {
           "id": "sample-photography-nga-194350-v1",
@@ -290,7 +369,8 @@
           "title": "John Pento, 14 years old, Daniel and Angelo Pento, 7 years old, selling newspapers, Hartford, Connecticut",
           "alt": "Three boys are standing against a textured wall, with their full bodies visible.",
           "description": "Lewis Hine. John Pento, 14 years old, Daniel and Angelo Pento, 7 years old, selling newspapers, Hartford, Connecticut, March 1909. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.194350.html"
+          "link": "https://www.nga.gov/collection/art-object-page.194350.html",
+          "cropAspect": "4:3"
         },
         "06-title-from-caption-on-object-read-all-about-.jpg": {
           "id": "sample-photography-nga-218187-v1",
@@ -298,7 +378,8 @@
           "title": "Title from caption on object: \"Read All About It!\"",
           "alt": "Title from caption on object: \"Read All About It!\": an open-access photograph from the National Gallery of Art.",
           "description": "Lewis Hine. Title from caption on object: \"Read All About It!\", April 1912. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.218187.html"
+          "link": "https://www.nga.gov/collection/art-object-page.218187.html",
+          "cropAspect": "4:3"
         },
         "07-soldier-thrown-in-air.jpg": {
           "id": "sample-photography-nga-92317-v1",
@@ -306,7 +387,8 @@
           "title": "Soldier Thrown in Air",
           "alt": "This black-and-white photograph shows a group of men in dark shirts with dark, wide-brimmed hats.",
           "description": "Lewis Hine. Soldier Thrown in Air, 1917. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.92317.html"
+          "link": "https://www.nga.gov/collection/art-object-page.92317.html",
+          "cropAspect": "4:3"
         },
         "08-edward-st-germain-and-his-sister-delia-mill-.jpg": {
           "id": "sample-photography-nga-197799-v1",
@@ -314,7 +396,8 @@
           "title": "Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909",
           "alt": "The image shows a group of young individuals standing in front of a wooden building with horizontal siding.",
           "description": "Lewis Hine. Edward St. Germain and his sister Delia, mill workers, Phoenix, Rhode Island, April 1909, April 1909. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.197799.html"
+          "link": "https://www.nga.gov/collection/art-object-page.197799.html",
+          "cropAspect": "4:3"
         },
         "09-wagon-boy-or-tail-boy-helping-to-load-the-wa.jpg": {
           "id": "sample-photography-nga-164188-v1",
@@ -322,7 +405,35 @@
           "title": "Wagon boy or \"tail boy\" helping to load the wagon",
           "alt": "This is a photograph of a street scene in front of a shop.",
           "description": "Lewis Hine. Wagon boy or \"tail boy\" helping to load the wagon, c. 1914. National Gallery of Art.",
-          "link": "https://www.nga.gov/collection/art-object-page.164188.html"
+          "link": "https://www.nga.gov/collection/art-object-page.164188.html",
+          "cropAspect": "4:3"
+        },
+        "10-cour-rue-de-valence.jpg": {
+          "id": "sample-photography-nga-197731-v1",
+          "sampleAssetId": "photography-nga-197731-v1",
+          "title": "Cour, rue de Valence",
+          "alt": "Cour, rue de Valence: an open-access photograph from the National Gallery of Art.",
+          "description": "Eugène Atget. Cour, rue de Valence, 1922, printed 1956. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.197731.html",
+          "cropAspect": "4:3"
+        },
+        "11-ancien-hotel-des-parlementaires-3-rue-des-li.jpg": {
+          "id": "sample-photography-nga-170445-v1",
+          "sampleAssetId": "photography-nga-170445-v1",
+          "title": "Ancien Hôtel des Parlementaires, 3 Rue des Lions",
+          "alt": "This is a photograph of a courtyard.",
+          "description": "Eugène Atget. Ancien Hôtel des Parlementaires, 3 Rue des Lions, c. 1910. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.170445.html",
+          "cropAspect": "4:3"
+        },
+        "12-hotel-du-cardinal-dubois-10-rue-de-valois.jpg": {
+          "id": "sample-photography-nga-124974-v1",
+          "sampleAssetId": "photography-nga-124974-v1",
+          "title": "Hôtel du Cardinal Dubois, 10 rue de Valois",
+          "alt": "The sculpture above the window depicts a male figure in a reclining pose holding a long object.",
+          "description": "Eugène Atget. Hôtel du Cardinal Dubois, 10 rue de Valois, 1913. National Gallery of Art.",
+          "link": "https://www.nga.gov/collection/art-object-page.124974.html",
+          "cropAspect": "4:3"
         }
       }
     },
@@ -336,9 +447,9 @@
           "description": "Lewis Hine. Soldier Thrown in Air, 1917. National Gallery of Art.",
           "link": "https://www.nga.gov/collection/art-object-page.92317.html",
           "layout": {
-            "x": 78,
-            "y": 26,
-            "w": 18,
+            "x": 84,
+            "y": 27,
+            "w": 14,
             "ar": 1.26968,
             "z": 1
           }
