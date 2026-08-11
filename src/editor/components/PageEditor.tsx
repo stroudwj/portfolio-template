@@ -2,7 +2,16 @@
 // blocks — text anywhere, the image gallery, the About section, and sub-pages
 // (thumbnail cards). Sub-pages get their own nested PageEditor so their galleries
 // and text are edited in place; nesting is one level deep by design.
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type KeyboardEvent,
+	type PointerEvent as ReactPointerEvent,
+	type ReactNode,
+} from 'react';
 import { useEditor } from '../store';
 import {
 	Field,
@@ -130,6 +139,162 @@ function storePageItemCollapse(key: string, collapsed: boolean) {
 	} catch {
 		/* The disclosure still works for this session when storage is unavailable. */
 	}
+}
+
+/* ---- Right-sized block editors (spec 26) ----
+   An open block card caps its body at roughly the panel height available and
+   scrolls inside itself, so the card head and the rest of the panel stay in
+   reach while a dense editor (the contact form and its questions) gets one
+   clear scroll region. The cap is adjustable from a grip at the card's foot;
+   the choice is editor chrome, not document, so it lives per browser session. */
+const BLOCK_BODY_HEIGHT_STORE = 'portfolio-editor.block-body-heights';
+const BLOCK_BODY_MIN_HEIGHT = 160;
+const BLOCK_BODY_MAX_HEIGHT = 2400;
+const BLOCK_BODY_KEY_STEP = 32;
+
+const clampBlockBodyHeight = (height: number) =>
+	Math.round(Math.min(Math.max(height, BLOCK_BODY_MIN_HEIGHT), BLOCK_BODY_MAX_HEIGHT));
+
+function loadBlockBodyHeights(): Record<string, number> {
+	if (typeof sessionStorage === 'undefined') return {};
+	try {
+		return JSON.parse(
+			sessionStorage.getItem(BLOCK_BODY_HEIGHT_STORE) ?? '{}',
+		) as Record<string, number>;
+	} catch {
+		return {};
+	}
+}
+
+function storeBlockBodyHeight(blockId: string, height: number | undefined) {
+	if (typeof sessionStorage === 'undefined') return;
+	try {
+		const heights = loadBlockBodyHeights();
+		if (height === undefined) delete heights[blockId];
+		else heights[blockId] = height;
+		sessionStorage.setItem(BLOCK_BODY_HEIGHT_STORE, JSON.stringify(heights));
+	} catch {
+		/* The chosen size still holds while this card stays mounted. */
+	}
+}
+
+/** The scrollable body of an open block card plus its resize grip. The grip
+ *  only appears when there is something to size — overflowing content or an
+ *  already-customized cap. A collapsed card or a CSS-hidden pane measures 0x0,
+ *  which reads as "nothing to scroll"; the ResizeObserver re-runs the check
+ *  the moment the pane becomes visible again. */
+function BlockBody({
+	blockId,
+	label,
+	children,
+}: {
+	blockId: string;
+	label: string;
+	children: ReactNode;
+}) {
+	const [height, setHeight] = useState<number | undefined>(
+		() => loadBlockBodyHeights()[blockId],
+	);
+	const [scrollable, setScrollable] = useState(false);
+	const bodyRef = useRef<HTMLDivElement>(null);
+
+	// Re-measure after every render: content edits (adding a form question)
+	// change scrollHeight without resizing the body's box, which is all a
+	// ResizeObserver on the body would see.
+	useLayoutEffect(() => {
+		const body = bodyRef.current;
+		if (body) setScrollable(body.scrollHeight > body.clientHeight + 1);
+	});
+	useEffect(() => {
+		const body = bodyRef.current;
+		if (!body) return;
+		const observer = new ResizeObserver(() =>
+			setScrollable(body.scrollHeight > body.clientHeight + 1),
+		);
+		observer.observe(body);
+		return () => observer.disconnect();
+	}, []);
+
+	const applyHeight = (next: number) => {
+		const clamped = clampBlockBodyHeight(next);
+		setHeight(clamped);
+		return clamped;
+	};
+	const resetHeight = () => {
+		setHeight(undefined);
+		storeBlockBodyHeight(blockId, undefined);
+	};
+	const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		const body = bodyRef.current;
+		if (!body) return;
+		const handle = event.currentTarget;
+		const startY = event.clientY;
+		const startHeight = body.clientHeight;
+		let latest: number | undefined;
+		try {
+			handle.setPointerCapture(event.pointerId);
+		} catch {
+			/* Pointer listeners below still provide the resize fallback. */
+		}
+		const move = (next: PointerEvent) => {
+			latest = applyHeight(startHeight + (next.clientY - startY));
+		};
+		const finish = () => {
+			handle.removeEventListener('pointermove', move);
+			handle.removeEventListener('pointerup', finish);
+			handle.removeEventListener('pointercancel', finish);
+			if (latest !== undefined) storeBlockBodyHeight(blockId, latest);
+		};
+		handle.addEventListener('pointermove', move);
+		handle.addEventListener('pointerup', finish);
+		handle.addEventListener('pointercancel', finish);
+	};
+	const nudgeHeight = (delta: number) => {
+		const body = bodyRef.current;
+		if (!body) return;
+		storeBlockBodyHeight(blockId, applyHeight((height ?? body.clientHeight) + delta));
+	};
+
+	return (
+		<>
+			<div
+				className="block-body"
+				ref={bodyRef}
+				style={height === undefined ? undefined : { maxHeight: height }}
+			>
+				{children}
+			</div>
+			{(scrollable || height !== undefined) && (
+				<div
+					className="block-body-resizer"
+					role="separator"
+					aria-orientation="horizontal"
+					aria-label={`Resize the ${label} editor`}
+					aria-valuemin={BLOCK_BODY_MIN_HEIGHT}
+					aria-valuemax={BLOCK_BODY_MAX_HEIGHT}
+					aria-valuenow={height}
+					title="Drag to give this editor more or less room — double-click to reset"
+					tabIndex={0}
+					onPointerDown={startResize}
+					onDoubleClick={resetHeight}
+					onKeyDown={(event) => {
+						if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+							event.preventDefault();
+							nudgeHeight(event.key === 'ArrowUp' ? -BLOCK_BODY_KEY_STEP : BLOCK_BODY_KEY_STEP);
+						} else if (event.key === 'Home') {
+							event.preventDefault();
+							storeBlockBodyHeight(blockId, applyHeight(BLOCK_BODY_MIN_HEIGHT));
+						} else if (event.key === 'End') {
+							event.preventDefault();
+							storeBlockBodyHeight(blockId, applyHeight(BLOCK_BODY_MAX_HEIGHT));
+						}
+					}}
+				/>
+			)}
+		</>
+	);
 }
 
 const KINETIC_TEXT_EFFECTS: Array<{ value: KineticTextEffect | ''; label: string }> = [
@@ -1384,6 +1549,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="text" />Text box</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="text box">
 						<RichTextEditor
 							value={block.richText}
 							legacyText={block.text}
@@ -1622,6 +1788,7 @@ export default function PageEditor({
 								</div>
 							)
 						)}
+					</BlockBody>
 					</div>
 				);
 			}
@@ -1663,6 +1830,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type={embedKindOf(block)} />{moduleLabel}</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="embed">
 						<input
 							className={`text-input ${invalid ? 'invalid' : ''}`}
 							aria-label={`${placeholder} for ${blockLabel}`}
@@ -1815,6 +1983,7 @@ export default function PageEditor({
 										: 'The video plays right on your page.'}
 							</p>
 						)}
+					</BlockBody>
 					</div>
 				);
 			}
@@ -1832,6 +2001,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="shots" />Shots / scroll video</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="shots / scroll video">
 						<p className="muted shots-editor-intro">
 							A short, muted clip whose playhead follows the visitor’s scroll.
 						</p>
@@ -1997,6 +2167,7 @@ export default function PageEditor({
 						<p className="muted">
 							On reduced-motion devices—and on phones unless enabled—the clip becomes a normal video with controls.
 						</p>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2007,6 +2178,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="images" />Images</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="images">
 						{page.gallery && (
 							<details className="block-options image-layout-options">
 								<summary>
@@ -2057,6 +2229,7 @@ export default function PageEditor({
 								}
 							/>
 						)}
+					</BlockBody>
 					</div>
 				);
 			case 'images': {
@@ -2114,6 +2287,7 @@ export default function PageEditor({
 							</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="image group">
 						<div className="image-group-layout-bar" data-tour="image-group-layout">
 							<div>
 								<strong>Layout</strong>
@@ -2419,6 +2593,7 @@ export default function PageEditor({
 										: 'Drag images in the preview to position them. Drag rows here to set which sits in front.'
 							}
 						/>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2430,6 +2605,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="button" />Button</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="button">
 						<div className="block-field-grid">
 							<label className="field">
 								<span className="field-label">Words on the button</span>
@@ -2458,6 +2634,7 @@ export default function PageEditor({
 								</select>
 							</label>
 						</div>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2470,6 +2647,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="divider" />Divider</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="divider">
 						<div className="block-choice-row">
 							<label>
 								Style
@@ -2566,6 +2744,7 @@ export default function PageEditor({
 							width={block.width}
 							color={block.color}
 						/>
+					</BlockBody>
 					</div>
 				);
 				}
@@ -2620,6 +2799,7 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="products">
 						{collectionCanvasControl(block, 'products')}
 						{doc.content.store ? (
 							<>
@@ -2715,6 +2895,7 @@ export default function PageEditor({
 								before choosing products.
 							</p>
 						)}
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2734,6 +2915,7 @@ export default function PageEditor({
 				return (
 					<div className="block project-editor-block" key={block.id}>
 						<div className="block-head"><span className="block-label"><BlockIcon type="project" />Project fields</span>{controls(index, block, true)}</div>
+					<BlockBody blockId={block.id} label="project fields">
 						<div className="block-choice-row">
 							<label>Template<select className="select-input" value={block.project.template} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { project: { ...block.project, template: event.target.value as ProjectTemplate } })}><option value="artwork">Artwork</option><option value="collaboration">Collaboration</option><option value="exhibition">Exhibition</option></select></label>
 							<label>Font<select className="select-input" value={block.fontFamily ?? ''} onChange={(event) => editor.updateProjectBlock(pageKey, block.id, { fontFamily: event.target.value || undefined })}><option value="">Page font</option>{textFontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</select></label>
@@ -2754,6 +2936,7 @@ export default function PageEditor({
 								<button type="button" className="btn-icon" disabled={fieldIndex === order.length - 1} onClick={() => updateOrder(fieldIndex, fieldIndex + 1)}>↓</button>
 							</div>)}
 						</div>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2765,6 +2948,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="contact" />Email button</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="email button">
 						<Field label="Heading">
 							<TextInput
 								aria-label={`Heading for ${contactLabel}`}
@@ -2794,6 +2978,7 @@ export default function PageEditor({
 								onChange={(event) => editor.updateContactBlock(pageKey, block.id, { buttonLabel: event.target.value })}
 							/>
 						</Field>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2805,6 +2990,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="shape" />Shape</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="shape">
 						<div className="block-choice-row">
 							<label>
 								Shape
@@ -2893,6 +3079,7 @@ export default function PageEditor({
 								</span>
 							</label>
 						</div>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2913,6 +3100,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="accordion" />Accordion</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="accordion">
 						<div className="form-fields-editor">
 							<span className="field-label">Rows</span>
 							{block.items.map((item, itemIndex) => (
@@ -2957,6 +3145,7 @@ export default function PageEditor({
 								}}
 							/>
 						</Field>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -2971,6 +3160,7 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="form" />Contact form</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="contact form">
 						<Field label="Form heading">
 							<TextInput aria-label={`Heading for ${formLabel}`} value={block.heading ?? ''} placeholder="Get in touch" onChange={(event) => editor.updateFormBlock(pageKey, block.id, { heading: event.target.value })} />
 						</Field>
@@ -3032,6 +3222,7 @@ export default function PageEditor({
 						<Field label="Message shown after sending directly">
 							<TextInput aria-label={`Message shown after ${formLabel} sends directly`} value={block.successMessage ?? ''} onChange={(event) => editor.updateFormBlock(pageKey, block.id, { successMessage: event.target.value })} />
 						</Field>
+					</BlockBody>
 					</div>
 				);
 			}
@@ -3042,8 +3233,10 @@ export default function PageEditor({
 							<span className="block-label"><BlockIcon type="about" />About content</span>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="about content">
 						<p className="muted about-editor-intro">Everything below appears in this section and updates in the preview as you type.</p>
 						<AboutContentEditor />
+					</BlockBody>
 					</div>
 				);
 			case 'children':
@@ -3089,6 +3282,7 @@ export default function PageEditor({
 							</select>
 							{controls(index, block, true)}
 						</div>
+					<BlockBody blockId={block.id} label="sub-pages">
 						{hasLegacyCardLayouts ? (
 							<div className="collection-canvas-control">
 								<span>
@@ -3158,6 +3352,7 @@ export default function PageEditor({
 						<HelpDisclosure label="How sub-page cards work">
 							<p>Each card has its own display text, destination, and thumbnail. The block hangs on the canvas as one piece — drag it to move it, or drag a corner to set its width; its height follows the cards.</p>
 						</HelpDisclosure>
+					</BlockBody>
 					</div>
 				);
 				}
