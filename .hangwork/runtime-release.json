@@ -275,8 +275,8 @@
       "gitBlobSha": "72f65e4a109c689c4b213f039a7176e53e8df055"
     },
     "src/editor/components/ThemeEditor.tsx": {
-      "sha256": "38ab271004fe6ca186dc0fb719df9876f4ab3bd3fce888e684e50dc33812fa6c",
-      "gitBlobSha": "04ec1c5b5727835f63c4d1e4b53fe0998eae9120"
+      "sha256": "9968893d97f4a40ebc384533de18531fab97657b129a814b08a677810c7713ac",
+      "gitBlobSha": "e4599a4e1cef23503e600c706ba62eb426c9cae8"
     },
     "src/editor/components/VersionHistory.tsx": {
       "sha256": "c7840786a82afee2549cf5f56bc8b404dfd0f1cbcec97ada4d95623e9247c749",
@@ -399,8 +399,8 @@
       "gitBlobSha": "1ed4647c07cc9d435a40816b507cc63b48bfcfc2"
     },
     "src/editor/lib/font-options.ts": {
-      "sha256": "ea8a8ce4a273b9e6e3d2530256727dc2033af1b9ab821b54b3282b90bbb55bae",
-      "gitBlobSha": "83af873fb2eecccfd2759df413e84739694bee8d"
+      "sha256": "422616bbc2bf69d4842c7d26ef78720c24574793311dfc833cb61bf2b2512b55",
+      "gitBlobSha": "927d84b103d980e9bf07aea0b6933b57e781b464"
     },
     "src/editor/lib/gap-units.ts": {
       "sha256": "4d643a6813e4f13172e2692c972cb9faff1a6f6ea3d91b34042d4237ef2b2d17",
@@ -507,8 +507,8 @@
       "gitBlobSha": "b1027b8340302454a6f0ec39835e382852f39640"
     },
     "src/editor/lib/starter-fonts.ts": {
-      "sha256": "96c90e28bb9f4d4353c76e25cc352168232ee34d883dab644b956138e5b79880",
-      "gitBlobSha": "03bfd99d1d15569f0265898246e82748253045a6"
+      "sha256": "ee3c9c6f356abd977e8f405caa43384f62285830dbc2430b20a1a886b0801f27",
+      "gitBlobSha": "f6f9f2550735e4e97c8c045eb81d05907692a288"
     },
     "src/editor/lib/staticgen/html.ts": {
       "sha256": "7c6362b2b5e4d8b32e3999a8dd944945878e1fc7feeb27e91484d559b3fbd61d",

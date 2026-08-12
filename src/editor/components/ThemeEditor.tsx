@@ -5,9 +5,14 @@ import { useEditor } from '../store';
 import { Field, Section, openTemplatePicker } from './ui/controls';
 import { PanelIcon } from './ui/panel-icons';
 import { isFontFile, FONT_EXTENSIONS, MAX_FONT_BYTES } from '../lib/validation';
-import type { PageHeadingPosition, Theme } from '../../lib/content';
+import type { Theme } from '../../lib/content';
 import { compatibleThemePresets } from '../lib/templates';
-import { customFontValue, fontOptionsForTheme } from '../lib/font-options';
+import {
+	customFontValue,
+	fontChoicePatch,
+	fontOptionsForTheme,
+	resolveFontValue,
+} from '../lib/font-options';
 
 type ColorKey =
 	| 'backgroundColor'
@@ -49,9 +54,11 @@ export default function ThemeEditor() {
 	const theme = doc.content.theme;
 	const customFonts = theme.customFonts ?? [];
 	const options = fontOptionsForTheme(theme);
-	const fontKnown = options.some((f) => f.value === theme.fontFamily);
+	// A starter's stack may be spelled differently from the menu entry that means
+	// it; resolveFontValue names it anyway, so the select stops falling to "Custom".
+	const bodyFontValue = resolveFontValue(options, theme.fontFamily);
 	const headingFont = theme.headingFontFamily ?? '';
-	const headingKnown = !headingFont || options.some((f) => f.value === headingFont);
+	const headingFontValue = headingFont ? resolveFontValue(options, headingFont) : '';
 	const automaticContrast = theme.automaticTextContrast !== false;
 	const presets = compatibleThemePresets(doc);
 	const textBoxFonts = new Set(
@@ -298,9 +305,11 @@ export default function ThemeEditor() {
 			<Field label="Body font">
 				<select
 					className="text-input"
-					value={fontKnown ? theme.fontFamily : '__custom'}
+					value={bodyFontValue ?? '__custom'}
 					onChange={(e) => {
-						if (e.target.value !== '__custom') setTheme({ fontFamily: e.target.value });
+						const value = e.target.value;
+						if (value !== '__custom')
+							setTheme({ fontFamily: value, ...fontChoicePatch(theme, value) });
 					}}
 				>
 					{options.map((f) => (
@@ -308,15 +317,20 @@ export default function ThemeEditor() {
 							{f.label}
 						</option>
 					))}
-					{!fontKnown && <option value="__custom">Custom ({theme.fontFamily})</option>}
+					{!bodyFontValue && <option value="__custom">Custom ({theme.fontFamily})</option>}
 				</select>
 			</Field>
 			<Field label="Heading font">
 				<select
 					className="text-input"
-					value={headingKnown ? headingFont : '__custom'}
+					value={headingFontValue ?? '__custom'}
 					onChange={(e) => {
-						if (e.target.value !== '__custom') setTheme({ headingFontFamily: e.target.value || undefined });
+						const value = e.target.value;
+						if (value !== '__custom')
+							setTheme({
+								headingFontFamily: value || undefined,
+								...(value ? fontChoicePatch(theme, value) : {}),
+							});
 					}}
 				>
 					<option value="">Same as body text</option>
@@ -325,7 +339,9 @@ export default function ThemeEditor() {
 							{f.label}
 						</option>
 					))}
-					{!headingKnown && <option value="__custom">Custom ({headingFont})</option>}
+					{headingFontValue === undefined && (
+						<option value="__custom">Custom ({headingFont})</option>
+					)}
 				</select>
 			</Field>
 			{customFonts.map((f) => (
