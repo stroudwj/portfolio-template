@@ -2069,125 +2069,6 @@ covers. `npm run check`, `npm test`. LicenseGateModal.tsx and editor.css are has
 possibly `src/editor/ui/panel-icons.tsx`. Out of scope: pricing.ts values, Polar
 products, Landing.astro/product-site pricing copy, any new plan tier.
 
-## 41. BUG: text box color control has no effect; mounts don't rotate with a rotated piece — `queued`
-
-Two renderer/editor bugs from William's 2026-08-12 editor session, batched because both
-are "a control exists but the canvas ignores it".
-
-**A — text box color doesn't work.** The text block card offers a box color control
-(grep `boxColor` — currently [PageEditor.tsx](src/editor/components/PageEditor.tsx) is
-the only hit), but setting it produces no visible change on the canvas. **Verify
-first**: reproduce on a blank doc and on a starter — set the box color on a normal-flow
-text block AND a canvas-pinned one, then run the spec-25 three-way check (canvas
-preview / fullscreen / real in-browser staticgen publish) to learn which surfaces are
-broken before reading source. Likely suspects: the value never reaches the renderer's
-CSS (TextBlock/PortfolioPage), or it lands on an element the text's own background
-paints over, or the control writes a doc field the schema/staticgen drops. Fix at the
-cause; if the canvas differs from published output, remember spec 17's lesson that the
-doc-schema enums are a second copy.
-
-**B — not all mounts rotate with the piece.** Artwork mounts
-(`ARTWORK_MOUNTS`, [artworkEffects.ts](src/portfolio/artworkEffects.ts), classes
-`artwork-mount-*`) frame an image; a canvas piece can also be rotated. Some mounts
-follow the rotation, others stay axis-aligned — the frame visibly detaches from the
-art. **Verify first**: on a canvas gallery, rotate one piece and cycle through every
-mount in the dropdown, screenshotting each; build the pass/fail table before touching
-CSS. Expected cause: some mount styles paint on an element inside the rotated transform
-while others paint on a wrapper outside it (or use pseudo-elements/box-shadows that
-don't inherit the transform). Fix so every mount rotates rigidly with its piece, in
-canvas AND published output. If any mount genuinely cannot rotate (e.g. one that
-simulates a wall-cast shadow whose light direction is fixed by design), report it and
-ask rather than silently reworking its look.
-
-**Verify.** Three-way check for both fixes; eyeball a couple of starters that use
-mounts so nothing regresses. `npm run check`, `npm test`. Renderer files are hashed →
-`npm run runtime:generate` + commit the manifest.
-
-**Files.** `src/portfolio/` (TextBlock, CanvasGallery, artworkEffects, CSS),
-`src/editor/components/PageEditor.tsx` if the control itself is miswired. Out of
-scope: new mount styles, new text-box styling options (spec 42 covers button styling).
-
-## 42. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `queued`
-
-Editor-behavior defaults from William's 2026-08-12 session, all about "what happens the
-moment you add something".
-
-**A — new blocks should go on top (layers) by default.** When a new block is added to a
-section whose canvas already has pinned pieces, it should stack ABOVE the existing
-layers — visible immediately — not underneath where existing art hides it. **Verify
-first**: on a starter with a composed canvas (clearing, still-room, masthead all layer
-art over the header per spec 33), add a text block and a shape via both "Add block"
-buttons and note where each lands in stacking order and in the Layers panel. Then fix
-the insertion so a new canvas-pinned block gets the top z-position / last paint order.
-Flow-only blocks (no `layout`) are untouched. Undo must remove the block cleanly.
-
-**B — button blocks free-form by default.** The `button` block type
-([PageEditor.tsx](src/editor/components/PageEditor.tsx) `BLOCK_TYPE_OPTIONS`,
-rendered in [PortfolioPage.tsx](src/portfolio/PortfolioPage.tsx) `case 'button'`)
-currently lands in page flow; a button is a design element artists place freely, so a
-newly added button should arrive canvas-pinned (free-form) by default — same mechanism
-the form block's "Move form Freeform" button uses (`setWidgetLayout` +
-`addFreeformGallery` when the section has no free canvas; see PageEditor ≈3212).
-"Back to flow" must remain available. Existing docs are untouched — this changes the
-default at creation, not stored content, so no migration.
-
-**C — button customizations: color, shape, outline.** The button block's card should
-offer: fill color + text color (color inputs matching the existing box-color control
-idiom), shape (square / rounded / pill — a corner-radius enum, not a free number),
-and outline (none / outline-only, where outline-only means transparent fill + border in
-the accent color). All optional doc fields — absent means today's rendering,
-byte-for-byte, so untouched docs and every starter publish identically (lock with the
-template-studio byte-clean check). Schema fields in doc-schema.ts + content-schema
-parse/serialize + staticgen must all carry them; remember the enums-are-a-second-copy
-trap (spec 17). Follow DESIGN.md for the controls; reuse existing color-input and
-select components from ui/controls.tsx.
-
-**Verify.** Drive the editor: add button → it's pinned and on top; style it through
-every new control; three-way check (canvas / fullscreen / staticgen publish); publish
-an unmodified starter and diff for byte-identity. `npm run check`, `npm test` (+ new
-tests locking the absent-field = legacy rendering rule). Manifest regen + commit.
-
-**Files.** `src/editor/store.tsx` (insertion + defaults), `src/editor/lib/doc-schema.ts`,
-`src/lib/content-schema.ts` or equivalent parse path, `src/editor/components/PageEditor.tsx`,
-`src/portfolio/PortfolioPage.tsx` + CSS, staticgen. Out of scope: restyling existing
-starters' buttons, new block types, form-block submit button styling.
-
-## 43. Sidebar sizing: ≥ ¼ screen width by default; panel cards fill to the edges — `queued`
-
-Two wasted-space complaints about the editor sidebar (screenshot from William,
-2026-08-12: "Image workbench" and "Page: Home" cards float with dead margins either
-side).
-
-**A — default width ≥ 25% of the screen.** The sidebar defaults to
-`DEFAULT_SIDEBAR_WIDTH` (440px; state in [EditorApp.tsx:360](src/editor/EditorApp.tsx:360),
-CSS var ≈ editor.css:1824). On a 1920px display that's under a quarter. Make the
-*default* (no saved `SIDEBAR_WIDTH_STORE` value) resolve to
-`max(440px, 25vw)`-equivalent, still clamped by `MAX_SIDEBAR_WIDTH` and the existing
-`window.innerWidth - MIN_PREVIEW_WIDTH` guard so small windows and the preview are never
-crushed. A user's saved width always wins — do not stomp stored preferences, and do not
-let a resize ratchet the stored value. Check the spec-26 container-query note: the
-four-column form rows return once the sidebar passes ~465px, so the wider default
-should make dense cards nicer, not break them.
-
-**B — cards fill edge to edge.** The top-level accordion cards ("Image workbench",
-"Page: Home", and siblings across Site/Theme tabs) leave visible gutters against the
-sidebar's left/right edges — wasted space in a panel that's all about density. Reduce
-the horizontal padding/margins so card surfaces run to (or within a few px of) the
-panel edges, per the screenshot. **Verify first**: identify the actual rules (the
-accordion/card wrappers in editor.css) and check every tab plus the workbench, since
-the same wrapper likely serves them all. Keep enough breathing room that the sidebar
-resizer rail (editor.css ≈1837) and card shadows/borders don't collide; keep DESIGN.md
-spacing rhythm inside the cards unchanged — this is about the outer gutter only.
-
-**Verify.** Fresh profile (no localStorage) at 1440 and 1920 → sidebar ≥ 25% and cards
-flush; resize down to the min and confirm nothing clips (spec-15 0x0 hidden-pane trap:
-check the non-active tabs after switching); saved-width profile unaffected. Screenshot
-before/after. `npm run check`, `npm test`. editor.css/EditorApp are hashed → manifest
-regen + commit.
-
-**Files.** `src/editor/EditorApp.tsx`, `src/editor/editor.css`. Out of scope: the
-resizer mechanics (spec 26 owns them), panel content redesign, preview-side layout.
-
 ## 41. Plan-card revision: monthly left, lifetime "everything in monthly", trial on both — `merged` (2026-08-12 onto integration/specs-14r-19, commit 129bba5. Order swapped to monthly-left/lifetime-right (DOM order only; CSS is order-agnostic, ≤480px stack follows DOM, verified by measurement). Monthly rows unchanged; SharedFeatures→MonthlyFeatures rendered once on monthly; lifetime card now "All of Monthly" + site and backup downloads + pay once, yours forever. **Item 4 declined on verification**: Polar trials are a recurring-price feature and oauth-proxy/polar.js grants trial access only via trialingSubscription() (subscription.* webhook, status trialing/active) — a one-time lifetime order emits order.paid only, so a trial row would promise access the Worker refuses to grant. Needs a Polar dashboard restructure + a new entitlement path in polar.js if William wants it. Verified in browser at 1440 (fresh/upgrade) and stacked; tests/license-gate-cards.test.ts extended with order, three-row, and trial-claim-vs-worker assertions. npm run check clean, 428 tests, manifest 1.2.29 committed. Probe files left uncommitted for the port-4492 review server (probe lacks a viewport meta, so mobile emulation can't reach the 480px query). Cosmetic note: lifetime's 3 rows vs monthly's 6 leaves whitespace at the card bottom in the 2-up layout — fix if wanted is align-items:start or a fourth lifetime row, a design call.)
 
 Revision of spec 40's license-gate cards, per William's review of the local preview.
@@ -2233,3 +2114,122 @@ server on port 4492.
 **Files.** `src/editor/components/LicenseGateModal.tsx`, `src/editor/editor.css`,
 `tests/license-gate-cards.test.ts`, manifest. Out of scope: pricing.ts values, Polar
 dashboard changes, PublishPanel copy, Landing.astro.
+
+## 42. BUG: text box color control has no effect; mounts don't rotate with a rotated piece — `running` (2026-08-12)
+
+Two renderer/editor bugs from William's 2026-08-12 editor session, batched because both
+are "a control exists but the canvas ignores it".
+
+**A — text box color doesn't work.** The text block card offers a box color control
+(grep `boxColor` — currently [PageEditor.tsx](src/editor/components/PageEditor.tsx) is
+the only hit), but setting it produces no visible change on the canvas. **Verify
+first**: reproduce on a blank doc and on a starter — set the box color on a normal-flow
+text block AND a canvas-pinned one, then run the spec-25 three-way check (canvas
+preview / fullscreen / real in-browser staticgen publish) to learn which surfaces are
+broken before reading source. Likely suspects: the value never reaches the renderer's
+CSS (TextBlock/PortfolioPage), or it lands on an element the text's own background
+paints over, or the control writes a doc field the schema/staticgen drops. Fix at the
+cause; if the canvas differs from published output, remember spec 17's lesson that the
+doc-schema enums are a second copy.
+
+**B — not all mounts rotate with the piece.** Artwork mounts
+(`ARTWORK_MOUNTS`, [artworkEffects.ts](src/portfolio/artworkEffects.ts), classes
+`artwork-mount-*`) frame an image; a canvas piece can also be rotated. Some mounts
+follow the rotation, others stay axis-aligned — the frame visibly detaches from the
+art. **Verify first**: on a canvas gallery, rotate one piece and cycle through every
+mount in the dropdown, screenshotting each; build the pass/fail table before touching
+CSS. Expected cause: some mount styles paint on an element inside the rotated transform
+while others paint on a wrapper outside it (or use pseudo-elements/box-shadows that
+don't inherit the transform). Fix so every mount rotates rigidly with its piece, in
+canvas AND published output. If any mount genuinely cannot rotate (e.g. one that
+simulates a wall-cast shadow whose light direction is fixed by design), report it and
+ask rather than silently reworking its look.
+
+**Verify.** Three-way check for both fixes; eyeball a couple of starters that use
+mounts so nothing regresses. `npm run check`, `npm test`. Renderer files are hashed →
+`npm run runtime:generate` + commit the manifest.
+
+**Files.** `src/portfolio/` (TextBlock, CanvasGallery, artworkEffects, CSS),
+`src/editor/components/PageEditor.tsx` if the control itself is miswired. Out of
+scope: new mount styles, new text-box styling options (spec 43 covers button styling).
+
+## 43. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `queued`
+
+Editor-behavior defaults from William's 2026-08-12 session, all about "what happens the
+moment you add something".
+
+**A — new blocks should go on top (layers) by default.** When a new block is added to a
+section whose canvas already has pinned pieces, it should stack ABOVE the existing
+layers — visible immediately — not underneath where existing art hides it. **Verify
+first**: on a starter with a composed canvas (clearing, still-room, masthead all layer
+art over the header per spec 33), add a text block and a shape via both "Add block"
+buttons and note where each lands in stacking order and in the Layers panel. Then fix
+the insertion so a new canvas-pinned block gets the top z-position / last paint order.
+Flow-only blocks (no `layout`) are untouched. Undo must remove the block cleanly.
+
+**B — button blocks free-form by default.** The `button` block type
+([PageEditor.tsx](src/editor/components/PageEditor.tsx) `BLOCK_TYPE_OPTIONS`,
+rendered in [PortfolioPage.tsx](src/portfolio/PortfolioPage.tsx) `case 'button'`)
+currently lands in page flow; a button is a design element artists place freely, so a
+newly added button should arrive canvas-pinned (free-form) by default — same mechanism
+the form block's "Move form Freeform" button uses (`setWidgetLayout` +
+`addFreeformGallery` when the section has no free canvas; see PageEditor ≈3212).
+"Back to flow" must remain available. Existing docs are untouched — this changes the
+default at creation, not stored content, so no migration.
+
+**C — button customizations: color, shape, outline.** The button block's card should
+offer: fill color + text color (color inputs matching the existing box-color control
+idiom), shape (square / rounded / pill — a corner-radius enum, not a free number),
+and outline (none / outline-only, where outline-only means transparent fill + border in
+the accent color). All optional doc fields — absent means today's rendering,
+byte-for-byte, so untouched docs and every starter publish identically (lock with the
+template-studio byte-clean check). Schema fields in doc-schema.ts + content-schema
+parse/serialize + staticgen must all carry them; remember the enums-are-a-second-copy
+trap (spec 17). Follow DESIGN.md for the controls; reuse existing color-input and
+select components from ui/controls.tsx.
+
+**Verify.** Drive the editor: add button → it's pinned and on top; style it through
+every new control; three-way check (canvas / fullscreen / staticgen publish); publish
+an unmodified starter and diff for byte-identity. `npm run check`, `npm test` (+ new
+tests locking the absent-field = legacy rendering rule). Manifest regen + commit.
+
+**Files.** `src/editor/store.tsx` (insertion + defaults), `src/editor/lib/doc-schema.ts`,
+`src/lib/content-schema.ts` or equivalent parse path, `src/editor/components/PageEditor.tsx`,
+`src/portfolio/PortfolioPage.tsx` + CSS, staticgen. Out of scope: restyling existing
+starters' buttons, new block types, form-block submit button styling.
+
+## 44. Sidebar sizing: ≥ ¼ screen width by default; panel cards fill to the edges — `running` (2026-08-12)
+
+Two wasted-space complaints about the editor sidebar (screenshot from William,
+2026-08-12: "Image workbench" and "Page: Home" cards float with dead margins either
+side).
+
+**A — default width ≥ 25% of the screen.** The sidebar defaults to
+`DEFAULT_SIDEBAR_WIDTH` (440px; state in [EditorApp.tsx:360](src/editor/EditorApp.tsx:360),
+CSS var ≈ editor.css:1824). On a 1920px display that's under a quarter. Make the
+*default* (no saved `SIDEBAR_WIDTH_STORE` value) resolve to
+`max(440px, 25vw)`-equivalent, still clamped by `MAX_SIDEBAR_WIDTH` and the existing
+`window.innerWidth - MIN_PREVIEW_WIDTH` guard so small windows and the preview are never
+crushed. A user's saved width always wins — do not stomp stored preferences, and do not
+let a resize ratchet the stored value. Check the spec-26 container-query note: the
+four-column form rows return once the sidebar passes ~465px, so the wider default
+should make dense cards nicer, not break them.
+
+**B — cards fill edge to edge.** The top-level accordion cards ("Image workbench",
+"Page: Home", and siblings across Site/Theme tabs) leave visible gutters against the
+sidebar's left/right edges — wasted space in a panel that's all about density. Reduce
+the horizontal padding/margins so card surfaces run to (or within a few px of) the
+panel edges, per the screenshot. **Verify first**: identify the actual rules (the
+accordion/card wrappers in editor.css) and check every tab plus the workbench, since
+the same wrapper likely serves them all. Keep enough breathing room that the sidebar
+resizer rail (editor.css ≈1837) and card shadows/borders don't collide; keep DESIGN.md
+spacing rhythm inside the cards unchanged — this is about the outer gutter only.
+
+**Verify.** Fresh profile (no localStorage) at 1440 and 1920 → sidebar ≥ 25% and cards
+flush; resize down to the min and confirm nothing clips (spec-15 0x0 hidden-pane trap:
+check the non-active tabs after switching); saved-width profile unaffected. Screenshot
+before/after. `npm run check`, `npm test`. editor.css/EditorApp are hashed → manifest
+regen + commit.
+
+**Files.** `src/editor/EditorApp.tsx`, `src/editor/editor.css`. Out of scope: the
+resizer mechanics (spec 26 owns them), panel content redesign, preview-side layout.
