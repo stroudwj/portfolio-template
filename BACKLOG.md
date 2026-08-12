@@ -2008,3 +2008,228 @@ and oauth-proxy, zero overlap with this spec's files. Branch from
 
 **Out of scope.** Re-styling the cards, changing SHOT/VIEWPORT geometry, adding an image
 library to package.json, capturing anything other than the home page.
+
+## 40. Checkout plan cards: check-mark feature lists instead of paragraphs — `merged` (2026-08-12 onto integration/specs-14r-19; built on worktree-spec-40-plan-cards off integration/specs-14r-19, not merged/pushed. Recon confirmed the gate is the editor's only plan-comparison surface (checkout-option = LicenseGateModal.tsx + editor.css only); Landing.astro DOES carry its own plan prose (~254/267, same "everything except downloads") — noted, left alone per scope. Each card's paragraph is now a .checkout-features column of `<Feature>` check rows (shared Feature/SharedFeatures helpers; spans not `<ul>` because the card is a `<button>` and list elements aren't phrasing content), glyph = new inline outline `check` PanelIcon, stroke-only, Klein. Lifetime: pay once yours forever · site and backup downloads · + four shared rows (full visual editor · yourname.hangwork.art · your own custom domain · unlimited publishing). Monthly: first {monthlyTrialDays} days free (sub-line "Cancel before they end and pay nothing." keeps the caveat) · hosted while subscribed · same four. Positive framing absolute — downloads is a check on lifetime, absent on monthly, no ✕ row exists; two plans only, no hardcoded price. Upgrade mode drops the trial row (6 vs 5) and leaves disabled/"current plan"/upgrade-credit untouched; footer note rewritten to stop duplicating the per-card rows and to suppress "Building and previewing are free" where the lead already says it. Found+fixed in passing: .checkout-option hardcoded background:white, so both cards were white slabs with near-white ink in the dark editor theme → var(--editor-panel); dead `.checkout-option > span:last-child` rule removed. Verified on a worktree dev server (4491) via a throwaway probe mounting all three states, Playwright-measured: fresh/light 1440 (2×235px, 6+6 rows), unlock/light, upgrade/dark (6+5, bg rgb(36,39,42), check rgb(117,163,255)), and 420px where the 480 media rule gives one 338px column with zero overflow. tests/license-gate-cards.test.ts (6) locks check-rows-not-paragraphs, no "everything except"/"not included"/✕, downloads exactly once, the trial caveat, exactly two cards with no $n literal, and the token background. npm run check 0 errors, npm test 425/425, manifest regenerated (240 files, 1.2.29). Follow-up worth queueing: give Landing.astro's pricing band the same treatment so the marketing page and the gate agree.)
+
+The license gate ([LicenseGateModal.tsx](src/editor/components/LicenseGateModal.tsx))
+currently sells each plan with a prose paragraph ("Every feature, including site and
+backup downloads. Pay once and keep access." / the monthly trial sentence). Restyle the
+two plan cards in the Framer-pricing-page idiom: under each plan's name + price, a short
+vertical list of included features, each row a small check glyph + a few words — **not**
+a paragraph.
+
+**Content rules (William's direction — hard requirements):**
+- **Positive framing only.** A plan's list shows only what it INCLUDES. Never render an
+  "✕ / not included / no downloads" row — if monthly doesn't have downloads, downloads
+  simply doesn't appear in the monthly column. The comparison is made by the check being
+  present on lifetime and absent on monthly, nothing more.
+- **Exactly the two existing plans.** Lifetime and Monthly. Do NOT add a Free column
+  (the free tier is "building and previewing are free", already stated in the footer
+  note) and do NOT add an Enterprise/custom column. No new plans, no new products, no
+  pricing changes — `src/lib/pricing.ts` stays the single source of prices and nothing
+  gets hardcoded.
+
+**Verify first.** Confirm the gate is the only plan-comparison surface in the editor
+(grep for `checkout-option` — expect LicenseGateModal.tsx + editor.css only) and check
+whether the product site (Landing.astro, /faq, /guide) has its own plan copy; if the
+landing page also lists plan features, note it in the report but leave it alone — this
+spec is the editor gate only. Also read the modal's three states before styling: fresh
+choice, `currentPlan === 'monthly'` upgrade mode (monthly card disabled, "current plan"),
+and the `intent` publish/unlock CTA wording — the feature lists must read correctly in
+all three.
+
+**Suggested feature rows** (derive final wording from the existing paragraph copy + the
+"Both plans include…" footer; keep each row ≤ ~4 words):
+- Both: visual editor · `yourname.hangwork.art` · custom domains · publishing/updates.
+- Lifetime additionally: pay once, yours forever · site + backup downloads (zip).
+- Monthly additionally: first N days free (from `pricing.monthlyTrialDays`).
+Shared rows may either repeat in both columns (Framer does this) or live in the existing
+footer line — pick whichever reads better at the modal's width, but the downloads
+differentiator MUST be a check row on lifetime.
+
+**Styling.** Extend the existing `.checkout-option` block in
+[editor.css](src/editor/editor.css) (≈ lines 3991–4060 + the narrow-width rule ≈ 7919).
+Check glyph follows DESIGN.md (outline stroke, editor tokens — no emoji, no third-party
+icons; there may be a usable PanelIcon in `ui/panel-icons.tsx`, reuse before adding).
+Keep the cards' button/aria-pressed selection behavior, the disabled monthly state, and
+the upgrade-credit price display exactly as they are. Mind the spec-30 lesson: editor
+tokens are scoped to `.editor` — the modal already lives inside it, so plain `var()` is
+fine, but don't portal anything new to document.body.
+
+**Trial honesty.** The monthly trial row must not oversell: keep "cancel before they end
+and pay nothing" reachable — as the trial row's small sub-line or in the footer note —
+so the card doesn't lose the cancellation caveat the paragraph carried.
+
+**Verify.** Drive the modal in the browser in all three states (fresh, monthly-upgrade,
+unlock-intent), light + dark editor themes, and the narrow width the 7919 media rule
+covers. `npm run check`, `npm test`. LicenseGateModal.tsx and editor.css are hashed →
+`npm run runtime:generate` and commit the manifest.
+
+**Files.** `src/editor/components/LicenseGateModal.tsx`, `src/editor/editor.css`,
+possibly `src/editor/ui/panel-icons.tsx`. Out of scope: pricing.ts values, Polar
+products, Landing.astro/product-site pricing copy, any new plan tier.
+
+## 41. BUG: text box color control has no effect; mounts don't rotate with a rotated piece — `queued`
+
+Two renderer/editor bugs from William's 2026-08-12 editor session, batched because both
+are "a control exists but the canvas ignores it".
+
+**A — text box color doesn't work.** The text block card offers a box color control
+(grep `boxColor` — currently [PageEditor.tsx](src/editor/components/PageEditor.tsx) is
+the only hit), but setting it produces no visible change on the canvas. **Verify
+first**: reproduce on a blank doc and on a starter — set the box color on a normal-flow
+text block AND a canvas-pinned one, then run the spec-25 three-way check (canvas
+preview / fullscreen / real in-browser staticgen publish) to learn which surfaces are
+broken before reading source. Likely suspects: the value never reaches the renderer's
+CSS (TextBlock/PortfolioPage), or it lands on an element the text's own background
+paints over, or the control writes a doc field the schema/staticgen drops. Fix at the
+cause; if the canvas differs from published output, remember spec 17's lesson that the
+doc-schema enums are a second copy.
+
+**B — not all mounts rotate with the piece.** Artwork mounts
+(`ARTWORK_MOUNTS`, [artworkEffects.ts](src/portfolio/artworkEffects.ts), classes
+`artwork-mount-*`) frame an image; a canvas piece can also be rotated. Some mounts
+follow the rotation, others stay axis-aligned — the frame visibly detaches from the
+art. **Verify first**: on a canvas gallery, rotate one piece and cycle through every
+mount in the dropdown, screenshotting each; build the pass/fail table before touching
+CSS. Expected cause: some mount styles paint on an element inside the rotated transform
+while others paint on a wrapper outside it (or use pseudo-elements/box-shadows that
+don't inherit the transform). Fix so every mount rotates rigidly with its piece, in
+canvas AND published output. If any mount genuinely cannot rotate (e.g. one that
+simulates a wall-cast shadow whose light direction is fixed by design), report it and
+ask rather than silently reworking its look.
+
+**Verify.** Three-way check for both fixes; eyeball a couple of starters that use
+mounts so nothing regresses. `npm run check`, `npm test`. Renderer files are hashed →
+`npm run runtime:generate` + commit the manifest.
+
+**Files.** `src/portfolio/` (TextBlock, CanvasGallery, artworkEffects, CSS),
+`src/editor/components/PageEditor.tsx` if the control itself is miswired. Out of
+scope: new mount styles, new text-box styling options (spec 42 covers button styling).
+
+## 42. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `queued`
+
+Editor-behavior defaults from William's 2026-08-12 session, all about "what happens the
+moment you add something".
+
+**A — new blocks should go on top (layers) by default.** When a new block is added to a
+section whose canvas already has pinned pieces, it should stack ABOVE the existing
+layers — visible immediately — not underneath where existing art hides it. **Verify
+first**: on a starter with a composed canvas (clearing, still-room, masthead all layer
+art over the header per spec 33), add a text block and a shape via both "Add block"
+buttons and note where each lands in stacking order and in the Layers panel. Then fix
+the insertion so a new canvas-pinned block gets the top z-position / last paint order.
+Flow-only blocks (no `layout`) are untouched. Undo must remove the block cleanly.
+
+**B — button blocks free-form by default.** The `button` block type
+([PageEditor.tsx](src/editor/components/PageEditor.tsx) `BLOCK_TYPE_OPTIONS`,
+rendered in [PortfolioPage.tsx](src/portfolio/PortfolioPage.tsx) `case 'button'`)
+currently lands in page flow; a button is a design element artists place freely, so a
+newly added button should arrive canvas-pinned (free-form) by default — same mechanism
+the form block's "Move form Freeform" button uses (`setWidgetLayout` +
+`addFreeformGallery` when the section has no free canvas; see PageEditor ≈3212).
+"Back to flow" must remain available. Existing docs are untouched — this changes the
+default at creation, not stored content, so no migration.
+
+**C — button customizations: color, shape, outline.** The button block's card should
+offer: fill color + text color (color inputs matching the existing box-color control
+idiom), shape (square / rounded / pill — a corner-radius enum, not a free number),
+and outline (none / outline-only, where outline-only means transparent fill + border in
+the accent color). All optional doc fields — absent means today's rendering,
+byte-for-byte, so untouched docs and every starter publish identically (lock with the
+template-studio byte-clean check). Schema fields in doc-schema.ts + content-schema
+parse/serialize + staticgen must all carry them; remember the enums-are-a-second-copy
+trap (spec 17). Follow DESIGN.md for the controls; reuse existing color-input and
+select components from ui/controls.tsx.
+
+**Verify.** Drive the editor: add button → it's pinned and on top; style it through
+every new control; three-way check (canvas / fullscreen / staticgen publish); publish
+an unmodified starter and diff for byte-identity. `npm run check`, `npm test` (+ new
+tests locking the absent-field = legacy rendering rule). Manifest regen + commit.
+
+**Files.** `src/editor/store.tsx` (insertion + defaults), `src/editor/lib/doc-schema.ts`,
+`src/lib/content-schema.ts` or equivalent parse path, `src/editor/components/PageEditor.tsx`,
+`src/portfolio/PortfolioPage.tsx` + CSS, staticgen. Out of scope: restyling existing
+starters' buttons, new block types, form-block submit button styling.
+
+## 43. Sidebar sizing: ≥ ¼ screen width by default; panel cards fill to the edges — `queued`
+
+Two wasted-space complaints about the editor sidebar (screenshot from William,
+2026-08-12: "Image workbench" and "Page: Home" cards float with dead margins either
+side).
+
+**A — default width ≥ 25% of the screen.** The sidebar defaults to
+`DEFAULT_SIDEBAR_WIDTH` (440px; state in [EditorApp.tsx:360](src/editor/EditorApp.tsx:360),
+CSS var ≈ editor.css:1824). On a 1920px display that's under a quarter. Make the
+*default* (no saved `SIDEBAR_WIDTH_STORE` value) resolve to
+`max(440px, 25vw)`-equivalent, still clamped by `MAX_SIDEBAR_WIDTH` and the existing
+`window.innerWidth - MIN_PREVIEW_WIDTH` guard so small windows and the preview are never
+crushed. A user's saved width always wins — do not stomp stored preferences, and do not
+let a resize ratchet the stored value. Check the spec-26 container-query note: the
+four-column form rows return once the sidebar passes ~465px, so the wider default
+should make dense cards nicer, not break them.
+
+**B — cards fill edge to edge.** The top-level accordion cards ("Image workbench",
+"Page: Home", and siblings across Site/Theme tabs) leave visible gutters against the
+sidebar's left/right edges — wasted space in a panel that's all about density. Reduce
+the horizontal padding/margins so card surfaces run to (or within a few px of) the
+panel edges, per the screenshot. **Verify first**: identify the actual rules (the
+accordion/card wrappers in editor.css) and check every tab plus the workbench, since
+the same wrapper likely serves them all. Keep enough breathing room that the sidebar
+resizer rail (editor.css ≈1837) and card shadows/borders don't collide; keep DESIGN.md
+spacing rhythm inside the cards unchanged — this is about the outer gutter only.
+
+**Verify.** Fresh profile (no localStorage) at 1440 and 1920 → sidebar ≥ 25% and cards
+flush; resize down to the min and confirm nothing clips (spec-15 0x0 hidden-pane trap:
+check the non-active tabs after switching); saved-width profile unaffected. Screenshot
+before/after. `npm run check`, `npm test`. editor.css/EditorApp are hashed → manifest
+regen + commit.
+
+**Files.** `src/editor/EditorApp.tsx`, `src/editor/editor.css`. Out of scope: the
+resizer mechanics (spec 26 owns them), panel content redesign, preview-side layout.
+
+## 41. Plan-card revision: monthly left, lifetime "everything in monthly", trial on both — `merged` (2026-08-12 onto integration/specs-14r-19, commit 129bba5. Order swapped to monthly-left/lifetime-right (DOM order only; CSS is order-agnostic, ≤480px stack follows DOM, verified by measurement). Monthly rows unchanged; SharedFeatures→MonthlyFeatures rendered once on monthly; lifetime card now "All of Monthly" + site and backup downloads + pay once, yours forever. **Item 4 declined on verification**: Polar trials are a recurring-price feature and oauth-proxy/polar.js grants trial access only via trialingSubscription() (subscription.* webhook, status trialing/active) — a one-time lifetime order emits order.paid only, so a trial row would promise access the Worker refuses to grant. Needs a Polar dashboard restructure + a new entitlement path in polar.js if William wants it. Verified in browser at 1440 (fresh/upgrade) and stacked; tests/license-gate-cards.test.ts extended with order, three-row, and trial-claim-vs-worker assertions. npm run check clean, 428 tests, manifest 1.2.29 committed. Probe files left uncommitted for the port-4492 review server (probe lacks a viewport meta, so mobile emulation can't reach the 480px query). Cosmetic note: lifetime's 3 rows vs monthly's 6 leaves whitespace at the card bottom in the 2-up layout — fix if wanted is align-items:start or a fourth lifetime row, a design call.)
+
+Revision of spec 40's license-gate cards, per William's review of the local preview.
+Build ON TOP of `worktree-spec-40-plan-cards` (continue that branch or branch from it —
+do not redo spec 40 from integration).
+
+**Changes:**
+1. **Order: Monthly ($10) LEFT, Lifetime ($99) RIGHT** — cheap-to-premium left-to-right,
+   Framer-style (Basic → Pro). Keep lifetime as the default `selectedPlan` and keep the
+   selected-ring/`aria-pressed` behavior; only the visual/DOM order swaps. Check the
+   narrow (≤480px) stacked layout still reads monthly-then-lifetime, and that the
+   upgrade mode (monthly disabled, "current plan") still makes sense with the disabled
+   card first.
+2. **Monthly card copy stays as spec 40 built it** — no changes to its rows.
+3. **Lifetime card rows become "everything in monthly" + its extras**: replace the four
+   shared rows on the lifetime card with a single first row reading
+   **"All of Monthly"** (or "Everything in Monthly access" — pick what fits one line),
+   then **Site and backup downloads**, then **Pay once, yours forever**. Drop the
+   `SharedFeatures` duplication from the lifetime card (monthly keeps its full list —
+   it is now the base plan being referenced). This keeps positive framing: the lifetime
+   card only ever says what it includes.
+4. **3-day free trial on lifetime too.** VERIFY BEFORE claiming it in UI: the monthly
+   trial exists because the Polar *subscription* product carries `monthlyTrialDays`
+   (src/lib/pricing.ts) — a Polar one-time (lifetime) purchase may not support trials
+   at all. Check how checkout is created (`src/editor/lib/polar-checkout.ts`, the
+   Worker's checkout endpoint in oauth-proxy/) and whether Polar one-time products can
+   carry a trial. **If Polar cannot give a one-time purchase a free trial, DO NOT put a
+   trial row on the lifetime card — stop, leave the copy honest (the 14-day refund line
+   already exists in the footer), and report the constraint** so William can decide
+   (e.g. restructure the lifetime product in the Polar dashboard — which is manual,
+   Polar's dashboard has no API for this). If it IS supportable, add the same
+   "First 3 days free" row + caveat sub-line to lifetime and make sure the CTA copy
+   ("Go live free for N days") logic covers both plans.
+
+**Verify.** Re-drive the three modal states in the browser (fresh, unlock, upgrade),
+light + dark, 1440 + ≤480px. Update `tests/license-gate-cards.test.ts` for the new
+order/rows (downloads still exactly once, no negative framing, no hardcoded price).
+`npm run check`, `npm test`, `npm run runtime:generate` + commit manifest. Delete the
+uncommitted probe files if they'd otherwise be committed (`src/pages/gate-probe.astro`,
+`src/editor/GateProbe.tsx`) — but leave them in the working tree for William's review
+server on port 4492.
+
+**Files.** `src/editor/components/LicenseGateModal.tsx`, `src/editor/editor.css`,
+`tests/license-gate-cards.test.ts`, manifest. Out of scope: pricing.ts values, Polar
+dashboard changes, PublishPanel copy, Landing.astro.
