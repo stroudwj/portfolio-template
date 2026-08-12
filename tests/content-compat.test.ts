@@ -230,6 +230,19 @@ describe('content compatibility', () => {
 		expect((content as unknown as Record<string, unknown>).customRoot).toEqual({ kept: true });
 	});
 
+	// Spec 36 (audit row E6): a page label the artist cleared must stay cleared —
+	// backfilling the page key here is what published a sub-page card as a slug.
+	it('keeps an emptied page label empty and only backfills a missing one', () => {
+		const raw = fixture('content-v0.json') as Record<string, unknown>;
+		const pages = raw.pages as Record<string, Record<string, unknown>>;
+		pages.work.label = ''; // cleared by the artist
+		delete pages.bio.label; // never had one (pre-label document)
+		const content = parseAndMigrateContent(raw);
+
+		expect(content.pages.work.label).toBe('');
+		expect(content.pages.about.label).toBeTruthy();
+	});
+
 	it('is idempotent and rejects content from a future editor', () => {
 		const once = parseAndMigrateContent(fixture('content-v0.json'));
 		expect(parseAndMigrateContent(once)).toEqual(once);

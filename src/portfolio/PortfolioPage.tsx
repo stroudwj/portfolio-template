@@ -441,7 +441,10 @@ export default function PortfolioPage({
 		(block.items ?? (config.children ?? []).map((key): ChildPageItem => ({ id: key, page: key }))).map((item) => ({
 			id: item.id,
 			key: item.page,
-			label: item.label || content.pages[item.page]?.label || item.page,
+			// Spec 36 (rows E6a/E6b): a card the artist has never named borrows its
+			// sub-page's menu name; a card whose text they cleared stays cleared. The
+			// raw page key is never shown — a slug is plumbing, not the artist's words.
+			label: item.label ?? content.pages[item.page]?.label ?? '',
 			href: withBase(base, `${item.page}/`),
 			thumbSrc: pageThumbs?.[item.page],
 			layout: item.layout,
@@ -820,10 +823,12 @@ export default function PortfolioPage({
 				);
 			}
 			case 'about': {
-				// Spec 36 (audit row E8): `??`, not `||` — a label the artist cleared is a
-				// deliberate empty, and an unlabelled link is worse than no link, so the
-				// résumé link is dropped rather than relabelled with the default.
-				const resumeLabel = content.resume?.label ?? 'Résumé';
+				// Spec 36 (row E8): the résumé link wears the artist's own label. An
+				// emptied label removes the link instead of falling back to the
+				// template's word — a link with no text is nothing to announce. (A
+				// document from before the label field existed has none at all; that
+				// still gets the historical default so its link keeps working.)
+				const resumeLabel = (content.resume?.label ?? 'Résumé').trim();
 				const resume =
 					resumeLabel && (resumeHref || (content.resume && content.resume.url))
 						? { label: resumeLabel, href: resumeHref ?? withBase(base, content.resume.url) }
@@ -1441,7 +1446,7 @@ export default function PortfolioPage({
 			{(content.site.footer ||
 				content.site.footerImage ||
 				content.site.footerName ||
-				content.site.footerColumns?.length) && (
+				!!content.site.footerColumns?.length) && (
 				<Footer
 					text={content.site.footer ?? ''}
 					imageSrc={content.site.footerImage ? (/^(?:blob:|data:|https?:|\/)/i.test(content.site.footerImage) ? content.site.footerImage : withBase(base, `assets/${content.site.footerImage}`)) : undefined}

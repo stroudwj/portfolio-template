@@ -20,6 +20,7 @@ import type {
 	ResolvedImage,
 	TextLayout,
 } from './types';
+import { imageViewerLabel } from './imageViewerLabel';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import type { ArtworkMount } from '../lib/content';
@@ -959,7 +960,7 @@ export default function Gallery({
 							aria-label={
 								activeCarouselHref
 									? undefined
-									: `Open ${activeCarouselEntry.img.title || activeCarouselEntry.img.alt || alt} in image viewer`
+									: imageViewerLabel(activeCarouselEntry.img.title, activeCarouselEntry.img.alt, alt)
 							}
 							style={{
 								objectPosition: `${
@@ -1120,7 +1121,7 @@ export default function Gallery({
 													aria-haspopup={!editable && !href ? 'dialog' : undefined}
 													aria-label={
 														!editable && !href
-															? `Open ${img.title || img.alt || alt} in image viewer`
+															? imageViewerLabel(img.title, img.alt, alt)
 															: undefined
 													}
 													style={{
@@ -1206,7 +1207,7 @@ export default function Gallery({
 									aria-haspopup={!editable && !href ? 'dialog' : undefined}
 									aria-label={
 										!editable && !href
-											? `Open ${img.title || img.alt || alt} in image viewer`
+											? imageViewerLabel(img.title, img.alt, alt)
 											: undefined
 									}
 									style={nativeCropStyle(img)}
@@ -1284,7 +1285,7 @@ export default function Gallery({
 									role={href ? undefined : 'button'}
 									tabIndex={href ? undefined : 0}
 									aria-haspopup={href ? undefined : 'dialog'}
-									aria-label={href ? undefined : `Open ${img.title || img.alt || alt} in image viewer`}
+									aria-label={href ? undefined : imageViewerLabel(img.title, img.alt, alt)}
 									style={nativeCropStyle(img)}
 									onError={
 										img.sample

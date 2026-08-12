@@ -167,6 +167,10 @@ function blankEveryString(content: Content): Content {
 	if (content.resume) content.resume.label = ''; // AboutContentEditor "Résumé link text" → setResumeLabel()
 	if (content.store) content.store.products = []; // StoreEditor → removeProduct()
 	content.nav = content.nav.map((item) => ({ ...item, label: '' })); // PageSettingsModal → page label
+	// Spec 36 row E8 — AboutContentEditor's résumé label field. The link only
+	// renders once a résumé is attached, so keep (or invent) a URL: the finding is
+	// that an emptied label must publish no link rather than the word "Résumé".
+	if (content.resume) content.resume = { label: '', url: content.resume.url || 'resume.pdf' };
 
 	for (const folder of Object.keys(content.galleries)) {
 		for (const item of Object.values(content.galleries[folder].items)) {

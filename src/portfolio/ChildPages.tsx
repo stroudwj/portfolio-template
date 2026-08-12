@@ -71,7 +71,7 @@ export default function ChildPages({
 							suppressContentEditableWarning
 							spellCheck={false}
 							role="textbox"
-							aria-label={`Card text for ${item.label}`}
+							aria-label={item.label ? `Card text for ${item.label}` : 'Card text'}
 							title="Click to edit this card’s text"
 							// Editing must not follow the link or start a widget drag.
 							onClick={(e) => {
@@ -89,6 +89,9 @@ export default function ChildPages({
 									(e.currentTarget as HTMLElement).blur();
 								}
 							}}
+							// Spec 36 (row E6b): an emptied label commits like any other edit —
+							// the card then carries no text at all rather than snapping back to
+							// the words the template shipped.
 							onBlur={(e) => {
 								// An empty value is a real edit: spec 36 (audit row E6b) — a card
 								// label the artist clears must stay cleared, not snap back to the
