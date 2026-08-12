@@ -2198,7 +2198,37 @@ tests locking the absent-field = legacy rendering rule). Manifest regen + commit
 `src/portfolio/PortfolioPage.tsx` + CSS, staticgen. Out of scope: restyling existing
 starters' buttons, new block types, form-block submit button styling.
 
-## 44. Sidebar sizing: ≥ ¼ screen width by default; panel cards fill to the edges — `running` (2026-08-12)
+## 44. Sidebar sizing: ≥ ¼ screen width by default; panel cards fill to the edges — `merged` (2026-08-12)
+
+**Result.** A: added `defaultSidebarWidth()` = `max(440px, 25% × innerWidth)`, used by the
+initial state and by the resizer's double-click reset; existing MAX/MIN and
+`innerWidth - MIN_PREVIEW_WIDTH` clamps still apply on top, and the default is never
+written to storage. `.editor-controls`' CSS fallback became `max(440px, 25vw)` so the
+pre-hydration paint is already correct. **Recon found the stated premise was wrong in the
+user's favor-of-severity**: `localStorage.getItem` returns `null`, `Number(null)` is `0`,
+and `Number.isFinite(0)` is true — so the old guard treated "no saved value" as a saved
+`0` and a fresh profile actually opened at **320px (MIN), not the documented 440px**. Fixed
+by null-checking the raw string and requiring a positive finite number.
+B: the gutter was `.editor-controls { padding: 12px 16px 16px }`; now `12px 5px 16px`, with
+`.editor-tabs`' compensating `margin: -12px -16px` → `-12px -5px` and its padding
+`16px` → `5px` so the sticky bar still spans the panel and its chips stay aligned with the
+card edges. Card-internal padding (`.editor-section { padding: 14px 16px }`) untouched, so
+DESIGN.md's inner rhythm is unchanged; 5px clears the resizer rail (which reaches 4px inward).
+
+**Verified** in a worktree `astro dev` (port 4479), fresh localStorage, through the real
+intake. 1920px: sidebar 480px = 25.0%, stored value `null` (no ratchet). 1440px: 440px floor
+(25% would be 360). Measured card gaps on **all five tabs** after switching (spec-15 hidden-pane
+trap) — every top-level `.editor-section` sits 5px from both edges, `scrollWidth - clientWidth`
+= 0 everywhere. Saved-width profile: stored `380` still renders 380 on a 1920 display and is
+not raised. At the 320px minimum, no element on any tab escapes the sidebar box. `npm run
+check` (0 errors), `npm test` (428/428), manifest regenerated (runtime 1.2.29, 240 files).
+
+**Noted in passing.** The container queries are `max-width`-based and measure the content
+box, which the thinner gutter widened by 22px — at the new 480px default the content box is
+470px, so spec 26's four-column form rows come back (past the ~465px threshold), which is the
+outcome this spec wanted. The `innerWidth - MIN_PREVIEW_WIDTH` clamp is now effectively dead
+code on desktop: it only binds below ~800px, where the `max-width: 800px` media query already
+makes the sidebar full-width and hides the preview. Harmless, but not the guard it reads as.
 
 Two wasted-space complaints about the editor sidebar (screenshot from William,
 2026-08-12: "Image workbench" and "Page: Home" cards float with dead margins either

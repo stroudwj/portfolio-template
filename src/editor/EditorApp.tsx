@@ -62,6 +62,19 @@ const DEFAULT_SIDEBAR_WIDTH = 440;
 const MIN_SIDEBAR_WIDTH = 320;
 const MIN_PREVIEW_WIDTH = 360;
 const MAX_SIDEBAR_WIDTH = 720;
+/** Fraction of the window the sidebar claims by default on wide displays. */
+const DEFAULT_SIDEBAR_RATIO = 0.25;
+/**
+ * The width a profile with no saved preference starts at: never below the 440px
+ * floor, and at least a quarter of the window so a 1920px display doesn't leave
+ * the editing column looking like a strip. Clamping (MAX_SIDEBAR_WIDTH, the
+ * MIN_PREVIEW_WIDTH guard) still applies on top of this. Not persisted — a
+ * default must never ratchet into a stored preference.
+ */
+const defaultSidebarWidth = () =>
+	typeof window === 'undefined'
+		? DEFAULT_SIDEBAR_WIDTH
+		: Math.round(Math.max(DEFAULT_SIDEBAR_WIDTH, window.innerWidth * DEFAULT_SIDEBAR_RATIO));
 type UiTheme = 'warm' | 'light' | 'dark' | 'contrast';
 interface UiCustomization {
 	enabled: boolean;
@@ -359,8 +372,12 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 	const [uiCustom, setUiCustom] = useState<UiCustomization>(loadUiCustomization);
 	const [sidebarWidth, setSidebarWidth] = useState(() => {
 		if (typeof window === 'undefined') return DEFAULT_SIDEBAR_WIDTH;
-		const saved = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORE));
-		const preferred = Number.isFinite(saved) ? saved : DEFAULT_SIDEBAR_WIDTH;
+		// getItem returns null when unset and Number(null) is 0 — a finite number that
+		// used to pass the guard below and collapse a fresh profile to MIN_SIDEBAR_WIDTH.
+		// Only a stored, positive, finite number counts as a saved preference.
+		const stored = window.localStorage.getItem(SIDEBAR_WIDTH_STORE);
+		const saved = stored === null ? Number.NaN : Number(stored);
+		const preferred = Number.isFinite(saved) && saved > 0 ? saved : defaultSidebarWidth();
 		return Math.min(
 			Math.max(preferred, MIN_SIDEBAR_WIDTH),
 			MAX_SIDEBAR_WIDTH,
@@ -784,7 +801,7 @@ function Shell({ base, studio }: { base: string; studio: TemplateStudioIntent | 
 					aria-valuenow={sidebarWidth}
 					tabIndex={0}
 					onPointerDown={startSidebarResize}
-					onDoubleClick={() => saveSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+					onDoubleClick={() => saveSidebarWidth(defaultSidebarWidth())}
 					onKeyDown={(event) => {
 						if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 							event.preventDefault();
