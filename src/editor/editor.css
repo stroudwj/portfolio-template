@@ -1821,15 +1821,21 @@ body.workbench-window-open .floating-add-block {
 	min-height: 0;
 }
 .editor-controls {
-	width: var(--editor-sidebar-width, 440px);
-	flex: 0 0 var(--editor-sidebar-width, 440px);
+	/* Fallback matches EditorApp's defaultSidebarWidth() so the pre-hydration paint
+	   is already the right width instead of snapping in. */
+	width: var(--editor-sidebar-width, max(440px, 25vw));
+	flex: 0 0 var(--editor-sidebar-width, max(440px, 25vw));
 	overflow-y: auto;
 	overflow-x: hidden;
 	overscroll-behavior: contain;
 	container-type: inline-size;
 	/* Top padding matches the preview toolbar's 12px margin so the tab row and the
 	   Desktop/Phone/Guides row start at the same height. */
-	padding: 12px 16px 16px;
+	/* Outer gutter only: section cards run to within a few px of the panel edges so
+	   a density-first panel spends its width on controls, not margin. The 5px keeps
+	   card borders/shadows off the sidebar resizer rail (which reaches 4px inward)
+	   and off the scrollbar. Spacing *inside* the cards is unchanged. */
+	padding: 12px 5px 16px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
@@ -1875,10 +1881,12 @@ body.workbench-window-open .floating-add-block {
 	display: flex;
 	flex-wrap: nowrap;
 	gap: 4px;
-	margin: -12px -16px 8px;
+	/* Negative margin cancels .editor-controls' horizontal padding so the sticky bar's
+	   background spans the full panel; its own padding restores the tab row's inset. */
+	margin: -12px -5px 8px;
 	/* Small top padding lines the first tab row up with the preview toolbar; the
 	   roomier bottom padding keeps the editing controls from crowding the tabs. */
-	padding: 4px 16px 14px;
+	padding: 4px 5px 14px;
 	background: var(--paper);
 	border-bottom: 1px solid var(--wall-2);
 	/* Own compositing layer so the opaque background paints crisply above scrolled
