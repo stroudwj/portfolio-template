@@ -229,6 +229,18 @@ a {
 	padding: clamp(24px, 4vw, 52px);
 }
 
+/* Funnel: an operator table, deliberately plain. Its own width so the ref columns
+   can scroll without dragging the account tables' minimum width along with them. */
+.admin-funnel {
+	padding-bottom: 32px;
+	margin-bottom: 32px;
+	border-bottom: 1px solid var(--admin-line);
+}
+
+.admin-funnel .admin-table-wrap table {
+	min-width: 640px;
+}
+
 .admin-search-panel {
 	display: grid;
 	grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);

@@ -35,6 +35,7 @@ import {
 	showPreviewPage,
 } from './components/ui/controls';
 import { shouldResumePublish } from './lib/polar-checkout';
+import { funnelStep } from '../lib/funnel';
 import { consumeReturnToEditorAfterAuth, hasSignInReturnParams } from './lib/account/flow';
 import { usePhoneContext } from './lib/device';
 import { collectIssues } from './lib/validation';
@@ -860,6 +861,8 @@ export default function EditorApp({ base = '' }: { base?: string }) {
 	// Resolved once per page load; the query param stays in the URL so a reload
 	// re-enters the same studio session.
 	const [studio] = useState(studioIntentFromLocation);
+	// Funnel step 2 of 7 — the editor was opened. Once per tab session, product site only.
+	useEffect(() => funnelStep('editor'), []);
 	return (
 		<EditorProvider persistence={studio ? 'memory' : 'browser'}>
 			{!studio && <CheckoutIntent />}

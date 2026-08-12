@@ -31,6 +31,7 @@ import CustomDomainModal from './CustomDomainModal';
 import Portfolio from '../../portfolio/Portfolio';
 import { docToPortfolioData } from '../lib/content-init';
 import { samplePublishImpact, stripSamplesForPublish } from '../lib/sample-publish';
+import { funnelStep } from '../../lib/funnel';
 import type { EditorDoc } from '../lib/types';
 
 type Phase = 'configure' | 'samples' | 'publishing' | 'success' | 'error';
@@ -117,6 +118,9 @@ export default function PublishModal({ account, onClose }: { account: AccountSes
 			setSaved(loadSiteInfo());
 			clearSiteNameDraft(accountId);
 			setPhase('success');
+			// Funnel step 5 of 7 — a publish actually succeeded. Counted here rather than
+			// in PublishPanel because this is the only place success is known.
+			funnelStep('publish');
 			void account.refresh(); // the summary now knows the site/subdomain
 		} catch (err) {
 			if (err instanceof AccountError && err.code === 'name_taken') setNameState('taken');

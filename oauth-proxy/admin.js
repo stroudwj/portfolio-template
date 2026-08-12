@@ -8,6 +8,8 @@
 //   /admin/licenses/grant    — add a manual entitlement (never edits paid purchase rows)
 //   /admin/licenses/revoke   — revoke a manual entitlement
 //   /admin/sites/status      — suspend or restore a published site
+//
+// GET /admin/funnel (funnel.js) reuses this file's requireAdmin gate.
 
 import { json, readJson } from './lib/http.js';
 import { sessionUser } from './auth.js';
@@ -40,7 +42,8 @@ export function isAdminUser(user, env) {
 		(Boolean(user.google_sub) && googleSubjects.includes(user.google_sub));
 }
 
-async function requireAdmin(request, env) {
+/** The allowlist gate every operator route (here and in funnel.js) passes through. */
+export async function requireAdmin(request, env) {
 	if (!env.SESSION_SECRET || !env.DB) return { error: 'accounts_unconfigured', status: 503 };
 	if (!configuredValues(env.ADMIN_EMAILS).length && !configuredValues(env.ADMIN_GOOGLE_SUBS).length) {
 		return { error: 'admin_unconfigured', status: 503 };

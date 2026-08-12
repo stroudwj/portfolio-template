@@ -14,6 +14,7 @@ import { getSession } from '../lib/account/session';
 import { SITES_ROOT_DOMAIN, slugifySiteName, subdomainFor } from '../lib/github/subdomain';
 import { downloadEditorBackup, importEditorBackup, readEditorBackup } from '../lib/backup';
 import { saveNamedVersion } from '../lib/persistence';
+import { funnelStep } from '../../lib/funnel';
 import SignInModal from './SignInModal';
 import LicenseGateModal from './LicenseGateModal';
 import PublishModal from './PublishModal';
@@ -67,10 +68,16 @@ export default function PublishPanel() {
 	// paid-but-empty just waits for content (no payment prompt).
 	const built = hasPublishableContent(doc);
 	const unlocked = account.licensed;
+	// Funnel step 6 of 7 — the plan gate became visible (from Publish, or from the
+	// quiet pay-upfront path). Once per tab session.
+	const openLicenseGate = (context: 'publish' | 'unlock') => {
+		funnelStep('paywall');
+		setShowLicense(context);
+	};
 	const onPublishClick = () => {
 		if (!built) return;
 		if (!signedIn) setShowSignIn(true);
-		else if (!unlocked) setShowLicense('publish');
+		else if (!unlocked) openLicenseGate('publish');
 		else setShowPublish(true);
 	};
 
@@ -274,7 +281,7 @@ export default function PublishPanel() {
 						<button
 							type="button"
 							className="btn-secondary"
-							onClick={() => (signedIn ? setShowLicense('unlock') : setShowSignIn(true))}
+							onClick={() => (signedIn ? openLicenseGate('unlock') : setShowSignIn(true))}
 						>
 							Unlock now…
 						</button>
@@ -290,7 +297,7 @@ export default function PublishPanel() {
 				{account.plan === 'monthly' && (
 					<p className="muted license-lock-note">
 						Upgrade to lifetime for {monthlyUpgradeCreditText} off. The credit is applied automatically at checkout.{' '}
-						<button type="button" className="link-button" onClick={() => setShowLicense('unlock')}>
+						<button type="button" className="link-button" onClick={() => openLicenseGate('unlock')}>
 							Upgrade now…
 						</button>
 					</p>
@@ -340,7 +347,7 @@ export default function PublishPanel() {
 							{exportState === 'exporting' ? 'Preparing your files…' : 'Download my site (zip)'}
 						</button>
 					) : (
-						<button type="button" className="btn-secondary" onClick={() => (signedIn ? setShowLicense('unlock') : setShowSignIn(true))}>
+						<button type="button" className="btn-secondary" onClick={() => (signedIn ? openLicenseGate('unlock') : setShowSignIn(true))}>
 							Get lifetime access…
 						</button>
 					)}

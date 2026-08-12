@@ -27,6 +27,8 @@
 //   POST /admin/accounts/search|get   — allowlisted account inspection
 //   POST /admin/licenses/grant|revoke — audited manual entitlement changes
 //   POST /admin/sites/status          — audited site suspension/restoration
+//   POST /funnel/event                — anonymous product-site funnel step (counts only)
+//   GET  /admin/funnel                — funnel aggregates + D1 purchases (allowlisted)
 //
 // Legacy GitHub routes (all POST, kept only for the optional mirror flow):
 //   /                 — exchange { code } for an access token
@@ -70,6 +72,7 @@ import {
 } from './admin.js';
 import { publish, upload, publishComplete } from './publish.js';
 import { siteAnalytics } from './analytics.js';
+import { adminFunnel, funnelEvent } from './funnel.js';
 import { polarCheckoutCreate, polarCheckoutStatus, polarWebhook } from './polar.js';
 import {
 	subdomainCheck,
@@ -126,6 +129,7 @@ export default {
 		if (request.method === 'GET') {
 			if (path === '/site/export') return exportSite(request, env, corsOrigin);
 			if (path === '/site/analytics') return siteAnalytics(request, env, corsOrigin);
+			if (path === '/admin/funnel') return adminFunnel(request, env, corsOrigin);
 			return json({ error: 'method_not_allowed' }, 405, corsOrigin);
 		}
 		if (request.method !== 'POST') {
@@ -138,6 +142,7 @@ export default {
 		if (path === '/auth/google') return google(request, env, corsOrigin);
 		if (path === '/auth/session') return session(request, env, corsOrigin);
 		if (path === '/auth/test-access/redeem') return testAccessRedeem(request, env, corsOrigin);
+		if (path === '/funnel/event') return funnelEvent(request, env, corsOrigin);
 		if (path === '/checkout/polar') return polarCheckoutCreate(request, env, corsOrigin, origin);
 		if (path === '/checkout/polar/status') return polarCheckoutStatus(request, env, corsOrigin);
 		if (path === '/admin/session') return adminSession(request, env, corsOrigin);

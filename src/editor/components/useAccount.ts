@@ -18,6 +18,7 @@ import { isAccountsConfigured, isGoogleConfigured } from '../lib/account/config'
 import { clearSiteInfo } from '../lib/account/site-store';
 import { completePolarCheckoutReturn, getPolarCheckoutStatus } from '../lib/polar-checkout';
 import { maybeSendPostPurchaseEmail } from '../lib/handoff';
+import { funnelStep } from '../../lib/funnel';
 
 export type AccountStatus = 'checking' | 'signed-out' | 'signed-in';
 
@@ -60,6 +61,9 @@ export function useAccount({ returnToEditorAfterGoogle = false }: { returnToEdit
 	const [error, setError] = useState<string | null>(null);
 
 	const applySummary = useCallback((summary: AccountSummary) => {
+		// Funnel step 4 of 7 — a session is established (fresh sign-in or a stored one
+		// validated). Once per tab session; no identity leaves the browser.
+		funnelStep('signin');
 		setUser(summary.user);
 		setLicensed(summary.licensed);
 		setPlan(summary.plan ?? null);

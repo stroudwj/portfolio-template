@@ -1,5 +1,6 @@
 import { AccountClient } from '../lib/account/client';
 import { getSession } from '../lib/account/session';
+import { funnelStep } from '../../lib/funnel';
 
 export type PolarCheckoutStatus = 'open' | 'expired' | 'confirmed' | 'succeeded' | 'failed';
 export type HangworkPlan = 'lifetime' | 'monthly';
@@ -13,6 +14,9 @@ function client() {
 }
 
 export async function startPolarCheckout(plan: HangworkPlan): Promise<void> {
+	// Funnel step 7 of 7 — checkout started. The purchase itself is never beaconed:
+	// the Polar webhook records it in D1, which the dashboard reads instead.
+	funnelStep('checkout');
 	const { data } = await client().request<{ url: string }>('/checkout/polar', {
 		body: { plan },
 	});
