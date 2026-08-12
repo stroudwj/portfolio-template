@@ -54,6 +54,21 @@ const PRODUCT_CHROME = [
 	// control's function, not to template copy (it used to read "Open  in image
 	// viewer", with a hole where the words had been).
 	'assistive: Open image in image viewer',
+	// E4 remainder — ContactForm.tsx chrome that is deliberately not an artist's to
+	// remove: the CSS-hidden, aria-hidden honeypot label (editable words would
+	// weaken the spam trap) and the form's accessible name when its heading is
+	// blank, functional chrome of the same class as the hamburger label.
+	'visible: Leave this field empty',
+	'assistive: Contact form',
+	// E5-aria — Gallery.tsx carousel arrows and their aria labels. Functional
+	// chrome, kept; the wording remains William's open product decision (the
+	// visible "1 / 4" counter is NOT here — the "Number count" checkbox turns it
+	// off and the harness uses it).
+	'visible: ‹',
+	'visible: ›',
+	'assistive: carousel',
+	'assistive: Show previous image',
+	'assistive: Show next image',
 ];
 
 /** Survivors of the structure pass. Identical for all fourteen starters AND for blank. */
@@ -61,29 +76,11 @@ const BASELINE_STRUCTURE = [...PRODUCT_CHROME];
 
 /** Survivors of the fields pass, per starter. Everything here is renderer-supplied. */
 const BASELINE_FIELDS: Record<string, string[]> = {
+	// Spec 36 closed every per-starter row: what each starter's fields pass leaves
+	// behind is now exactly the accepted product chrome above, nothing else. A new
+	// entry here means a new fallback crept into the renderer — fix it, don't
+	// baseline it.
 	__default__: [...PRODUCT_CHROME],
-	// ContactForm.tsx chrome that is still not an artist's to remove. Spec 36's
-	// form-fields chunk closed the submit label, the "Required" marker and the
-	// unavailable sentence (they are block fields now); what is left is the
-	// CSS-hidden, aria-hidden honeypot label — editable words would weaken the
-	// spam trap — and the form's accessible name when its heading is blank, which
-	// is functional chrome of the same class as E3's "Open site navigation".
-	conservatory: [
-		'visible: Leave this field empty',
-		'assistive: Contact form',
-	],
-	// Gallery.tsx carousel chrome: the arrows and their aria labels. Functional
-	// chrome, kept by William's product decision. The visible "1 / 4" counter (and
-	// the aria label on the same element) is gone from this baseline: spec 36
-	// confirmed the "Number count" checkbox in Carousel settings turns it off, and
-	// the harness now uses it.
-	photographer: [
-		'visible: ‹',
-		'visible: ›',
-		'assistive: carousel',
-		'assistive: Show previous image',
-		'assistive: Show next image',
-	],
 };
 
 const STRICT = process.env.HARNESS_STRICT === '1';

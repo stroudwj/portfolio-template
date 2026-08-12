@@ -7,6 +7,6 @@ import { defineConfig, defaultExclude } from 'vitest/config';
 // how many worktrees happen to exist).
 export default defineConfig({
 	test: {
-		exclude: [...defaultExclude, '.claude/worktrees/**'],
+		exclude: [...defaultExclude, '.claude/worktrees/**', '.claude-worktrees/**'],
 	},
 });
