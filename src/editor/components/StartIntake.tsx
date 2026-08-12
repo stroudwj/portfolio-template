@@ -4,6 +4,7 @@
 // (sort-it-here) or straight onto the wall, and whether the crop & light
 // tools get pointed out. Skippable at every step; no answer is wasted.
 import { useState } from 'react';
+import { funnelStep } from '../../lib/funnel';
 import { starterShotUrl, type StarterRecipe } from '../lib/templates';
 import { BlockIcon } from './ui/block-icons';
 import { PanelIcon } from './ui/panel-icons';
@@ -39,8 +40,9 @@ export default function StartIntake({
 	const [workflow, setWorkflow] = useState<'pile' | 'organized'>('pile');
 	const [finishing, setFinishing] = useState(false);
 
-	const finish = (overrides?: Partial<IntakeAnswers>) =>
-		onComplete({
+	const finish = (overrides?: Partial<IntakeAnswers>) => {
+		funnelStep('intake');
+		return onComplete({
 			starter,
 			name: name.trim(),
 			series: seriesText
@@ -52,6 +54,7 @@ export default function StartIntake({
 			finishing,
 			...overrides,
 		});
+	};
 
 	const header = (title: string, lead: string) => (
 		<header className="intake-head">

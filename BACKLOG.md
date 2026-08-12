@@ -1786,7 +1786,71 @@ changes, motion/vocabulary changes beyond repointing the legacy references.
 
 ---
 
-## 38. First-party funnel analytics for hangwork.art (UGC attribution + drop-off) — `queued`
+## 38. First-party funnel analytics for hangwork.art (UGC attribution + drop-off) — `built` (2026-08-12 on `worktree-spec-38-funnel`, branched from integration/specs-14r-19 @678d423; not merged, not pushed, nothing deployed)
+
+**Recon confirmed the premise.** `rg -ni "funnel" src/ oauth-proxy/` found only two prose
+matches in `SOURCES.md` and one in `lib/db.js`; `analytics|beacon` in `Landing.astro` /
+`editor.astro` found nothing. The product site had zero funnel instrumentation, so this is
+new build, not an improvement pass. The per-artist analytics (`Analytics.tsx` →
+`/__hangwork/event` → site-server) was used only as a pattern and is untouched.
+
+**Shipped.** New `oauth-proxy/lib/funnel-contract.js` (+ `.d.ts`) is the single definition of
+the step enum, the ref sanitizer and `funnelRefFromParams`, imported by BOTH the Worker
+(`oauth-proxy/funnel.js`) and the browser (`src/lib/funnel.ts`) — dependency-free ESM so
+wrangler and Vite can each consume it, with the `.d.ts` giving TypeScript the `FunnelStep`
+union without a second copy of the list. `src/lib/funnel.ts` splits into a testable pure core
+(`reportFunnelStep(step, environment)`) and the browser wiring, gated on `IS_PRODUCT_SITE`
+with a `sessionStorage` once-per-step guard and a sticky `hangwork:funnel-ref`. Seven call
+sites: `Landing.astro` (a processed `<script>` importing the module — no inline copy),
+`EditorApp` mount, `StartIntake.finish()`, `useAccount.applySummary` (the session-established
+seam), `PublishPanel.openLicenseGate()` (a new helper all three plan-gate openers now route
+through), `polar-checkout.startPolarCheckout`, and **`PublishModal`** for `publish` —
+deliberately not PublishPanel as the spec's file list suggested, because `setPhase('success')`
+is the only place a successful publish is actually known. Worker: `POST /funnel/event`
+(anonymous, CORS-allowlisted, strict enum + re-sanitized ref + body cap) aggregating into
+`funnel:<YYYY-MM>` KV, and `GET /admin/funnel` behind `requireAdmin` (now exported from
+`admin.js`) returning six periods plus per-month `polar_orders` counts. New funnel panel in
+`src/admin/AdminApp.tsx` + `admin.css`.
+
+**Two things found by verifying in a real browser, not by tests.** (1) `navigator.sendBeacon`
+always sends credentials mode `include`, so a `application/json` Blob triggers a preflight
+that demands `Access-Control-Allow-Credentials: true` — which the Worker's shared `cors()`
+helper does not send and should not start sending. Chrome blocked the first beacon outright
+(`net::ERR_FAILED`). Fixed by sending the Blob as `text/plain;charset=UTF-8`, which is
+CORS-safelisted and needs no preflight; the Worker reads `request.text()` + `JSON.parse`, so
+the declared type costs nothing. **Anyone adding another cross-origin beacon here will hit the
+same wall.** (2) Rendering the table in the spec's enum order put `publish` above `paywall`
+and produced a **-129% drop-off**. The enum stays exactly as specified (it is an unordered set
+on the wire); the dashboard applies its own `FUNNEL_ROW_ORDER` (landing → editor → intake →
+signin → paywall → checkout → purchases → published) and prints a dash instead of a negative
+number, because the steps are not nested subsets — a licensed artist publishes without ever
+seeing the plan gate.
+
+**Verified.** In-browser against a local stub API (worktree `astro dev` on 4399, stub on 8788):
+a load of `/?ref=TT-Video-3` POSTs exactly `{"step":"landing","ref":"tt-video-3"}`; an untagged
+reload sends nothing (guard); navigating to `/editor` with no query string sends
+`{"step":"editor","ref":"tt-video-3"}` (sticky attribution). Operator console screenshotted with
+seeded data and with an empty month — drop-off column reads sanely and a `direct` column is
+always present. `tests/funnel.test.ts` (14 tests) covers sanitizer edges (junk/empty/non-string/
+400-char/HTML → `direct` or capped), ref precedence (`ref` > `utm_source[/utm_content]` >
+`direct`), enum closure, the once-per-session guard, unknown-step rejection without burning the
+guard, private-mode storage throwing, ingest aggregation, 400/403/413 rejection paths, a
+"no identity/UA/IP/referrer reaches KV" assertion, the admin 401/403 gates, and the safety net:
+staticgen output for a published site contains no `/funnel/event` or `hangwork:funnel-ref`.
+Stronger evidence for that last one: `HANGWORK_IS_PRODUCT_SITE=false npm run build` emits the
+string nowhere in `dist/` at all — Vite tree-shakes the whole beacon behind the compile-time
+`IS_PRODUCT_SITE` false.
+
+**Gate green:** `npm run check` (0 errors), `npm test` (41 files / 419 tests), `npm run
+build:product`, manifest regenerated + committed (240 files, runtime 1.2.29). Landing.astro's
+edit is a single appended `<script>` block, so a spec-37 rebase is trivial.
+
+**Deploy (William's, both still pending):** `wrangler deploy` in `oauth-proxy/` for the Worker
+half (no new binding or secret — reuses KV + D1) and a `main` push for the client half. Until
+the Worker ships, the beacon POSTs 404 and is swallowed silently, which is by design.
+Documented in `oauth-proxy/README.md`. **Known and accepted:** the KV read-modify-write race
+loses the occasional count under concurrency (same race the site-server handler accepts); a
+new ref beyond 200 per step per month folds into `other`; counts are tab sessions, not people.
 
 William starts UGC marketing soon (2026-08-11) and needs to see (a) which funnel step
 loses people and (b) which UGC post sent them. The product site has **zero** analytics

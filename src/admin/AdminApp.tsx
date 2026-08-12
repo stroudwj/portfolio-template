@@ -111,6 +111,36 @@ interface AccountDetail {
 	audit: AuditDetail[];
 }
 
+/** One month of funnel aggregates from GET /admin/funnel (KV counts + D1 purchases). */
+interface FunnelPeriod {
+	period: string;
+	refs: string[];
+	steps: Record<string, Record<string, number>>;
+	purchases: number;
+	updatedAt: string | null;
+}
+
+interface FunnelReport {
+	steps: string[];
+	periods: FunnelPeriod[];
+}
+
+/** Operator-facing names for the step enum in oauth-proxy/lib/funnel-contract.js. */
+const FUNNEL_STEP_LABELS: Record<string, string> = {
+	landing: 'Landing seen',
+	editor: 'Editor opened',
+	intake: 'Intake completed',
+	signin: 'Signed in',
+	publish: 'Published',
+	paywall: 'Plan gate seen',
+	checkout: 'Checkout started',
+};
+
+/** Reading order for the table, which is not the enum's declaration order: money comes
+ *  before publishing for a new artist, so paywall/checkout sit above `publish`. Any step
+ *  the Worker adds later and this list doesn't know about is appended at the end. */
+const FUNNEL_ROW_ORDER = ['landing', 'editor', 'intake', 'signin', 'paywall', 'checkout', 'publish'];
+
 type AccessState = 'checking' | 'signed-out' | 'forbidden' | 'unconfigured' | 'ready' | 'error';
 type ActionKind = 'grant' | 'revoke' | 'suspend' | 'restore';
 
@@ -143,6 +173,150 @@ function bytes(value: number): string {
 
 function messageFor(error: unknown): string {
 	return error instanceof AccountError ? error.friendly : 'Something went wrong. Please try again.';
+}
+
+/**
+ * Where visitors are lost, and which tagged link sent them. Counts only — the beacon
+ * (src/lib/funnel.ts) stores no cookie, identity, IP or referrer, so a row is "how many
+ * tab sessions reached this step", not "how many people". Purchases come from D1, not
+ * from the browser.
+ */
+function FunnelPanel() {
+	const [report, setReport] = useState<FunnelReport | null>(null);
+	const [period, setPeriod] = useState('');
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
+
+	useEffect(() => {
+		const stored = getSession();
+		if (!stored) return;
+		let alive = true;
+		void (async () => {
+			try {
+				const { data } = await new AccountClient(stored.token).request<FunnelReport>('/admin/funnel', {
+					method: 'GET',
+				});
+				if (!alive) return;
+				setReport(data);
+				setPeriod(data.periods[0]?.period ?? '');
+			} catch (caught) {
+				if (alive) setError(messageFor(caught));
+			} finally {
+				if (alive) setLoading(false);
+			}
+		})();
+		return () => {
+			alive = false;
+		};
+	}, []);
+
+	const selected = report?.periods.find((entry) => entry.period === period) ?? null;
+	const stepOrder = [
+		...FUNNEL_ROW_ORDER.filter((step) => (report?.steps ?? []).includes(step)),
+		...(report?.steps ?? []).filter((step) => !FUNNEL_ROW_ORDER.includes(step)),
+	];
+	const refs = selected?.refs ?? ['direct'];
+	const total = (step: string) =>
+		Object.values(selected?.steps[step] ?? {}).reduce((sum, count) => sum + count, 0);
+
+	// Purchases sit between "checkout started" and "published": the ledger row is what
+	// actually unlocks publishing. They carry no tag — D1 records the account, not the visit.
+	const rows: { key: string; label: string; note: string; total: number; counts: Record<string, number> | null }[] = [
+		...stepOrder.map((step) => ({
+			key: step,
+			label: FUNNEL_STEP_LABELS[step] ?? step,
+			note: step,
+			total: total(step),
+			counts: selected?.steps[step] ?? {},
+		})),
+		{ key: 'purchases', label: 'Purchases', note: 'from D1', total: selected?.purchases ?? 0, counts: null },
+	];
+	const publishRow = rows.findIndex((row) => row.key === 'publish');
+	if (publishRow >= 0) rows.splice(publishRow, 0, ...rows.splice(rows.length - 1, 1));
+
+	// The steps are not strictly nested — an artist with access publishes without ever
+	// seeing the plan gate — so a row can legitimately exceed the one above it. Show a
+	// dash rather than a negative "drop-off" nobody can act on.
+	const dropOff = (index: number): string => {
+		if (index === 0) return '—';
+		const previous = rows[index - 1].total;
+		const current = rows[index].total;
+		if (previous <= 0 || current > previous) return '—';
+		return `${Math.round(((previous - current) / previous) * 100)}%`;
+	};
+
+	return (
+		<section className="admin-funnel" aria-labelledby="funnel-heading">
+			<div className="admin-section-heading">
+				<div>
+					<h2 id="funnel-heading">Funnel</h2>
+					<span>
+						Tab sessions reaching each step, by link tag (the ?ref= on a shared link). Purchases
+						come from the Polar ledger, not the browser.
+					</span>
+				</div>
+				{report && report.periods.length > 0 && (
+					<label className="admin-sort">
+						<span>Month</span>
+						<select value={period} onChange={(event) => setPeriod(event.target.value)}>
+							{report.periods.map((entry) => (
+								<option key={entry.period} value={entry.period}>
+									{entry.period}
+								</option>
+							))}
+						</select>
+					</label>
+				)}
+			</div>
+			{loading ? (
+				<p className="admin-empty">Loading funnel…</p>
+			) : error ? (
+				<p className="admin-error">{error}</p>
+			) : !selected ? (
+				<p className="admin-empty">No funnel data yet.</p>
+			) : (
+				<>
+					<div className="admin-table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th>Step</th>
+									<th>All</th>
+									<th>Drop-off</th>
+									{refs.map((ref) => (
+										<th key={ref}>{ref}</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{rows.map((row, index) => (
+									<tr key={row.key}>
+										<td>
+											<strong>{row.label}</strong>
+											<small>{row.note}</small>
+										</td>
+										<td>{row.total}</td>
+										<td>{dropOff(index)}</td>
+										{refs.map((ref) => (
+											<td key={ref} className={row.counts ? undefined : 'admin-muted'}>
+												{row.counts ? (row.counts[ref] ?? 0) : '—'}
+											</td>
+										))}
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+					<p className="admin-empty compact">
+						Purchases are not attributable to a link tag — the ledger records the account, not the
+						visit. Steps aren’t strictly nested either: an artist who already has access
+							publishes without seeing the plan gate, so a row can exceed the one above it and its
+							drop-off reads as a dash. Last counted {dateTime(selected.updatedAt)}.
+					</p>
+				</>
+			)}
+		</section>
+	);
 }
 
 function StatusBadge({ value }: { value: string }) {
@@ -441,6 +615,8 @@ export default function AdminApp({
 			</header>
 
 			<main className="admin-main">
+				<FunnelPanel />
+
 				<section className="admin-search-panel" aria-labelledby="account-search-heading">
 					<div>
 						<h2 id="account-search-heading">Find an account</h2>

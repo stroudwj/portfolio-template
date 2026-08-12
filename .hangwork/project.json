@@ -75,28 +75,28 @@
       "gitBlobSha": "bee505e9b347cc25aef62683f2b2376199d28602"
     },
     "src/admin/AdminApp.tsx": {
-      "sha256": "43dfd17e34bea25104c1e3b278122236754f68b523be91377010cbc34639b7b2",
-      "gitBlobSha": "983b4223599402cd4807dd72b386bcf2e5425291"
+      "sha256": "3e28360f3f27a9f8efad0398e8708551d4e0f7125c6e504797738256c161e0c8",
+      "gitBlobSha": "1ab47a3ac15562af5ede2982a759fc2bfb44554d"
     },
     "src/admin/admin.css": {
-      "sha256": "1e61b32d92a525866b88aed6c7893ee8b3b8a5c22737faf7c086515d2e2c8d26",
-      "gitBlobSha": "d440efce2ac7e5becc4fb20e71fe098d49d0c566"
+      "sha256": "01675892f1016530c9bad63d7fef0efe3e07a043d6d6d1a3e51cea854b3e71e9",
+      "gitBlobSha": "7853429db7c66cfed65d0b22667e0e337e393740"
     },
     "src/components/Favicons.astro": {
       "sha256": "9351938893afe2846465feecfa9e6bf51f0b40bba49ba72ca1d525ba0fe4fd95",
       "gitBlobSha": "7d0916d34556d1dc010a55fea34fac1223a6ab7b"
     },
     "src/components/Landing.astro": {
-      "sha256": "304d81440240d8e7b1fcd94eed61dd26839cfdf4f4b619477bde1a5222c1e270",
-      "gitBlobSha": "2cf84fdc72219a191540de58710fa646f5fcd86b"
+      "sha256": "fa953eeb9a064379aa2cd95fd694127a10282b0ffce2036cb381f0b64b34c755",
+      "gitBlobSha": "d564af56fa8b962b56952848cf43fe7fc941a7a2"
     },
     "src/components/LegalPage.astro": {
       "sha256": "39ad6a8529bbd7f7d20111e6df467ba39850635780cc116d4444131518f89371",
       "gitBlobSha": "f801222f194127fd8a8229cf0f8077e1a9fe6212"
     },
     "src/editor/EditorApp.tsx": {
-      "sha256": "d862255562b33e3304d973d7a33ac67fd4b5a0c7229a29aa518b28f3c936f010",
-      "gitBlobSha": "ab7c440e2730217cd9949c0162fa5683bcf9c7e6"
+      "sha256": "5451195b0ede1e419fe88e5e10772c82748505534c8313df422fb88b7ae65e56",
+      "gitBlobSha": "a9036cc5fd80f443768413bc62e96c012685a33f"
     },
     "src/editor/components/AboutContentEditor.tsx": {
       "sha256": "e60f93eb12379084bffeb4d0d364ee70ba16f2948ea632005acd5723d46b3785",
@@ -219,12 +219,12 @@
       "gitBlobSha": "96f1c62abf5a408cc58c06deb783fd810abd20d4"
     },
     "src/editor/components/PublishModal.tsx": {
-      "sha256": "0bbeb624304279ecb7dc45236d27cf0bd846b4623a32f22fd642b5e3c6709495",
-      "gitBlobSha": "149082e59aeb3b43dfd1a9286205aa6d42251402"
+      "sha256": "7367f30b665c3bdbc2678b1b0e5b4925480269843232d9a89d864cabd43a2759",
+      "gitBlobSha": "590061d6b2ab109a952e166a332614fa85334e9d"
     },
     "src/editor/components/PublishPanel.tsx": {
-      "sha256": "fbe024d9d9b358e8f0ccc99022feb570eb96be5eef0a3827bf3bc50e4dd660be",
-      "gitBlobSha": "6005bd4ae698f57ee1c18bac46f44d177bdb44f8"
+      "sha256": "78059cf581faf6a5cf2a12c9657048fd8821a01198ecad21103e9d609ffcdcac",
+      "gitBlobSha": "2d4404de99fcebf3327d6f68efb8bfc4d49b0a96"
     },
     "src/editor/components/RenameSiteModal.tsx": {
       "sha256": "b3b5933aa76e29668e00281caea2b647e89e8a32afddc4635ab523593c9d01f9",
@@ -259,8 +259,8 @@
       "gitBlobSha": "365f1189db360aeb3fdb9c06a3503700d2969213"
     },
     "src/editor/components/StartIntake.tsx": {
-      "sha256": "c30a6281da265fb2a0e24963e49e1fbc38f76a1eddd7afde6e9e2dbb1cbe1d2a",
-      "gitBlobSha": "95a402f7ca540ff113ea442503eecbd3789f9552"
+      "sha256": "8c786feda591e7c9a0c29295d2b81a086eb3d64692306e47e1db64a6bc609d3c",
+      "gitBlobSha": "583121ad8271761256079b6da239cb3a8c6868aa"
     },
     "src/editor/components/StartScreen.tsx": {
       "sha256": "bed33ae9cce62fe6d534f2076cf1b81365703ef3845c0a5ee1293168f86e3343",
@@ -327,8 +327,8 @@
       "gitBlobSha": "0cc46d40c39a906cde7742bbbe91ccee046c1f4a"
     },
     "src/editor/components/useAccount.ts": {
-      "sha256": "992a7a2c2bb6b8fa708a802041a2ad0521d455b66684cdd476fb66dee16dd463",
-      "gitBlobSha": "721e9d98c6c1601a923b2677037c2624ce3944b7"
+      "sha256": "270bb0c87c6f5a904be4f2c0ec105ca130529d1c1b1c8193ce3620251786b80c",
+      "gitBlobSha": "89fc327531a7c85984908b2b370a89e69d800e59"
     },
     "src/editor/components/useGitHub.ts": {
       "sha256": "59b4e0c2a8fc7975b25d1ca740c0d1b9ec380e60acd9e8ccd1aaef8dbfb12de8",
@@ -483,8 +483,8 @@
       "gitBlobSha": "400c916303df16eb1e6c1450b6ae2566c6e3543a"
     },
     "src/editor/lib/polar-checkout.ts": {
-      "sha256": "d091e3b542762861ed0ac08e27854a42cb2e0e91697e55236c7de42d481faf3d",
-      "gitBlobSha": "ee6d34f6a6ad2b1909f858f4a5e603a7741f20b9"
+      "sha256": "4c9a086642e434e081628ae39336831825bd24f018de6e23873c62fabb77d5b7",
+      "gitBlobSha": "b0f28af8a1f4300f8aed4c9bd0f91aa58e8bed05"
     },
     "src/editor/lib/sample-artwork-nga.ts": {
       "sha256": "edecbe7c13083a7a8ba84b809a17a2a867501b57423f28c1b33ac90f95ad6314",
@@ -569,6 +569,10 @@
     "src/lib/examples.ts": {
       "sha256": "6bb06c6a97b91a58b87cb34c3f87e164a340176070039797027f9aed46a163e0",
       "gitBlobSha": "372185531664d7ddce164ccde4ecb927371a2c59"
+    },
+    "src/lib/funnel.ts": {
+      "sha256": "275b480b83901f7b64f0ee2c3bb7ffb8752e0f87845e62d9bca1f1cb71a712d3",
+      "gitBlobSha": "1bba963febaa45762460383f9c7a29cbec765081"
     },
     "src/lib/galleries.ts": {
       "sha256": "8cc7f2227bf01b3311aede6f0b6b9a36d46c81999212dcd58725506eab7c21b4",
@@ -963,8 +967,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "e9eafcc3a61f789a314f17b34ed03230d2e5847131b97e8c87e79f12cfa80916",
-      "gitBlobSha": "1882a96a8d23607cd7e361ec4034280530dd1af8"
+      "sha256": "4640c92ac98c6162715bd952d6732f17198c2ad6959a7cc1766e39c23038b269",
+      "gitBlobSha": "764b9c284391568dd0ac2a6124fde95eb7126785"
     }
   }
 }

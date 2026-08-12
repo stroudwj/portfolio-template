@@ -121,6 +121,17 @@ suspension remembers the owner's previous visibility. Paid Polar and grandfather
 rows are never edited by manual controls, and the route is excluded from
 the sitemap with `noindex`, `nofollow`, and `noarchive`.
 
+### Funnel analytics
+
+The console's Funnel panel reads `GET /admin/funnel` (same allowlist). Its counts come
+from `POST /funnel/event`, the anonymous beacon the product site fires once per tab
+session at each funnel step, keyed by the `?ref=` tag on the link that brought the visitor
+(`hangwork.art/?ref=tt-video-3`). Storage is one KV value per month, `funnel:<YYYY-MM>` —
+no cookies, IP addresses, user agents, referrers or per-visitor trails, the same posture as
+the per-site analytics. Purchase counts in that panel come from the `polar_orders` ledger in
+D1, not from the browser. No new binding or secret is needed: both routes use the existing
+KV and D1 bindings, and the client half only starts sending once `main` is deployed to Pages.
+
 Before deploying a Worker version that imports these controls, apply the D1 migration:
 
 ```sh

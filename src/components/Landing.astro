@@ -932,3 +932,11 @@ const applicationLd = {
 		}
 	}
 </style>
+
+<script>
+	// Funnel step 1 of 7 — counts a landing reach and stores this tab's `?ref=` tag so
+	// every later step is credited to the same link. Counts only; see src/lib/funnel.ts.
+	import { funnelStep } from '../lib/funnel';
+
+	funnelStep('landing');
+</script>
