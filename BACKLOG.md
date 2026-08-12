@@ -429,7 +429,7 @@ motion preview scrubbing, any new primitive.
 
 ---
 
-## 14. Template catalog production — the 42 → ~15 starters — `running` (batch 1 merged + revision pass built, batch 2 built 2026-08-09 on worktree-spec-14-revision-batch-2 awaiting merge: revision rebuilds the five to the signature-device bar with full placement/scroll depth/edge bleed; batch 2 adds promenade/still-room/signal/clearing/marmalade; batch 3 remains: Reseda, Ortiz, Mycelium, Beaumont, Cami, Hawley, Minetta, Tepito, Zion)
+## 14. Template catalog production — the 42 → ~15 starters — `running` (batches 1 + 2 + the revision pass all merged onto integration/specs-14r-19 — ten new starters in the tree: conservatory/masthead/atelier/contact-sheet/runway + promenade/still-room/signal/clearing/marmalade, and later specs (22–32) already build on them. Batch 3 remains — Reseda, Ortiz, Mycelium, Beaumont, Cami, Hawley, Minetta, Tepito, Zion — and is **doubly gated**: deliberately deferred by William (spec 22 sign-off landed but batch 3 does not start without his go) and **blocked on spec 36**, so its nine are authored in editor-producible terms from day one instead of re-creating the debt 36 pays down. Batch-3 requirements added 2026-08-11 — read them before starting.)
 
 **Goal.** Translate the curated Squarespace portfolio designs in
 `src/editor/lib/starters/SOURCES.md` (42 verified demo URLs) into ~15 modern Hangwork
@@ -497,6 +497,33 @@ that passes validation — never by new code paths.
   no runtime manifest churn expected from content-only batches.
 - SOURCES.md stays the ledger: status, font substitutions, which Hangwork template id
   each keeper became.
+
+**Batch 3 additions (2026-08-11).**
+- **Order: spec 35 → spec 36 → batch 3, plus William's go (the spec 22 deferral).** Spec 36
+  makes every starter construct editor-producible and builds the footer/text format
+  vocabulary; batch 3 authors against that vocabulary rather than the current idiom — same
+  authoring effort, no new one-offs, and spec 35's audit of "the fourteen" stays true.
+  Merge gate per batch-3 starter: only constructs the §spec 35 table verdicts `reproducible`
+  (or a format spec 36 shipped), and a pass through spec 35's empty harness. A design that
+  needs more is flagged as a new format/spec per Out of scope — never hacked into content.
+- **Close the sculpture gap.** Registry today: photography 9, painting 7, drawing 5,
+  illustration-design 5, **sculpture 3** — and two of sculpture's three are the legacy
+  starters (sculptor, photographer); still-room is the only new-catalog one. At least two of
+  the nine tag sculpture with catalog sculpture imagery — Minetta (masonry + lightbox), Zion
+  (fullscreen cover), and Beaumont (project-card index) are the natural hosts. Without this,
+  the "every discipline ends with 5 slots filled" goal silently fails.
+- **Picker overflow check.** Photography lands at 9+ tags against spec 11's 5-slot framing;
+  the picker's overflow-to-last-group handling should absorb that — confirm >5 matches
+  render as intended in the live picker before merging, don't assume.
+- **Cadence.** Nine templates in one session breaks this spec's own 4–6 rule: split 4+5
+  across two worktrees, or state in the batch report why the accumulated recipes (NGA
+  open-data sourcing, scriptable Fluid-Engine extraction, the byte-clean fixed point) made
+  one session honest.
+- **The legacy four (painter, photographer, sculptor, works-on-paper).** The goal's "REPLACE
+  the current starters" is stale: they are still registered and load-bearing for sculpture
+  coverage. The retire-vs-keep call is William's, made at batch-3 review — with one floor
+  either way: they do not retire before batch 3 has replaced their coverage, and while they
+  stay in the registry they are inside spec 35/36's audit scope like every other starter.
 
 **Out of scope.** New renderer/editor capability (if a design needs one, flag it as a new
 spec instead of hacking it into content), pixel-perfect cloning, copying any asset,
@@ -1520,3 +1547,162 @@ if hashed files are touched.
 **Out of scope.** Rich-text features (formatting toolbar, links), heading blocks'
 panel treatment beyond what they share with text cards, the accordion work (spec 26),
 mobile/touch editing.
+
+---
+
+## 35. AUDIT: can every starter be built from — and emptied back to — a blank document? — `queued`
+
+**Audit only — no product code changes.** The deliverable is a written table plus verdicts.
+Spec 36 does the building; it cannot start until this merges.
+
+William's standard (2026-08-11) runs **both directions**:
+
+- **Blank → template.** Every template must be reproducible by an artist starting from a
+  totally blank document, using only editor UI. No hard-coded text sections, no hard-coded
+  footer sections. Where a template does something distinctive with a footer or a text
+  section, that distinctiveness belongs in the footer/text menu as a *named format* the artist
+  can pick — not as a one-off that only exists because the starter JSON (or the renderer) says
+  so.
+- **Template → blank.** Every template must also be emptiable back to a blank document. No
+  text an artist cannot delete or replace through the UI: every string a starter ships —
+  headings, body copy, nav labels, footer/signature lines, button and link labels, form field
+  labels, page titles, alt text, placeholder-looking copy — must be reachable and removable,
+  and the page must render sanely once it is gone (no orphaned band, no ghost label, no
+  section that reappears with the template's words in it).
+
+The two directions catch different bugs: the first finds capability the editor lacks, the
+second finds text that is baked into the renderer or into a shape the editor won't let go of.
+
+**Why audit first.** Recent specs in this area kept finding the premise wrong in both
+directions: spec 31's "missing" control had already shipped, and spec 32 found the reverse — a
+renderer path that only worked for template-authored shapes. Guessing the work list from greps
+would waste the build session.
+
+**Method — audit by construct, not per starter.** The fourteen starters ship ~2,800
+non-trivial strings (112–400 each), but they collapse to ~66 distinct schema leaf fields —
+gallery `title`/`description`/`alt`/`link` alone are ~730 strings yet *one* editor control.
+Verify each construct once and project the result onto starters; never re-prove the same
+control fourteen times. Funnel:
+
+1. **Script pass (no UI).** Walk the fourteen `src/editor/lib/starters/*.content.json` plus
+   their presets in `theme-presets/`, extract every `(schema path, string)` pair, and dedupe to
+   the distinct constructs — field kinds plus block/section shapes. This mechanical inventory
+   is the table's row source; a starter × finding row is a projection of
+   construct → starters-that-use-it.
+2. **Static reachability pass (blank → template).** Map each construct to the editor control
+   that writes its schema path. A grep cannot prove a control *missing*, but it can cheaply
+   prove one *present* — those rows become `reproducible` citing the control, no UI time.
+   Constructs with no match or an ambiguous one go to the live queue. Footer and text sections
+   go to the live queue regardless — they are the two William named, and whether an artist can
+   *reach a distinctive arrangement* is a UI question no grep answers.
+3. **Calibration drive.** Live-drive one representative starter end-to-end in both directions
+   (see the `verify` skill). If the mechanical verdicts hold there, trust them for the rest;
+   if a control exists but is unreachable in some state (spec 15's hidden-pane trap is the
+   canonical case), widen the live set until the mechanical pass is trustworthy again. Then
+   drive the residual queue from step 2.
+4. **Automated empty harness (template → blank).** A script, not a hand pass: per starter,
+   load it, clear every editable field through the store/UI, run the real in-browser staticgen
+   publish (the spec 18/32 trick), and assert the output contains **no visible text at all** —
+   not merely "no starter strings", which would miss text the *renderer* supplies (defaults,
+   fallbacks, empty-state copy, the editor-only page-heading band from spec 27): exactly the
+   `hardcoded text` class this audit hunts. Every survivor is a row: text with no editable
+   field, a section that cannot be removed, a label that falls back to template copy when
+   cleared, or a layout that breaks rather than collapsing. The harness lives in `scripts/`
+   (or `tests/` if it fits the runner) — never `src/` — and is itself a deliverable: spec 36
+   re-runs it as its round-trip acceptance test, so this labor is paid once.
+5. **Renderer special-case pass.** Check `src/portfolio/` (footer rendering, `PortfolioPage`
+   standalone-anchor branches, signature band, `Hero`/`TextBlock`) for anything that behaves
+   differently for template-authored shapes than for artist-authored ones, or that hardcodes a
+   string. Spec 32 fixed one such case and found it statically; assume more exist.
+
+**Deliverables.** Two:
+1. An audit table in `src/editor/lib/starters/SOURCES.md` (§spec 35), where specs 22 and 32
+   keep theirs: one row per starter × finding, tagged with its direction (`build` / `empty`)
+   and a verdict — `reproducible` / `needs a format` (a distinct arrangement to offer in the
+   footer/text menu) / `needs a control` (a plain field the editor lacks) / `hardcoded text`
+   (a string the artist cannot delete or replace) / `renderer special case`. Every
+   non-`reproducible` row states what the artist cannot reach today and the smallest change
+   that would fix it. Close with a short "build order for spec 36" section grouping the rows
+   into **independently mergeable chunks** — so 36 can run as parallel worktrees if it is more
+   than one session — and an honest estimate of whether 36 is one session or several.
+2. The empty harness from step 4, committed and documented well enough that spec 36 can re-run
+   it unmodified as its acceptance test.
+
+**Requirements.**
+- Commit the table even where rows stay uncertain — mark them `unverified` with the reason
+  rather than guessing a verdict.
+- Every `reproducible` row cites its evidence: the editor control that writes the path (static
+  pass) or the drive that produced it. Verdicts on doubtful rows must come from driving the
+  editor, and the row says so.
+- Both directions are covered for all fourteen starters. The empty-direction proof is the
+  harness run: a starter passes only if it was **actually emptied** — by the harness, or by
+  hand with the row saying so — not because nothing looked suspicious.
+- No changes under `src/` — this spec touches `SOURCES.md`, BACKLOG.md, and the new harness
+  (`scripts/` or `tests/`) only, so the manifest stays untouched; `npm run check` /
+  `npm test` stay green with the harness in the tree.
+
+**Out of scope.** Any fix, any schema change, any starter JSON rewrite — all of that is spec 36.
+
+---
+
+## 36. Promote starter one-offs into real formats; make every starter string deletable — `queued` (blocked on spec 35)
+
+**Do not start before spec 35 merges.** Its audit table in `src/editor/lib/starters/SOURCES.md`
+(§spec 35) is this spec's work list — read it first and follow its build order — and its empty
+harness is this spec's acceptance test.
+
+**Goal.** Close every `needs a format` / `needs a control` / `hardcoded text` /
+`renderer special case` row from the audit, so each of the fourteen starters is both
+**buildable from** a blank document and **emptiable back to** one, using only editor UI.
+
+**Build.**
+- **Footer.** Fold every distinct footer arrangement the starters use (signature band, footer
+  image + layout, multi-column, name size, the contact-sheet band — the audit has the real
+  list) into `FooterEditor` as explicit named choices: a *format* picker where the arrangements
+  are genuinely different shapes, plain controls where they are only field values. An artist on
+  a blank doc must be able to reach each starter's footer.
+- **Text.** Same treatment for text sections: any starter text section whose look comes from
+  something the text menu does not offer becomes an offered option. (Type motion already
+  shipped — spec 31 — so check the audit before adding anything.)
+- **Hardcoded text.** Every string a starter ships becomes artist-owned: reachable in the UI,
+  deletable, and gone from the rendered page once deleted. A string the renderer supplies as a
+  fallback stops standing in for content — an empty heading renders empty (or its band
+  collapses), it does not fall back to the template's words. Where a section is only meaningful
+  with text, emptying it removes the section rather than leaving an orphan band.
+- **Renderer special cases.** Delete them in favour of the general path, the way spec 32 did
+  with the standalone canvas anchor.
+- **Rewrite the starter JSON** so each template is expressed in editor-producible terms.
+  Template studio is the tool: `/template-studio` → edit → "Save to template", and its Save bar
+  reporting byte-clean is the fixed-point signal (spec 32).
+
+**Files.** `src/editor/lib/starters/*.content.json` + `SOURCES.md`, `src/editor/components/FooterEditor.tsx`,
+the text-block card in `PageEditor.tsx`, `src/editor/lib/doc-schema.ts` (only if a format needs a
+new optional field — optional-with-default, no version bump, per spec 1), `src/portfolio/` (only
+to remove a special case), `tests/`.
+
+**Requirements.**
+- **No template may change appearance.** This is a representation change, not a redesign: every
+  starter is byte-verified through template studio after the rewrite. The strong form of the
+  appearance check: where a rewrite is purely representational, diff the staticgen output
+  before vs after — byte-identical published HTML is the proof, and eyeballing is reserved for
+  the starters where the output legitimately differs (say which, and why).
+- New footer/text formats are named in plain language per DESIGN.md (sentence case, no jargon);
+  where it aids discovery, the help tip names the starter the format came from.
+- **Round-trip proof, per starter: re-run spec 35's empty harness** — it already applies each
+  starter, strips it through the store/UI, publishes via real in-browser staticgen (samples are
+  stripped at publish, which is exactly where spec 32's fallback bug surfaced), and asserts no
+  visible text survives. All fourteen must pass it. Extend the harness where a fix changes what
+  "empty" looks like; do not rebuild the proof by hand. Anything the harness cannot exercise
+  (a new format picker's UI reachability, choreography taste) is checked by hand, and the spec
+  report says plainly which starters got hand checks.
+- Any schema addition is optional with a default so existing artist drafts parse unchanged;
+  migration test beside the existing ones.
+- The audit table is updated in place as rows are closed — each row ends at `done` or a stated
+  reason for deferral.
+- `npm run check` + `npm test` pass; `npm run runtime:generate` re-run and committed if hashed
+  files were touched.
+
+**Out of scope.** New template designs, new block kinds beyond what an audited row demands,
+batch 3 of the template catalog (deferred by William — spec 22 — and sequenced after this spec:
+§14's batch-3 requirements gate it on the format vocabulary and empty harness built here),
+redesigning the footer's visual language.
