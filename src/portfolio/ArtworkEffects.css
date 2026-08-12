@@ -1,11 +1,11 @@
 .artwork-hover-lift > img,
-.artwork-hover-lift > .canvas-artwork-frame > img,
+.artwork-hover-lift > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-hover-tilt > img,
-.artwork-hover-tilt > .canvas-artwork-frame > img,
+.artwork-hover-tilt > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-hover-zoom > img,
-.artwork-hover-zoom > .canvas-artwork-frame > img,
+.artwork-hover-zoom > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-hover-mono > img,
-.artwork-hover-mono > .canvas-artwork-frame > img {
+.artwork-hover-mono > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	transition:
 		transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
 		filter 360ms ease,
@@ -13,13 +13,13 @@
 }
 
 .artwork-hover-lift:hover > img,
-.artwork-hover-lift:hover > .canvas-artwork-frame > img {
+.artwork-hover-lift:hover > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	transform: translateY(-8px);
 	box-shadow: 0 18px 36px rgba(0, 0, 0, 0.2);
 }
 
 .artwork-hover-tilt:hover > img,
-.artwork-hover-tilt:hover > .canvas-artwork-frame > img {
+.artwork-hover-tilt:hover > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	transform: rotate(-1.5deg) scale(1.015);
 }
 
@@ -28,17 +28,17 @@
 }
 
 .artwork-hover-zoom:hover > img,
-.artwork-hover-zoom:hover > .canvas-artwork-frame > img {
+.artwork-hover-zoom:hover > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	transform: scale(1.055);
 }
 
 .artwork-hover-mono > img,
-.artwork-hover-mono > .canvas-artwork-frame > img {
+.artwork-hover-mono > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	filter: grayscale(1);
 }
 
 .artwork-hover-mono:hover > img,
-.artwork-hover-mono:hover > .canvas-artwork-frame > img {
+.artwork-hover-mono:hover > .canvas-artwork-hang > .canvas-artwork-frame > img {
 	filter: grayscale(0);
 }
 
@@ -46,19 +46,19 @@
    rotate property. Site/page hanging remains the default unless an artwork
    explicitly opts in or out. */
 .artwork-hang-on > img,
-.artwork-hang-on > .canvas-artwork-frame,
+.artwork-hang-on > .canvas-artwork-hang,
 .artwork-hang-on .inline-carousel-image {
 	rotate: var(--artwork-skew, -0.75deg) !important;
 }
 
 .artwork-hang-off > img,
-.artwork-hang-off > .canvas-artwork-frame,
+.artwork-hang-off > .canvas-artwork-hang,
 .artwork-hang-off .inline-carousel-image {
 	rotate: 0deg !important;
 }
 
 .artwork-skew-custom:not(.artwork-hang-off) > img,
-.artwork-skew-custom:not(.artwork-hang-off) > .canvas-artwork-frame,
+.artwork-skew-custom:not(.artwork-hang-off) > .canvas-artwork-hang,
 .artwork-skew-custom:not(.artwork-hang-off) .inline-carousel-image {
 	rotate: var(--artwork-skew) !important;
 }
@@ -75,7 +75,7 @@
 }
 
 .artwork-mount-frame > img,
-.artwork-mount-frame > .canvas-artwork-frame > img,
+.artwork-mount-frame > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-mount-frame .inline-carousel-stage {
 	box-sizing: border-box;
 	border: clamp(5px, 0.8vw, 14px) solid #282421;
@@ -88,7 +88,7 @@
 /* Gallery mat: a wide warm-white window mat with a fine bevel line where the
    mat meets the art, floating on a soft shadow. */
 .artwork-mount-mat > img,
-.artwork-mount-mat > .canvas-artwork-frame > img,
+.artwork-mount-mat > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-mount-mat .inline-carousel-stage {
 	box-sizing: border-box;
 	border: clamp(10px, 2vw, 28px) solid #f4f1e9;
@@ -101,7 +101,7 @@
 /* Wooden frames: the grain is a repeating diagonal gradient in the border
    image, one pale oak and one deep walnut beside the classic near-black. */
 .artwork-mount-frame-oak > img,
-.artwork-mount-frame-oak > .canvas-artwork-frame > img,
+.artwork-mount-frame-oak > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-mount-frame-oak .inline-carousel-stage {
 	box-sizing: border-box;
 	border: clamp(5px, 0.9vw, 15px) solid #b08d57;
@@ -112,7 +112,7 @@
 }
 
 .artwork-mount-frame-walnut > img,
-.artwork-mount-frame-walnut > .canvas-artwork-frame > img,
+.artwork-mount-frame-walnut > .canvas-artwork-hang > .canvas-artwork-frame > img,
 .artwork-mount-frame-walnut .inline-carousel-stage {
 	box-sizing: border-box;
 	border: clamp(5px, 0.9vw, 15px) solid #5d4230;
@@ -122,10 +122,14 @@
 		0 10px 22px rgba(0, 0, 0, 0.24);
 }
 
-.artwork-mount-tape::before,
-.artwork-mount-nail::before,
-.artwork-mount-hook::before,
-.artwork-mount-tack::before {
+.artwork-mount-tape:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-tape > .canvas-artwork-hang::before,
+.artwork-mount-nail:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-nail > .canvas-artwork-hang::before,
+.artwork-mount-hook:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-hook > .canvas-artwork-hang::before,
+.artwork-mount-tack:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-tack > .canvas-artwork-hang::before {
 	position: absolute;
 	top: 0;
 	left: 50%;
@@ -134,7 +138,8 @@
 	transform: translate(-50%, -58%);
 }
 
-.artwork-mount-tape::before {
+.artwork-mount-tape:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-tape > .canvas-artwork-hang::before {
 	content: '';
 	width: clamp(38px, 28%, 92px);
 	height: clamp(13px, 3vw, 24px);
@@ -145,7 +150,8 @@
 	rotate: -2deg;
 }
 
-.artwork-mount-nail::before {
+.artwork-mount-nail:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-nail > .canvas-artwork-hang::before {
 	content: '•';
 	display: grid;
 	place-items: center;
@@ -157,7 +163,8 @@
 	box-shadow: 0 2px 4px rgba(0,0,0,.35);
 }
 
-.artwork-mount-hook::before {
+.artwork-mount-hook:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-hook > .canvas-artwork-hang::before {
 	content: '⌁';
 	color: #65615b;
 	font-family: Georgia, serif;
@@ -169,7 +176,8 @@
 }
 
 /* A single bright pushpin at the top edge. */
-.artwork-mount-tack::before {
+.artwork-mount-tack:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-tack > .canvas-artwork-hang::before {
 	content: '';
 	width: 16px;
 	height: 16px;
@@ -182,10 +190,14 @@
 
 /* Four-corner fixtures: one overlay pseudo carries a background layer per
    corner, so nails/tape/tacks/photo corners never need extra markup. */
-.artwork-mount-corners-nail::before,
-.artwork-mount-corners-tape::before,
-.artwork-mount-corners-tack::before,
-.artwork-mount-photo-corners::before {
+.artwork-mount-corners-nail:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-nail > .canvas-artwork-hang::before,
+.artwork-mount-corners-tape:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-tape > .canvas-artwork-hang::before,
+.artwork-mount-corners-tack:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-tack > .canvas-artwork-hang::before,
+.artwork-mount-photo-corners:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-photo-corners > .canvas-artwork-hang::before {
 	content: '';
 	position: absolute;
 	inset: 0;
@@ -194,7 +206,8 @@
 	background-repeat: no-repeat;
 }
 
-.artwork-mount-corners-nail::before {
+.artwork-mount-corners-nail:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-nail > .canvas-artwork-hang::before {
 	background-image:
 		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%),
 		radial-gradient(circle at 38% 32%, #f7f4eb 0 8%, #777 35%, #292929 72%, transparent 74%),
@@ -208,7 +221,8 @@
 		calc(100% - 7px) calc(100% - 7px);
 }
 
-.artwork-mount-corners-tape::before {
+.artwork-mount-corners-tape:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-tape > .canvas-artwork-hang::before {
 	background-image:
 		linear-gradient(135deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%),
 		linear-gradient(45deg, transparent 32%, rgba(229, 209, 142, 0.85) 33% 67%, transparent 68%),
@@ -223,7 +237,8 @@
 }
 
 /* Playfully mismatched pins, one color per corner. */
-.artwork-mount-corners-tack::before {
+.artwork-mount-corners-tack:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-corners-tack > .canvas-artwork-hang::before {
 	background-image:
 		radial-gradient(circle at 35% 30%, #ff8a80 0 18%, #d3382b 55%, #8e1f16 68%, transparent 70%),
 		radial-gradient(circle at 35% 30%, #90caf9 0 18%, #2f6bb0 55%, #1d4373 68%, transparent 70%),
@@ -238,7 +253,8 @@
 }
 
 /* Classic album photo corners holding the print. */
-.artwork-mount-photo-corners::before {
+.artwork-mount-photo-corners:not(:has(> .canvas-artwork-hang))::before,
+.artwork-mount-photo-corners > .canvas-artwork-hang::before {
 	background-image:
 		linear-gradient(135deg, #26221f 50%, transparent 51%),
 		linear-gradient(225deg, #26221f 50%, transparent 51%),
@@ -288,9 +304,9 @@
 		transform: none;
 	}
 	.artwork-effects-phone-off:hover > img,
-	.artwork-effects-phone-off:hover > .canvas-artwork-frame > img,
-	.artwork-effects-phone-off > .canvas-artwork-frame,
-	.artwork-effects-phone-off > .canvas-artwork-frame > img,
+	.artwork-effects-phone-off:hover > .canvas-artwork-hang > .canvas-artwork-frame > img,
+	.artwork-effects-phone-off > .canvas-artwork-hang,
+	.artwork-effects-phone-off > .canvas-artwork-hang > .canvas-artwork-frame > img,
 	.artwork-effects-phone-off > img {
 		transform: none;
 		filter: none;
@@ -309,8 +325,8 @@
 		transform: none;
 	}
 	[class*='artwork-hover-']:hover > img,
-	[class*='artwork-hover-']:hover > .canvas-artwork-frame > img,
-	[class*='artwork-hover-'] > .canvas-artwork-frame > img,
+	[class*='artwork-hover-']:hover > .canvas-artwork-hang > .canvas-artwork-frame > img,
+	[class*='artwork-hover-'] > .canvas-artwork-hang > .canvas-artwork-frame > img,
 	[class*='artwork-hover-'] > img {
 		transform: none;
 		filter: none;

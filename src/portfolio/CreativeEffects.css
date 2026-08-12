@@ -133,19 +133,19 @@ html[data-page-transition]::view-transition-group(*) {
    frame, keeping its geometry and resize handles straight without clipping the
    rotated artwork against a straight overflow boundary. */
 .creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 1) > img,
-.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 1) > .canvas-artwork-frame {
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 1) > .canvas-artwork-hang {
 	rotate: calc(var(--hang-strength, 0.75) * -1deg);
 }
 .creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 2) > img,
-.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 2) > .canvas-artwork-frame {
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 2) > .canvas-artwork-hang {
 	rotate: calc(var(--hang-strength, 0.75) * 0.72deg);
 }
 .creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 3) > img,
-.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 3) > .canvas-artwork-frame {
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n + 3) > .canvas-artwork-hang {
 	rotate: calc(var(--hang-strength, 0.75) * -0.42deg);
 }
 .creative-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n) > img,
-.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n) > .canvas-artwork-frame {
+.creative-loose-hang .canvas-item:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom):nth-child(4n) > .canvas-artwork-hang {
 	rotate: calc(var(--hang-strength, 0.75) * 1.08deg);
 }
 .creative-loose-hang .inline-carousel:not(.artwork-hang-off, .artwork-hang-on, .artwork-skew-custom) .inline-carousel-image {
@@ -330,7 +330,7 @@ html[data-page-transition]::view-transition-group(*) {
 		animation-duration: 1ms;
 	}
 	.creative-phone-off-loose-hang :is(.masonry-item, .uniform-item):not(.artwork-hang-on, .artwork-skew-custom) > img,
-	.creative-phone-off-loose-hang .canvas-item:not(.artwork-hang-on, .artwork-skew-custom) > .canvas-artwork-frame,
+	.creative-phone-off-loose-hang .canvas-item:not(.artwork-hang-on, .artwork-skew-custom) > .canvas-artwork-hang,
 	.creative-phone-off-loose-hang .inline-carousel:not(.artwork-hang-on, .artwork-skew-custom) .inline-carousel-image {
 		rotate: 0deg;
 	}
