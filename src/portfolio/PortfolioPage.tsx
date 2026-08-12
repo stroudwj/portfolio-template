@@ -701,6 +701,7 @@ export default function PortfolioPage({
 							kinetic={block.kinetic}
 							flowLayout={block.flowLayout}
 							kineticTarget={`block:${block.id}`}
+							editorPreview={editorPreview}
 						/>
 					</DraggableFlowBlock>
 				) : (
@@ -718,6 +719,7 @@ export default function PortfolioPage({
 						flowLayout={block.flowLayout}
 						kineticTarget={`block:${block.id}`}
 						editing={inlineTextEditing?.blockId === block.id ? inlineTextEditing : undefined}
+						editorPreview={editorPreview}
 					/>
 				);
 			case 'embed':

@@ -20,6 +20,7 @@ import {
 	SliderNumberInput,
 	TextInput,
 	Section,
+	editTextOnPage,
 	previewTypeMotion,
 	onSelectPreviewBlock,
 	onRevealEditorSection,
@@ -39,6 +40,7 @@ import MobileArrangementEditor, { type MobileArrangementItem } from './MobileArr
 import { BlockIcon } from './ui/block-icons';
 import { getAssetPreviewUrl, uid } from '../lib/assets';
 import { sampleArtworkUrl } from '../lib/sample-artwork';
+import { richTextPlainText } from '../../lib/richText';
 import {
 	embedKindForInput,
 	embedKindLabel,
@@ -88,7 +90,6 @@ import type {
 	TextAlign,
 } from '../../lib/content';
 import AboutContentEditor from './AboutContentEditor';
-import RichTextEditor from './RichTextEditor';
 import { PortfolioDivider } from '../../portfolio/PageBlocks';
 import { readEffectClipboard, writeEffectClipboard } from '../lib/effect-clipboard';
 import { collectionLayoutAtCanvasBottom } from '../lib/canvas-placement';
@@ -436,6 +437,15 @@ function ContactEmailField({
 
 const isPageOrWebLink = (value: string): boolean =>
 	!value.trim() || isUrl(value) || value.startsWith('/') || value.startsWith('#');
+
+/** The opening words of a text block — enough to tell two cards apart. Read
+ *  only: the words themselves are edited on the page. */
+const blockWords = (block: Extract<PageBlock, { type: 'text' }>): string => {
+	const words = (block.richText ? richTextPlainText(block.richText) : block.text)
+		.replace(/\s+/g, ' ')
+		.trim();
+	return words.length > 90 ? `${words.slice(0, 90)}…` : words;
+};
 
 const isShotsSource = (value: string): boolean => {
 	const source = value.trim();
@@ -1550,17 +1560,22 @@ export default function PageEditor({
 							{controls(index, block, true)}
 						</div>
 					<BlockBody blockId={block.id} label="text box">
-						<RichTextEditor
-							value={block.richText}
-							legacyText={block.text}
-							legacyStyle={block.style}
-							legacyAlign={block.align}
-							fontFamily={block.fontFamily ?? doc.content.theme.fontFamily}
-							label={textLabel}
-							onChange={(text, richText) =>
-								editor.updateRichTextBlock(pageKey, block.id, text, richText)
-							}
-						/>
+						{/* The words live on the page, not here: this card carries the
+						    settings and hands the caret back to the canvas. */}
+						<div className="text-box-words">
+							<p className={`text-box-excerpt${blockWords(block) ? '' : ' empty'}`}>
+								{blockWords(block) || 'No words yet'}
+							</p>
+							<button
+								type="button"
+								className="btn-secondary text-box-edit-on-page"
+								aria-label={`Edit the words in ${textLabel} on the page`}
+								onClick={() => editTextOnPage(pageKey, block.id)}
+							>
+								<PanelIcon type="pencil" />
+								Edit text on the page
+							</button>
+						</div>
 						<div className="text-box-font-row">
 							<label>
 								<span>Font</span>
@@ -1673,7 +1688,7 @@ export default function PageEditor({
 						</div>
 						<details className="block-options">
 							<summary aria-label={`Link all of ${textLabel}`}>Link the entire text box</summary>
-							<p className="muted">For individual words, select them above and press Link in the toolbar.</p>
+							<p className="muted">For individual words, select them on the page and press Link in the format toolbar.</p>
 							<input
 								className={`text-input ${!isPageOrWebLink(block.link ?? '') ? 'invalid' : ''}`}
 								value={block.link ?? ''}

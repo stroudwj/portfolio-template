@@ -6693,6 +6693,36 @@ a.live-url:hover {
 	align-self: center;
 	font-size: 11px;
 }
+/* The text card points at the page instead of mirroring the words: a quiet
+   excerpt to tell two cards apart, and the way back to the caret. */
+.text-box-words {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+}
+.text-box-excerpt {
+	flex: 1 1 150px;
+	margin: 0;
+	color: var(--ink);
+	font-size: 12px;
+	line-height: 1.5;
+}
+.text-box-excerpt.empty {
+	color: var(--ink-soft);
+	font-style: italic;
+}
+.text-box-edit-on-page {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 9px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
 .text-box-canvas-status {
 	display: flex;
 	align-items: center;
