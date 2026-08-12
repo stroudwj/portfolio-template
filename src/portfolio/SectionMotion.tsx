@@ -11,7 +11,10 @@ const SEQUENCE_ITEMS =
 /**
  * One scroll scheduler for all of a page's motion sections. IntersectionObserver
  * handles discrete entrances; a single passive scroll listener updates every
- * continuous scene so adding scenes never adds listeners one-by-one.
+ * continuous scene so adding scenes never adds listeners one-by-one. The scan
+ * below is a snapshot, so a mutation observer adopts sections that arrive after
+ * it (see `adopt`) — nothing this runtime knows about may sit at opacity 0 with
+ * no way back.
  */
 export default function SectionMotionRuntime({
 	root,
@@ -27,7 +30,7 @@ export default function SectionMotionRuntime({
 		const win = doc.defaultView;
 		if (!win) return;
 		const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-motion-effect]'));
-		if (!sections.length) return;
+		const tracked = new Set<HTMLElement>(sections);
 
 		const reduced = win.matchMedia('(prefers-reduced-motion: reduce)');
 		const phone = win.matchMedia('(max-width: 639px)');
@@ -152,10 +155,52 @@ export default function SectionMotionRuntime({
 		};
 		const resetKeepEntered = () => reset(false);
 
+		const watch = (section: HTMLElement) =>
+			classGuard.observe(section, { attributes: true, attributeFilter: ['class'] });
+
+		/** Sections that appear after this pass — the editor adding one mid-session —
+		 * were never in the scan above, so nothing would ever mark them entered and
+		 * the reveal rule would hold them at opacity 0 forever. Adopt them as already
+		 * entered: a section inserted into a live page is an edit, not a scroll
+		 * entrance, and the same fail-visible rule the sequence items follow applies.
+		 * Published pages never insert sections, so their choreography is untouched. */
+		const adopt = new win.MutationObserver((mutations) => {
+			let added = false;
+			let removed = false;
+			for (const mutation of mutations) {
+				if (mutation.removedNodes.length) removed = true;
+				for (const node of mutation.addedNodes) {
+					if (node.nodeType !== 1) continue;
+					const el = node as HTMLElement;
+					const arrivals = el.querySelectorAll<HTMLElement>('[data-motion-effect]');
+					for (const arrival of el.matches('[data-motion-effect]')
+						? [el, ...arrivals]
+						: arrivals) {
+						if (tracked.has(arrival)) continue;
+						tracked.add(arrival);
+						sections.push(arrival);
+						arrival.classList.toggle('motion-disabled', !enabled(arrival));
+						markEntered(arrival);
+						watch(arrival);
+						added = true;
+					}
+				}
+			}
+			// Deleting a section leaves its element detached; drop it so the scroll
+			// pass stops measuring nodes nobody can see.
+			if (removed)
+				for (let i = sections.length - 1; i >= 0; i--) {
+					if (root.contains(sections[i])) continue;
+					tracked.delete(sections[i]);
+					sections.splice(i, 1);
+				}
+			if (added) schedule();
+		});
+
 		root.classList.add('motion-runtime-ready');
 		reset(true);
-		for (const section of sections)
-			classGuard.observe(section, { attributes: true, attributeFilter: ['class'] });
+		for (const section of sections) watch(section);
+		adopt.observe(root, { childList: true, subtree: true });
 		win.addEventListener('scroll', schedule, { passive: true });
 		win.addEventListener('resize', schedule, { passive: true });
 		reduced.addEventListener('change', resetKeepEntered);
@@ -164,6 +209,7 @@ export default function SectionMotionRuntime({
 			root.classList.remove('motion-runtime-ready');
 			observer?.disconnect();
 			classGuard.disconnect();
+			adopt.disconnect();
 			if (frame) win.cancelAnimationFrame(frame);
 			win.removeEventListener('scroll', schedule);
 			win.removeEventListener('resize', schedule);
