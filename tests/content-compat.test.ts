@@ -800,6 +800,45 @@ describe('browser draft compatibility', () => {
 		);
 	});
 
+	it('gives an existing form block the words ContactForm.tsx used to hardcode, with no schema-version bump', () => {
+		// Spec 36 (audit row E4). A draft saved before the form block had a submit
+		// label, a required marker or an unavailable sentence must publish exactly
+		// what it published before — so the new fields are optional with defaults
+		// equal to the old renderer literals, per the standing no-bump convention.
+		const doc = blankDoc();
+		doc.content.pages.home.blocks!.push({
+			id: 'legacy-form-copy',
+			type: 'form',
+			action: '',
+			fields: [{ id: 'message', type: 'textarea', label: 'Message', required: true }],
+		});
+
+		const parsed = parseAndMigrateEditorDoc(doc);
+		const form = parsed.content.pages.home.blocks!.find((block) => block.id === 'legacy-form-copy');
+		if (form?.type !== 'form') throw new Error('Expected the form block to survive parsing');
+
+		expect(CONTENT_SCHEMA_VERSION).toBe(5);
+		expect(parsed.content.schemaVersion).toBe(CONTENT_SCHEMA_VERSION);
+		expect(form.submitLabel).toBe('Send message');
+		expect(form.emailSubmitLabel).toBe('Continue in email');
+		expect(form.requiredLabel).toBe('Required');
+		expect(form.unavailableMessage).toBe(
+			'This contact form isn\u2019t ready yet. Please use another way to get in touch.',
+		);
+
+		// An artist's own words survive, and emptying one is a deletion the parser
+		// must not undo by re-applying the default.
+		form.submitLabel = 'Send it over';
+		form.requiredLabel = '';
+		form.unavailableMessage = '';
+		const reparsed = parseAndMigrateEditorDoc(parsed);
+		const kept = reparsed.content.pages.home.blocks!.find((block) => block.id === 'legacy-form-copy');
+		if (kept?.type !== 'form') throw new Error('Expected the form block to survive reparsing');
+		expect(kept.submitLabel).toBe('Send it over');
+		expect(kept.requiredLabel).toBe('');
+		expect(kept.unavailableMessage).toBe('');
+	});
+
 	it('migrates a v0 draft, backfills registries, and round-trips through export', async () => {
 		const raw = fixture('editor-doc-v0.json') as Record<string, unknown>;
 		const original = structuredClone(raw);

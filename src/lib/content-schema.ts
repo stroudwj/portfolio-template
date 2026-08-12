@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import type { Content } from './content';
-import { encodeContactEmail } from '../portfolio/contactEmail';
+import {
+	DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+	DEFAULT_FORM_REQUIRED_LABEL,
+	DEFAULT_FORM_SUBMIT_LABEL,
+	DEFAULT_FORM_UNAVAILABLE_MESSAGE,
+	encodeContactEmail,
+} from '../portfolio/contactEmail';
 
 export const CONTENT_SCHEMA_VERSION = 5 as const;
 
@@ -338,6 +344,16 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		// runs, so nothing here reaches parsed content as a joined address.
 		recipientEmail: contactEmailPartsSchema.optional(),
 		successMessage: z.string().optional(),
+		// Spec 36 (audit row E4): the submit words, the required marker and the
+		// unavailable sentence used to live only in ContactForm.tsx, so no artist
+		// could rename or delete them. They are fields now, defaulted to the words
+		// the renderer used to supply — so an existing draft that has never seen
+		// them parses to exactly what it published before, with no version bump —
+		// and an empty string means "deleted": the element is not rendered at all.
+		submitLabel: z.string().default(DEFAULT_FORM_SUBMIT_LABEL),
+		emailSubmitLabel: z.string().default(DEFAULT_FORM_EMAIL_SUBMIT_LABEL),
+		requiredLabel: z.string().default(DEFAULT_FORM_REQUIRED_LABEL),
+		unavailableMessage: z.string().default(DEFAULT_FORM_UNAVAILABLE_MESSAGE),
 		layout: imageLayoutSchema.optional(),
 		fields: z.array(
 			passthrough({

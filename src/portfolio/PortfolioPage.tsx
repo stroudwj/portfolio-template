@@ -581,6 +581,10 @@ export default function PortfolioPage({
 								action={block.action}
 								fallbackEmail={block.recipientEmail}
 								successMessage={block.successMessage}
+								submitLabel={block.submitLabel}
+								emailSubmitLabel={block.emailSubmitLabel}
+								requiredLabel={block.requiredLabel}
+								unavailableMessage={block.unavailableMessage}
 								fields={block.fields.map((field) => ({
 									name: field.id,
 									type: field.type,
@@ -1189,6 +1193,10 @@ export default function PortfolioPage({
 						action={block.action}
 						fallbackEmail={block.recipientEmail}
 						successMessage={block.successMessage}
+						submitLabel={block.submitLabel}
+						emailSubmitLabel={block.emailSubmitLabel}
+						requiredLabel={block.requiredLabel}
+						unavailableMessage={block.unavailableMessage}
 						fields={block.fields.map((field) => ({
 							name: field.id,
 							type: field.type,

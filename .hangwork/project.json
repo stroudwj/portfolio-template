@@ -195,8 +195,8 @@
       "gitBlobSha": "d47fe117067afd215c0d01e7fb1f3e9122198b5e"
     },
     "src/editor/components/PageEditor.tsx": {
-      "sha256": "d96d0899bf9cf448eb0e9c0409e55fa0c94e8834de6b907d22242c9456bf02c2",
-      "gitBlobSha": "aa8bf4fa9765d86380b8daa202fefac62519e2c7"
+      "sha256": "bfe849ae370c3b28b64e6713923b6f55f43943e4de7834a556c71f7ccad893d8",
+      "gitBlobSha": "f728b29dd70a349c032f9250ef4d058e259e663e"
     },
     "src/editor/components/PageHeadingLayoutEditor.tsx": {
       "sha256": "39e232b9f37bfbed86235dc101daa480827abf34db21199f50b41816df5b7fd0",
@@ -547,8 +547,8 @@
       "gitBlobSha": "534777e201077be80c2b623f1e4ae800bba11aec"
     },
     "src/editor/store.tsx": {
-      "sha256": "e304e7af73d0ccfdd2e2606e4b207ad3d18a00045da453a796eab72c7ea3ff2b",
-      "gitBlobSha": "4a0c3ee0f022acc00a8a64f6bbd2d98004faee4b"
+      "sha256": "ab54d4603a335e9b19af620cdac29d423dad1f2c5d2c91f2bfff18f13ccad1e2",
+      "gitBlobSha": "1bf3c9ae22bda4c2baa923ab7093199e62d28450"
     },
     "src/layouts/Layout.astro": {
       "sha256": "601a8ddc1f901aa29515e44c00d3873dce4b6cde8ca67a49bb4813b6e667fa9f",
@@ -559,12 +559,12 @@
       "gitBlobSha": "160726c9dfa0c45346af2d1cbf03c2a0b8893208"
     },
     "src/lib/content-schema.ts": {
-      "sha256": "e4fe0c0ac03979fb2870344e272f1df7bba0f55b5aede96f40ead2c2a4863443",
-      "gitBlobSha": "ecc6b276f1ee7350e904835e63d10739aeadbde8"
+      "sha256": "a927e11521696557c550c02a7927b14561464bb43af59355cc13d5314318b9de",
+      "gitBlobSha": "8d7cede3da7961b4c101cabbbb2232f8dbd2a462"
     },
     "src/lib/content.ts": {
-      "sha256": "fe9f2ab27c47dd79932daa796e7eb5309e0f6c45ad891c2716897a2b0ed73c73",
-      "gitBlobSha": "06ed1577443a41c7ca755a5b3eebd0fafa511fee"
+      "sha256": "28c6506809068e98036bfe58dd9e3658cbc3468e7f5824a1198b2ef3e0a52630",
+      "gitBlobSha": "c8f3c4e8db979b2cf93121a7f48ceeffcf030759"
     },
     "src/lib/examples.ts": {
       "sha256": "f889a2a0e492cd65b8d456cb6ada668df048f757324a12a68b9fa0f36131346a",
@@ -711,8 +711,8 @@
       "gitBlobSha": "dee0b32a0a48e620fba863400671cb7cb73f8990"
     },
     "src/portfolio/ContactForm.tsx": {
-      "sha256": "22a1f155d5d44f1a4300dbfc9be4bc93f3a2f9f9c658b5470320d010883bb47e",
-      "gitBlobSha": "bb067bc20ea0d986eaff34c51a03c765174da069"
+      "sha256": "7893df558eaf415c0f06621b2c181f896907bc24d2058290718f45181b387f6a",
+      "gitBlobSha": "b6dd3f81388e087c4727af608f8bb1e1c7d050e4"
     },
     "src/portfolio/CreativeEffects.css": {
       "sha256": "6a1bc37b783757d7faded85d58a50989b8b28fc2a7230cab09cdb7cb0dc3bd81",
@@ -799,8 +799,8 @@
       "gitBlobSha": "c2b40d098cc17fbc71a14de9be18282be98207b1"
     },
     "src/portfolio/PortfolioPage.tsx": {
-      "sha256": "ee311345b6d40fa1b2ec813311b9f09e619b75d69e09fba800ca4e6ebed1882d",
-      "gitBlobSha": "389663d8959f5e76bb19f36e5772d1f1e65bec16"
+      "sha256": "376a73628b0f72a1b793e51e9da4c9d404449a15cba52edca11ec41de00008e2",
+      "gitBlobSha": "9197bf01def884fceec034631dcb31e58ec581fd"
     },
     "src/portfolio/Products.css": {
       "sha256": "3cfb69c98e79aa4f2820db524507fbf792cd087444fcb9301d8c595c1afd78e8",
@@ -883,8 +883,8 @@
       "gitBlobSha": "56b745a449614d0066e836e7b358a56c9f248260"
     },
     "src/portfolio/contactEmail.ts": {
-      "sha256": "a72009f2bf5fb4ec48d6dc473f376f4834f0a83909132f834d7ba4a7899afc01",
-      "gitBlobSha": "b064af81fbf4ceed3319792eba3107e7106d25cc"
+      "sha256": "747e02fdfdf6a6460ff25bedaeff6acb07f8c3100f24ea85a284ccb2c137ba16",
+      "gitBlobSha": "ddd7fdad2a1c6ba3a467ad070231841925e4f9c0"
     },
     "src/portfolio/frame.css": {
       "sha256": "38ef67f9fc4289a2709288c21621cabc78627e098fc9eaf66c80743f93a28d21",
@@ -955,8 +955,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "c9b3eec0e46906c7f6a43ce62361a2e3e316f409be07b6ef6919e52b2a0f8d4f",
-      "gitBlobSha": "962ba7c1c45cf251de69cde6c0042e2b841a48da"
+      "sha256": "f134b91ef5bcff14c685af308b4c90844be04f5d113f6cd3e8625e760acb4d21",
+      "gitBlobSha": "1e61432a0c9ea39030e67ff1a712b514f55a2b85"
     }
   }
 }

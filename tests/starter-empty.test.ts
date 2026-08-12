@@ -52,13 +52,14 @@ const BASELINE_FIELDS: Record<string, string[]> = {
 		// "Open  in image viewer" with the hole where the artist's words were.
 		'assistive: Open  in image viewer',
 	],
-	// ContactForm.tsx defaults: the submit label, the honeypot label, the
-	// per-field "Required" chip and the unavailable-state sentence.
+	// ContactForm.tsx chrome that is still not an artist's to remove. Spec 36's
+	// form-fields chunk closed the submit label, the "Required" marker and the
+	// unavailable sentence (they are block fields now); what is left is the
+	// CSS-hidden, aria-hidden honeypot label — editable words would weaken the
+	// spam trap — and the form's accessible name when its heading is blank, which
+	// is functional chrome of the same class as E3's "Open site navigation".
 	conservatory: [
-		'visible: Continue in email',
 		'visible: Leave this field empty',
-		'visible: Required',
-		'visible: This contact form isn’t ready yet. Please use another way to get in touch.',
 		'assistive: Contact form',
 	],
 	// Gallery.tsx carousel chrome: arrows, the "1 / 4" counter and its aria labels.
