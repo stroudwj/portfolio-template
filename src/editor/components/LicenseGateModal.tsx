@@ -1,8 +1,9 @@
 // The publishing license gate. Polar checkout is created server-side for the signed-in
 // account using the lifetime product; signed webhooks keep the
 // account entitlement in sync and the return flow resumes publishing.
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal } from './ui/Modal';
+import { PanelIcon } from './ui/panel-icons';
 import { AccountError } from '../lib/account/client';
 import {
 	clearResumePublish,
@@ -16,6 +17,33 @@ import {
 	monthlyUpgradeCreditText,
 	pricing,
 } from '../../lib/pricing';
+
+/** One included-feature row in a plan card. Plan cards list only what a plan
+ * INCLUDES — a feature a plan lacks is simply absent, never a struck-out row. */
+function Feature({ children, note }: { children: ReactNode; note?: string }) {
+	return (
+		<span className="checkout-feature">
+			<PanelIcon type="check" />
+			<span>
+				{children}
+				{note && <small>{note}</small>}
+			</span>
+		</span>
+	);
+}
+
+/** The base plan's included features. Monthly is the plan the lifetime card
+ * references with its "All of Monthly" row, so this list lives on monthly only. */
+function MonthlyFeatures() {
+	return (
+		<>
+			<Feature>Full visual editor</Feature>
+			<Feature>yourname.hangwork.art</Feature>
+			<Feature>Your own custom domain</Feature>
+			<Feature>Unlimited publishing</Feature>
+		</>
+	);
+}
 
 export default function LicenseGateModal({
 	onClose,
@@ -76,22 +104,7 @@ export default function LicenseGateModal({
 			}
 		>
 			<div className="checkout-options">
-				<button
-					type="button"
-					className={`checkout-option${selectedPlan === 'lifetime' ? ' selected' : ''}`}
-					aria-pressed={selectedPlan === 'lifetime'}
-					onClick={() => setSelectedPlan('lifetime')}
-					disabled={busy}
-				>
-					<span className="checkout-option-heading">
-						<span>Lifetime access</span>
-						<span className="checkout-price">
-							<strong>{currentPlan === 'monthly' ? `$${upgradePrice}` : currentPriceText}</strong>
-							<small>{currentPlan === 'monthly' ? `${monthlyUpgradeCreditText} off` : 'once'}</small>
-						</span>
-					</span>
-					<span>Every feature, including site and backup downloads. Pay once and keep access.</span>
-				</button>
+				{/* Cheap-to-premium, left to right: monthly is the base plan, lifetime builds on it. */}
 				<button
 					type="button"
 					className={`checkout-option${selectedPlan === 'monthly' ? ' selected' : ''}`}
@@ -106,10 +119,37 @@ export default function LicenseGateModal({
 							<small>/ month</small>
 						</span>
 					</span>
-					<span>
-						{currentPlan === 'monthly'
-							? 'Everything except downloads. Keep paying to retain access; your site goes offline if the subscription ends.'
-							: `First ${pricing.monthlyTrialDays} days free — cancel before they end and pay nothing. Then ${monthlyPriceText}/month; everything except downloads, and your site goes offline if the subscription ends.`}
+					<span className="checkout-features">
+						{currentPlan !== 'monthly' && (
+							<Feature note="Cancel before they end and pay nothing.">
+								First {pricing.monthlyTrialDays} days free
+							</Feature>
+						)}
+						<Feature>Hosted while subscribed</Feature>
+						<MonthlyFeatures />
+					</span>
+				</button>
+				<button
+					type="button"
+					className={`checkout-option${selectedPlan === 'lifetime' ? ' selected' : ''}`}
+					aria-pressed={selectedPlan === 'lifetime'}
+					onClick={() => setSelectedPlan('lifetime')}
+					disabled={busy}
+				>
+					<span className="checkout-option-heading">
+						<span>Lifetime access</span>
+						<span className="checkout-price">
+							<strong>{currentPlan === 'monthly' ? `$${upgradePrice}` : currentPriceText}</strong>
+							<small>{currentPlan === 'monthly' ? `${monthlyUpgradeCreditText} off` : 'once'}</small>
+						</span>
+					</span>
+					{/* No free-trial row here: Polar trials are a recurring-price feature, and the
+					    worker only grants trial access from subscription webhooks (polar.js
+					    trialingSubscription). A one-time lifetime order can carry no trial. */}
+					<span className="checkout-features">
+						<Feature>All of Monthly</Feature>
+						<Feature>Site and backup downloads</Feature>
+						<Feature>Pay once, yours forever</Feature>
 					</span>
 				</button>
 			</div>
@@ -121,7 +161,8 @@ export default function LicenseGateModal({
 						: 'Publishing needs an active plan. Polar handles the secure checkout and your work stays saved.'}
 			</p>
 			<p className="modal-note">
-				Both plans include the editor, yourname.hangwork.art, publishing, custom domains, and future editor updates.
+				{context === 'unlock' || currentPlan === 'monthly' ? '' : 'Building and previewing are free. '}
+				Future editor updates come with both plans.
 				{' '}{pricing.refundDays}-day refund, no questions asked.
 			</p>
 			{error && <p className="field-error">{error}</p>}

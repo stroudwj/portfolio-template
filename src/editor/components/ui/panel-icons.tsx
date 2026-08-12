@@ -37,6 +37,7 @@ export type PanelIconType =
 	| 'undo'
 	| 'redo'
 	| 'chevron'
+	| 'check'
 	| 'duplicate'
 	| 'workbench'
 	| 'motion';
@@ -225,6 +226,8 @@ const PATHS: Record<PanelIconType, ReactNode> = {
 	),
 	// Chevron for collapsible rows
 	chevron: <path d="m9 6 6 6-6 6" />,
+	// Tick — an included feature in a plan card
+	check: <path d="m5 12.5 4.5 4.5L19 7" />,
 	// Photo stack: a print on top of another
 	workbench: (
 		<>
