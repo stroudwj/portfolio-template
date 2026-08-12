@@ -691,12 +691,12 @@
       "gitBlobSha": "793dc4e608f08eda92d9d5b9b9957c78bf13eae0"
     },
     "src/portfolio/ArtworkEffects.css": {
-      "sha256": "8786bcd8104ef5627bfc3035caab78a3706cada32dce073639449b339aadfa84",
-      "gitBlobSha": "b93ff3f0d7bae119dbf63b58a91fbd0f4d2a984e"
+      "sha256": "a2b0312f9d1e3a2f9d112366d1a25d767130263e7bd4d66369fd7b70314a67c3",
+      "gitBlobSha": "f53e9baf752850f2b54480f1ff6c7caf58f03b76"
     },
     "src/portfolio/CanvasGallery.tsx": {
-      "sha256": "ec9764bda15cb212bf483d8594e14fcf672b8380febea7b6b0ae81f0b26a33b8",
-      "gitBlobSha": "b7ddd9c14e2a751ffe6f20288b104c3c8b7324fc"
+      "sha256": "5c9c8b2dfceef1fa5cf0070736557049134331eebef36cd3281b51aa1366b384",
+      "gitBlobSha": "08b75802edf0f16d26127a408df74533689c0c9b"
     },
     "src/portfolio/ChildPages.css": {
       "sha256": "7c0327413b19894725027d395a23c57bc787c20e3eeeb7f70c8fb169d9336895",
@@ -723,8 +723,8 @@
       "gitBlobSha": "b6dd3f81388e087c4727af608f8bb1e1c7d050e4"
     },
     "src/portfolio/CreativeEffects.css": {
-      "sha256": "6a1bc37b783757d7faded85d58a50989b8b28fc2a7230cab09cdb7cb0dc3bd81",
-      "gitBlobSha": "dd9f56459c5348aef3b7d8e70e5d5ff21597d787"
+      "sha256": "4f772571044585617ebe47c43dabad40003c3614cff9d4338e4c7601ca3cbb9b",
+      "gitBlobSha": "a5ade0d296d2efc8d26099354e74717909ebb3bd"
     },
     "src/portfolio/CreativeEffects.tsx": {
       "sha256": "794b4e366def80d66318da71bd8cd82adb1d7290891c18516c2789602eb72ea4",
@@ -747,8 +747,8 @@
       "gitBlobSha": "ba2251a26f9fff8a01b0eb9cda073ec4ed314638"
     },
     "src/portfolio/Gallery.css": {
-      "sha256": "479e7fcd9ddc976253de54a0fb22bd221a7b42842963e9713b8d75b622fd54ed",
-      "gitBlobSha": "9546d391e1348e5493b96d3ec309f1061b70d2c1"
+      "sha256": "bed4f4a7a5cadc9868b992194f891021d8e6a64d4f1bc0b211f85a4e7338b394",
+      "gitBlobSha": "f49a8850c5f608fd190cd423ec9c890b7d2ae094"
     },
     "src/portfolio/Gallery.tsx": {
       "sha256": "5eaa3f7016b66c92b0c7996218ce3b4bc64bddfd2b90f480b4975584dad44aff",
@@ -967,8 +967,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "01c3426e4483da7ed4a212e1b6217577d49dadd155d1f823f114dc167cc78a85",
-      "gitBlobSha": "cd52dbfd39a795bc6e8cde0826e97980fb0d469d"
+      "sha256": "9f215bb2f921dc1072298bb759f798d9be70841ea7bb971b7e5c1f6d5577d249",
+      "gitBlobSha": "7715d330752fbb46d8d926169bc74163711a7959"
     }
   }
 }

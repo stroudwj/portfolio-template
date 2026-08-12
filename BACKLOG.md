@@ -2115,7 +2115,46 @@ server on port 4492.
 `tests/license-gate-cards.test.ts`, manifest. Out of scope: pricing.ts values, Polar
 dashboard changes, PublishPanel copy, Landing.astro.
 
-## 42. BUG: text box color control has no effect; mounts don't rotate with a rotated piece — `running` (2026-08-12)
+## 42. BUG: text box color control has no effect; mounts don't rotate with a rotated piece — `merged` (2026-08-12)
+
+**Result.** B fixed; **A did not reproduce — needs a repro from William before any code change.**
+
+*A — box color.* Could not reproduce on Conservatory in the editor canvas, the fullscreen
+"exactly as published" preview, or the staticgen path. `boxColor` has **zero** hits in the
+tree; the control is `block.background` → `editor.setTextBackground` → `patchBlocks` →
+`TextBlock`/`TextContent` → `backgroundBlockVars()` → `--color-bg` on
+`.text-block-content.has-text-background` (TextBlock.css:139, landed in spec 17 `0aca14f`).
+Set #e0685b on a canvas-pinned text and #e0a94a on a second: both produced
+`computedBg rgb(224,104,91)` / `rgb(224,169,74)` and a visibly colored card. Staticgen is
+not a second copy — `staticgen/site.ts:263` `renderToString`s the *same* `<Portfolio>`, so
+there is no surface where the field can be dropped. Flow (non-canvas) `TextBlock` path is
+effectively dead: every text block is canvas-pinned (spec 34), and even switching the page to
+"Straight page" left all blocks as `.canvas-text`. **Ask William** which template/block and
+whether he used the swatch or the hex field. One real defect noticed in passing, not fixed
+(out of scope): on a canvas-pinned text the card paints the *inline content box*, so it can
+spill well outside the pinned frame, and its `padding: 0.9em 1.1em` scales with the font —
+on a display-size text the box is enormous. Worth its own spec.
+
+*B — mount rotation.* Reproduced. Rotation (`--artwork-skew` / hang presets) landed on
+`.canvas-artwork-frame`, but 8 of 12 mounts paint as `::before` on the **host**
+`.canvas-item`, outside the rotation. Pass/fail table at 14deg: **rotated correctly (4)** —
+`frame`, `frame-oak`, `frame-walnut`, `mat` (they are `border`s on the `<img>` *inside* the
+rotated element); **stayed axis-aligned (8)** — `tape`, `nail`, `tack`, `hook`,
+`corners-nail`, `corners-tape`, `corners-tack`, `photo-corners`. No mount is
+rotation-exempt by design, so nothing was left alone. Fix: new
+`.canvas-artwork-hang` wrapper in `CanvasGallery.tsx` carries the rotation and is
+overflow-visible; `.canvas-artwork-frame` inside keeps the straight crop boundary (this
+preserves the deliberate CreativeEffects.css invariant — resize handles stay straight and the
+rotated art is not clipped against a straight overflow edge). Mount pseudos now select
+`.artwork-mount-X > .canvas-artwork-hang::before`, with
+`:not(:has(> .canvas-artwork-hang))` keeping grid/masonry/carousel on the host unchanged.
+Verified in-browser: tape went from horizontal-over-tilted-art to riding the tilted top edge;
+host `::before` is now `none` and the wrapper reports `rotate: 14deg`. Looks of all 12 mounts
+unchanged at 0deg.
+
+`npm run check` 0 errors, `npm test` 428/428, manifest regenerated (runtime 1.2.29).
+Committed on `worktree-spec-42-controls`; **not merged** — merging left to the orchestrator
+per standing rules, and spec 43 touches the same files.
 
 Two renderer/editor bugs from William's 2026-08-12 editor session, batched because both
 are "a control exists but the canvas ignores it".

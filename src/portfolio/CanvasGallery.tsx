@@ -1898,6 +1898,11 @@ export default function CanvasGallery({
 							aria-label={!editable && !href && onOpen ? imageViewerLabel(img.title, img.alt, alt) : undefined}
 							onClick={!editable && !href && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
 							onKeyDown={!editable && !href && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
+							{/* The hang wrapper carries the rotation and stays overflow-visible,
+							    so a mount painted on it (tape, nails, photo corners) turns
+							    rigidly with the piece instead of staying axis-aligned. The
+							    frame inside keeps the straight crop boundary. */}
+							<div className="canvas-artwork-hang">
 							<div className="canvas-artwork-frame">
 								<img src={img.src} srcSet={img.srcSet} alt={img.decorative ? '' : img.alt || img.title || alt} loading="lazy" decoding="async" draggable={false}
 									style={{
@@ -1908,6 +1913,7 @@ export default function CanvasGallery({
 									onError={img.sample ? (event) => showSampleUnavailable(event.currentTarget) : undefined}
 									onLoad={editable ? (e) => measure(key, e.currentTarget) : undefined}
 									ref={editable ? (el) => { if (el?.complete) measure(key, el); } : undefined} />
+							</div>
 							</div>
 							{href && (
 								<a
