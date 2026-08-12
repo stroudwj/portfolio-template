@@ -268,3 +268,12 @@
 .canvas-item.inline-editing .canvas-text {
 	cursor: text;
 }
+/* An empty text box in the editor preview: a real footprint so the block can
+   be found, selected and written in. Published sites render nothing. */
+.text-block-empty {
+	padding: 0.5rem 0.75rem;
+	border: 1.5px dashed color-mix(in srgb, var(--color-text-muted, #888) 60%, transparent);
+	border-radius: 6px;
+	color: var(--color-text-muted);
+	font-size: 0.85rem;
+}

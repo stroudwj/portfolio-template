@@ -196,6 +196,8 @@ export default function PreviewEditLayer({
 	pageKey,
 	editor,
 	onEditBlock,
+	selectedId,
+	onSelectedIdChange: setSelectedId,
 	inlineTextId,
 	onInlineTextEdit,
 	onInlineTextDone,
@@ -206,6 +208,12 @@ export default function PreviewEditLayer({
 	editor: EditorContextValue;
 	/** Open a block's full settings card in the editing column. */
 	onEditBlock: (blockId: string) => void;
+	/** The selected block. Held by the preview panel, not here: this layer
+	 *  unmounts whenever the preview leaves plain desktop editing (fullscreen,
+	 *  the phone view, a dev-time Fast Refresh), and a selection that died with
+	 *  it took the floating toolbar with it on the way back. */
+	selectedId: string | null;
+	onSelectedIdChange: (blockId: string | null) => void;
 	/** The text block currently being edited in place, if any. */
 	inlineTextId: string | null;
 	/** Start editing a text block's words right on the page. */
@@ -218,7 +226,6 @@ export default function PreviewEditLayer({
 	const [frameDoc, setFrameDoc] = useState<Document | null>(null);
 	const [hoverBlockId, setHoverBlockId] = useState<string | null>(null);
 	const [hoverSectionId, setHoverSectionId] = useState<string | null>(null);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [layersOpen, setLayersOpen] = useState(false);
 	const [picker, setPicker] = useState<PickerState | null>(null);
 	const [dragging, setDragging] = useState(false);
@@ -659,7 +666,10 @@ export default function PreviewEditLayer({
 
 	const selectedBlock =
 		selectedId && selectedId !== inlineTextId ? blockById.get(selectedId) : undefined;
-	const selectedRect = selectedBlock ? blockRect(selectedBlock.id) : null;
+	// anyBlockRect, not blockRect: a block pinned to a canvas has no flow
+	// boundary to measure, and every text block starts pinned — measuring only
+	// the boundary left those selections with no toolbar at all.
+	const selectedRect = selectedBlock ? anyBlockRect(selectedBlock.id) : null;
 	const hoverBlock =
 		!dragging && hoverBlockId && hoverBlockId !== selectedId && hoverBlockId !== inlineTextId
 			? blockById.get(hoverBlockId)

@@ -218,6 +218,7 @@ export default function TextBlock({
 	flowLayout,
 	kineticTarget,
 	editing,
+	editorPreview = false,
 }: {
 	text: string;
 	richText?: RichTextParagraph[];
@@ -231,8 +232,13 @@ export default function TextBlock({
 	flowLayout?: TextFlowLayout;
 	kineticTarget?: string;
 	editing?: InlineTextEditing;
+	editorPreview?: boolean;
 }) {
-	if (!editing && !(richText ? richTextPlainText(richText) : text).trim()) return null;
+	const empty = !(richText ? richTextPlainText(richText) : text).trim();
+	// A text box with no words is invisible, which in the editor means it cannot
+	// be selected, moved or written in — the same reason canvas-pinned texts show
+	// a placeholder. Published sites still render nothing at all.
+	if (!editing && empty && !editorPreview) return null;
 	const safeFlowLayout = flowLayout ? clampTextFlowLayout(flowLayout) : undefined;
 	const flowStyle = safeFlowLayout
 		? ({
@@ -255,6 +261,10 @@ export default function TextBlock({
 					onChange={editing.onChange}
 					onDone={editing.onDone}
 				/>
+			) : empty ? (
+				<p className="text-block-content text-block-empty">
+					<em>Empty text — double-click to write</em>
+				</p>
 			) : (
 				<TextContent
 					text={text}

@@ -11,6 +11,7 @@ import type {
 	TextAlign,
 	TextStyle,
 } from '../lib/content';
+import { caretOffsetsIn, restoreCaretIn } from '../lib/caret';
 import {
 	legacyTextToRichText,
 	richTextFromElement,
@@ -58,12 +59,17 @@ export default function InlineTextEditor({
 	const signature = JSON.stringify(documentValue);
 
 	// Seed the DOM from the model, and re-seed only on external changes (undo,
-	// the editing column) — never on our own echoes, so the caret survives.
+	// a format command) — never on our own echoes, so the caret survives. When a
+	// re-seed does land mid-edit, the caret is measured as a character offset and
+	// put back afterwards: rewriting innerHTML discards the text node it lived
+	// in, which used to drop it at the front of the paragraph mid-sentence.
 	useEffect(() => {
 		const editor = ref.current;
 		if (!editor || lastEmittedRef.current === signature) return;
+		const caret = caretOffsetsIn(editor);
 		editor.innerHTML = richTextToEditorHtml(documentValue);
 		lastEmittedRef.current = signature;
+		if (caret) restoreCaretIn(editor, caret);
 	}, [documentValue, signature]);
 
 	// Entering edit mode puts the caret at the end of the words.

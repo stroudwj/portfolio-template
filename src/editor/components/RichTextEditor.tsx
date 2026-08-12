@@ -197,6 +197,14 @@ export function RichTextToolbar({
 			element.dataset.textPt = String(clamped);
 			element.style.fontSize = `${clamped}pt`;
 		}
+		// execCommand announces its own edit, but the rewrite above happens after
+		// that event — so say it again. An editable that never hears about a change
+		// to its own DOM treats the resulting model as somebody else's and re-seeds
+		// itself from it, throwing the caret back to the front of the paragraph.
+		// (Built from the editable's own realm — the in-place editor lives in the
+		// preview iframe, where a parent-realm event does not reach its listeners.)
+		const view = editor.ownerDocument.defaultView ?? window;
+		editor.dispatchEvent(new view.Event('input', { bubbles: true }));
 		onEmit();
 		refreshToolbar();
 	};

@@ -369,6 +369,30 @@ export function onSelectPreviewBlock(
 	return () => window.removeEventListener(SELECT_PREVIEW_BLOCK_EVENT, handler);
 }
 
+const EDIT_TEXT_ON_PAGE_EVENT = 'editor-edit-text-on-page';
+
+export interface TextBlockEditRequest {
+	pageKey: string;
+	blockId: string;
+}
+
+/** Send a text block's words to the page: the one place they are edited. The
+ *  block's card in the editing column keeps its settings and points here, so
+ *  there is no second copy of the words to fall out of step with the caret. */
+export function editTextOnPage(pageKey: string, blockId: string) {
+	window.dispatchEvent(
+		new CustomEvent<TextBlockEditRequest>(EDIT_TEXT_ON_PAGE_EVENT, {
+			detail: { pageKey, blockId },
+		}),
+	);
+}
+
+export function onEditTextOnPage(fn: (request: TextBlockEditRequest) => void): () => void {
+	const handler = (event: Event) => fn((event as CustomEvent<TextBlockEditRequest>).detail);
+	window.addEventListener(EDIT_TEXT_ON_PAGE_EVENT, handler);
+	return () => window.removeEventListener(EDIT_TEXT_ON_PAGE_EVENT, handler);
+}
+
 const PREVIEW_STRUCTURE_EVENT = 'editor-preview-structure-tool';
 
 /** The page-structure tools — Layers and Add block. Their cards belong beside

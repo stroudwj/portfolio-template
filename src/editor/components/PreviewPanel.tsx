@@ -20,6 +20,7 @@ import {
 import { pageGalleryConfigs } from '../../lib/content';
 import { GUIDE_OPTIONS, guideById, setGridPrefs, toggleEdgeSnap, useGridPrefs } from '../../portfolio/gridPrefs';
 import {
+	onEditTextOnPage,
 	onOpenTemplatePicker,
 	onPreviewTypeMotion,
 	selectPreviewBlock,
@@ -464,6 +465,16 @@ export default function PreviewPanel({
 		useState<TypeMotionPreviewRequest>();
 	/** The text block currently being edited in place on the page, if any. */
 	const [inlineTextId, setInlineTextId] = useState<string | null>(null);
+	/** The block selected on the page. The floating edit layer draws the toolbar
+	 * for it, but the selection is kept out here so it outlives that layer —
+	 * fullscreen, the phone view, and a dev-time Fast Refresh all unmount it. */
+	const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+	/** A panel card asking for its words to be edited on the page. Applied once
+	 * the preview is actually in a state that can edit (see the effect below). */
+	const [pendingInlineEdit, setPendingInlineEdit] = useState<{
+		pageKey: string;
+		blockId: string;
+	} | null>(null);
 	/** Floating workbench window (organize/upload), toggled from the toolbar. */
 	const [workbenchOpen, setWorkbenchOpen] = useState(false);
 	/** Floating chooser filling a new solo-image block from the workbench. */
@@ -543,6 +554,47 @@ export default function PreviewPanel({
 		if (!currentPage?.blocks?.some((block) => block.id === inlineTextId))
 			setInlineTextId(null);
 	}, [doc, page, inlineTextId]);
+
+	// The selection belongs to one page, and to a block that still exists —
+	// but it deliberately survives fullscreen and the phone view, so that
+	// coming back finds the same block selected with its toolbar on it.
+	useEffect(() => {
+		setSelectedBlockId(null);
+	}, [page]);
+	useEffect(() => {
+		if (!selectedBlockId) return;
+		const currentPage = doc?.content.pages[doc.content.pages[page] ? page : 'home'];
+		if (!currentPage?.blocks?.some((block) => block.id === selectedBlockId))
+			setSelectedBlockId(null);
+	}, [doc, page, selectedBlockId]);
+
+	// "Edit text on the page" from a block's card: the words are only editable
+	// in the plain desktop view, so take the preview there first and start the
+	// edit once it has arrived (the effect above clears in-place editing on the
+	// way, which is why this waits rather than setting it outright).
+	useEffect(
+		() =>
+			onEditTextOnPage(({ pageKey, blockId }) => {
+				setFullscreen(false);
+				setDevice('desktop');
+				setPage(pageKey);
+				setPendingInlineEdit({ pageKey, blockId });
+			}),
+		[],
+	);
+	useEffect(() => {
+		if (!pendingInlineEdit) return;
+		const key = doc?.content.pages[page] ? page : 'home';
+		if (key !== pendingInlineEdit.pageKey) return;
+		if (device !== 'desktop' || fullscreen || !canvasEditingEnabled) return;
+		const exists = doc?.content.pages[key]?.blocks?.some(
+			(block) => block.id === pendingInlineEdit.blockId,
+		);
+		setPendingInlineEdit(null);
+		if (!exists) return;
+		setSelectedBlockId(pendingInlineEdit.blockId);
+		setInlineTextId(pendingInlineEdit.blockId);
+	}, [pendingInlineEdit, doc, page, device, fullscreen, canvasEditingEnabled]);
 
 	useEdgeSnapShortcut();
 
@@ -1151,6 +1203,8 @@ export default function PreviewPanel({
 									pageKey={currentKey}
 									editor={editor}
 									onEditBlock={(blockId) => selectPreviewBlock(currentKey, blockId)}
+									selectedId={selectedBlockId}
+									onSelectedIdChange={setSelectedBlockId}
 									inlineTextId={inlineTextId}
 									onInlineTextEdit={setInlineTextId}
 									onInlineTextDone={() => setInlineTextId(null)}
