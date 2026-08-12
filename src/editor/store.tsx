@@ -35,7 +35,14 @@ import {
 	sectionPartKey,
 } from '../lib/pageSections';
 import { embedSpec, type EmbedKind } from '../portfolio/mediaEmbed';
-import { DEFAULT_CONTACT_BUTTON_LABEL, EMPTY_CONTACT_EMAIL } from '../portfolio/contactEmail';
+import {
+	DEFAULT_CONTACT_BUTTON_LABEL,
+	DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+	DEFAULT_FORM_REQUIRED_LABEL,
+	DEFAULT_FORM_SUBMIT_LABEL,
+	DEFAULT_FORM_UNAVAILABLE_MESSAGE,
+	EMPTY_CONTACT_EMAIL,
+} from '../portfolio/contactEmail';
 import type { CanvasSelection } from '../portfolio/types';
 import type { EditorDoc, ImageEntry, ImageMeta } from './lib/types';
 import { blankDoc, existingDoc, initDocFromContent, upgradeDoc } from './lib/content-init';
@@ -2910,6 +2917,10 @@ export function EditorProvider({
 					heading: 'Get in touch',
 					action: '',
 					successMessage: 'Thanks — your message has been sent.',
+					submitLabel: DEFAULT_FORM_SUBMIT_LABEL,
+					emailSubmitLabel: DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+					requiredLabel: DEFAULT_FORM_REQUIRED_LABEL,
+					unavailableMessage: DEFAULT_FORM_UNAVAILABLE_MESSAGE,
 					fields: [
 						{ id: uid('field'), type: 'name', label: 'Name', required: true },
 						{ id: uid('field'), type: 'email', label: 'Email', required: true },
@@ -3080,6 +3091,10 @@ export function EditorProvider({
 					case 'form': replacement = {
 						id: blockId, type, heading: label || 'Get in touch', action: '',
 						successMessage: 'Thanks — your message has been sent.',
+						submitLabel: DEFAULT_FORM_SUBMIT_LABEL,
+						emailSubmitLabel: DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+						requiredLabel: DEFAULT_FORM_REQUIRED_LABEL,
+						unavailableMessage: DEFAULT_FORM_UNAVAILABLE_MESSAGE,
 						fields: [
 							{ id: uid('field'), type: 'name', label: 'Name', required: true },
 							{ id: uid('field'), type: 'email', label: 'Email', required: true },

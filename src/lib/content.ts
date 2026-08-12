@@ -670,6 +670,17 @@ export type PageBlock =
 			 * drafts with a plain string are converted to this shape when parsed. */
 			recipientEmail?: ContactEmailParts;
 			successMessage?: string;
+			/** Submit button words when a form service posts the message in-page.
+			 * Empty string = the artist deleted the button; it is not rendered. */
+			submitLabel?: string;
+			/** Submit button words in the no-service fallback, where pressing it
+			 * hands the message to the visitor's email app. Empty = no button. */
+			emailSubmitLabel?: string;
+			/** The marker beside every question marked Required. Empty = no marker. */
+			requiredLabel?: string;
+			/** Shown in place of a working form when neither a form service nor a
+			 * delivery email is set. Empty = the form simply stays inert, silently. */
+			unavailableMessage?: string;
 			fields: FormField[];
 			/** Optional image-like placement on the section's freeform canvas. */
 			layout?: ImageLayout;

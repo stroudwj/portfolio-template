@@ -62,13 +62,14 @@ const BASELINE_STRUCTURE = [...PRODUCT_CHROME];
 /** Survivors of the fields pass, per starter. Everything here is renderer-supplied. */
 const BASELINE_FIELDS: Record<string, string[]> = {
 	__default__: [...PRODUCT_CHROME],
-	// ContactForm.tsx defaults: the submit label, the honeypot label, the
-	// per-field "Required" chip and the unavailable-state sentence.
+	// ContactForm.tsx chrome that is still not an artist's to remove. Spec 36's
+	// form-fields chunk closed the submit label, the "Required" marker and the
+	// unavailable sentence (they are block fields now); what is left is the
+	// CSS-hidden, aria-hidden honeypot label — editable words would weaken the
+	// spam trap — and the form's accessible name when its heading is blank, which
+	// is functional chrome of the same class as E3's "Open site navigation".
 	conservatory: [
-		'visible: Continue in email',
 		'visible: Leave this field empty',
-		'visible: Required',
-		'visible: This contact form isn’t ready yet. Please use another way to get in touch.',
 		'assistive: Contact form',
 	],
 	// Gallery.tsx carousel chrome: the arrows and their aria labels. Functional

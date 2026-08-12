@@ -216,6 +216,14 @@ function blankEveryString(content: Content): Content {
 				case 'form': // PageEditor form block → updateFormBlock()
 					block.heading = '';
 					block.successMessage = '';
+					// Spec 36 (E4): the button words, the required marker and the
+					// nowhere-to-send sentence are block fields now, each with its own
+					// input in the form block's panel — so the empty direction blanks
+					// them the way an artist would.
+					block.submitLabel = '';
+					block.emailSubmitLabel = '';
+					block.requiredLabel = '';
+					block.unavailableMessage = '';
 					for (const field of block.fields) field.label = '';
 					break;
 				case 'accordion': // PageEditor accordion rows → updateAccordionBlock()

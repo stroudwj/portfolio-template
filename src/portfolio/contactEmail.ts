@@ -26,6 +26,17 @@ export const EMPTY_CONTACT_EMAIL: ContactEmailParts = { user: '', domain: '' };
 /** The button label used when the artist hasn't chosen their own words. */
 export const DEFAULT_CONTACT_BUTTON_LABEL = 'Email me';
 
+/** Contact-form wording an artist inherits and can rename or delete (spec 36,
+ * audit row E4). These were literals inside ContactForm.tsx; they are block
+ * fields now, and these constants are the values a block is born with — shared
+ * so the schema default, the renderer fallback and the editor placeholder can
+ * never drift apart. An empty string is a deletion, never one of these. */
+export const DEFAULT_FORM_SUBMIT_LABEL = 'Send message';
+export const DEFAULT_FORM_EMAIL_SUBMIT_LABEL = 'Continue in email';
+export const DEFAULT_FORM_REQUIRED_LABEL = 'Required';
+export const DEFAULT_FORM_UNAVAILABLE_MESSAGE =
+	'This contact form isn’t ready yet. Please use another way to get in touch.';
+
 /** Matches validation.ts's isEmail so the editor and the renderer agree. */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

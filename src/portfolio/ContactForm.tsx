@@ -1,6 +1,13 @@
 import { useId, useState, type SubmitEvent } from 'react';
 import './ContactForm.css';
-import { contactMailtoHref, type ContactEmailParts } from './contactEmail';
+import {
+	DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+	DEFAULT_FORM_REQUIRED_LABEL,
+	DEFAULT_FORM_SUBMIT_LABEL,
+	DEFAULT_FORM_UNAVAILABLE_MESSAGE,
+	contactMailtoHref,
+	type ContactEmailParts,
+} from './contactEmail';
 
 export type ContactFormFieldType = 'name' | 'email' | 'text' | 'textarea';
 
@@ -17,6 +24,14 @@ export interface ContactFormProps {
 	/** The artist-owned HTTPS address that receives the message. */
 	action: string;
 	successMessage?: string;
+	/** Submit words when the message posts to a form service. `''` = no button. */
+	submitLabel?: string;
+	/** Submit words in the email fallback. `''` = no button. */
+	emailSubmitLabel?: string;
+	/** Marker beside a required question's label. `''` = no marker. */
+	requiredLabel?: string;
+	/** Sentence shown when the form has nowhere to send. `''` = say nothing. */
+	unavailableMessage?: string;
 	fields: readonly ContactFormField[];
 	/** No-setup fallback: opens the visitor's email app when no form service is
 	 * connected. Split + encoded like the contact block's address — never a
@@ -65,6 +80,14 @@ export default function ContactForm({
 	heading = 'Get in touch',
 	action,
 	successMessage = 'Your message was sent.',
+	// Spec 36 (E4): these were literals in this file, so a starter's form shipped
+	// words no artist could rename or remove. They are block fields now; the
+	// defaults here only cover a caller that passes nothing, and an empty string
+	// is a deliberate deletion — the button, marker or sentence is not rendered.
+	submitLabel = DEFAULT_FORM_SUBMIT_LABEL,
+	emailSubmitLabel = DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+	requiredLabel = DEFAULT_FORM_REQUIRED_LABEL,
+	unavailableMessage = DEFAULT_FORM_UNAVAILABLE_MESSAGE,
 	fields,
 	fallbackEmail,
 }: ContactFormProps) {
@@ -125,6 +148,10 @@ export default function ContactForm({
 	};
 
 	const effectiveState: SubmitState = !isAvailable ? 'unavailable' : submitState;
+	// Two setups, two sets of words: posting to a form service really does send the
+	// message, while the fallback hands it to the visitor's email app. Whichever
+	// applies, an artist who empties it gets no button rather than the words back.
+	const sendLabel = (endpointIsSafe ? submitLabel : emailSubmitLabel).trim();
 	const feedback =
 		effectiveState === 'sending'
 			? 'Sending your message.'
@@ -135,7 +162,7 @@ export default function ContactForm({
 					: effectiveState === 'failure'
 					? 'Your message wasn\u2019t sent. Everything you wrote is still here, so you can try again.'
 					: effectiveState === 'unavailable'
-						? 'This contact form isn\u2019t ready yet. Please use another way to get in touch.'
+						? unavailableMessage.trim()
 						: '';
 
 	return (
@@ -161,7 +188,9 @@ export default function ContactForm({
 						<div className="contact-form-field" key={`${field.name}-${index}`}>
 							<label htmlFor={id}>
 								{field.label}
-								{field.required && <span className="contact-form-required">Required</span>}
+								{field.required && requiredLabel.trim() && (
+									<span className="contact-form-required">{requiredLabel.trim()}</span>
+								)}
 							</label>
 					{fieldInput(field, id, !isAvailable)}
 						</div>
@@ -180,13 +209,15 @@ export default function ContactForm({
 					/>
 				</div>
 
-				<button
-					className="contact-form-send"
-					type="submit"
-					disabled={!isAvailable || effectiveState === 'sending'}
-				>
-					{effectiveState === 'sending' ? 'Sending\u2026' : endpointIsSafe ? 'Send message' : 'Continue in email'}
-				</button>
+				{sendLabel && (
+					<button
+						className="contact-form-send"
+						type="submit"
+						disabled={!isAvailable || effectiveState === 'sending'}
+					>
+						{effectiveState === 'sending' ? 'Sending\u2026' : sendLabel}
+					</button>
+				)}
 
 				{feedback && (
 					<p

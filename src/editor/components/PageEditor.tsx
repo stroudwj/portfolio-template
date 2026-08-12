@@ -65,6 +65,9 @@ import {
 import { automaticPhoneOrder } from '../../portfolio/mobileOrder';
 import {
 	DEFAULT_CONTACT_BUTTON_LABEL,
+	DEFAULT_FORM_EMAIL_SUBMIT_LABEL,
+	DEFAULT_FORM_REQUIRED_LABEL,
+	DEFAULT_FORM_SUBMIT_LABEL,
 	decodeContactEmail,
 	encodeContactEmail,
 	type ContactEmailParts,
@@ -3167,6 +3170,9 @@ export default function PageEditor({
 			case 'form': {
 				const endpointInvalid = !!block.action && (!isUrl(block.action) || !block.action.startsWith('https://'));
 				const updateFields = (fields: FormField[]) => editor.updateFormBlock(pageKey, block.id, { fields });
+				// Same test the renderer uses: a valid https form service posts the
+				// message in-page, anything else falls back to the visitor's email app.
+				const sendsDirectly = !!block.action && !endpointInvalid;
 				const formLabel = `contact form ${index + 1} on ${pageName}`;
 				const owner = sectionForBlock(block.id);
 				return (
@@ -3236,6 +3242,31 @@ export default function PageEditor({
 						</div>
 						<Field label="Message shown after sending directly">
 							<TextInput aria-label={`Message shown after ${formLabel} sends directly`} value={block.successMessage ?? ''} onChange={(event) => editor.updateFormBlock(pageKey, block.id, { successMessage: event.target.value })} />
+						</Field>
+						{/* Spec 36 (audit row E4): the button words, the required marker and
+						    the nowhere-to-send sentence used to be literals in ContactForm.tsx.
+						    They are settings of this block, not page content, so they live here
+						    rather than in the preview (spec 34 retired text-block mirrors only).
+						    Only the button label that this form's setup actually shows is
+						    offered, so the field always names the words in the preview. */}
+						<Field
+							label="Button label"
+							hint={sendsDirectly
+								? 'The words on the send button. Leave empty to remove the button.'
+								: 'Without a form service the button hands the message to the visitor’s email app, so it says so. Leave empty to remove the button.'}
+						>
+							<TextInput
+								aria-label={`Send button label for ${formLabel}`}
+								value={(sendsDirectly ? block.submitLabel : block.emailSubmitLabel) ?? ''}
+								placeholder={sendsDirectly ? DEFAULT_FORM_SUBMIT_LABEL : DEFAULT_FORM_EMAIL_SUBMIT_LABEL}
+								onChange={(event) => editor.updateFormBlock(pageKey, block.id, sendsDirectly ? { submitLabel: event.target.value } : { emailSubmitLabel: event.target.value })}
+							/>
+						</Field>
+						<Field label="Required marker" hint="Shown beside every question you mark Required. Leave empty to show no marker.">
+							<TextInput aria-label={`Required marker for ${formLabel}`} value={block.requiredLabel ?? ''} placeholder={DEFAULT_FORM_REQUIRED_LABEL} onChange={(event) => editor.updateFormBlock(pageKey, block.id, { requiredLabel: event.target.value })} />
+						</Field>
+						<Field label="Message when the form has nowhere to send" hint="Shown in place of a working form while neither a delivery email nor a form service is set. Leave empty to say nothing.">
+							<TextInput aria-label={`Message shown when ${formLabel} has nowhere to send`} value={block.unavailableMessage ?? ''} onChange={(event) => editor.updateFormBlock(pageKey, block.id, { unavailableMessage: event.target.value })} />
 						</Field>
 					</BlockBody>
 					</div>
