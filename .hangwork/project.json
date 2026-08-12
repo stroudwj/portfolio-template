@@ -98,10 +98,6 @@
       "sha256": "5451195b0ede1e419fe88e5e10772c82748505534c8313df422fb88b7ae65e56",
       "gitBlobSha": "a9036cc5fd80f443768413bc62e96c012685a33f"
     },
-    "src/editor/GateProbe.tsx": {
-      "sha256": "364e0d4cf3ccfa6d45be9b8f1d379abbf9b53eebaf22cd6a57867f7763101da2",
-      "gitBlobSha": "7dce8348ffc0b7c5a57ce2a2bb59b9f7672c4c01"
-    },
     "src/editor/components/AboutContentEditor.tsx": {
       "sha256": "e60f93eb12379084bffeb4d0d364ee70ba16f2948ea632005acd5723d46b3785",
       "gitBlobSha": "7a419a916cd41f5b20b0d0c1c290aabddd5da1b3"
@@ -638,10 +634,6 @@
       "sha256": "d2e958ce4216874b267f3d536894e5690bde7657acd6795e07c0a87932dc6db3",
       "gitBlobSha": "62adf6a774be866b7e027907a7f9df9d46520c32"
     },
-    "src/pages/gate-probe.astro": {
-      "sha256": "a40d66d868a7b4d96f61b80fdbaf50942a87733a9ea92c8e1a3478d4811e40da",
-      "gitBlobSha": "842d0a004de4910dc1869f51db195e5cf891c6e2"
-    },
     "src/pages/guide/[...path].astro": {
       "sha256": "59255121391da1562ec88bc83dc2fe2e3580d1cc3f26b34792d84e353b25e31f",
       "gitBlobSha": "dc913f2720a59c6cf3ef2679cedcd3cc47b9a044"
@@ -975,8 +967,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "fe25ad682472c67d2069c4635fcbc30e6e5b0f068842a63cc79f2660feb60a94",
-      "gitBlobSha": "20019166e012bec2227130610f0f29aacf9eeb47"
+      "sha256": "35b472d2b491c1b662ada17b4e4b16563e4d3862730d2d40fa8bb2367bf1bf63",
+      "gitBlobSha": "84a39fde6d0709683ec7ba599fb44e7dc7296ab3"
     }
   }
 }
