@@ -612,6 +612,15 @@
 .child-card-label-editable:focus {
 	outline: 1.5px solid rgba(0, 47, 167, 0.65);
 }
+/* A card whose text has been cleared keeps a click target in the editor so the
+   artist can type it back (spec 36 row E6b). Editor-only: the class is rendered
+   only when in-place editing is on, so a published card collapses as it should. */
+.child-card-label-editable:empty {
+	display: block;
+	min-height: 1.2em;
+	min-width: 5rem;
+	outline-color: rgba(0, 47, 167, 0.35);
+}
 .canvas-widget-content > .products-block,
 .portfolio-page-part:first-child .canvas-widget-content > .products-block {
 	min-height: 100%;

@@ -813,7 +813,11 @@ function ensurePageBlocks(raw: unknown): unknown {
 			(value.blocks as unknown[]).push({ id: 'project', type: 'project', project: value.project });
 			delete value.project;
 		}
-		if (typeof value.label !== 'string' || !value.label) value.label = labelByPath.get(key) ?? key;
+		// A page with no label at all (pre-label documents) takes its nav label, or
+		// failing that its key. An empty label is a decision, not an omission, and
+		// survives: spec 36 (row E6) — backfilling the key here is how a cleared
+		// sub-page card label used to come back as a slug on the next load.
+		if (typeof value.label !== 'string') value.label = labelByPath.get(key) ?? key;
 	}
 	return raw;
 }

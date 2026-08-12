@@ -115,6 +115,7 @@ import {
 import { getGridPrefs, guideById, useGridPrefs } from './gridPrefs';
 import { embedKindForInput, embedKindLabel, embedSpec } from './mediaEmbed';
 import { stripePaymentLink } from './paymentEmbed';
+import { imageViewerLabel } from './imageViewerLabel';
 import { safeHref } from './safeHref';
 import { showSampleUnavailable } from './sampleFallback';
 import { TextContent } from './TextBlock';
@@ -1894,7 +1895,7 @@ export default function CanvasGallery({
 							onPointerDown={editable ? (e) => startDrag(e, img, i, 'move') : undefined}
 							role={!editable && !href && onOpen ? 'button' : undefined} tabIndex={!editable && !href && onOpen ? 0 : undefined}
 							aria-haspopup={!editable && !href && onOpen ? 'dialog' : undefined}
-							aria-label={!editable && !href && onOpen ? `Open ${img.title || img.alt || alt} in image viewer` : undefined}
+							aria-label={!editable && !href && onOpen ? imageViewerLabel(img.title, img.alt, alt) : undefined}
 							onClick={!editable && !href && onOpen ? (e) => onOpen(i, e.currentTarget) : undefined}
 							onKeyDown={!editable && !href && onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(i, e.currentTarget); } } : undefined}>
 							<div className="canvas-artwork-frame">

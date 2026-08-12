@@ -9,7 +9,8 @@
 //
 // Baseline mode asserts survivors are a subset of the recorded baselines below —
 // the audit's honest picture of today, so `npm test` stays green while the debt is
-// open. Strict mode demands zero survivors and is what spec 36 must make pass.
+// open. Strict mode demands no survivors beyond PRODUCT_CHROME (the strings kept
+// on purpose: 404 shell, hamburger, lightbox trigger) and is what spec 36 must pass.
 // Fixing a survivor means deleting its line from the baseline as well; a NEW
 // survivor fails the test in either mode, which is the regression guard.
 //
@@ -36,22 +37,30 @@ const SHELL_404 = [
 	'visible: That page doesn’t exist here (anymore).',
 ];
 
-/** Survivors of the structure pass. Identical for all fourteen starters AND for blank. */
-const BASELINE_STRUCTURE = [
-	...SHELL_404,
-	// Nav.tsx hamburger. Rendered even when the site has one unlabelled page.
+/**
+ * Text that is **product chrome, not content** — the names of controls the site
+ * ships whether or not the artist wrote anything, kept deliberately (spec 36:
+ * audit rows E1, E3, E2's landing place). Nothing here stands in for artist
+ * words: each one names what a control *does*, and each survives on a blank
+ * document too. Strict mode tolerates exactly this list and nothing else.
+ */
+const PRODUCT_CHROME = [
+	...SHELL_404, // E1 — 404 shell copy; William's product decision, kept as chrome.
+	// E3 — Nav.tsx hamburger. Rendered even when the site has one unlabelled page.
 	'assistive: Open site navigation',
+	// E2 — Gallery/CanvasGallery lightbox trigger. The artist's image title names
+	// the button when there is one; with every caption cleared it falls back to the
+	// control's function, not to template copy (it used to read "Open  in image
+	// viewer", with a hole where the words had been).
+	'assistive: Open image in image viewer',
 ];
+
+/** Survivors of the structure pass. Identical for all fourteen starters AND for blank. */
+const BASELINE_STRUCTURE = [...PRODUCT_CHROME];
 
 /** Survivors of the fields pass, per starter. Everything here is renderer-supplied. */
 const BASELINE_FIELDS: Record<string, string[]> = {
-	__default__: [
-		...SHELL_404,
-		'assistive: Open site navigation',
-		// Gallery.tsx lightbox trigger — the title is blank, so the label reads
-		// "Open  in image viewer" with the hole where the artist's words were.
-		'assistive: Open  in image viewer',
-	],
+	__default__: [...PRODUCT_CHROME],
 	// ContactForm.tsx defaults: the submit label, the honeypot label, the
 	// per-field "Required" chip and the unavailable-state sentence.
 	conservatory: [
@@ -71,16 +80,14 @@ const BASELINE_FIELDS: Record<string, string[]> = {
 		'assistive: Show next image',
 		'assistive: Image 1 of 4',
 	],
-	// PortfolioPage.tsx childItemsFor(): `item.label || page.label || item.page`
-	// falls all the way back to the raw page key once both labels are cleared.
-	'works-on-paper': ['visible: figure-studies', 'visible: field-notes'],
 };
 
 const STRICT = process.env.HARNESS_STRICT === '1';
 
 function assertSurvivors(strings: string[], allowed: string[]) {
-	if (STRICT) expect(strings).toEqual([]);
-	else expect(strings.filter((s) => !allowed.includes(s))).toEqual([]);
+	// Strict mode is spec 36's bar: nothing survives except the accepted product
+	// chrome above. Baseline mode additionally tolerates the debt still open.
+	expect(strings.filter((s) => !(STRICT ? PRODUCT_CHROME : allowed).includes(s))).toEqual([]);
 }
 
 describe('empty harness — a starter must be emptiable to a blank document', () => {
