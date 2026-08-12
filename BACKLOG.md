@@ -1867,7 +1867,7 @@ unique-visitor counting or any cookie/fingerprint mechanism, third-party analyti
 (Plausible/PostHog), per-user event trails (aggregates only), phone/SMS anything,
 the per-artist-site analytics surfaces.
 
-## 39. BUG: template thumbnails are slightly off-center — center the capture crop — `done (branch worktree-spec-39-shot-crop, not merged)`
+## 39. BUG: template thumbnails are slightly off-center — center the capture crop — `merged` (2026-08-12 onto integration/specs-14r-19; not pushed)
 
 **Outcome.** Hypothesis confirmed by measurement, one-line fix, all ten shots regenerated.
 Playwright probe of the fullscreen-preview iframe: boundingBox `1440×858` → AR **1.6783**,
