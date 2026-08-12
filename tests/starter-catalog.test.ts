@@ -62,11 +62,10 @@ function jpegDimensions(bytes: Buffer): { width: number; height: number } {
 describe('discipline-led starter catalog', () => {
 	it('validates every ready recipe, media slot, and theme relationship', () => {
 		expect(validateStarterCatalog()).toEqual([]);
-		expect(AVAILABLE_STARTERS.map((starter) => starter.id)).toEqual([
-			'painter',
-			'photographer',
-			'works-on-paper',
-			'sculptor',
+		// Spec 37: the spec-14 catalog IS the registry. The five pre-catalog
+		// starters (painter, photographer, illustrator-designer, works-on-paper,
+		// sculptor) were retired from every catalog surface.
+		expect(STARTER_RECIPES.map((recipe) => recipe.id)).toEqual([
 			'conservatory',
 			'masthead',
 			'atelier',
@@ -78,35 +77,37 @@ describe('discipline-led starter catalog', () => {
 			'clearing',
 			'marmalade',
 		]);
-		const photographer = STARTER_RECIPES.find(
-			(recipe) => recipe.id === 'photographer',
-		)!;
-		expect(photographer.gallerySpecs).toHaveLength(3);
-		expect(photographer.gallerySpecs.map((spec) => spec.exactImageCount)).toEqual([4, 4, 4]);
-		expect(photographer.gallerySpecs.map((spec) => spec.slots.length)).toEqual([4, 4, 4]);
-		expect(
-			photographer.gallerySpecs
-				.flatMap((spec) => spec.slots)
-				.every(
-					(slot) =>
-						!!slot.sampleAssetId &&
-						slot.width > 0 &&
-						slot.height > 0 &&
-						slot.aspectRatio === slot.width / slot.height,
-				),
-		).toBe(true);
-
-		const illustrator = STARTER_RECIPES.find(
-			(recipe) => recipe.id === 'illustrator-designer',
-		)!;
-		expect(illustrator.gallerySpecs).toHaveLength(3);
-		expect(illustrator.gallerySpecs.map((spec) => spec.exactImageCount)).toEqual([4, 4, 4]);
-		expect(illustrator.gallerySpecs.map((spec) => spec.slots.length)).toEqual([4, 4, 4]);
-		expect(
-			illustrator.gallerySpecs
-				.flatMap((spec) => spec.slots)
-				.every((slot) => !slot.sampleAssetId),
-		).toBe(true);
+		expect(AVAILABLE_STARTERS.map((starter) => starter.id)).toEqual(
+			STARTER_RECIPES.map((recipe) => recipe.id),
+		);
+		for (const recipe of STARTER_RECIPES) {
+			expect(recipe.gallerySpecs.length, `${recipe.name} has no gallery specs`).toBeGreaterThan(0);
+			expect(
+				recipe.gallerySpecs.every((spec) => spec.slots.length === spec.exactImageCount),
+			).toBe(true);
+			expect(
+				recipe.gallerySpecs
+					.flatMap((spec) => spec.slots)
+					.every(
+						(slot) =>
+							!!slot.sampleAssetId &&
+							slot.width > 0 &&
+							slot.height > 0 &&
+							slot.aspectRatio === slot.width / slot.height,
+					),
+				`${recipe.name} has an unfilled or malformed slot`,
+			).toBe(true);
+			// Every discipline the picker offers must still reach a template.
+			expect(recipe.disciplines.length).toBeGreaterThan(0);
+		}
+		const disciplines = new Set(STARTER_RECIPES.flatMap((recipe) => recipe.disciplines));
+		expect([...disciplines].sort()).toEqual([
+			'drawing',
+			'illustration-design',
+			'painting',
+			'photography',
+			'sculpture',
+		]);
 	});
 
 	it('uses the current standalone image-block model in every ready starter', () => {
@@ -123,182 +124,49 @@ describe('discipline-led starter catalog', () => {
 		}
 	});
 
-	it('keeps local painter copies byte-for-byte tied to the rights manifest', () => {
-		const painter = AVAILABLE_STARTERS[0];
-		const sampleIds = painter.gallerySpecs.flatMap((spec) =>
-			spec.slots.map((slot) => slot.sampleAssetId!),
-		);
-		expect(sampleIds).toHaveLength(10);
-		const institutions = new Set<string>();
-		for (const id of sampleIds) {
+	it('keeps every catalog sample byte-for-byte tied to the rights manifest', () => {
+		const referenced = [
+			...new Set(
+				AVAILABLE_STARTERS.flatMap((starter) =>
+					starter.gallerySpecs.flatMap((spec) => spec.slots.map((slot) => slot.sampleAssetId!)),
+				),
+			),
+		];
+		expect(referenced.length).toBeGreaterThan(100);
+		for (const id of referenced) {
 			const artwork = SAMPLE_ARTWORK.get(id)!;
 			const bytes = readFileSync(`public/${artwork.url}`);
-			const dimensions = jpegDimensions(bytes);
-			institutions.add(artwork.source);
-			expect(dimensions).toEqual({ width: artwork.width, height: artwork.height });
+			expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
 			expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
 			expect(artwork.rightsProof).toMatch(/^https:\/\//);
-			expect(artwork.objectUrl).toMatch(/^https:\/\//);
-			expect(artwork.accessionNumber).not.toBe('');
 			expect(artwork.status).toBe('active');
 		}
-		expect(institutions).toEqual(
-			new Set(['Art Institute of Chicago', 'The Metropolitan Museum of Art']),
-		);
 	});
 
-	it('seeds the Painter About page with a traceable public-domain Monet portrait', () => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
-		const doc = initDocFromContent(painter.content);
-		const portrait = SAMPLE_ARTWORK.get('painter-wikimedia-monet-self-portrait-v1')!;
-		const bytes = readFileSync(`public/${portrait.url}`);
-
-		expect(doc.profileImage).toEqual({
-			filename: '11-claude-monet-self-portrait.jpg',
-			assetId: null,
-			sampleAssetId: portrait.id,
-		});
-		expect(docToPortfolioData(doc).profileImageSrc).toContain(portrait.url);
-		expect(stripSamplesForPublish(doc).profileImage).toEqual({
-			filename: '',
-			assetId: null,
-			sampleAssetId: null,
-		});
-		expect(jpegDimensions(bytes)).toEqual({ width: 1920, height: 2423 });
-		expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(
-			portrait.checksum,
+	// Spec 37 removed the pre-catalog starters from the picker, NOT from the
+	// rights catalog: a draft an artist built from one still points at these
+	// samples, and must keep rendering and publishing. This is the guard.
+	it('keeps retired-starter media cataloged so legacy drafts still render', () => {
+		const legacy = [...SAMPLE_ARTWORK.values()].filter((artwork) =>
+			/^(painter|photographer|sculptor|works-on-paper)-/.test(artwork.id),
 		);
-		expect(portrait.source).toBe('Wikimedia Commons');
-		expect(portrait.rightsProof).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
-		expect(portrait.status).toBe('active');
-	});
-
-	it('keeps twelve local public-domain photographs tied to the Met manifest', () => {
-		const photographer = AVAILABLE_STARTERS.find(
-			(starter) => starter.id === 'photographer',
-		)!;
-		const sampleIds = photographer.gallerySpecs.flatMap((spec) =>
-			spec.slots.map((slot) => slot.sampleAssetId!),
-		);
-		expect(sampleIds).toHaveLength(12);
-		for (const id of sampleIds) {
-			const artwork = SAMPLE_ARTWORK.get(id)!;
+		expect(legacy.length).toBeGreaterThanOrEqual(41);
+		for (const artwork of legacy) {
 			const bytes = readFileSync(`public/${artwork.url}`);
-			expect(jpegDimensions(bytes)).toEqual({
-				width: artwork.width,
-				height: artwork.height,
-			});
-			expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(
-				artwork.checksum,
-			);
-			expect(artwork.source).toBe('The Metropolitan Museum of Art');
-			expect(artwork.rightsProof).toBe(
-				'https://www.metmuseum.org/policies/image-resources',
-			);
-			expect(artwork.objectUrl).toMatch(
-				/^https:\/\/www\.metmuseum\.org\/art\/collection\/search\/\d+$/,
-			);
-			expect(artwork.sourceImageUrl).toMatch(
-				/^https:\/\/images\.metmuseum\.org\/CRDImages\/ph\/original\//,
-			);
+			expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
+			expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
+			expect(artwork.rightsProof).toMatch(/^https:\/\//);
 			expect(artwork.status).toBe('active');
+			expect(sampleArtworkUrl(artwork.id)).toContain(artwork.url);
 		}
-	});
-
-	it('seeds two exact five-image galleries with explicit sample identity', () => {
-		const painter = AVAILABLE_STARTERS[0];
-		const doc = initDocFromContent(painter.content);
-		expect(doc.galleries['selected-work']).toHaveLength(5);
-		expect(doc.galleries.collection).toHaveLength(5);
-		expect(
-			Object.values(doc.galleries)
-				.flat()
-				.every((entry) => !!entry.sampleAssetId && !entry.assetId),
-		).toBe(true);
-		const preview = docToPortfolioData(doc);
-		expect(preview.galleries['selected-work'][0].src).toContain(
-			'assets/starters/painter/01-two-sisters.jpg',
-		);
-		// The spec-14 batch presets that also cover {full-bleed, dense, freeform}
-		// joined this list when batch 2 landed; the curated pair still leads.
-		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
-			'gallery-linen',
-			'night-gallery',
-			'studio-white',
-			'almond-paper',
-			'signal-blue',
-			'marmalade-white',
-		]);
-	});
-
-	it('keeps the Painter selected-work canvas separated and intentional', () => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
-		const entries = initDocFromContent(painter.content).galleries['selected-work'];
-		const layouts = entries.map((entry) => entry.meta.layout!);
-		for (let first = 0; first < layouts.length; first += 1) {
-			for (let second = first + 1; second < layouts.length; second += 1) {
-				const a = layouts[first];
-				const b = layouts[second];
-				const overlap =
-					a.x < b.x + b.w &&
-					a.x + a.w > b.x &&
-					a.y < b.y + b.w / b.ar &&
-					a.y + a.w / a.ar > b.y;
-				expect(
-					overlap,
-					`${entries[first].filename} overlaps ${entries[second].filename}`,
-				).toBe(false);
-			}
-		}
-	});
-
-	it('seeds three exact four-image Photographer series and compatible themes', () => {
-		const photographer = AVAILABLE_STARTERS.find(
-			(starter) => starter.id === 'photographer',
-		)!;
-		const doc = initDocFromContent(photographer.content);
-		expect(Object.fromEntries(
-			Object.entries(doc.galleries).map(([folder, entries]) => [folder, entries.length]),
-		)).toEqual({
-			'yosemite-valley': 4,
-			'falls-stone': 4,
-			'western-horizons': 4,
+		// The About-page portrait a Painter draft hangs in profile.image.
+		const portrait = SAMPLE_ARTWORK.get('painter-wikimedia-monet-self-portrait-v1')!;
+		expect(portrait.source).toBe('Wikimedia Commons');
+		expect(portrait.status).toBe('active');
+		expect(jpegDimensions(readFileSync(`public/${portrait.url}`))).toEqual({
+			width: 1920,
+			height: 2423,
 		});
-		expect(
-			Object.values(doc.galleries)
-				.flat()
-				.every((entry) => !!entry.sampleAssetId && !entry.assetId),
-		).toBe(true);
-		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
-			'gallery-linen',
-			'night-gallery',
-			'studio-white',
-			'almond-paper',
-			'signal-blue',
-			'marmalade-white',
-		]);
-	});
-
-	it('keeps the new starter media byte-for-byte tied to the rights manifest', () => {
-		const expectedCounts = { 'works-on-paper': 10, sculptor: 8 } as const;
-		for (const starterId of ['works-on-paper', 'sculptor'] as const) {
-			const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === starterId)!;
-			const sampleIds = starter.gallerySpecs.flatMap((spec) =>
-				spec.slots.map((slot) => slot.sampleAssetId!),
-			);
-			expect(sampleIds).toHaveLength(expectedCounts[starterId]);
-			for (const id of sampleIds) {
-				const artwork = SAMPLE_ARTWORK.get(id)!;
-				const bytes = readFileSync(`public/${artwork.url}`);
-				expect(jpegDimensions(bytes)).toEqual({ width: artwork.width, height: artwork.height });
-				expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(artwork.checksum);
-				expect(artwork.source).toBe('The Metropolitan Museum of Art');
-				expect(artwork.rightsProof).toMatch(/^https:\/\//);
-				expect(artwork.objectUrl).toMatch(/^https:\/\//);
-				expect(artwork.accessionNumber).not.toBe('');
-				expect(artwork.status).toBe('active');
-			}
-		}
 	});
 
 	it('keeps the spec-14 batch media byte-for-byte tied to the NGA rights manifest', () => {
@@ -365,121 +233,45 @@ describe('discipline-led starter catalog', () => {
 		}
 	});
 
-	// The inverse of the Painter separation test: the pinboard concept REQUIRES
-	// overlap, explicit layering, and a mount on every drawing.
-	it('keeps the Works on paper wall overlapping and layered on purpose', () => {
-		const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === 'works-on-paper')!;
-		const doc = initDocFromContent(starter.content);
-		const entries = doc.galleries.wall;
-		const layouts = entries.map((entry) => entry.meta.layout!);
-		let overlappingPairs = 0;
-		for (let first = 0; first < layouts.length; first += 1) {
-			for (let second = first + 1; second < layouts.length; second += 1) {
-				const a = layouts[first];
-				const b = layouts[second];
-				const overlap =
-					a.x < b.x + b.w &&
-					a.x + a.w > b.x &&
-					a.y < b.y + b.w / b.ar &&
-					a.y + a.w / a.ar > b.y;
-				if (overlap) overlappingPairs += 1;
-			}
-		}
-		expect(overlappingPairs).toBeGreaterThanOrEqual(2);
-		expect(new Set(layouts.map((layout) => layout.z)).size).toBe(layouts.length);
-		expect(entries.every((entry) => !!entry.meta.effects?.mount)).toBe(true);
-		// Every spec-14 preset covering {full-bleed, freeform, longform} matches
-		// this doc too; the curated pair still leads the list.
-		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
-			'studio-corkboard',
-			'vitrine',
-			'conservatory-green',
-			'poster-white',
-			'studio-white',
-			'almond-paper',
-			'backstage-black',
-			'plaster-white',
-			'still-cream',
-			'signal-blue',
-			'marmalade-white',
-		]);
-	});
-
-	it('keeps the Sculptor halls color-blocked with sparse grids', () => {
-		const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === 'sculptor')!;
-		const doc = initDocFromContent(starter.content);
-		const home = doc.content.pages.home;
-		expect(home.sections).toHaveLength(4);
-		expect(Object.keys(home.sectionColors ?? {}).length).toBeGreaterThanOrEqual(2);
-		expect(Object.keys(home.sectionMotion ?? {})).toHaveLength(4);
-		// dense-grid must never be detected, or the vitrine preset stops matching.
-		for (const page of Object.values(doc.content.pages))
-			for (const block of page.blocks ?? [])
-				if (block.type === 'images' && block.gallery.layout === 'grid')
-					expect(block.gallery.columns ?? 3).toBeLessThanOrEqual(2);
-		expect(compatibleThemePresets(doc).map((theme) => theme.id)).toEqual([
-			'studio-corkboard',
-			'vitrine',
-			'conservatory-green',
-			'poster-white',
-			'studio-white',
-			'almond-paper',
-			'backstage-black',
-			'plaster-white',
-			'still-cream',
-			'signal-blue',
-			'marmalade-white',
-		]);
-	});
-
 	it('rejects a draft slot that is both an upload and a product sample', () => {
 		const doc = initDocFromContent(AVAILABLE_STARTERS[0].content);
-		doc.galleries['selected-work'][0].assetId = 'browser-upload';
+		Object.values(doc.galleries)[0][0].assetId = 'browser-upload';
 		expect(() => parseAndMigrateEditorDoc(doc)).toThrow(/mutually exclusive/);
 	});
 
 	it('fails malformed media contracts and incompatible ready catalogs', () => {
-		const painter = structuredClone(
-			STARTER_RECIPES.find((recipe) => recipe.id === 'painter')!,
-		);
-		painter.gallerySpecs[0].slots.pop();
-		expect(validateStarterCatalog([painter], THEME_PRESETS, SAMPLE_ARTWORK)).toContain(
-			'Painter / Selected Work must contain exactly 5 ordered slots.',
+		const clearing = () =>
+			structuredClone(STARTER_RECIPES.find((recipe) => recipe.id === 'clearing')!);
+
+		const short = clearing();
+		short.gallerySpecs[0].slots.pop();
+		expect(validateStarterCatalog([short], THEME_PRESETS, SAMPLE_ARTWORK)).toContain(
+			'Clearing / Clearing must contain exactly 6 ordered slots.',
 		);
 
-		const incompatible = structuredClone(
-			STARTER_RECIPES.find((recipe) => recipe.id === 'painter')!,
-		);
+		const incompatible = clearing();
 		incompatible.defaultThemeId = 'case-study-paper';
 		expect(validateStarterCatalog([incompatible], THEME_PRESETS, SAMPLE_ARTWORK)).toContain(
-			'Painter has an incompatible default theme.',
+			'Clearing has an incompatible default theme.',
 		);
 
 		const retiring = new Map(SAMPLE_ARTWORK);
-		const active = retiring.get('painter-aic-14655-v1')!;
-		retiring.set(active.id, { ...active, status: 'retiring', retirementDate: '2026-10-25' });
-		expect(
-			validateStarterCatalog(
-				[
-					structuredClone(
-						STARTER_RECIPES.find((recipe) => recipe.id === 'painter')!,
-					),
-				],
-				THEME_PRESETS,
-				retiring,
-			),
-		).toContain('Painter is ready but references retiring media.');
+		const hung = retiring.get('photography-nga-124992-v1')!;
+		retiring.set(hung.id, { ...hung, status: 'retiring', retirementDate: '2026-10-25' });
+		expect(validateStarterCatalog([clearing()], THEME_PRESETS, retiring)).toContain(
+			'Clearing is ready but references retiring media.',
+		);
 
 		const badRights = new Map(SAMPLE_ARTWORK);
-		badRights.set(active.id, { ...active, rightsProof: '' });
+		badRights.set(hung.id, { ...hung, rightsProof: '' });
 		expect(validateStarterCatalog([], THEME_PRESETS, badRights)).toContain(
-			`${active.id} is missing rights evidence.`,
+			`${hung.id} is missing rights evidence.`,
 		);
 
 		const wrongAspect = new Map(SAMPLE_ARTWORK);
 		const standin = wrongAspect.get('internal-lifecycle-standin-v1')!;
 		wrongAspect.set('wrong-aspect-successor', {
-			...active,
+			...hung,
 			id: 'wrong-aspect-successor',
 			width: 2000,
 			height: 1000,
@@ -575,9 +367,9 @@ describe('discipline-led starter catalog', () => {
 		expect(image).toEqual({ src: SAMPLE_UNAVAILABLE_IMAGE, srcset: '' });
 	});
 
-	it('keeps content intact and generates every allowed Painter theme sample-free', async () => {
-		const painter = AVAILABLE_STARTERS[0];
-		const original = initDocFromContent(painter.content);
+	it('keeps content intact and generates every allowed Clearing theme sample-free', async () => {
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const original = initDocFromContent(clearing.content);
 		original.content.theme.customFonts = [
 			{ name: 'Studio Sans', file: 'fonts/studio-sans.woff2' },
 		];
@@ -622,7 +414,7 @@ describe('discipline-led starter catalog', () => {
 				);
 				expect(home).toContain(preset.tokens.backgroundColor);
 				expect(home).toContain(preset.tokens.textColor);
-				expect(home).not.toContain('Two Sisters (On the Terrace)');
+				expect(home).not.toContain('Saint-Cloud');
 			}
 		} finally {
 			vi.unstubAllGlobals();
@@ -630,10 +422,10 @@ describe('discipline-led starter catalog', () => {
 	});
 
 	it('generates all-sample, partially replaced, and explicitly stripped documents safely', async () => {
-		const painter = AVAILABLE_STARTERS[0];
-		const allSamples = initDocFromContent(painter.content);
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const allSamples = initDocFromContent(clearing.content);
 		const partial = structuredClone(allSamples);
-		const first = partial.galleries['selected-work'][0];
+		const first = partial.galleries.clearing[0];
 		first.assetId = registerAsset(
 			new Blob(['artist pixels'], { type: 'image/jpeg' }),
 			'my-work.jpg',
@@ -674,9 +466,9 @@ describe('discipline-led starter catalog', () => {
 					.filter((file) => file.path.endsWith('.html'))
 					.map((file) => new TextDecoder().decode(file.bytes))
 					.join('\n');
-				expect(html).not.toContain('assets/starters/painter/');
+				expect(html).not.toContain('assets/starters/');
 				if (scenario.expectedImages)
-					expect(html).toContain('/assets/selected-work/01-my-work.jpg');
+					expect(html).toContain('/assets/clearing/01-my-work.jpg');
 			}
 		} finally {
 			vi.unstubAllGlobals();
@@ -684,29 +476,31 @@ describe('discipline-led starter catalog', () => {
 	});
 
 	it('reports the exact stripped result and blocks an empty public home page', () => {
-		const doc = initDocFromContent(AVAILABLE_STARTERS[0].content);
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const doc = initDocFromContent(clearing.content);
 		doc.content.pages.home.sectionHeights = {
-			'block:selected-work-images': { desktop: 900, phone: 500 },
+			'block:clearing-images': { desktop: 900, phone: 500 },
 		};
 		doc.content.pages.home.mobile = {
 			mode: 'custom',
-			order: ['page:heading', 'block:selected-work-images'],
+			order: ['page:heading', 'block:clearing-images'],
 		};
 		const impact = samplePublishImpact(doc);
 		expect(impact.sampleCount).toBe(10);
-		expect(impact.pages.map((page) => page.key)).toEqual(['home', 'collection']);
-		expect(impact.blockedPages).toEqual([{ key: 'home', label: 'Selected Work' }]);
+		expect(impact.pages.map((page) => page.key)).toEqual(['home', 'index']);
+		expect(impact.blockedPages).toEqual([{ key: 'home', label: 'Clearing' }]);
 
 		const stripped = stripSamplesForPublish(doc);
-		expect(stripped.galleries['selected-work']).toEqual([]);
+		expect(stripped.galleries.clearing).toEqual([]);
 		expect(stripped.content.pages.home.blocks).toEqual([]);
 		expect(stripped.content.pages.home.sectionHeights).toBeUndefined();
 		expect(stripped.content.pages.home.mobile?.order).toEqual(['page:heading']);
 	});
 
 	it('preserves an uploaded replacement while removing every remaining sample', () => {
-		const doc = initDocFromContent(AVAILABLE_STARTERS[0].content);
-		const replacement = doc.galleries['selected-work'][0];
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const doc = initDocFromContent(clearing.content);
+		const replacement = doc.galleries.clearing[0];
 		replacement.sampleAssetId = null;
 		replacement.assetId = 'local-replacement';
 		replacement.filename = 'my-painting.jpg';
@@ -722,9 +516,9 @@ describe('discipline-led starter catalog', () => {
 		expect(impact.sampleCount).toBe(9);
 		expect(impact.blockedPages).toEqual([]);
 		const stripped = stripSamplesForPublish(doc);
-		expect(stripped.galleries['selected-work']).toHaveLength(1);
-		expect(stripped.galleries['selected-work'][0].filename).toBe('my-painting.jpg');
-		expect(stripped.galleries.collection).toEqual([]);
+		expect(stripped.galleries.clearing).toHaveLength(1);
+		expect(stripped.galleries.clearing[0].filename).toBe('my-painting.jpg');
+		expect(stripped.galleries.index).toEqual([]);
 	});
 });
 
@@ -831,15 +625,25 @@ describe('starter webfonts', () => {
 		}
 	});
 
-	it('a starter with no declared fonts publishes exactly as before', async () => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
-		expect(painter.content.theme.customFonts).toBeUndefined();
+	// Every catalog starter declares a bundled face (spec 37 retired the ones
+	// that did not), so the no-fonts case is modelled by stripping them — the
+	// same shape a blank document has.
+	it('a document with no declared fonts publishes exactly as before', async () => {
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const fontless = {
+			...clearing,
+			content: {
+				...clearing.content,
+				theme: { ...clearing.content.theme, customFonts: undefined },
+			},
+		};
+		expect(fontless.content.theme.customFonts).toBeUndefined();
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () => new Response('/* runtime asset */', { status: 200 })),
 		);
 		try {
-			const bundle = await buildBundle(initDocFromContent(painter.content));
+			const bundle = await buildBundle(initDocFromContent(fontless.content));
 			const site = await generateStaticSite(bundle, {
 				siteUrl: 'https://plain.example',
 				editorBase: 'https://hangwork.art/',

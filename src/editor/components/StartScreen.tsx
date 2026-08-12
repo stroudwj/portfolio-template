@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SELECTED_WORKS_FOLDER, useEditor } from '../store';
 import { useAccount } from './useAccount';
 import SignInModal from './SignInModal';
 import LoadPublishedModal from './LoadPublishedModal';
-import { AVAILABLE_STARTERS, type StarterRecipe } from '../lib/templates';
-import { getSampleArtwork, sampleArtworkUrl } from '../lib/sample-artwork';
+import { AVAILABLE_STARTERS, starterShotUrl, type StarterRecipe } from '../lib/templates';
 import {
 	loadDoc,
 	loadSavedVersions,
@@ -19,6 +18,9 @@ import StartIntake, { type IntakeAnswers } from './StartIntake';
 
 type ReadyStarter = StarterRecipe & { content: NonNullable<StarterRecipe['content']> };
 
+/** A template card: the template's own rendered page, its own name, and one
+ * line about the design (spec 37B). Discipline stays on the card as a quiet
+ * ordering hint, never as the headline. */
 function StarterCard({
 	starter,
 	onPick,
@@ -26,8 +28,7 @@ function StarterCard({
 	starter: ReadyStarter;
 	onPick: (starter: ReadyStarter) => void;
 }) {
-	const cover = getSampleArtwork(starter.coverSampleAssetId);
-	const coverUrl = sampleArtworkUrl(starter.coverSampleAssetId);
+	const shot = starterShotUrl(starter.id);
 	const sampleCount = starter.gallerySpecs.reduce(
 		(total, gallery) => total + gallery.exactImageCount,
 		0,
@@ -35,14 +36,14 @@ function StarterCard({
 	return (
 		<button type="button" className="template-card starter-card" onClick={() => onPick(starter)}>
 			<span className="starter-cover">
-				{coverUrl && <img src={coverUrl} alt="" />}
+				{shot && <img src={shot} alt={`The ${starter.name} template’s home page`} loading="lazy" />}
 				<span className="starter-discipline">{starter.discipline}</span>
 				<span className="starter-count">{sampleCount} sample works</span>
 			</span>
 			<span className="starter-card-copy">
 				<strong className="template-name">{starter.name}</strong>
 				<span className="template-tagline">{starter.tagline}</span>
-				{cover && <small>Cover sample: {cover.creator}, {cover.title}</small>}
+				<small>{starter.description}</small>
 			</span>
 		</button>
 	);
@@ -102,6 +103,23 @@ export default function StartScreen({ brandLockup }: { brandLockup: string }) {
 		requestStart(starter.name, true, () =>
 			startWithTour(() => startTemplate(starter.content)),
 		);
+
+	/** "Open in editor" from the product site's /templates cards:
+	 * /editor?template=<id> opens that template straight away (still behind the
+	 * same "you have a draft" guard as any other start). The param is cleared so
+	 * a reload doesn't re-open it over whatever the artist has done since. */
+	const deepLinked = useRef(false);
+	useEffect(() => {
+		if (deepLinked.current || typeof window === 'undefined') return;
+		deepLinked.current = true;
+		const url = new URL(window.location.href);
+		const requested = url.searchParams.get('template');
+		if (!requested) return;
+		url.searchParams.delete('template');
+		window.history.replaceState(null, '', url.toString());
+		const starter = AVAILABLE_STARTERS.find((candidate) => candidate.id === requested);
+		if (starter) pickStarter(starter);
+	});
 	/** The intake already oriented the artist, so no auto-tour: build the site
 	 * from the answers, then let the editor open into the chosen workflow. */
 	const completeIntake = (answers: IntakeAnswers) =>

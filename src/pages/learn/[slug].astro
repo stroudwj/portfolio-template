@@ -20,7 +20,7 @@ const { article } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const homeUrl = withBase(base);
 const editorUrl = withBase(base, 'editor/');
-const examplesUrl = withBase(base, 'examples');
+const templatesUrl = withBase(base, 'templates');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
 const articleUrl = withBase(base, `learn/${article.slug}`);
@@ -105,7 +105,7 @@ const howToLd = isHowTo
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav class="topnav" aria-label="Main navigation">
-				<a href={examplesUrl}>Examples</a>
+				<a href={templatesUrl}>Templates</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={`${homeUrl}#pricing`}>Pricing</a>
 			</nav>
@@ -189,7 +189,7 @@ const howToLd = isHowTo
 
 							<section>
 								<h2>See it before you pay</h2>
-								<p>You don't have to take any of this on faith. Browse real <a href={examplesUrl}>portfolios made with Hangwork</a> to see how the work sits on the wall — then build your own draft in the editor and preview it fully before spending anything. You only pay when the site's ready to publish.</p>
+								<p>You don't have to take any of this on faith. Browse the <a href={templatesUrl}>templates</a> to see how the work sits on the wall — then build your own draft in the editor and preview it fully before spending anything. You only pay when the site's ready to publish.</p>
 							</section>
 
 							<section>
@@ -345,7 +345,7 @@ const howToLd = isHowTo
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav>
-				<a href={examplesUrl}>Examples</a>
+				<a href={templatesUrl}>Templates</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>

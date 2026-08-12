@@ -17,8 +17,8 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
 [src/lib/productSite.ts](src/lib/productSite.ts) → `IS_PRODUCT_SITE`):
 
 - `npm run build:product` (`astro.config.product.mjs`, flag = `true`) → **hangwork.art**:
-  landing, `/editor`, `/learn/*`, `/faq`, `/guide`, `/examples`, legal pages. Production
-  deploys this.
+  landing, `/editor`, `/learn/*`, `/faq`, `/guide`, `/templates` (`/examples` redirects to
+  it), legal pages. Production deploys this.
 - `npm run build` (`astro.config.mjs`, flag from `.hangwork/project.json`) → the **portfolio
   runtime/template** a published user site is built from. Product-only pages emit no routes
   when the flag is off.
@@ -52,7 +52,8 @@ One Astro codebase, two outputs, switched by `PUBLIC_HANGWORK_IS_PRODUCT_SITE` (
 - `site-server/worker.js` — the **serving Worker**: serves every published site from R2 via a
   KV `host → {siteId,status}` lookup; enforces visibility + a per-site request ceiling.
 - `scripts/` — `generate-runtime-release.mjs` (integrity manifest), `build-hydration-runtime.mjs`,
-  `gh-publish-dryrun.mts`.
+  `gh-publish-dryrun.mts`, `capture-template-shots.mjs` (regenerates the template screenshots
+  in `public/assets/starters/shots/` — run it whenever a starter is added or restyled).
 - `.hangwork/` — `runtime-release.json` + `project.json`: the runtime integrity manifest
   (below). Generated; commit alongside source.
 - `src/lib/pricing.ts` — single source of lifetime/monthly prices and the upgrade credit.

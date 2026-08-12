@@ -3594,7 +3594,7 @@ a.resume-name:hover {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(to bottom, transparent 45%, rgba(17, 17, 17, 0.58));
+	background: linear-gradient(to bottom, transparent 55%, rgba(17, 17, 17, 0.62));
 	pointer-events: none;
 }
 .starter-cover img {
@@ -3602,7 +3602,7 @@ a.resume-name:hover {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	object-position: center 33%;
+	object-position: top center;
 }
 .starter-discipline,
 .starter-count {
@@ -9516,9 +9516,11 @@ label.block-more-item .select-input {
 }
 .intake-tile img {
 	width: 100%;
-	height: 84px;
+	aspect-ratio: 16 / 10;
 	object-fit: cover;
+	object-position: top center;
 	margin-bottom: 5px;
+	border-bottom: 1px solid var(--wall-2);
 }
 .intake-tile strong {
 	padding: 0 10px;
@@ -9701,7 +9703,7 @@ label.block-more-item .select-input {
 }
 .template-pick-cover {
 	display: block;
-	aspect-ratio: 4 / 3;
+	aspect-ratio: 16 / 10;
 	overflow: hidden;
 	border-radius: 4px;
 	background: var(--wall-1);
@@ -9711,6 +9713,7 @@ label.block-more-item .select-input {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	object-position: top center;
 }
 .template-pick-copy {
 	display: flex;

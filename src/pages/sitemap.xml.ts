@@ -12,7 +12,8 @@ import { SEO_ARTICLES } from '../lib/seoArticles';
 export const GET: APIRoute = () => {
 	const site = import.meta.env.SITE;
 	const base = import.meta.env.BASE_URL;
-	// Product site: the landing, examples, guides, and FAQ — /demo and /editor are noindex.
+	// Product site: the landing, templates, guides, and FAQ — /demo and /editor are noindex.
+	// /examples is a redirect stub to /templates (spec 37C) and stays out of the sitemap.
 	// Published sites: every page, including nested sub-pages (keys are paths).
 	const pagePaths = Object.entries(content.pages)
 		.filter(([, page]) => !page.noindex && !page.draft)
@@ -20,7 +21,7 @@ export const GET: APIRoute = () => {
 	const locs = IS_PRODUCT_SITE
 		? [
 				new URL(withBase(base), site).href,
-				new URL(withBase(base, 'examples'), site).href,
+				new URL(withBase(base, 'templates'), site).href,
 				new URL(withBase(base, 'guide'), site).href,
 				new URL(withBase(base, 'faq'), site).href,
 				new URL(withBase(base, 'terms'), site).href,

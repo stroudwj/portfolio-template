@@ -61,16 +61,20 @@ export default function MobileDoor({ base, brandLockup }: { base: string; brandL
 		return () => window.removeEventListener(HANDOFF_SENT_EVENT, onSent);
 	}, []);
 
-	// Read-only preview source: the draft on this device if there is one, else the
-	// populated Painter demo (held locally — nothing is created or saved on a phone).
+	// Read-only preview source: the draft on this device if there is one, else a
+	// populated catalog template — Conservatory, the flagship — held locally, so
+	// nothing is created or saved on a phone. Falls back to the first cleared
+	// template if that id ever leaves the catalog.
 	useEffect(() => {
 		if (!doc && hasDraft) void resumeDraft();
 	}, [doc, hasDraft, resumeDraft]);
-	const [painterDemoDoc] = useState(() => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter');
-		return painter?.content ? initDocFromContent(painter.content) : null;
+	const [templateDemoDoc] = useState(() => {
+		const template =
+			AVAILABLE_STARTERS.find((starter) => starter.id === 'conservatory') ??
+			AVAILABLE_STARTERS[0];
+		return template?.content ? initDocFromContent(template.content) : null;
 	});
-	const previewDoc = doc ?? (hasDraft ? null : painterDemoDoc);
+	const previewDoc = doc ?? (hasDraft ? null : templateDemoDoc);
 	const [page, setPage] = useState('home');
 
 	const send = async () => {

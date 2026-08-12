@@ -4,8 +4,7 @@
 // (sort-it-here) or straight onto the wall, and whether the crop & light
 // tools get pointed out. Skippable at every step; no answer is wasted.
 import { useState } from 'react';
-import type { StarterRecipe } from '../lib/templates';
-import { getSampleArtwork, sampleArtworkUrl } from '../lib/sample-artwork';
+import { starterShotUrl, type StarterRecipe } from '../lib/templates';
 import { BlockIcon } from './ui/block-icons';
 import { PanelIcon } from './ui/panel-icons';
 
@@ -88,25 +87,31 @@ export default function StartIntake({
 	if (step === 0)
 		return (
 			<div className="intake">
-				{header('What do you make?', 'Your discipline hangs the first wall — structure, samples, and lighting to match.')}
+				{header('Pick a starting design', 'Every template is a real, finished site — your work replaces the samples, and you can switch designs later.')}
 				<div className="intake-tiles">
+					{/* Spec 37B: a card is the template — its own rendered page and its
+					    own name. Discipline stays as ordering, not as the label. */}
 					{starters.map((candidate) => {
-						const cover = sampleArtworkUrl(candidate.coverSampleAssetId);
-						const coverArt = getSampleArtwork(candidate.coverSampleAssetId);
+						const shot = starterShotUrl(candidate.id);
 						return (
 							<button
 								key={candidate.id}
 								type="button"
 								className={`intake-tile${starter?.id === candidate.id ? ' active' : ''}`}
 								aria-pressed={starter?.id === candidate.id}
-								title={coverArt ? `Sample: ${coverArt.creator}, ${coverArt.title}` : undefined}
 								onClick={() => {
 									setStarter(candidate);
 									setStep(1);
 								}}
 							>
-								{cover && <img src={cover} alt="" />}
-								<strong>{candidate.discipline}</strong>
+								{shot && (
+									<img
+										src={shot}
+										alt={`The ${candidate.name} template’s home page`}
+										loading="lazy"
+									/>
+								)}
+								<strong>{candidate.name}</strong>
 								<small>{candidate.tagline}</small>
 							</button>
 						);
@@ -122,8 +127,8 @@ export default function StartIntake({
 						<span className="intake-tile-blank-mark" aria-hidden="true">
 							<PanelIcon type="sparkle" />
 						</span>
-						<strong>A bit of everything</strong>
-						<small>Start from a blank wall</small>
+						<strong>Blank wall</strong>
+						<small>Start with nothing on the wall and build it yourself.</small>
 					</button>
 				</div>
 			</div>

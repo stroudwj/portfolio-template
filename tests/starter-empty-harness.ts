@@ -19,7 +19,7 @@
 //   * a string with no editable field at all           → `hardcoded text`
 //   * a string the renderer re-supplies once cleared   → `hardcoded text`
 //   * a block/section/page that cannot be removed      → `needs a control`
-// Spec 36's job is to drive `survivorsFor()` to `[]` for all fourteen starters
+// Spec 36's job is to drive `survivorsFor()` to `[]` for every starter
 // (plus the blank document, which is not textless today either). Re-run it with
 // `npx vitest run tests/starter-empty.test.ts`; set `HARNESS_STRICT=1` to make
 // the test demand zero survivors instead of "no worse than the recorded

@@ -102,7 +102,7 @@ describe('buildWorkbenchPages', () => {
 
 	it('replaces starter samples with the artist’s photos, but never their own images', () => {
 		const doc = intakeDoc([]);
-		doc.galleries['selected-works'] = [sampleEntry('painter-aic-14655-v1')];
+		doc.galleries['selected-works'] = [sampleEntry('photography-nga-124992-v1')];
 		doc.galleries[WORKBENCH_FOLDER] = [uploadedPhoto(SELECTED_WORKS_FOLDER)];
 
 		const { doc: built, report } = buildWorkbenchPages(doc);
@@ -134,7 +134,7 @@ describe('buildWorkbenchPages', () => {
 	it('dresses empty series pages with discipline samples when the workbench holds no photos', () => {
 		const doc = intakeDoc(['Harbor paintings', 'Portraits']);
 
-		const { doc: built, report } = buildWorkbenchPages(doc, 'painter');
+		const { doc: built, report } = buildWorkbenchPages(doc, 'clearing');
 
 		expect(report.sampled).toHaveLength(2);
 		for (const key of ['harbor-paintings', 'portraits']) {
@@ -142,7 +142,7 @@ describe('buildWorkbenchPages', () => {
 			expect(entries.length).toBeGreaterThan(0);
 			for (const entry of entries) {
 				expect(entry.assetId).toBeNull();
-				expect(entry.sampleAssetId).toMatch(/^painter-/);
+				expect(entry.sampleAssetId).toMatch(/^photography-nga-/);
 			}
 		}
 		// The head start never hangs placeholder art on the home page.
@@ -152,9 +152,9 @@ describe('buildWorkbenchPages', () => {
 
 	it('leaves a page alone once it holds anything, even in sample mode', () => {
 		const doc = intakeDoc(['Harbor paintings']);
-		doc.galleries['harbor-paintings'] = [sampleEntry('painter-aic-14655-v1')];
+		doc.galleries['harbor-paintings'] = [sampleEntry('photography-nga-124992-v1')];
 
-		const { doc: built, report } = buildWorkbenchPages(doc, 'painter');
+		const { doc: built, report } = buildWorkbenchPages(doc, 'clearing');
 
 		expect(built).toBe(doc);
 		expect(report.sampled).toHaveLength(0);
@@ -163,9 +163,9 @@ describe('buildWorkbenchPages', () => {
 
 describe('starterSampleFallbackIds', () => {
 	it('returns the starter’s own cleared samples for a known discipline', () => {
-		const ids = starterSampleFallbackIds('painter');
+		const ids = starterSampleFallbackIds('clearing');
 		expect(ids.length).toBeGreaterThan(0);
-		for (const id of ids) expect(id).toMatch(/^painter-/);
+		for (const id of ids) expect(id).toMatch(/^photography-nga-/);
 	});
 
 	it('mixes disciplines for a blank start', () => {

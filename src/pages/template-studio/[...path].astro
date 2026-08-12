@@ -4,8 +4,7 @@
 // emitted in NO build — getStaticPaths yields paths only on the dev server —
 // and saves go through the dev API, so production carries no trace of this.
 import Favicons from '../../components/Favicons.astro';
-import { STARTER_RECIPES, THEME_PRESETS } from '../../editor/lib/templates';
-import { sampleArtworkUrl } from '../../editor/lib/sample-artwork';
+import { STARTER_RECIPES, THEME_PRESETS, starterShotUrl } from '../../editor/lib/templates';
 import { withBase } from '../../portfolio/types';
 
 export function getStaticPaths() {
@@ -25,7 +24,7 @@ const starters = STARTER_RECIPES.map((recipe) => ({
 	readiness: recipe.readiness,
 	pageCount: recipe.content ? Object.keys(recipe.content.pages).length : 0,
 	imageCount: recipe.gallerySpecs.reduce((total, spec) => total + spec.exactImageCount, 0),
-	cover: recipe.coverSampleAssetId ? (sampleArtworkUrl(recipe.coverSampleAssetId) ?? null) : null,
+	cover: starterShotUrl(recipe.id) ?? null,
 	href: `${editorUrl}?template-studio=starter:${recipe.id}`,
 }));
 

@@ -1,0 +1,504 @@
+---
+// The product site's template gallery (BACKLOG spec 37C). This surface used to
+// be /examples — a wall of published sites — and is now the catalog itself:
+// every card is a real template, shown by its own generated screenshot
+// (scripts/capture-template-shots.mjs), named as itself, opening in the editor.
+// The one published site we can point at stays as a single made-with line; live
+// per-template demo sites are spec 5's territory, not built here.
+import { withBase } from '../../portfolio/types';
+import { IS_PRODUCT_SITE } from '../../lib/productSite';
+import { currentPriceText, monthlyPriceText, pricing } from '../../lib/pricing';
+import { exampleSites } from '../../lib/examples';
+import { AVAILABLE_STARTERS, starterShotUrl } from '../../editor/lib/templates';
+import Favicons from '../../components/Favicons.astro';
+
+export function getStaticPaths() {
+	if (!IS_PRODUCT_SITE) return [];
+	return [{ params: { path: undefined } }];
+}
+
+const base = import.meta.env.BASE_URL;
+const homeUrl = withBase(base);
+const editorUrl = withBase(base, 'editor/');
+const checkoutEntryUrl = `${editorUrl}?unlock=1`;
+const templatesUrl = withBase(base, 'templates');
+const faqUrl = withBase(base, 'faq');
+const guideUrl = withBase(base, 'guide');
+const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
+const supportEmail = 'william.stroud100@gmail.com';
+
+const templates = AVAILABLE_STARTERS.map((starter) => ({
+	id: starter.id,
+	name: starter.name,
+	tagline: starter.tagline,
+	description: starter.description,
+	shot: starterShotUrl(starter.id),
+	href: `${editorUrl}?template=${starter.id}`,
+}));
+const madeWith = exampleSites[0];
+
+const title = 'Templates — Hangwork';
+const description = 'Ten finished portfolio designs for artists. Pick one, hang your work, publish.';
+const canonicalUrl = Astro.site ? new URL(withBase(base, 'templates'), Astro.site).href : undefined;
+const ogImageUrl = Astro.site
+	? new URL(withBase(base, 'assets/brand/og-card.png'), Astro.site).href
+	: undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<Favicons base={base} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Hangwork" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+		{ogImageUrl && <meta property="og:image:width" content="1200" />}
+		{ogImageUrl && <meta property="og:image:height" content="630" />}
+		<meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav class="topnav" aria-label="Main navigation">
+				<a class="current" href={templatesUrl} aria-current="page">Templates</a>
+				<a href={`${homeUrl}#how`}>How it works</a>
+				<a href={`${homeUrl}#pricing`}>Pricing</a>
+			</nav>
+		</header>
+
+		<main>
+			<section class="templates-hero">
+				<p class="eyebrow">Ready to hang</p>
+				<h1>Templates</h1>
+				<p class="lede">
+					Finished designs, not blank pages. Every one arrives with sample work you replace
+					with your own — and you can switch design at any time without losing a thing.
+				</p>
+			</section>
+
+			<section class="templates-grid" aria-label="Portfolio templates">
+				{
+					templates.map((template) => (
+						<article class="template-card">
+							<a class="template-preview" href={template.href}>
+								{template.shot && (
+									<img
+										src={template.shot}
+										alt={`The ${template.name} template's home page`}
+										width="720"
+										height="450"
+										loading="lazy"
+										decoding="async"
+									/>
+								)}
+							</a>
+							<div class="template-copy">
+								<div>
+									<h2>{template.name}</h2>
+									<p>{template.tagline}</p>
+								</div>
+								<a class="site-link" href={template.href}>
+									Open in editor<span aria-hidden="true">→</span>
+								</a>
+							</div>
+						</article>
+					))
+				}
+			</section>
+
+			<p class="made-with">
+				Made with Hangwork:{' '}
+				<a href={madeWith.url} target="_blank" rel="noreferrer">
+					{madeWith.domain}<span aria-hidden="true">↗</span>
+				</a>
+			</p>
+
+			<!-- The just-browsed-the-gallery moment. Desktop heads to the editor (payment
+			     waits until publish); phones can choose a plan before moving to a
+			     computer, and the editor there hands off by email. -->
+			<section class="closing">
+				<div class="closing-copy">
+					<p>Every template is yours to change — colors, type, pages, all of it.</p>
+					<div class="paynow-framing">
+						<p class="paynow-anchor">{currentPriceText} once or {monthlyPriceText}/month.</p>
+						<p class="paynow-refund">
+							Changed your mind before you build? {pricing.refundDays} days, no questions.
+						</p>
+					</div>
+				</div>
+				<div class="closing-actions">
+					<a class="btn btn-primary build-cta" href={editorUrl}>Hang your first piece</a>
+					<a class="btn btn-primary paynow-cta" href={checkoutEntryUrl}>
+						Choose a plan
+					</a>
+				</div>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<a class="brand" href={homeUrl} aria-label="Hangwork home">
+				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
+			</a>
+			<nav>
+				<a href={templatesUrl}>Templates</a>
+				<a href={guideUrl}>Setup guide</a>
+				<a href={faqUrl}>Questions</a>
+				<a href={editorUrl}>Editor</a>
+				<a href={`mailto:${supportEmail}`}>Support</a>
+			</nav>
+			<span class="footer-note">Payments, tax, and refunds are handled by the merchant of record shown at checkout.</span>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--paper: #faf8f5;
+		--ink: #1a1a1a;
+		--ink-soft: #6b6963;
+		--klein: #002fa7;
+		--klein-dark: #00248a;
+		--wall-1: #edeae4;
+		--wall-2: #ddd9d0;
+		--wall-3: #e5e1da;
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html,
+	body {
+		margin: 0;
+		padding: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+			sans-serif;
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+	}
+	:is(a, button):focus-visible {
+		outline: 2px solid var(--klein);
+		outline-offset: 3px;
+	}
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+	}
+	.brand-logo {
+		display: block;
+		width: auto;
+		height: 50px;
+	}
+	.topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 28px 32px;
+	}
+	.topnav {
+		display: flex;
+		align-items: baseline;
+		gap: 28px;
+	}
+	.topnav a {
+		color: var(--ink-soft);
+		font-size: 15px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.topnav a:hover,
+	.topnav a.current {
+		color: var(--ink);
+	}
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 0 32px;
+	}
+	.templates-hero {
+		padding: 88px 0 72px;
+	}
+	.eyebrow {
+		margin: 0 0 14px;
+		color: var(--ink-soft);
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: 0.02em;
+	}
+	.eyebrow::before {
+		content: '';
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		margin-right: 9px;
+		border-radius: 50%;
+		background: var(--klein);
+		vertical-align: 1px;
+	}
+	.templates-hero h1 {
+		margin: 0 0 18px;
+		font-size: clamp(36px, 6vw, 56px);
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		line-height: 1.12;
+	}
+	.lede {
+		max-width: 34rem;
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 17px;
+	}
+	.templates-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 40px 32px;
+		padding: 0 0 40px;
+	}
+	.template-card {
+		min-width: 0;
+	}
+	/* Artwork gets no decoration: a 1px wall border, radius 3px, nothing else. */
+	.template-preview {
+		display: block;
+		overflow: hidden;
+		aspect-ratio: 16 / 10;
+		border: 1px solid var(--wall-2);
+		border-radius: 3px;
+		background: var(--wall-1);
+	}
+	.template-preview img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: top center;
+	}
+	.template-preview:hover,
+	.template-preview:focus-visible {
+		border-color: var(--ink);
+	}
+	.made-with {
+		margin: 0 0 96px;
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.made-with a {
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.made-with a:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.made-with span {
+		color: var(--klein);
+	}
+	.template-copy {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 24px;
+		padding-top: 18px;
+	}
+	.template-copy h2 {
+		margin: 0 0 5px;
+		font-size: 18px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+	.template-copy p {
+		max-width: 29rem;
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+	.site-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
+		color: var(--ink);
+		font-size: 14px;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.site-link:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.site-link span {
+		color: var(--klein);
+	}
+	.closing {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+		padding: 64px 0;
+		border-top: 1px solid var(--wall-2);
+	}
+	.closing p {
+		margin: 0;
+		color: var(--ink-soft);
+	}
+	.closing-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+	}
+	/* Pay-upfront framing is a phone-only door (same pattern as the landing page). */
+	.paynow-cta,
+	.paynow-framing {
+		display: none;
+	}
+	.btn {
+		display: inline-block;
+		padding: 11px 22px;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		font-size: 15px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.btn-primary {
+		background: var(--klein);
+		color: var(--paper);
+	}
+	.btn-primary:hover {
+		background: var(--klein-dark);
+	}
+	.footer {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 40px 32px 56px;
+		border-top: 1px solid var(--wall-2);
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.footer nav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+	}
+	.footer a {
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+	.footer a:hover {
+		color: var(--ink);
+	}
+	.footer .brand {
+		margin-bottom: 2px;
+	}
+	.footer .brand-logo {
+		height: 40px;
+	}
+	.footer-note {
+		font-size: 13px;
+	}
+	@media (max-width: 760px) {
+		.topbar {
+			padding: 20px;
+		}
+		.topnav {
+			gap: 20px;
+		}
+		main {
+			padding: 0 20px;
+		}
+		.templates-hero {
+			padding: 64px 0 56px;
+		}
+		.templates-grid {
+			grid-template-columns: minmax(0, 1fr);
+			padding-bottom: 80px;
+		}
+		.footer {
+			padding: 32px 20px 44px;
+		}
+	}
+	@media (max-width: 500px) {
+		.topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 14px;
+		}
+		.brand-logo {
+			height: 44px;
+		}
+		.topnav {
+			width: 100%;
+			justify-content: space-between;
+			gap: 12px;
+		}
+		.topnav a {
+			font-size: 14px;
+		}
+		.template-copy,
+		.closing {
+			flex-direction: column;
+		}
+		.closing {
+			align-items: stretch;
+		}
+		.closing-actions {
+			flex-direction: column-reverse;
+			align-items: stretch;
+		}
+		.closing-actions .btn {
+			text-align: center;
+		}
+		.paynow-cta {
+			display: inline-block;
+		}
+		.build-cta {
+			background: transparent;
+			border-color: var(--wall-2);
+			color: var(--ink);
+		}
+		.build-cta:hover {
+			background: var(--wall-3);
+		}
+		.paynow-framing {
+			display: block;
+			margin-top: 12px;
+		}
+		.paynow-anchor {
+			margin: 0 0 6px;
+			font-size: 14px;
+			color: var(--ink);
+		}
+		.paynow-refund {
+			margin: 0;
+			font-size: 13px;
+		}
+	}
+</style>

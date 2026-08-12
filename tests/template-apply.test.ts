@@ -78,37 +78,37 @@ function homeEntries(doc: EditorDoc): ImageEntry[] {
 
 describe('applyTemplateToDoc', () => {
 	it('re-hangs works into the template positions in order, overflow after the last', () => {
-		const painter = ready('painter');
-		const { doc, works, seriesKey } = builtDoc(7);
+		const clearing = ready('clearing');
+		const { doc, works, seriesKey } = builtDoc(8);
 		const before = JSON.parse(JSON.stringify(doc));
 
-		const { doc: applied, report } = applyTemplateToDoc(doc, painter.content);
+		const { doc: applied, report } = applyTemplateToDoc(doc, clearing.content);
 
 		// The input document is untouched — the store's single commitDoc around
 		// this pure function is what makes an apply exactly one undo entry.
 		expect(doc).toEqual(before);
 
-		// Painter's home hangs one 'selected-work' freeform group of five slots.
+		// Clearing's home hangs one 'clearing' freeform group of six slots.
 		const homeFolders = pageGalleryConfigs(applied.content.pages.home).map(
 			(config) => config.folder,
 		);
-		expect(homeFolders).toEqual(['selected-work']);
-		const entries = applied.galleries['selected-work'];
+		expect(homeFolders).toEqual(['clearing']);
+		const entries = applied.galleries.clearing;
 		expect(entries.map((entry) => entry.assetId)).toEqual(works.map((work) => work.assetId));
 
-		// The first five adopt the template slots' canvas positions; the work
+		// The first six adopt the template slots' canvas positions; the work
 		// keeps its own image, captions, and crop. Overflow auto-flows (no layout).
-		const slotLayouts = initDocFromContent(painter.content).galleries['selected-work'].map(
+		const slotLayouts = initDocFromContent(clearing.content).galleries.clearing.map(
 			(slot) => slot.meta.layout,
 		);
-		for (let index = 0; index < 5; index += 1) {
+		for (let index = 0; index < 6; index += 1) {
 			expect(entries[index].meta.layout).toEqual(slotLayouts[index]);
 			expect(entries[index].meta.title).toBe(works[index].meta.title);
 			expect(entries[index].meta.cropZoom).toBe(1.2);
 		}
-		expect(entries[5].meta.layout).toBeUndefined();
 		expect(entries[6].meta.layout).toBeUndefined();
-		expect(report).toEqual({ rehung: 5, overflow: 2, samplesLeft: 0 });
+		expect(entries[7].meta.layout).toBeUndefined();
+		expect(report).toEqual({ rehung: 6, overflow: 2, samplesLeft: 0 });
 
 		// Template supplies layout + theme, not identity: name, bio, and the
 		// artist's series page all survive; the theme is the template's.
@@ -117,8 +117,8 @@ describe('applyTemplateToDoc', () => {
 		expect(applied.content.pages[seriesKey]).toEqual(doc.content.pages[seriesKey]);
 		expect(applied.galleries[seriesKey]).toEqual(doc.galleries[seriesKey]);
 		expect(applied.content.nav).toEqual(doc.content.nav);
-		expect(applied.content.theme.backgroundColor).toBe(painter.content.theme.backgroundColor);
-		expect(applied.content.theme.fontFamily).toBe(painter.content.theme.fontFamily);
+		expect(applied.content.theme.backgroundColor).toBe(clearing.content.theme.backgroundColor);
+		expect(applied.content.theme.fontFamily).toBe(clearing.content.theme.fontFamily);
 
 		// The blank home's old group is dropped; nothing else references it.
 		expect(applied.galleries['selected-works']).toBeUndefined();
@@ -126,13 +126,13 @@ describe('applyTemplateToDoc', () => {
 	});
 
 	it('keeps the remaining sample frames when the artist has fewer works than slots', () => {
-		const painter = ready('painter');
+		const clearing = ready('clearing');
 		const { doc, works } = builtDoc(2);
 
-		const { doc: applied, report } = applyTemplateToDoc(doc, painter.content);
+		const { doc: applied, report } = applyTemplateToDoc(doc, clearing.content);
 
-		const entries = applied.galleries['selected-work'];
-		expect(entries).toHaveLength(5);
+		const entries = applied.galleries.clearing;
+		expect(entries).toHaveLength(6);
 		expect(entries.slice(0, 2).map((entry) => entry.assetId)).toEqual(
 			works.map((work) => work.assetId),
 		);
@@ -144,15 +144,15 @@ describe('applyTemplateToDoc', () => {
 			expect(slot.meta.description).toBe(artwork?.credit);
 			expect(slot.meta.link).toBe(artwork?.objectUrl);
 		}
-		expect(report).toEqual({ rehung: 2, overflow: 0, samplesLeft: 3 });
+		expect(report).toEqual({ rehung: 2, overflow: 0, samplesLeft: 4 });
 	});
 
 	it('applies with rights-cleared samples when the artist has no photos', () => {
-		const photographer = ready('photographer');
+		const signal = ready('signal');
 		const doc = blankDoc();
 		doc.content.site.name = 'Ana Torres';
 
-		const { doc: applied, report } = applyTemplateToDoc(doc, photographer.content);
+		const { doc: applied, report } = applyTemplateToDoc(doc, signal.content);
 
 		const entries = homeEntries(applied);
 		expect(entries.length).toBeGreaterThan(0);
@@ -169,12 +169,12 @@ describe('applyTemplateToDoc', () => {
 	});
 
 	it('re-applying a different template re-flows the same works without duplicates', () => {
-		const painter = ready('painter');
-		const photographer = ready('photographer');
+		const clearing = ready('clearing');
+		const masthead = ready('masthead');
 		const { doc, works, seriesKey } = builtDoc(3);
 
-		const first = applyTemplateToDoc(doc, painter.content).doc;
-		const second = applyTemplateToDoc(first, photographer.content).doc;
+		const first = applyTemplateToDoc(doc, clearing.content).doc;
+		const second = applyTemplateToDoc(first, masthead.content).doc;
 
 		// The same three works, once each, in the original order.
 		const uploads = homeEntries(second).filter((entry) => entry.assetId !== null);
@@ -185,33 +185,40 @@ describe('applyTemplateToDoc', () => {
 		// Home works plus the untouched series piece — nothing accumulated.
 		expect(everywhere).toHaveLength(works.length + 1);
 
-		// The painter home's group is gone; the photographer's took its place.
-		expect(second.galleries['selected-work']).toBeUndefined();
-		expect(second.galleries['yosemite-valley']).toBeDefined();
+		// Clearing's home group is gone; Masthead's took its place.
+		expect(second.galleries.clearing).toBeUndefined();
+		expect(second.galleries.collage).toBeDefined();
 		expect(second.content.pages[seriesKey]).toBeDefined();
 	});
 
 	it('keeps wall order across multi-group homes by appending overflow to the last group', () => {
-		const sculptor = ready('sculptor');
-		const painter = ready('painter');
-		const { doc, works } = builtDoc(6);
+		const promenade = ready('promenade');
+		const clearing = ready('clearing');
+		const { doc, works } = builtDoc(8);
 
-		// Sculptor's home hangs one work per hall (four single-slot groups).
-		const halls = applyTemplateToDoc(doc, sculptor.content).doc;
+		// Promenade's home hangs one work per hall (six single-slot groups).
+		const halls = applyTemplateToDoc(doc, promenade.content).doc;
 		const hallFolders = pageGalleryConfigs(halls.content.pages.home).map(
 			(config) => config.folder,
 		);
-		expect(hallFolders).toEqual(['work-1', 'work-2', 'work-3', 'work-4']);
-		for (let hall = 0; hall < 4; hall += 1)
+		expect(hallFolders).toEqual([
+			'hall-1',
+			'hall-1-side',
+			'hall-2',
+			'hall-2-side',
+			'hall-3',
+			'hall-3-side',
+		]);
+		for (let hall = 0; hall < 6; hall += 1)
 			expect(halls.galleries[hallFolders[hall]][0].assetId).toBe(works[hall].assetId);
 		expect(
-			halls.galleries['work-4'].slice(1).map((entry) => entry.assetId),
-		).toEqual([works[4].assetId, works[5].assetId]);
+			halls.galleries['hall-3-side'].slice(1).map((entry) => entry.assetId),
+		).toEqual([works[6].assetId, works[7].assetId]);
 
 		// Re-collecting from the halls keeps the original order.
-		const back = applyTemplateToDoc(halls, painter.content).doc;
+		const back = applyTemplateToDoc(halls, clearing.content).doc;
 		expect(
-			back.galleries['selected-work'].map((entry) => entry.assetId),
+			back.galleries.clearing.map((entry) => entry.assetId),
 		).toEqual(works.map((work) => work.assetId));
 	});
 
@@ -241,28 +248,28 @@ describe('applyTemplateToDoc', () => {
 	});
 
 	it('renames template folders that collide with a page the artist keeps', () => {
-		const painter = ready('painter');
-		const { doc } = builtDoc(1, 'Selected work');
-		const seriesEntries = doc.galleries['selected-work'];
+		const clearing = ready('clearing');
+		const { doc } = builtDoc(1, 'Clearing');
+		const seriesEntries = doc.galleries.clearing;
 
-		const { doc: applied } = applyTemplateToDoc(doc, painter.content);
+		const { doc: applied } = applyTemplateToDoc(doc, clearing.content);
 
-		// The artist's "Selected work" series page keeps its folder; the
-		// template's group hangs under a renamed one.
-		expect(applied.galleries['selected-work']).toEqual(seriesEntries);
-		expect(applied.content.pages['selected-work'].gallery?.folder).toBe('selected-work');
+		// The artist's "Clearing" series page keeps its folder; the template's
+		// group hangs under a renamed one.
+		expect(applied.galleries.clearing).toEqual(seriesEntries);
+		expect(applied.content.pages.clearing.gallery?.folder).toBe('clearing');
 		const homeFolders = pageGalleryConfigs(applied.content.pages.home).map(
 			(config) => config.folder,
 		);
-		expect(homeFolders).toEqual(['selected-work-2']);
-		// One work re-hung into the first slot, four sample frames remain.
-		expect(applied.galleries['selected-work-2']).toHaveLength(5);
-		expect(applied.galleries['selected-work-2'][0].assetId).not.toBeNull();
+		expect(homeFolders).toEqual(['clearing-2']);
+		// One work re-hung into the first slot, five sample frames remain.
+		expect(applied.galleries['clearing-2']).toHaveLength(6);
+		expect(applied.galleries['clearing-2'][0].assetId).not.toBeNull();
 	});
 
 	it('remaps the template phone arrangement onto the hung works (regression: stale ids wedged the draft)', () => {
-		const painter = ready('painter');
-		const content = JSON.parse(JSON.stringify(painter.content)) as Content;
+		const clearing = ready('clearing');
+		const content = JSON.parse(JSON.stringify(clearing.content)) as Content;
 		const homeConfig = (page: PageConfig): GalleryConfig => {
 			const config =
 				page.gallery ??
@@ -340,34 +347,55 @@ describe('template registry disciplines', () => {
 		expect(other.more).toHaveLength(0);
 	});
 
-	it('serves every primary discipline at least two looks (many-to-many tags)', () => {
-		const disciplines: DisciplineTag[] = ['painting', 'photography', 'drawing', 'sculpture'];
-		for (const discipline of disciplines)
+	it('serves every discipline a look, and every look the rest of the catalog', () => {
+		const disciplines: DisciplineTag[] = [
+			'painting',
+			'photography',
+			'drawing',
+			'sculpture',
+			'illustration-design',
+		];
+		for (const discipline of disciplines) {
+			const { matched, more } = templatesForDiscipline(discipline);
+			expect(matched.length, `${discipline} routes nowhere`).toBeGreaterThanOrEqual(1);
+			// A discipline is a lens, never a wall: the rest still follow.
+			expect(matched.length + more.length).toBe(AVAILABLE_STARTERS.length);
+		}
+		// Spec 37 retired the two legacy sculpture-tagged starters, so sculpture
+		// leads with Still room alone until spec-14 batch 3 lands more; every
+		// other discipline still leads with two or more.
+		expect(templatesForDiscipline('sculpture').matched.map((recipe) => recipe.id)).toEqual([
+			'still-room',
+		]);
+		for (const discipline of disciplines.filter((tag) => tag !== 'sculpture'))
 			expect(templatesForDiscipline(discipline).matched.length).toBeGreaterThanOrEqual(2);
 	});
 
 	it('derives the picker discipline from the intake starter', () => {
-		expect(starterDiscipline('painter')).toBe('painting');
-		expect(starterDiscipline('sculptor')).toBe('sculpture');
+		expect(starterDiscipline('conservatory')).toBe('painting');
+		expect(starterDiscipline('still-room')).toBe('sculpture');
+		// The retired pre-catalog starters route nowhere (spec 37).
+		expect(starterDiscipline('painter')).toBeNull();
+		expect(starterDiscipline('sculptor')).toBeNull();
 		expect(starterDiscipline(null)).toBeNull();
 		expect(starterDiscipline('not-a-starter')).toBeNull();
 	});
 
 	it('validates discipline tags and a hangable home page', () => {
 		expect(validateStarterCatalog()).toEqual([]);
-		const painter = STARTER_RECIPES.find((recipe) => recipe.id === 'painter')!;
-		const untagged = { ...painter, id: 'untagged', name: 'Untagged', disciplines: [] };
+		const sample = STARTER_RECIPES.find((recipe) => recipe.id === 'clearing')!;
+		const untagged = { ...sample, id: 'untagged', name: 'Untagged', disciplines: [] };
 		expect(
 			validateStarterCatalog([untagged], THEME_PRESETS, SAMPLE_ARTWORK).join('\n'),
 		).toContain('declares no disciplines');
 		const bareHome = {
-			...painter,
+			...sample,
 			id: 'bare-home',
 			name: 'Bare home',
 			content: {
-				...painter.content!,
+				...sample.content!,
 				pages: {
-					...painter.content!.pages,
+					...sample.content!.pages,
 					home: { title: 'Home', blocks: [], sections: [] },
 				},
 			},

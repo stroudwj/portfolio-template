@@ -16,9 +16,13 @@ import {
 import { STARTER_FONT_FACES, starterFontForCustomFont } from '../src/editor/lib/starter-fonts';
 import { AVAILABLE_STARTERS, STARTER_RECIPES, THEME_PRESETS } from '../src/editor/lib/templates';
 
-/** `painter` declares no customFonts — the blank-document case for fonts. */
-const painterContent = (): Content =>
-	AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!.content;
+/** Every catalog starter declares a bundled face (spec 37 retired the ones that
+ * did not), so the blank-document case is a catalog starter with its fonts
+ * stripped: nothing installed, exactly as a document started from blank. */
+const fontlessContent = (): Content => {
+	const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!.content;
+	return { ...clearing, theme: { ...clearing.theme, customFonts: undefined } };
+};
 
 /** A document with nothing installed — the blank-document case the audit measured. */
 const blankTheme = (): Theme =>
@@ -105,13 +109,13 @@ describe('font menu', () => {
 	});
 
 	it('renders the real woff2 in the preview for a document that declared no fonts', () => {
-		const painter = painterContent();
-		expect(painter.theme.customFonts).toBeUndefined();
+		const fontless = fontlessContent();
+		expect(fontless.theme.customFonts).toBeUndefined();
 		const option = FONT_OPTIONS.find((entry) => entry.family === 'Gilda Display')!;
-		const patch = fontChoicePatch(painter.theme, option.value);
+		const patch = fontChoicePatch(fontless.theme, option.value);
 		const doc = initDocFromContent({
-			...painter,
-			theme: { ...painter.theme, headingFontFamily: option.value, ...patch },
+			...fontless,
+			theme: { ...fontless.theme, headingFontFamily: option.value, ...patch },
 		});
 		const faces = docToPortfolioData(doc).fontFaces ?? [];
 		expect(faces).toHaveLength(1);
@@ -121,9 +125,9 @@ describe('font menu', () => {
 	});
 
 	it('publishes the face a blank document picked, with its OFL license beside it', async () => {
-		const painter = painterContent();
+		const fontless = fontlessContent();
 		const option = FONT_OPTIONS.find((entry) => entry.family === 'Gilda Display')!;
-		const patch = fontChoicePatch(painter.theme, option.value);
+		const patch = fontChoicePatch(fontless.theme, option.value);
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () => new Response('/* editor asset */', { status: 200 })),
@@ -131,8 +135,8 @@ describe('font menu', () => {
 		try {
 			const bundle = await buildBundle(
 				initDocFromContent({
-					...painter,
-					theme: { ...painter.theme, headingFontFamily: option.value, ...patch },
+					...fontless,
+					theme: { ...fontless.theme, headingFontFamily: option.value, ...patch },
 				}),
 			);
 			const site = await generateStaticSite(bundle, {

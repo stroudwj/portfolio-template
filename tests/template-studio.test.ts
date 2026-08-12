@@ -27,9 +27,9 @@ describe('template studio serialization', () => {
 	});
 
 	it('stays stable through an editing pass and a reload', () => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
-		const doc = initDocFromContent(painter.content);
-		const entry = doc.galleries['selected-work'][0];
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const doc = initDocFromContent(clearing.content);
+		const entry = doc.galleries.clearing[0];
 		entry.meta.layout = { ...(entry.meta.layout ?? { ar: 1 }), x: 10, y: 8, w: 30 };
 		entry.meta.title = 'Renamed work';
 		const home = doc.content.pages.home;
@@ -48,9 +48,9 @@ describe('template studio serialization', () => {
 	});
 
 	it('blocks uploads and session-only files with readable reasons', () => {
-		const painter = AVAILABLE_STARTERS.find((starter) => starter.id === 'painter')!;
-		const doc = initDocFromContent(painter.content);
-		doc.galleries['selected-work'][0].assetId = 'asset-1';
+		const clearing = AVAILABLE_STARTERS.find((starter) => starter.id === 'clearing')!;
+		const doc = initDocFromContent(clearing.content);
+		doc.galleries.clearing[0].assetId = 'asset-1';
 		doc.profileImage = { filename: 'me.jpg', assetId: 'asset-2', sampleAssetId: null };
 		doc.fonts = { Marker: { filename: 'marker.woff2', assetId: 'asset-3', sampleAssetId: null } };
 
@@ -60,9 +60,9 @@ describe('template studio serialization', () => {
 	});
 
 	it('rejects catalog drift the way the dev API will', () => {
-		const painter = STARTER_RECIPES.find((starter) => starter.id === 'painter')!;
-		const tampered = cloneContent(painter.content!);
-		const [, item] = Object.entries(tampered.galleries['selected-work'].items)[0];
+		const clearing = STARTER_RECIPES.find((starter) => starter.id === 'clearing')!;
+		const tampered = cloneContent(clearing.content!);
+		const [, item] = Object.entries(tampered.galleries.clearing.items)[0];
 		item.description = 'my own credit';
 		item.link = 'https://example.com/not-the-museum';
 		// A font outside the bundled catalog (spec 23) is still drift, as is a
@@ -76,7 +76,7 @@ describe('template studio serialization', () => {
 		};
 
 		const candidates = STARTER_RECIPES.map((recipe) =>
-			recipe.id === 'painter' ? { ...recipe, content: tampered } : recipe,
+			recipe.id === 'clearing' ? { ...recipe, content: tampered } : recipe,
 		);
 		const issues = validateStarterCatalog(candidates);
 		expect(issues.some((issue) => issue.includes('credit'))).toBe(true);
@@ -92,23 +92,25 @@ describe('template studio serialization', () => {
 
 describe('template studio intents', () => {
 	it('parses studio intents strictly', () => {
-		expect(parseStudioIntent('starter:painter')).toEqual({ kind: 'starter', id: 'painter' });
+		expect(parseStudioIntent('starter:clearing')).toEqual({ kind: 'starter', id: 'clearing' });
 		expect(parseStudioIntent('preset:gallery-linen')).toEqual({
 			kind: 'preset',
 			id: 'gallery-linen',
 		});
 		expect(parseStudioIntent('unknown:x')).toBeNull();
 		expect(parseStudioIntent('starter:')).toBeNull();
-		expect(parseStudioIntent('painter')).toBeNull();
+		expect(parseStudioIntent('clearing')).toBeNull();
 		expect(parseStudioIntent(null)).toBeNull();
 	});
 
 	it('resolves starter intents to a fresh copy of the recipe content', () => {
-		const resolved = resolveStudioContent({ kind: 'starter', id: 'painter' });
-		const painter = STARTER_RECIPES.find((starter) => starter.id === 'painter')!;
-		expect(resolved?.name).toBe('Painter');
-		expect(resolved?.content).toEqual(painter.content);
-		expect(resolved?.content).not.toBe(painter.content);
+		const resolved = resolveStudioContent({ kind: 'starter', id: 'clearing' });
+		const clearing = STARTER_RECIPES.find((starter) => starter.id === 'clearing')!;
+		expect(resolved?.name).toBe('Clearing');
+		expect(resolved?.content).toEqual(clearing.content);
+		expect(resolved?.content).not.toBe(clearing.content);
+		// The retired pre-catalog starters resolve to nothing (spec 37).
+		expect(resolveStudioContent({ kind: 'starter', id: 'painter' })).toBeNull();
 	});
 
 	it('resolves preset intents onto a compatible host starter', () => {

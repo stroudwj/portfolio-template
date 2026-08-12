@@ -1,8 +1,16 @@
+// The starter catalog. Spec 37 retired the five pre-catalog starters (painter,
+// photographer, illustrator-designer, works-on-paper, sculptor): the spec-14
+// catalog is the product, so those layouts no longer appear in the intake, the
+// picker, or the template studio. Their sample artwork stays in
+// sample-artwork.ts on purpose — a draft an artist built from a legacy starter
+// still references those images, and must keep parsing, rendering, and
+// publishing exactly as before. Removal is from the catalog surfaces only.
 import { pageGalleryConfigs, type Content, type Theme } from '../../lib/content';
 import { parseAndMigrateContent, themeSchema } from '../../lib/content-schema';
 import type { EditorDoc } from './types';
 import { SAMPLE_ARTWORK, aspectDifference, getSampleArtwork, sampleArtworkIdForUrl, type SampleArtwork } from './sample-artwork';
 import { STARTER_FONT_FACES, starterFontForCustomFont } from './starter-fonts';
+import { withBase } from '../../portfolio/types';
 import galleryLinenTokens from './theme-presets/gallery-linen.json';
 import nightGalleryTokens from './theme-presets/night-gallery.json';
 import caseStudyPaperTokens from './theme-presets/case-study-paper.json';
@@ -19,10 +27,6 @@ import stillCreamTokens from './theme-presets/still-cream.json';
 import signalBlueTokens from './theme-presets/signal-blue.json';
 import clearingWhiteTokens from './theme-presets/clearing-white.json';
 import marmaladeWhiteTokens from './theme-presets/marmalade-white.json';
-import painterContentRaw from './starters/painter.content.json';
-import photographerContentRaw from './starters/photographer.content.json';
-import worksOnPaperContentRaw from './starters/works-on-paper.content.json';
-import sculptorContentRaw from './starters/sculptor.content.json';
 import conservatoryContentRaw from './starters/conservatory.content.json';
 import mastheadContentRaw from './starters/masthead.content.json';
 import atelierContentRaw from './starters/atelier.content.json';
@@ -139,9 +143,9 @@ const graphicIndex: ThemePreset = {
 	supportedTraits: ['dense-grid', 'longform-case-study'],
 };
 
-// The two studio-wall presets deliberately do NOT support 'dense-grid': their
-// starters keep every grid at two columns or fewer, and leaving the trait off
-// keeps them out of painter/photographer's compatible-preset lists.
+// The two studio-wall presets deliberately do NOT support 'dense-grid': a
+// document whose grids stay at two columns or fewer keeps the trait off, and
+// only such documents may wear these presets.
 const studioCorkboard: ThemePreset = {
 	id: 'studio-corkboard',
 	name: 'Studio Corkboard',
@@ -264,43 +268,6 @@ export const THEME_PRESETS: ThemePreset[] = [
 	marmaladeWhite,
 ];
 
-const painterSelectedIds = [
-	'painter-aic-14655-v1',
-	'painter-aic-16571-v1',
-	'painter-aic-15468-v1',
-	'painter-aic-100829-v1',
-	'painter-aic-16551-v1',
-] as const;
-
-const painterCollectionIds = [
-	'painter-met-436533-v1',
-	'painter-met-436528-v1',
-	'painter-met-436532-v1',
-	'painter-met-438817-v1',
-	'painter-met-436135-v1',
-] as const;
-
-const photographerValleyIds = [
-	'photographer-met-285861-v1',
-	'photographer-met-286426-v1',
-	'photographer-met-286457-v1',
-	'photographer-met-286049-v1',
-] as const;
-
-const photographerFallsIds = [
-	'photographer-met-285860-v1',
-	'photographer-met-286459-v1',
-	'photographer-met-286511-v1',
-	'photographer-met-286425-v1',
-] as const;
-
-const photographerHorizonsIds = [
-	'photographer-met-262612-v1',
-	'photographer-met-283222-v1',
-	'photographer-met-285772-v1',
-	'photographer-met-266132-v1',
-] as const;
-
 function artworkOrThrow(id: string): SampleArtwork {
 	const artwork = getSampleArtwork(id);
 	if (!artwork) throw new Error(`Starter catalog references missing sample artwork “${id}”.`);
@@ -324,238 +291,6 @@ function slots(
 		};
 	});
 }
-
-function contractSlots(
-	prefix: string,
-	role: StarterGallerySlot['role'],
-	dimensions: ReadonlyArray<readonly [width: number, height: number]>,
-): StarterGallerySlot[] {
-	return dimensions.map(([width, height], index) => ({
-		id: `${prefix}-${index + 1}`,
-		width,
-		height,
-		aspectRatio: width / height,
-		role,
-	}));
-}
-
-const painterContent: Content = starterContent(painterContentRaw);
-
-const painterRecipe: StarterRecipe = {
-	id: 'painter',
-	name: 'Painter',
-	discipline: 'Painting',
-	disciplines: ['painting', 'drawing'],
-	tagline: 'A salon-style selected-work canvas with a focused collection.',
-	description: 'Five selected works, five collection pieces, and a quiet gallery-led theme.',
-	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
-	compatibleThemeIds: ['gallery-linen', 'night-gallery'],
-	defaultThemeId: 'gallery-linen',
-	readiness: 'ready',
-	gallerySpecs: [
-		{
-			id: 'painter-selected-work',
-			folder: 'selected-work',
-			label: 'Selected Work',
-			exactImageCount: 5,
-			slots: slots(painterSelectedIds, 'selected-work'),
-		},
-		{
-			id: 'painter-collection',
-			folder: 'collection',
-			label: 'Collection',
-			exactImageCount: 5,
-			slots: slots(painterCollectionIds, 'collection'),
-		},
-	],
-	content: painterContent,
-	coverSampleAssetId: painterSelectedIds[0],
-};
-
-const photographerContent: Content = starterContent(photographerContentRaw);
-
-/** This starter uses a complete institutional Open Access image pack. */
-const photographerRecipe: StarterRecipe = {
-	id: 'photographer',
-	name: 'Photographer',
-	discipline: 'Photography',
-	disciplines: ['photography', 'sculpture'],
-	tagline: 'Three tightly edited photographic series.',
-	description: 'Twelve public-domain photographs across three four-image series.',
-	requiredTraits: ['full-bleed-media', 'dense-grid', 'freeform-canvas'],
-	compatibleThemeIds: ['gallery-linen', 'night-gallery'],
-	defaultThemeId: 'night-gallery',
-	readiness: 'ready',
-	gallerySpecs: [
-		{
-			id: 'photographer-yosemite-valley',
-			folder: 'yosemite-valley',
-			label: 'Yosemite Valley',
-			exactImageCount: 4,
-			slots: slots(photographerValleyIds, 'series', 'yosemite-valley'),
-		},
-		{
-			id: 'photographer-falls-stone',
-			folder: 'falls-stone',
-			label: 'Falls & Stone',
-			exactImageCount: 4,
-			slots: slots(photographerFallsIds, 'series', 'falls-stone'),
-		},
-		{
-			id: 'photographer-western-horizons',
-			folder: 'western-horizons',
-			label: 'Western Horizons',
-			exactImageCount: 4,
-			slots: slots(photographerHorizonsIds, 'series', 'western-horizons'),
-		},
-	],
-	content: photographerContent,
-	coverSampleAssetId: photographerValleyIds[0],
-};
-
-/**
- * The partner-led illustrator starter remains internal until permission and a
- * complete image pack arrive.
- */
-const illustratorRecipe: StarterRecipe = {
-	id: 'illustrator-designer',
-	name: 'Illustrator / Designer',
-	discipline: 'Illustration and design',
-	disciplines: ['illustration-design'],
-	tagline: 'Three image-led case studies with room for process.',
-	description: 'Partner artwork and public-use permission are still required.',
-	requiredTraits: ['dense-grid', 'longform-case-study'],
-	compatibleThemeIds: ['graphic-index'],
-	defaultThemeId: 'graphic-index',
-	readiness: 'awaiting-permission',
-	gallerySpecs: ['Case Study One', 'Case Study Two', 'Case Study Three'].map((label, index) => {
-		const number = index + 1;
-		return {
-			id: `illustrator-case-study-${number}`,
-			folder: `case-study-${number}`,
-			label,
-			exactImageCount: 4,
-			slots: contractSlots(`illustrator-case-study-${number}`, 'case-study', [
-				[2400, 1600],
-				[2000, 2000],
-				[1600, 2400],
-				[2400, 1600],
-			]),
-		};
-	}),
-};
-
-const worksOnPaperWallIds = [
-	'works-on-paper-met-337497-v1',
-	'works-on-paper-met-344210-v1',
-	'works-on-paper-met-335537-v1',
-	'works-on-paper-met-335536-v1',
-] as const;
-
-const worksOnPaperFigureIds = [
-	'works-on-paper-met-333943-v1',
-	'works-on-paper-met-333942-v1',
-	'works-on-paper-met-334326-v1',
-] as const;
-
-const worksOnPaperFieldIds = [
-	'works-on-paper-met-337491-v1',
-	'works-on-paper-met-336318-v1',
-	'works-on-paper-met-336481-v1',
-] as const;
-
-const worksOnPaperContent: Content = starterContent(worksOnPaperContentRaw);
-
-/** The studio pinboard: drawings taped and nailed to a cork wall, deliberately
- * overlapping, with two sketchbook sub-pages behind an index. */
-const worksOnPaperRecipe: StarterRecipe = {
-	id: 'works-on-paper',
-	name: 'Works on paper',
-	discipline: 'Drawing',
-	disciplines: ['drawing', 'painting'],
-	tagline: 'A studio pinboard — drawings taped and nailed to a cork wall.',
-	description: 'Ten Open Access drawings pinned to a corkboard wall, with two sketchbook sub-pages.',
-	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
-	compatibleThemeIds: ['studio-corkboard', 'vitrine'],
-	defaultThemeId: 'studio-corkboard',
-	readiness: 'ready',
-	gallerySpecs: [
-		{
-			id: 'works-on-paper-wall',
-			folder: 'wall',
-			label: 'Wall',
-			exactImageCount: 4,
-			slots: slots(worksOnPaperWallIds, 'selected-work', 'wall'),
-		},
-		{
-			id: 'works-on-paper-figure-studies',
-			folder: 'figure-studies',
-			label: 'Figure studies',
-			exactImageCount: 3,
-			slots: slots(worksOnPaperFigureIds, 'series', 'figure-studies'),
-		},
-		{
-			id: 'works-on-paper-field-notes',
-			folder: 'field-notes',
-			label: 'Field notes',
-			exactImageCount: 3,
-			slots: slots(worksOnPaperFieldIds, 'series', 'field-notes'),
-		},
-	],
-	content: worksOnPaperContent,
-	coverSampleAssetId: worksOnPaperWallIds[0],
-};
-
-const sculptorWorkIds = [
-	'sculptor-met-544227-v1',
-	'sculptor-met-254587-v1',
-	'sculptor-met-255417-v1',
-	'sculptor-met-251838-v1',
-] as const;
-
-const sculptorStudioIds = [
-	'sculptor-met-257603-v1',
-	'sculptor-met-248579-v1',
-	'sculptor-met-248268-v1',
-	'sculptor-met-255275-v1',
-] as const;
-
-const sculptorContent: Content = starterContent(sculptorContentRaw);
-
-/** The museum walk: one work per full-height color-blocked section with scroll
- * motion, plus a case-study Studio page. Grids stay at two columns so the
- * starter never detects the dense-grid trait. */
-const sculptorRecipe: StarterRecipe = {
-	id: 'sculptor',
-	name: 'Sculptor',
-	discipline: 'Sculpture',
-	disciplines: ['sculpture', 'photography'],
-	tagline: 'A museum walk — one work per color-blocked hall.',
-	description: 'Eight Open Access sculptures in full-height vitrine sections with scroll motion.',
-	requiredTraits: ['full-bleed-media', 'freeform-canvas', 'longform-case-study'],
-	compatibleThemeIds: ['vitrine', 'studio-corkboard'],
-	defaultThemeId: 'vitrine',
-	readiness: 'ready',
-	gallerySpecs: [
-		// One-work-per-hall: each home section binds its own single-image folder.
-		...sculptorWorkIds.map((id, index) => ({
-			id: `sculptor-work-${index + 1}`,
-			folder: `work-${index + 1}`,
-			label: `Hall ${index + 1}`,
-			exactImageCount: 1,
-			slots: slots([id], 'selected-work', `work-${index + 1}`),
-		})),
-		{
-			id: 'sculptor-studio',
-			folder: 'studio',
-			label: 'Studio',
-			exactImageCount: 4,
-			slots: slots(sculptorStudioIds, 'series', 'studio'),
-		},
-	],
-	content: sculptorContent,
-	coverSampleAssetId: sculptorWorkIds[0],
-};
 
 // ---------------------------------------------------------------------------
 // Spec-14 batch 1: five starters translated from the SOURCES.md keepers
@@ -1016,11 +751,6 @@ const marmaladeRecipe: StarterRecipe = {
 };
 
 export const STARTER_RECIPES: StarterRecipe[] = [
-	painterRecipe,
-	photographerRecipe,
-	illustratorRecipe,
-	worksOnPaperRecipe,
-	sculptorRecipe,
 	conservatoryRecipe,
 	mastheadRecipe,
 	atelierRecipe,
@@ -1052,6 +782,16 @@ export const AVAILABLE_STARTERS = STARTER_RECIPES.filter(
 
 export function getStarterRecipe(id: string): StarterRecipe | undefined {
 	return STARTER_RECIPES.find((recipe) => recipe.id === id);
+}
+
+/** The template's own rendered page, as the picker and the product site show it.
+ * Generated — never hand-made — by `node scripts/capture-template-shots.mjs`,
+ * which renders each starter at a fixed viewport and writes the card-sized webp
+ * into public/assets/starters/shots/. A new template gets its shot from the
+ * same command. */
+export function starterShotUrl(id: string | null | undefined): string | undefined {
+	if (!id || !STARTER_RECIPES.some((recipe) => recipe.id === id)) return undefined;
+	return withBase(import.meta.env.BASE_URL, `assets/starters/shots/${id}.webp`);
 }
 
 /** The template picker's list for one intake discipline: templates tagged for

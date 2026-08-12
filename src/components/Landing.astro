@@ -6,13 +6,14 @@
 import { withBase } from '../portfolio/types';
 import { currentPrice, currentPriceText, monthlyPriceText, pricing } from '../lib/pricing';
 import { exampleSites } from '../lib/examples';
+import { AVAILABLE_STARTERS, starterShotUrl } from '../editor/lib/templates';
 import Favicons from './Favicons.astro';
 
 const base = import.meta.env.BASE_URL;
 const editorUrl = withBase(base, 'editor/');
 const lifetimeCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=lifetime`;
 const monthlyCheckoutEntryUrl = `${editorUrl}?unlock=1&plan=monthly`;
-const examplesUrl = withBase(base, 'examples');
+const templatesUrl = withBase(base, 'templates');
 const faqUrl = withBase(base, 'faq');
 const guideUrl = withBase(base, 'guide');
 const termsUrl = withBase(base, 'terms');
@@ -25,6 +26,16 @@ const title = 'Portfolio website builder for artists — Hangwork';
 const description =
 	`Build an art portfolio website with a visual editor. Choose ${currentPriceText} once for lifetime access or ${monthlyPriceText} per month for hosted access.`;
 const canonicalUrl = Astro.site ? new URL(withBase(base), Astro.site).href : undefined;
+// The landing shows four of the catalog; /templates shows all of them. Cards are
+// the templates' own generated screenshots (spec 37B).
+const featuredTemplates = AVAILABLE_STARTERS.slice(0, 4).map((starter) => ({
+	id: starter.id,
+	name: starter.name,
+	tagline: starter.tagline,
+	shot: starterShotUrl(starter.id),
+	href: `${editorUrl}?template=${starter.id}`,
+}));
+const madeWith = exampleSites[0];
 const ogImageUrl = Astro.site
 	? new URL(withBase(base, 'assets/brand/og-card.png'), Astro.site).href
 	: undefined;
@@ -96,7 +107,7 @@ const applicationLd = {
 			</a>
 			<nav class="topnav">
 				<a href="#how">How it works</a>
-				<a href={examplesUrl}>Examples</a>
+				<a href={templatesUrl}>Templates</a>
 				<a href="#pricing">Pricing</a>
 			</nav>
 		</header>
@@ -124,7 +135,7 @@ const applicationLd = {
 								<span>or {monthlyPriceText}/month.</span>
 							</p>
 						</div>
-						<a class="btn btn-secondary" href={examplesUrl}>View example sites</a>
+						<a class="btn btn-secondary" href={templatesUrl}>Browse templates</a>
 					</div>
 				</div>
 				<!-- The logo mark at wall scale: nail, wire, and a frame the artist fills.
@@ -164,41 +175,38 @@ const applicationLd = {
 				</ol>
 			</section>
 
-			<section class="band" id="examples">
-				<h2>Examples</h2>
-				<p class="band-lede">Portfolios made with Hangwork — each one shaped around the artist's own work.</p>
-				<div class="example-list">
-					{exampleSites.map((site) => (
-						<article class="example-card">
-							<div class="example-preview">
-								<iframe
-									src={site.url}
-									title={`Preview of ${site.name}'s portfolio`}
-									loading="lazy"
-									tabindex="-1"
-									aria-hidden="true"
-								/>
-								<a
-									class="preview-link"
-									href={site.url}
-									target="_blank"
-									rel="noreferrer"
-									aria-label={`Visit ${site.name}'s portfolio at ${site.domain}`}
-								/>
-							</div>
-							<div class="example-copy">
-								<div>
-									<strong>{site.name}</strong>
-									<p>{site.description}</p>
-								</div>
-								<a class="site-link" href={site.url} target="_blank" rel="noreferrer">
-									{site.domain}<span aria-hidden="true">↗</span>
-								</a>
+			<section class="band" id="templates">
+				<h2>Templates</h2>
+				<p class="band-lede">Finished designs to start from — your work replaces the samples, and you can change design whenever you like.</p>
+				<div class="template-list">
+					{featuredTemplates.map((template) => (
+						<article class="template-card">
+							<a class="template-preview" href={template.href}>
+								{template.shot && (
+									<img
+										src={template.shot}
+										alt={`The ${template.name} template's home page`}
+										width="720"
+										height="450"
+										loading="lazy"
+										decoding="async"
+									/>
+								)}
+							</a>
+							<div class="template-copy">
+								<strong>{template.name}</strong>
+								<p>{template.tagline}</p>
 							</div>
 						</article>
 					))}
 				</div>
-				<p class="band-more"><a href={examplesUrl}>Browse all example sites</a></p>
+				<p class="band-more"><a href={templatesUrl}>Browse all templates</a></p>
+				<p class="made-with">
+					Made with Hangwork:{' '}
+					<a href={madeWith.url} target="_blank" rel="noreferrer">
+						{madeWith.domain}<span aria-hidden="true">↗</span>
+					</a>
+				</p>
 			</section>
 
 			<section class="band" id="guides">
@@ -285,7 +293,7 @@ const applicationLd = {
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav>
-				<a href={examplesUrl}>Examples</a>
+				<a href={templatesUrl}>Templates</a>
 				<a href={artPortfolioGuideUrl}>Portfolio guide</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
@@ -592,60 +600,66 @@ const applicationLd = {
 		line-height: 1.55;
 	}
 
-	.example-list {
+	.template-list {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 40px 32px;
 	}
-	.example-card {
+	.template-card {
 		min-width: 0;
 	}
-	.example-preview {
-		position: relative;
+	/* The work is presented flat, as on a wall: a hairline border, no shadow. */
+	.template-preview {
+		display: block;
 		overflow: hidden;
 		aspect-ratio: 16 / 10;
 		border: 1px solid var(--wall-2);
+		border-radius: 3px;
 		background: var(--wall-3);
 	}
-	.example-preview iframe {
-		position: absolute;
-		inset: 0;
-		width: 200%;
-		height: 200%;
-		border: 0;
-		pointer-events: none;
-		transform: scale(0.5);
-		transform-origin: top left;
+	.template-preview img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: top center;
 	}
-	.preview-link {
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-	}
-	.example-preview:has(.preview-link:hover),
-	.example-preview:has(.preview-link:focus-visible) {
+	.template-preview:hover,
+	.template-preview:focus-visible {
 		border-color: var(--ink);
 	}
-	.example-copy {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 24px;
+	.template-copy {
 		padding-top: 16px;
 	}
-	.example-copy strong {
+	.template-copy strong {
 		display: block;
 		margin: 0 0 5px;
 		font-size: 17px;
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}
-	.example-copy p {
+	.template-copy p {
 		max-width: 29rem;
 		margin: 0;
 		color: var(--ink-soft);
 		font-size: 14px;
 		line-height: 1.55;
+	}
+	.made-with {
+		margin: 18px 0 0;
+		color: var(--ink-soft);
+		font-size: 14px;
+	}
+	.made-with a {
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.made-with a:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.made-with span {
+		color: var(--klein);
 	}
 	.site-link {
 		display: inline-flex;
@@ -889,7 +903,7 @@ const applicationLd = {
 			gap: 28px;
 		}
 		.guide-links,
-		.example-list {
+		.template-list {
 			grid-template-columns: 1fr;
 		}
 		.footer {

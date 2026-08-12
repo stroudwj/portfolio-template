@@ -8,10 +8,10 @@ import { useState } from 'react';
 import { useEditor, type TemplateApplyReport } from '../store';
 import {
 	starterDiscipline,
+	starterShotUrl,
 	templatesForDiscipline,
 	type ReadyStarterRecipe,
 } from '../lib/templates';
-import { sampleArtworkUrl } from '../lib/sample-artwork';
 import { PanelIcon } from './ui/panel-icons';
 
 function reportLine(report: TemplateApplyReport): string {
@@ -53,8 +53,10 @@ export default function TemplatePicker({
 		onApplied?.();
 	};
 
+	// The card shows the template's own rendered page (spec 37B), not a sample
+	// artwork: what is being chosen is a design, so the design is what's shown.
 	const card = (recipe: ReadyStarterRecipe) => {
-		const cover = sampleArtworkUrl(recipe.coverSampleAssetId);
+		const shot = starterShotUrl(recipe.id);
 		const active = applied?.id === recipe.id;
 		return (
 			<button
@@ -64,7 +66,9 @@ export default function TemplatePicker({
 				aria-pressed={active}
 				onClick={() => pick(recipe)}
 			>
-				<span className="template-pick-cover">{cover && <img src={cover} alt="" />}</span>
+				<span className="template-pick-cover">
+					{shot && <img src={shot} alt={`The ${recipe.name} template’s home page`} loading="lazy" />}
+				</span>
 				<span className="template-pick-copy">
 					<strong>{recipe.name}</strong>
 					<small>{recipe.tagline}</small>

@@ -13,7 +13,7 @@ export function getStaticPaths() {
 const base = import.meta.env.BASE_URL;
 const homeUrl = withBase(base);
 const editorUrl = withBase(base, 'editor/');
-const examplesUrl = withBase(base, 'examples');
+const templatesUrl = withBase(base, 'templates');
 const guideUrl = withBase(base, 'guide');
 const faqUrl = withBase(base, 'faq');
 const brandLockup = withBase(base, 'assets/brand/hangwork-lockup.svg');
@@ -349,7 +349,7 @@ const guideLd = {
 				<img class="brand-logo" src={brandLockup} alt="Hangwork" />
 			</a>
 			<nav>
-				<a href={examplesUrl}>Examples</a>
+				<a href={templatesUrl}>Templates</a>
 				<a href={guideUrl}>Setup guide</a>
 				<a href={faqUrl}>Questions</a>
 				<a href={editorUrl}>Editor</a>

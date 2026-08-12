@@ -71,7 +71,7 @@ const PRODUCT_CHROME = [
 	'assistive: Show next image',
 ];
 
-/** Survivors of the structure pass. Identical for all fourteen starters AND for blank. */
+/** Survivors of the structure pass. Identical for every starter AND for blank. */
 const BASELINE_STRUCTURE = [...PRODUCT_CHROME];
 
 /** Survivors of the fields pass, per starter. Everything here is renderer-supplied. */
