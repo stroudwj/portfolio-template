@@ -1783,3 +1783,86 @@ intake/discipline components, the picker (`src/editor/components/`), `src/pages/
 land), publishing live per-template demo sites (note the gap for spec 5), doc-schema
 changes, motion/vocabulary changes beyond repointing the legacy references.
 
+
+---
+
+## 38. First-party funnel analytics for hangwork.art (UGC attribution + drop-off) — `queued`
+
+William starts UGC marketing soon (2026-08-11) and needs to see (a) which funnel step
+loses people and (b) which UGC post sent them. The product site has **zero** analytics
+today — verify this premise fresh before building (`rg -ni "funnel" src/ oauth-proxy/`
+and `rg -ni "analytics|beacon" src/components/Landing.astro src/pages/editor.astro`; if
+something exists, improve it instead). What DOES exist and must not be confused with
+this spec: the per-artist-site analytics (`src/portfolio/Analytics.tsx` →
+`/__hangwork/event` → `site-server/worker.js` → owner-only `AnalyticsPanel`). That
+beacon rides `Layout.astro`, so on product pages using the portfolio layout (`/demo`)
+it silently 404s against Pages — leave that harmless quirk alone. This spec is the same
+*pattern* pointed at a new surface: product-site funnel events → **oauth-proxy** →
+operator console.
+
+**Goal.** Count how many visitors reach each funnel step — landing seen, editor opened,
+intake completed, signed in, published, paywall seen, checkout started — attributable to
+a `?ref=` / UTM tag, and show the table (with purchases from D1) in the operator admin
+console.
+
+**Files.** New `src/lib/funnel.ts` (or `src/editor/lib/funnel.ts`) — the beacon client;
+`src/components/Landing.astro` (landing event + ref capture); `src/editor/EditorApp.tsx`,
+`src/editor/components/StartIntake.tsx`, `src/editor/components/useAccount.ts`,
+`src/editor/components/PublishPanel.tsx`, `src/editor/lib/polar-checkout.ts` (step call
+sites); `oauth-proxy/worker.js` + a new `oauth-proxy/funnel.js` (ingest + admin read,
+following `analytics.js` / `admin.js` structure); `src/admin/` AdminApp (funnel panel);
+tests beside the existing ones. Hashed sources → `npm run runtime:generate` + commit
+manifest.
+
+**Requirements.**
+- **Steps** (closed enum, shared between client and Worker): `landing`, `editor`,
+  `intake`, `signin`, `publish`, `paywall`, `checkout`. Purchases are NOT beaconed —
+  the Polar webhook already records orders in D1; the dashboard reads them from there
+  (authoritative, unfakeable from the client).
+- **Attribution.** On any product-page load, read `?ref=` (fall back to `utm_source` +
+  optional `utm_content`), sanitize exactly like the site-server event handler does
+  (lowercase, `[a-z0-9/_-]`, length-capped), stash in `sessionStorage`, and attach to
+  every event from that tab. No tag → `direct`. UGC links then look like
+  `hangwork.art/?ref=tt-video-3`.
+- **Beacon client.** Copy the `Analytics.tsx` transport (sendBeacon → fetch keepalive,
+  swallow all errors — analytics must never break the page), POSTing to
+  `ACCOUNT_API_URL + '/funnel/event'`. Each step fires **once per session** (a
+  `sessionStorage` guard) so re-renders/remounts don't inflate counts — these are
+  funnel reaches, not page views. Gate every call site on `IS_PRODUCT_SITE`: published
+  artist sites and the portfolio runtime must never carry this. Landing is Astro — a
+  tiny inline `<script>` is fine there; the editor call sites are one-liners at:
+  EditorApp mount (`editor`), intake completion callback (`intake`), the useAccount
+  session-established seam (`signin`), first successful publish (`publish`), the plan
+  gate becoming visible in PublishPanel (`paywall`), and `startPolarCheckout`
+  (`checkout`).
+- **Ingest.** `POST /funnel/event` on oauth-proxy, wired into the router beside
+  `/checkout/polar`. Validate strictly (step ∈ enum, ref re-sanitized server-side,
+  Content-Length cap) and 400 everything else; CORS via the existing allowlist (the
+  editor already calls this API from the product origin). Aggregate into KV —
+  one key per month, `funnel:<YYYY-MM>` → `{ steps: { [step]: { [ref]: count } } }`.
+  The KV read-modify-write race under concurrency loses the occasional count; the
+  site-server handler accepts the same race at the same scale — document, don't solve.
+  Privacy posture identical to `analytics.js`: no cookies, no IP, no UA, no referrer
+  stored — counts only. Say so in a comment like `analytics.js` does.
+- **Dashboard.** `GET /admin/funnel` behind the same admin allowlist as the other
+  `admin.js` handlers: last 6 monthly periods of KV aggregates, plus a per-period
+  purchase count from the D1 Polar orders table. In the operator console (`src/admin/`),
+  a funnel panel: steps as rows in funnel order with drop-off % between consecutive
+  steps, refs as columns (a `direct` column always; period switcher). DESIGN.md styling;
+  it's an operator table, not a product surface — plain and legible beats pretty.
+- **Tests.** Factor the step enum + ref sanitizer where both Worker and client import
+  them, and unit-test: sanitizer edge cases, step-enum rejection, once-per-session
+  guard. Plus the safety-net test: a published starter's staticgen output contains no
+  `/funnel/event` string (the beacon never ships in artist sites).
+- Merge gate as usual (`npm run check`, `npm test`, manifest regenerated,
+  `npm run build:product` succeeds). **Deploy note:** the Worker half goes live only
+  with a `wrangler deploy` of oauth-proxy and the client half with a `main` push — both
+  stay William's manual steps; the branch just has to be ready for them.
+- **Coordination:** spec 37 also edits `src/components/Landing.astro` — don't run the
+  two worktrees in parallel, or rebase whichever lands second.
+
+**Out of scope.** The follow-up email drip (deliberately skipped for now — the D1
+`users`/orders data it needs already exists), pre-sign-in email capture in intake,
+unique-visitor counting or any cookie/fingerprint mechanism, third-party analytics
+(Plausible/PostHog), per-user event trails (aggregates only), phone/SMS anything,
+the per-artist-site analytics surfaces.
