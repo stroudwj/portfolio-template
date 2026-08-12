@@ -1706,3 +1706,70 @@ to remove a special case), `tests/`.
 batch 3 of the template catalog (deferred by William — spec 22 — and sequenced after this spec:
 §14's batch-3 requirements gate it on the format vocabulary and empty harness built here),
 redesigning the footer's visual language.
+
+---
+
+## 37. The catalog becomes the face: retire legacy starters, real-screenshot picker, template names — `queued`
+
+Three coupled changes from William (2026-08-11): the spec-14 catalog is now the product;
+the pre-catalog scaffolding stops being what a new artist sees.
+
+**A. Remove the original starter templates.** Retire the legacy pre-catalog starters —
+`painter`, `photographer`, `sculptor` (and audit `templates.ts` for any other
+pre-spec-14 entry that isn't one of the ten catalog starters) — from the registry, the
+intake/discipline routing, and the template picker. Recon before deleting: these three
+are load-bearing in ways the picker doesn't show — the intake "What do you make?" flow
+routes disciplines to them, spec 24 gave them a muted motion vocabulary, the audit
+notes two of sculpture's three tags live here (batch 3 was told to close that gap — if
+batch 3 hasn't run yet, sculpture routing needs an interim catalog target, e.g.
+still-room), and sample-artwork selections reference their ids. Map every reference
+(`rg -n "painter|photographer|sculptor" src/`), repoint each to a catalog starter, and
+only then delete the JSON + registry entries. Existing artist drafts built from a
+legacy starter must keep parsing and publishing — removal is from the *catalog
+surfaces*, not from doc migration.
+
+**B. Template browser shows the template, named as itself.** The picker/intake cards
+currently show sample artwork photos labeled by discipline ("Painting",
+"Photography"). Replace each card image with a real screenshot of that template's
+rendered page, and each label with the template's own name (Conservatory, Still room,
+Contact sheet, …). Screenshots are generated, not hand-made: a script (Playwright or
+the existing browser tooling) renders each starter at a fixed viewport and writes the
+capture into the repo (e.g. `public/assets/starters/shots/<id>.webp`, compressed);
+document the regen command so batch 3's nine starters get shots the same way. Keep the
+one-line description under each name — but describe the design, not the discipline.
+Discipline routing can survive as a filter/ordering hint, but the cards are templates.
+
+**C. "View example sites" → the templates.** The landing's examples surface
+(`src/pages/examples/`, `src/lib/examples.ts`, and the "View example sites" link on
+the landing page) currently points at example sites; repoint the surface to the
+template catalog — each card links to that template's live demo (published starter
+site) or, until those exist, the screenshot + "Open in editor" flow. Rename the
+surface accordingly ("Templates", not "Examples") everywhere it appears: nav, landing
+CTA, sitemap, SEO copy. If real published demo sites per template are wanted (spec 5's
+territory), note what exists and what's missing rather than building the publishing
+pipeline here.
+
+**Files.** `src/editor/lib/templates.ts`, `starters/*.content.json` (deletions),
+intake/discipline components, the picker (`src/editor/components/`), `src/pages/examples/`,
+`src/lib/examples.ts`, `src/components/Landing.astro`, a new `scripts/` capture script,
+`public/assets/starters/shots/`. Renderer untouched; editor/product files are hashed →
+`npm run runtime:generate` + commit manifest.
+
+**Requirements.**
+- After A: no legacy starter appears in intake, picker, or template studio dashboard;
+  every discipline still routes somewhere sensible; spec-35 harness and template-studio
+  tests green with the registry shrunk (update their starter lists deliberately, not by
+  loosening assertions).
+- After B: every catalog starter card shows its own rendered page and its own name at
+  the picker's card size; screenshots regenerate with one documented command; repo size
+  stays sane (webp, picker-sized, not full-page PNGs).
+- After C: no user-facing surface says "example sites"; landing CTA and /examples
+  route land on templates; sitemap/SEO updated; no dead links.
+- DESIGN.md throughout; `npm run check` + `npm test`; product build (`npm run
+  build:product`) succeeds — this spec touches product-site pages, which deploy on the
+  next main push.
+
+**Out of scope.** Batch 3's nine starters (their shots use the same script when they
+land), publishing live per-template demo sites (note the gap for spec 5), doc-schema
+changes, motion/vocabulary changes beyond repointing the legacy references.
+
