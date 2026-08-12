@@ -147,9 +147,15 @@ async function toWebp(page, png) {
 			const bitmap = await createImageBitmap(blob);
 			const canvas = new OffscreenCanvas(width, height);
 			const context = canvas.getContext('2d');
-			// Cover-crop from the top: a card shows the first screen of the page.
+			// Cover-crop from the top, centered horizontally. The captured
+			// iframe is wider than the card (editor chrome eats viewport
+			// height), so the horizontal overflow is split between the two
+			// side edges rather than taken entirely off the right — otherwise
+			// page-centered content lands right of card center. dy stays 0: a
+			// card should show the first screen of the page.
 			const scale = Math.max(width / bitmap.width, height / bitmap.height);
-			context.drawImage(bitmap, 0, 0, bitmap.width * scale, bitmap.height * scale);
+			const dx = (width - bitmap.width * scale) / 2;
+			context.drawImage(bitmap, dx, 0, bitmap.width * scale, bitmap.height * scale);
 			const out = await canvas.convertToBlob({ type: 'image/webp', quality });
 			const buffer = new Uint8Array(await out.arrayBuffer());
 			let binary = '';

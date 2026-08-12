@@ -1867,7 +1867,33 @@ unique-visitor counting or any cookie/fingerprint mechanism, third-party analyti
 (Plausible/PostHog), per-user event trails (aggregates only), phone/SMS anything,
 the per-artist-site analytics surfaces.
 
-## 39. BUG: template thumbnails are slightly off-center — center the capture crop — `queued`
+## 39. BUG: template thumbnails are slightly off-center — center the capture crop — `done (branch worktree-spec-39-shot-crop, not merged)`
+
+**Outcome.** Hypothesis confirmed by measurement, one-line fix, all ten shots regenerated.
+Playwright probe of the fullscreen-preview iframe: boundingBox `1440×858` → AR **1.6783**,
+not 16:10 (1.6) — 42px of editor chrome (the preview toolbar strip) eats viewport height,
+so the iframe is proportionally wider than the card. Screenshot PNG 2880×1716 at
+deviceScaleFactor 2. Cover scale = 450/1716; scaled width **755.24px** vs the card's 720 →
+**35.24px** of horizontal overflow, all of it cut from the right edge by the old
+`drawImage(bitmap, 0, 0, …)`. Centered offset `dx = −17.62px`.
+Pixel proof on `conservatory.webp` (scanning the centered nav wordmark band y25–45 for
+non-background pixels): **before** left margin 319 / right 284 → 35px asymmetry, exactly the
+computed overflow; **after** 302 / 302, delta **0**. No vertical drift (dy stays 0; the same
+y-band contains the wordmark in both). The old shot also clipped the top-right "Book now"
+link; it is fully visible now.
+**Changed.** `scripts/capture-template-shots.mjs` `toWebp()` only:
+`const dx = (width - bitmap.width * scale) / 2` passed to `drawImage`, with a comment
+explaining the AR mismatch. Generic — no hardcoded chrome height.
+**Regenerated** all ten .webp (KB): atelier 55, clearing 30, conservatory 19,
+contact-sheet 39, marmalade 19, masthead 34, promenade 36, runway 24, signal 32,
+still-room 22.
+**Verified.** `npm run check` (0 errors), `npm test` (40 files / 405 tests), and
+`npm run build:product` (17 pages) all pass; **no stale-manifest complaint** — `scripts/`
+and `public/` are outside the hash set, as the spec predicted, so no `runtime:generate`.
+Browser spot-check in a worktree-local dev server (4482) + product preview (4483):
+`/templates` tiles and the `/editor` start-screen picker both read centered.
+**Not merged** — left on `worktree-spec-39-shot-crop` for the orchestrator (spec 38 is in
+flight on the same integration branch).
 
 William reports every template thumbnail (intake tiles, template picker, start screen,
 /templates page, template-studio dashboard) sits just off center. The display CSS is
