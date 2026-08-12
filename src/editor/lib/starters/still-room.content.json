@@ -28,7 +28,11 @@
       "hover": true
     },
     "customFonts": [
-      { "name": "Playfair Display", "file": "fonts/playfair-display.woff2", "weight": "400 900" }
+      {
+        "name": "Playfair Display",
+        "file": "fonts/playfair-display.woff2",
+        "weight": "400 900"
+      }
     ]
   },
   "nav": [
@@ -306,13 +310,13 @@
           "text": "YOUR NAME",
           "richText": [
             {
+              "align": "center",
               "runs": [
                 {
                   "text": "YOUR NAME",
                   "fontSize": 130
                 }
-              ],
-              "align": "center"
+              ]
             }
           ],
           "fontFamily": "\"Playfair Display\", Baskerville, \"Palatino Linotype\", Georgia, serif",
@@ -364,6 +368,11 @@
           ]
         }
       ],
+      "sectionHeights": {
+        "page:heading": {
+          "desktopGap": 90
+        }
+      },
       "sectionMotion": {
         "section:statement": {
           "effect": "reveal",
