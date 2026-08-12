@@ -287,3 +287,97 @@ Regression: still-room (the only other marquee user — its ticker now renders
 both copies at run size and drifts right) and masthead eyeballed in template
 studio after the renderer edits; no layout change. Phone: name hidden (existing
 arrangement), ticker animates, single-col grid, shapes render as thin rules.
+
+---
+
+## Spec 35 — Starter round-trip audit: blank → template → blank (2026-08-11, branch `worktree-spec-35-starter-audit`)
+
+**Audit only; no `src/` changes.** Deliverables: this table plus the empty harness
+(`tests/starter-empty-harness.ts` + `tests/starter-empty.test.ts` — run
+`npx vitest run tests/starter-empty.test.ts`, or with `HARNESS_STRICT=1` for spec 36's
+acceptance bar). Spec 36 builds; nothing below was fixed here.
+
+### What was measured
+
+The fourteen starters ship **3,078 non-empty strings** (126–426 each) across
+**130 distinct schema paths** once page keys and gallery items are collapsed
+(`galleries.*.items.*.{title,alt,description,link}` alone is 728 strings and one
+editor control). Verdicts are per construct and projected onto starters, per the
+spec's method. Block types in use across all fourteen: `images, text, about,
+project, accordion, form, shape, divider, children` — **every one of them is in the
+editor's "Add a block" menu** (verified live in the running editor: Text, Image
+group, Video, Shots, Music player, Google Map, Button, Divider, Shape, About
+content, Email button, Contact form, Accordion, Project fields, Products,
+Sub-page). No starter contains a hard-coded section type.
+
+Method notes worth keeping: the harness runs the **real publish pipeline**
+(`buildBundle` → `generateStaticSite`, the two functions the 🚀 Publish tab calls)
+in node — an emptied document has no images left, so the spec-18 in-browser trick
+buys nothing here; the live editor was used instead to calibrate *which*
+operations the UI actually offers. That calibration mattered: see row E7.
+
+### Direction A — blank → template ("can an artist build this?")
+
+| # | Construct (starters) | Direction | Verdict | What the artist cannot reach / evidence |
+|---|---|---|---|---|
+| B1 | Block vocabulary — `images/text/about/project/accordion/form/shape/divider/children` (14) | build | `reproducible` | Live drive: the Add-a-block menu offers all sixteen block kinds on both the page and per-section menus. |
+| B2 | Footer: text, large closing name, up to 3 link columns, footer image, signature (conservatory uses columns + closing name; the other 13 use footer text only) | build | `reproducible` | `FooterEditor.tsx` (Site tab → Footer) writes `site.footer`, `footerName`, `footerNameSize`, `footerColumns[].heading/links[].label/url`, image + layout; `SignatureEditor` writes `site.signature`. **No starter uses a footer arrangement the menu lacks** — William's footer concern is already covered. |
+| B3 | Text-section distinctiveness — rich-text runs (pt size, bold/italic/link/align), per-block font, kinetic marquee, section color / full bleed / motion / height | build | `reproducible` | `RichTextEditor.tsx` pt input (6–144pt); `PageEditor.tsx` text font select + `setTextKinetic`; per-section chrome in `PreviewEditLayer.tsx` ("Published background color for Section 1…", "Full bleed…", "Scroll scene…"). Spec 31 already verified the kinetic control shipped. |
+| B4 | **Font stacks — 18 distinct stacks used by 13 of 14 starters are absent from the font menu** (all but `photographer` and `painter`) | build | `needs a control` | `FONT_OPTIONS` is 15 fixed stacks. A starter's stack (`"Gilda Display", Didot, "Bodoni MT", …`; also plain-system ones like `Optima, Candara, …`, `Verdana, Geneva, …`, `"American Typewriter", …`) matches none of them, so `ThemeEditor` falls to the opaque `Custom (…)` option — verified live: after applying the Conservatory Green preset the heading select reads `Custom ("Gilda Display", Didot, …)`, never a named entry. An artist starting blank cannot choose any of the ten bundled webfaces or the eight extra system stacks by name, and once they change the select they cannot get the starter's stack back. **Smallest fix:** have `fontOptionsForTheme()` emit each bundled `STARTER_FONT_FACES` entry with the catalog stack the starters actually use (and match the select by family name, not by exact string), so the ten template faces + the starter system stacks appear as named options. |
+| B5 | Bundled webfaces reachable only by applying a theme preset (10 starters) | build | `needs a control` (same fix as B4) | `contentWithThemePreset()` installs `theme.customFonts` from the preset, so the face arrives only as a side effect of a preset. There is no "template fonts" list; "Upload font…" is the only other route. |
+| B6 | Section names (`pages.*.sections[].name`, 82 strings, 14) | build | `needs a control` (cosmetic, editor-only) | `PreviewEditLayer` shows "Section 1 — Bio wall" but no rename control exists; a starter's section names cannot be reproduced. Never published, so the cost is orientation only. |
+| B7 | `site.favicon` (14, all `favicon.svg`) | build | `unverified` — no control found by grep and not driven; not user-visible text, so it was not worth live time. Spec 36 should confirm before touching. |
+| B8 | Everything else — page heading/label/title/description, nav labels + paths, image title/alt/description/link, crop aspect, gallery layout + carousel fit/frame/arrow, mobile arrangement, per-element mount/reveal/hover effects, section motion + colors + bleed + heights, theme colors/texture/nav style/logo placement/page-heading position, creative transitions, store products, about/contact/social | build | `reproducible` | Controls cited in `emptyContent()` in `tests/starter-empty-harness.ts` — every clear operation there names the store action and the component that calls it. |
+
+### Direction B — template → blank ("can an artist delete this?")
+
+Both harness passes were run against all fourteen starters. Survivors are
+**identical across starters** except where noted, which is itself the headline: no
+starter ships a string that only that starter cannot delete. The blank document is
+no cleaner than an emptied starter.
+
+| # | Survivor (starters) | Direction | Verdict | What the artist cannot reach / smallest fix |
+|---|---|---|---|---|
+| E1 | `Page not found` / `That page doesn't exist here (anymore).` / `Back to the home page` + the `— Page not found` `<title>` — **404.html, all 14 + blank** | empty | `hardcoded text` | `staticgen/site.ts` hardcodes the 404 body. Not starter debt (a blank document gets it too), but it is text no artist can change. Fix: either accept it as product chrome and say so, or source it from `content.site`. |
+| E2 | `Open  in image viewer` — lightbox trigger, **all 14** | empty | `hardcoded text` (degrades) | `Gallery.tsx` builds the label as `Open {title} in image viewer`; with the title cleared it announces with a hole in it. Fix: fall back to "Open image in image viewer" when the title is empty. |
+| E3 | `Open site navigation` — hamburger, **all 14 + blank** | empty | `hardcoded text` (accept) | `Nav.tsx`. Functional chrome on an unlabelled single-page site; listed for completeness. |
+| E4 | Contact-form copy: `Continue in email` / `Send message`, `Required`, `This contact form isn't ready yet. Please use another way to get in touch.`, aria `Contact form`, honeypot `Leave this field empty` — **conservatory** (the only starter with a `form` block) | empty | `hardcoded text` | `ContactForm.tsx` defaults. Clearing the block's heading and success message works (both vanish), but the submit label, the required chip and the unavailable sentence have no field at all. Fix: add `submitLabel` / `requiredLabel` to the form block (schema + `updateFormBlock`), and default the unavailable sentence to nothing once the block has no action. (`Leave this field empty` is the CSS-hidden honeypot — it only surfaces with styles off; lowest priority.) |
+| E5 | Carousel chrome: `‹`, `›`, `1 / 4`, aria `carousel` / `Show previous image` / `Show next image` / `Image 1 of 4` — **photographer** (only carousel user) | empty | `hardcoded text` (accept, except the counter) | `Gallery.tsx`. Arrows and aria labels are functional. The visible `1 / 4` counter is the one an artist might want off; fix would be a gallery toggle. |
+| E6 | Sub-page card labels fall back to the raw page key (`figure-studies`, `field-notes`) — **works-on-paper** (only `children` user) | empty | `hardcoded text` **+** `needs a control` | Two separate problems. (a) `PortfolioPage.childItemsFor()` resolves `item.label \|\| pages[item.page].label \|\| item.page`, so clearing both labels publishes the slug. (b) `ChildPages.tsx`'s inline editor **refuses an empty value** — `onBlur` reverts unless `next` is truthy — so the card label cannot be emptied through the UI at all. Fix: allow an empty inline label, and render nothing rather than the page key. |
+| E7 | Footer guard renders a stray `0` when `site.footerColumns` is `[]` — **latent, 0 starters** | empty | `renderer special case` (latent) | `PortfolioPage.tsx` guards the footer with `content.site.footerColumns?.length &&`, which prints `0` for an empty array. **Not reachable today**: `store.setFooterColumns()` normalises `[]` → `undefined`, confirmed by driving the real editor (add a column, remove it, clear the footer text → no `0` in the preview). The harness reproduced it only because it wrote the raw shape. Fix: `!!…?.length`, one character class of change, so the renderer stops depending on a store normalisation. |
+| E8 | `resume.label` — `Résumé`, **all 14** | empty | `needs a control` | No store action writes `content.resume.label`, and `PortfolioPage` falls back to `content.resume?.label \|\| 'Résumé'`. Invisible while the résumé URL is empty, so it never reached the harness output; it becomes an undeletable, unrenameable link label the moment an artist attaches a résumé. Fix: a label field beside the résumé upload. |
+| E9 | Page/section/block/image deletion, nav labels, footer, bio, contact, social, store, page heading/title/description | empty | `reproducible` | Structure pass: every page but home deleted, every block and section removed, every image removed, all site fields blanked → the emitted `index.html` contains **no visible text at all**, and `404.html` + `index.html` are the only pages left. Verified for all fourteen starters by the harness; deletion affordances verified live (`Delete <block> on <page>` buttons, "Remove section" in the section hover chrome, "Delete page…" in page settings). |
+| E10 | The page's **last section cannot be removed** (all 14 + blank) | empty | `reproducible` (by design) — recorded so spec 36 does not "fix" it | `store.removeSection` returns unchanged when `allSections.length <= 1`, and `PreviewEditLayer` hides the button. An empty last section renders an empty `div` with no text, so it does not break the empty direction. The harness models this floor rather than zeroing `sections`. |
+| E11 | The **home page cannot be deleted** (all 14) | empty | `reproducible` (by design) | `store.removePage` refuses `home`; the page-settings modal omits "Delete page…" for it. |
+
+Per-starter projection: E1/E2/E3/E8/E9/E10/E11 apply to all fourteen; E4 to
+conservatory; E5 to photographer; E6 to works-on-paper; E7 to none (latent). No
+starter carries a finding of its own beyond these.
+
+### Build order for spec 36 — independently mergeable chunks
+
+Four chunks, no shared files between them, so they can run as parallel worktrees.
+
+1. **Renderer text fallbacks** — `src/portfolio/`: E2 (lightbox label), E6a (child
+   card slug fallback), E7 (footer `!!` guard), E5 counter toggle if wanted.
+   Touches `Gallery.tsx`, `PortfolioPage.tsx`, `ChildPages.tsx`. Small, mechanical,
+   one session; needs `npm run runtime:generate`.
+2. **Form block fields** — E4: schema (`content-schema.ts` form block) +
+   `updateFormBlock` + the `PageEditor` form UI + `ContactForm.tsx` defaults. The
+   only chunk that touches the content schema, so it should not share a worktree
+   with anything else. One session.
+3. **Font menu** — B4 + B5: `font-options.ts` + `ThemeEditor.tsx` (named entries
+   for the ten `STARTER_FONT_FACES` and the starter system stacks, family-name
+   matching instead of exact-string). Self-contained, one session; worth doing
+   before spec-14 batch 3 so new starters can only use stacks the menu offers.
+4. **Small missing fields** — E8 (résumé label), E6b (allow an empty inline card
+   label), B6 (section rename) if it is wanted at all. Editor-only, one session.
+
+E1 (404 copy) and E3/E5-aria are product decisions, not build work; put them to
+William rather than to a worktree.
+
+**Honest estimate: three sessions, four if chunk 4 is taken.** Chunks 1–3 are
+genuinely parallel. Each chunk's acceptance test is
+`HARNESS_STRICT=1 npx vitest run tests/starter-empty.test.ts` after deleting the
+matching lines from the baselines in `tests/starter-empty.test.ts`; the whole spec
+is done when strict mode passes with empty baselines.
