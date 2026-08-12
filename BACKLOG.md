@@ -1866,3 +1866,55 @@ manifest.
 unique-visitor counting or any cookie/fingerprint mechanism, third-party analytics
 (Plausible/PostHog), per-user event trails (aggregates only), phone/SMS anything,
 the per-artist-site analytics surfaces.
+
+## 39. BUG: template thumbnails are slightly off-center — center the capture crop — `queued`
+
+William reports every template thumbnail (intake tiles, template picker, start screen,
+/templates page, template-studio dashboard) sits just off center. The display CSS is
+*not* the suspect: every consumer shows the .webp in a 16:10 card (`aspect-ratio: 16/10`
++ `object-fit: cover` with `object-position: top center` or the centered default), and
+the shot files are exactly 720×450 = 16:10, so no cropping happens at display time. The
+offset is baked into the images by `scripts/capture-template-shots.mjs`.
+
+**Suspected root cause — verify first.** In `toWebp()` the cover-crop is anchored at the
+top-LEFT: `context.drawImage(bitmap, 0, 0, w*scale, h*scale)`. The screenshot is of the
+fullscreen-preview *iframe*, not the 1440×900 viewport — editor chrome (the preview
+toolbar/exit control) eats some height, so the iframe's aspect ratio is wider than 16:10.
+Under a top-left-anchored cover-crop the entire horizontal overflow is cut from the RIGHT
+edge, so page-centered content lands right of card center in every shot. **Verify the
+premise before changing anything:** in the capture run (or a one-off Playwright probe),
+log `page.locator('iframe').first().boundingBox()` and confirm width/height ≠ 16:10; also
+open one current .webp beside a live fullscreen preview and confirm the content is shifted
+the direction the math predicts. If the iframe measures exactly 16:10, the cause is
+elsewhere (e.g. the device frame adds asymmetric chrome inside the screenshot) — find it
+before editing.
+
+**Fix.** Center the crop horizontally in `toWebp()`:
+`dx = (width − bitmap.width*scale) / 2` (dy stays 0 — the card should keep showing the
+top of the page, cropping from the top edge is correct). That fixes any AR mismatch
+generically rather than assuming today's chrome height. Then regenerate ALL shots
+(`node scripts/capture-template-shots.mjs`) and commit the ten .webp files with the
+script change.
+
+**Files.** `scripts/capture-template-shots.mjs` (the only source edit);
+`public/assets/starters/shots/*.webp` (regenerated). Neither is hashed by the runtime
+manifest (`scripts/` and `public/` are outside the hash set), so no
+`npm run runtime:generate` should be needed — but if `npm run build` complains the
+manifest is stale for an unrelated reason, stop and report rather than regenerating.
+
+**Acceptance.**
+- Probe evidence recorded in the report: iframe bounding box AR before the fix, and the
+  computed crop offset.
+- After regeneration, a symmetric element (e.g. conservatory's centered nav/wordmark)
+  measures equidistant from the left and right edges of the .webp (± a couple px).
+- All ten shots regenerate; each still shows the top of the page (no vertical drift).
+- Spot-check the picker (`/editor` start screen) and `/templates` in the browser: tiles
+  look centered.
+- Merge gate: `npm run check`, `npm test`, `npm run build:product` all pass.
+
+**Coordination.** Spec 38 is running in parallel — it touches `src/components/Landing.astro`
+and oauth-proxy, zero overlap with this spec's files. Branch from
+`integration/specs-14r-19` (it carries spec 37's screenshot picker surfaces).
+
+**Out of scope.** Re-styling the cards, changing SHOT/VIEWPORT geometry, adding an image
+library to package.json, capturing anything other than the home page.
