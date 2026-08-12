@@ -131,6 +131,12 @@ export const STARTER_FONT_FACES: readonly StarterFontFace[] = [
 
 const byFamily = new Map(STARTER_FONT_FACES.map((face) => [face.family, face]));
 
+/** The catalog face with this family name, if the catalog has one. The font menu
+ * uses it to install a face an artist picks from a blank document (spec 36). */
+export function starterFontFace(family: string): StarterFontFace | undefined {
+	return byFamily.get(family);
+}
+
 /** The catalog face a customFonts entry declares, or undefined when the entry is
  * a user upload (or drifts from the catalog contract in any field). */
 export function starterFontForCustomFont(font: {
