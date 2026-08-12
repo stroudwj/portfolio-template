@@ -274,6 +274,64 @@ function sectionCanvasBottom(doc: EditorDoc, page: PageConfig, sectionId: string
 	return bottom;
 }
 
+/**
+ * Spec 43A — the z a newly pinned block needs to land on TOP of everything
+ * already on that section's canvas.
+ *
+ * The renderer (CanvasGallery) resolves an absent `z` to a fallback derived from
+ * the item's position in its list, and those fallbacks never exceed the total
+ * number of canvas items. So one number beats every existing layer whether it
+ * was placed by hand or left implicit: `max(largest explicit z, item count) + 1`.
+ * Returns 1 for a section with nothing on its canvas yet.
+ */
+export function topCanvasZ(doc: EditorDoc, page: PageConfig, requestedSectionId?: string): number {
+	if (requestedSectionId === NEW_SECTION_ID) return 1;
+	const sections = pageSections(page);
+	const section =
+		sections.find((candidate) => candidate.id === requestedSectionId) ??
+		sections.find((candidate) => candidate.id === MAIN_SECTION_ID) ??
+		sections[0];
+	if (!section) return 1;
+	const byId = new Map((page.blocks ?? []).map((block) => [block.id, block]));
+	let count = 0;
+	let highest = 0;
+	const note = (layout: { z?: number } | undefined) => {
+		if (!layout) return;
+		count += 1;
+		if (typeof layout.z === 'number') highest = Math.max(highest, layout.z);
+	};
+	for (const id of section.blockIds) {
+		const block = byId.get(id);
+		if (!block) continue;
+		if (block.type === 'gallery' || block.type === 'images') {
+			const config = block.type === 'gallery' ? page.gallery : block.gallery;
+			if (!config) continue;
+			for (const entry of doc.galleries[config.folder] ?? []) {
+				count += 1;
+				const z = entry.meta.layout?.z;
+				if (typeof z === 'number') highest = Math.max(highest, z);
+			}
+			continue;
+		}
+		if (
+			block.type === 'text' ||
+			block.type === 'embed' ||
+			block.type === 'divider' ||
+			block.type === 'shape' ||
+			block.type === 'button' ||
+			block.type === 'project' ||
+			block.type === 'form'
+		)
+			note(block.layout);
+		if (block.type === 'children') {
+			note(block.canvasLayout);
+			for (const item of block.items ?? []) note(item.layout);
+		}
+		if (block.type === 'products') note(block.canvasLayout);
+	}
+	return Math.max(highest, count) + 1;
+}
+
 /** Page keys that can never be minted for a new page (routes/folders the site owns). */
 const RESERVED_KEYS = new Set(['home', 'editor', 'demo', 'thumbs', '404']);
 const SUPPORTED_CURRENCY_CODES =
@@ -996,7 +1054,7 @@ export interface EditorContextValue {
 	updateButtonBlock(
 		key: string,
 		blockId: string,
-		patch: Partial<{ label: string; url: string; align: TextAlign; appearance: 'solid' | 'outline' }>,
+		patch: Partial<Omit<Extract<PageBlock, { type: 'button' }>, 'id' | 'type'>>,
 	): void;
 	addDividerBlock(key: string, sectionId?: string): void;
 	updateDividerBlock(
@@ -2323,7 +2381,8 @@ export function EditorProvider({
 					id: uid('t'),
 					type: 'text',
 					text: '',
-					layout: { x: 25, y: bottom + 2, w: 50 },
+					// Spec 43A: born on top of whatever the canvas already holds.
+					layout: { x: 25, y: bottom + 2, w: 50, z: topCanvasZ(prev, page, destination) },
 				};
 				const nextPage = appendBlockToSection(page, block, destination);
 				return {
@@ -2632,6 +2691,8 @@ export function EditorProvider({
 					block.type === 'project' ? { ...block, layout: canvasLayout } :
 					block.type === 'form' ? { ...block, layout: canvasLayout } :
 					block.type === 'divider' ? { ...block, layout: canvasLayout } :
+					block.type === 'shape' ? { ...block, layout: canvasLayout } :
+					block.type === 'button' ? { ...block, layout: canvasLayout } :
 					(block.type === 'children' || block.type === 'products') ? { ...block, canvasLayout } : block,
 				),
 			),
@@ -2835,13 +2896,25 @@ export function EditorProvider({
 				`page:${key}:shots:${blockId}:${Object.keys(patch).sort().join(',')}`,
 			),
 		addButtonBlock: (key, sectionId) =>
-			patchPage(key, (page) =>
-				appendBlockToSection(
+			// Spec 43B: a button is a design element an artist places, so it is born
+			// freeform on its section canvas (like a shape), on top of what is there.
+			// "Back to flow" in the button's card unpins it.
+			patchPage(key, (page) => {
+				const current = docRef.current;
+				const canvasBottom = current ? freeCanvasBottomInSection(current, page, sectionId) : null;
+				const layout: ImageLayout = {
+					x: 35,
+					y: (canvasBottom ?? 0) + 2,
+					w: 30,
+					ar: 5,
+					...(current ? { z: topCanvasZ(current, page, sectionId) } : {}),
+				};
+				return appendBlockToSection(
 					page,
-					{ id: uid('button'), type: 'button', label: 'View project', url: '', appearance: 'solid' },
+					{ id: uid('button'), type: 'button', label: 'View project', url: '', appearance: 'solid', layout },
 					sectionId,
-				),
-			),
+				);
+			}),
 		updateButtonBlock: (key, blockId, patch) =>
 			patchBlocks(key, (blocks) =>
 				blocks.map((block) =>
@@ -2859,7 +2932,7 @@ export function EditorProvider({
 				const block: PageBlock = {
 					id: uid('divider'),
 					type: 'divider',
-					layout: { x: 5, y: bottom > 0 ? bottom + 2 : 0, w: 90, ar: 45 },
+					layout: { x: 5, y: bottom > 0 ? bottom + 2 : 0, w: 90, ar: 45, z: topCanvasZ(prev, page, destination) },
 				};
 				return {
 					...prev,
@@ -2941,12 +3014,15 @@ export function EditorProvider({
 				const y = (canvasBottom ?? 0) + 2;
 				// Born freeform, sized per primitive: a wide hairline, a shorter arrow,
 				// a modest rectangle. The artist drags/resizes from there.
+				// Spec 43A: an explicit top z so the new piece is visible immediately
+				// instead of landing under the art already on the canvas.
+				const z = current ? { z: topCanvasZ(current, page, sectionId) } : {};
 				const layout =
 					shape === 'rectangle'
-						? { x: 30, y, w: 40, ar: 1.5 }
+						? { x: 30, y, w: 40, ar: 1.5, ...z }
 						: shape === 'arrow'
-							? { x: 35, y, w: 30, ar: 6 }
-							: { x: 25, y, w: 50, ar: 25 };
+							? { x: 35, y, w: 30, ar: 6, ...z }
+							: { x: 25, y, w: 50, ar: 25, ...z };
 				return appendBlockToSection(page, { id: uid('shape'), type: 'shape', shape, layout }, sectionId);
 			}),
 		updateShapeBlock: (key, blockId, patch) =>

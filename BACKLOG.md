@@ -2192,7 +2192,57 @@ mounts so nothing regresses. `npm run check`, `npm test`. Renderer files are has
 `src/editor/components/PageEditor.tsx` if the control itself is miswired. Out of
 scope: new mount styles, new text-box styling options (spec 43 covers button styling).
 
-## 43. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `running` (2026-08-12)
+## 43. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `merged` (2026-08-12)
+
+**Result.** A: new canvas-pinned blocks are born with an explicit top `z`. Added
+`topCanvasZ(doc, page, sectionId)` in [store.tsx](src/editor/store.tsx) —
+`max(largest explicit z in the section, canvas item count) + 1`, which beats both hand-set
+z values and the renderer's implicit index-derived fallbacks (CanvasGallery resolves an
+absent z to a number bounded by the item count). Wired into `addTextBlock`,
+`addShapeBlock`, `addDividerBlock` and the new `addButtonBlock`. Flow-only blocks are
+untouched. **Recon confirmed the premise, with a caveat worth recording**: the starters do
+carry explicit z (masthead has a text at z 30 over images at z 1–9; still-room has blocks at
+z 10–12), so a new piece with no z landed *under* them; but for *text* blocks specifically
+the old fallback (`images+embeds+texts - i`) already floated above plain images, so the bug
+only bit on canvases that had been deliberately layered — exactly the composed starters.
+B: `addButtonBlock` now mints the block with `layout {x:35,y:<canvas bottom>+2,w:30,ar:5,z:top}`,
+i.e. born free-form like a shape rather than going through the form block's two-commit
+`addFreeformGallery` + `setWidgetLayout` dance (shape's "born freeform" is the closer
+precedent and keeps the add to a single undo step; a `button` was added to the standalone-canvas
+anchor list so a section with no gallery still hosts it). A "Move button Freeform"/"Back to flow"
+toggle matching the form block's was added to the button card. No migration: stored docs are
+untouched.
+C: optional `fillColor`, `textColor`, `shape` (square/rounded/pill) on the button block,
+alongside the `appearance: solid|outline` field that already existed and is exactly the
+spec's outline mode (reused rather than duplicated). Carried through content.ts,
+content-schema.ts, PortfolioPage's flow + canvas-widget paths, and PageBlocks.tsx/.css.
+Rendering is additive: with no field set the markup is character-for-character the old
+`<div class="portfolio-action align-left"><a class="portfolio-button appearance-solid" …>` —
+no extra class, no style attribute — and the CSS switched to `var(--button-edge, var(--color-accent))`
+style fallbacks that resolve identically when unset. `shape-rounded` is deliberately the
+same 4px as the default so the picker showing "Rounded" on an unstyled button is honest.
+
+**Verified.** Unmodified-starter publish is **byte-identical**: all 10 starters through
+`buildBundle` + `generateStaticSite`, 164 files, sha256 diffed against a worktree at the base
+commit — zero differences. Drove the real editor (worktree `astro dev`, port 4483, fresh
+profile, through intake): adding Text → Shape → Button gave z 1 → 2 → 3, each above the last;
+the button arrived pinned with a layout; one Cmd+Z per add removed each block cleanly and left
+the others intact. Styled it through the new controls (Corners → pill, fill #aa2200, words
+#ffee00): DOM class `portfolio-button appearance-solid shape-pill`, computed radius 999px,
+background rgb(170,34,0), color rgb(255,238,0), border following the fill. Fullscreen preview
+(remount path, spec 27) renders identically and shows the button painted over the shape's
+hairline. "Back to flow" drops the layout (pinned wrapper → 0, flow wrapper → 1) and Cmd+Z
+restores it. `npm run check` 0 errors, `npm test` 437/437 (9 new in
+[tests/canvas-defaults.test.ts](tests/canvas-defaults.test.ts): the top-z rule against the real
+clearing/still-room/masthead content, the exact legacy button markup, the additive styled
+markup, a content-parse round trip, and pinned-vs-flow rendering). Manifest regenerated
+(runtime 1.2.29, 240 files).
+
+**Noted in passing.** `setWidgetLayout` did not handle `shape` blocks at all, so dragging a
+canvas shape had no store path to persist through — `shape` (and `button`) were added to it
+here. Worth a look at whether shapes were being dragged through some other route.
+`changeBlockType(..., 'button')` still produces a flow button; only fresh adds are free-form,
+which seems right (a converted block keeps its place in the page) but is a judgement call.
 
 Editor-behavior defaults from William's 2026-08-12 session, all about "what happens the
 moment you add something".

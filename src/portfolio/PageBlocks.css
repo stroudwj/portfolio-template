@@ -15,6 +15,15 @@
 	justify-content: flex-end;
 }
 
+/* Pinned to a section canvas: the widget box supplies the placement, so the
+   flow wrapper drops its page gutter and vertical rhythm. */
+.portfolio-action.pinned {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	align-items: center;
+}
+
 .portfolio-button {
 	display: inline-flex;
 	align-items: center;
@@ -22,7 +31,7 @@
 	min-height: 44px;
 	box-sizing: border-box;
 	padding: 10px 22px;
-	border: 1px solid var(--color-accent);
+	border: 1px solid var(--button-edge, var(--color-accent));
 	border-radius: 4px;
 	font-size: 0.9375rem;
 	font-weight: 500;
@@ -33,13 +42,28 @@
 }
 
 .portfolio-button.appearance-solid {
-	background: var(--color-accent);
-	color: var(--color-bg);
+	background: var(--button-fill, var(--color-accent));
+	color: var(--button-ink, var(--color-bg));
 }
 
 .portfolio-button.appearance-outline {
 	background: transparent;
-	color: var(--color-accent);
+	color: var(--button-ink, var(--button-edge, var(--color-accent)));
+}
+
+/* Corner treatment. No `shape` class = the 4px radius above, unchanged. */
+.portfolio-button.shape-square {
+	border-radius: 0;
+}
+
+/* Deliberately the same 4px as the default, so the picker showing "Rounded"
+   for a button that has never been styled is telling the truth. */
+.portfolio-button.shape-rounded {
+	border-radius: 4px;
+}
+
+.portfolio-button.shape-pill {
+	border-radius: 999px;
 }
 
 .portfolio-button:hover {

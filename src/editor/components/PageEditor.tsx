@@ -2617,6 +2617,14 @@ export default function PageEditor({
 			}
 			case 'button': {
 				const invalid = !isPageOrWebLink(block.url);
+				const buttonLabel = `button ${index + 1} on ${pageName}`;
+				const owner = sectionForBlock(block.id);
+				const hexOr = (value: string | undefined, fallback: string) =>
+					/^#[\da-f]{6}$/i.test(value ?? '')
+						? value!
+						: /^#[\da-f]{6}$/i.test(fallback)
+							? fallback
+							: '#111111';
 				return (
 					<div className="block" key={block.id}>
 						<div className="block-head">
@@ -2651,7 +2659,83 @@ export default function PageEditor({
 									<option value="right">Right</option>
 								</select>
 							</label>
+							<label>
+								Corners
+								<select
+									className="select-input"
+									aria-label={`Corner shape of ${buttonLabel}`}
+									value={block.shape ?? 'rounded'}
+									onChange={(event) =>
+										editor.updateButtonBlock(pageKey, block.id, {
+											shape: event.target.value as NonNullable<typeof block.shape>,
+										})
+									}
+								>
+									<option value="square">Square</option>
+									<option value="rounded">Rounded</option>
+									<option value="pill">Pill</option>
+								</select>
+							</label>
 						</div>
+						<div className="block-choice-row">
+							<label>
+								Button color
+								<span className="color-field">
+									<input
+										type="color"
+										aria-label={`Fill color of ${buttonLabel}`}
+										value={hexOr(block.fillColor, doc.content.theme.accentColor)}
+										onChange={(event) =>
+											editor.updateButtonBlock(pageKey, block.id, { fillColor: event.target.value })
+										}
+									/>
+									{block.fillColor && (
+										<button
+											type="button"
+											className="btn-link"
+											onClick={() => editor.updateButtonBlock(pageKey, block.id, { fillColor: undefined })}
+										>
+											Use theme accent
+										</button>
+									)}
+								</span>
+							</label>
+							<label>
+								Words color
+								<span className="color-field">
+									<input
+										type="color"
+										aria-label={`Words color of ${buttonLabel}`}
+										value={hexOr(
+											block.textColor,
+											block.appearance === 'outline'
+												? doc.content.theme.accentColor
+												: doc.content.theme.backgroundColor,
+										)}
+										onChange={(event) =>
+											editor.updateButtonBlock(pageKey, block.id, { textColor: event.target.value })
+										}
+									/>
+									{block.textColor && (
+										<button
+											type="button"
+											className="btn-link"
+											onClick={() => editor.updateButtonBlock(pageKey, block.id, { textColor: undefined })}
+										>
+											Use theme
+										</button>
+									)}
+								</span>
+							</label>
+						</div>
+						<button type="button" className={block.layout ? 'btn-secondary active' : 'btn-secondary'} onClick={() => {
+							if (block.layout) editor.setWidgetLayout(pageKey, block.id, undefined);
+							else {
+								if (owner && !sectionHasFreeCanvas(owner.id)) editor.addFreeformGallery(pageKey, block.id, owner.id);
+								const bottom = canvasBottomForBlock(block.id);
+								editor.setWidgetLayout(pageKey, block.id, { x: 35, y: bottom > 0 ? bottom + 2 : 0, w: 30, ar: 5 });
+							}
+						}}>{block.layout ? 'Back to flow' : 'Move button Freeform'}</button>
 					</BlockBody>
 					</div>
 				);

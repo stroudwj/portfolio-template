@@ -8,20 +8,39 @@ export function PortfolioButton({
 	url,
 	align = 'left',
 	appearance = 'solid',
+	fillColor,
+	textColor,
+	shape,
+	pinned = false,
 	onClick,
 }: {
 	label: string;
 	url: string;
 	align?: TextAlign;
 	appearance?: 'solid' | 'outline';
+	fillColor?: string;
+	textColor?: string;
+	shape?: 'square' | 'rounded' | 'pill';
+	/** Canvas-pinned buttons drop the flow wrapper's margins and page gutter. */
+	pinned?: boolean;
 	onClick?: MouseEventHandler<HTMLAnchorElement>;
 }) {
 	const href = safeHref(url);
 	if (!label.trim() || !href) return null;
 
+	// Every optional field is additive: with none of them set the markup is
+	// byte-for-byte what it has always been (no extra class, no style attribute).
+	const className = `portfolio-button appearance-${appearance}${shape ? ` shape-${shape}` : ''}`;
+	const style: CSSProperties | undefined =
+		fillColor || textColor
+			? {
+					...(fillColor ? { '--button-fill': fillColor, '--button-edge': fillColor } : {}),
+					...(textColor ? { '--button-ink': textColor } : {}),
+				} as CSSProperties
+			: undefined;
 	return (
-		<div className={`portfolio-action align-${align}`}>
-			<a className={`portfolio-button appearance-${appearance}`} href={href} onClick={onClick}>
+		<div className={`portfolio-action align-${align}${pinned ? ' pinned' : ''}`}>
+			<a className={className} style={style} href={href} onClick={onClick}>
 				{label}
 			</a>
 		</div>
