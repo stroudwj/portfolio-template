@@ -2192,7 +2192,7 @@ mounts so nothing regresses. `npm run check`, `npm test`. Renderer files are has
 `src/editor/components/PageEditor.tsx` if the control itself is miswired. Out of
 scope: new mount styles, new text-box styling options (spec 43 covers button styling).
 
-## 43. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `queued`
+## 43. Canvas defaults: new blocks land on top; button blocks free-form by default + real button styling — `running` (2026-08-12)
 
 Editor-behavior defaults from William's 2026-08-12 session, all about "what happens the
 moment you add something".
