@@ -289,6 +289,10 @@ const pageBlockSchema = z.discriminatedUnion('type', [
 		url: z.string(),
 		align: z.enum(['left', 'center', 'right']).optional(),
 		appearance: z.enum(['solid', 'outline']).optional(),
+		fillColor: z.string().optional(),
+		textColor: z.string().optional(),
+		shape: z.enum(['square', 'rounded', 'pill']).optional(),
+		layout: imageLayoutSchema.optional(),
 	}),
 	passthrough({
 		id: z.string(),

@@ -433,6 +433,17 @@ export default function PortfolioPage({
 			);
 		if (host) freeformHostBySection.set(section.id, host.id);
 	}
+	// Editor preview only: a button pointing at one of this site's own pages
+	// navigates in-preview instead of following the href.
+	const buttonNavigate = (url: string) => {
+		if (!onNavigate) return undefined;
+		const target = previewPageKey(url, base, content.pages);
+		if (!target) return undefined;
+		return (event: ReactMouseEvent<HTMLAnchorElement>) => {
+			event.preventDefault();
+			onNavigate(target === 'home' ? '' : target);
+		};
+	};
 	const automaticContrast = content.theme.automaticTextContrast !== false;
 	const canvasTextsBySection = new Map<string, CanvasText[]>();
 	const canvasEmbedsBySection = new Map<string, CanvasEmbed[]>();
@@ -533,6 +544,27 @@ export default function PortfolioPage({
 							/>
 						),
 					}];
+				if (block.type === 'button' && block.layout)
+					return [{
+						id: block.id,
+						layout: block.layout,
+						freeResize: true,
+						autoHeight: true,
+						dragLabel: `Click and drag ${block.label || 'button'}`,
+						content: (
+							<PortfolioButton
+								label={block.label}
+								url={siteHref(block.url, base) ?? block.url}
+								align={block.align}
+								appearance={block.appearance}
+								fillColor={block.fillColor}
+								textColor={block.textColor}
+								shape={block.shape}
+								pinned
+								onClick={buttonNavigate(block.url)}
+							/>
+						),
+					}];
 				if (block.type === 'shape' && block.layout)
 					return [{
 						id: block.id,
@@ -621,7 +653,7 @@ export default function PortfolioPage({
 		const anchor = section.blockIds.find((id) => {
 			const block = blockById.get(id);
 			return (
-				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider' || block?.type === 'shape') && !!block.layout) ||
+				((block?.type === 'text' || block?.type === 'embed' || block?.type === 'divider' || block?.type === 'shape' || block?.type === 'button') && !!block.layout) ||
 				(block?.type === 'children' && (!!block.canvasLayout || (block.items ?? []).some((item) => !!item.layout))) ||
 				(block?.type === 'products' && !!block.canvasLayout) ||
 				(block?.type === 'project' && !!block.layout) ||
@@ -1080,7 +1112,35 @@ export default function PortfolioPage({
 				);
 			}
 			case 'button': {
-				const previewTarget = onNavigate ? previewPageKey(block.url, base, content.pages) : undefined;
+				// Pinned to a canvas, the button paints as a canvas widget instead —
+				// either inside the section's gallery canvas or, with no gallery in the
+				// section, inside a standalone canvas anchored on the first pinned block.
+				if (hasCanvas && block.layout) return null;
+				if (block.layout) {
+					if (standaloneCanvasAnchor.get(sectionId) !== block.id) return null;
+					return (
+						<div
+							key={block.id}
+							className={`page-content-wrapper standalone-widget-canvas${
+								canvasTexts.length ? ' standalone-text-box-canvas' : ''
+							}`}
+						>
+							<Gallery
+								images={[]}
+								texts={canvasTexts}
+								inlineTextEditing={inlineTextEditing}
+								embeds={canvasEmbeds}
+								canvasWidgets={canvasWidgets}
+								editable={!!canvasWidgetLayoutChange}
+								onTextLayout={textLayoutChange}
+								onEmbedLayout={embedLayoutChange}
+								onCarouselWidgetLayout={canvasWidgetLayoutChange}
+								onDeleteSelection={deleteFromCanvas('')}
+								onSelectBlock={selectInnerBlock}
+							/>
+						</div>
+					);
+				}
 				return (
 					<PortfolioButton
 						key={block.id}
@@ -1088,14 +1148,10 @@ export default function PortfolioPage({
 						url={siteHref(block.url, base) ?? block.url}
 						align={block.align}
 						appearance={block.appearance}
-						onClick={
-							previewTarget && onNavigate
-								? (event) => {
-										event.preventDefault();
-										onNavigate(previewTarget === 'home' ? '' : previewTarget);
-									}
-								: undefined
-						}
+						fillColor={block.fillColor}
+						textColor={block.textColor}
+						shape={block.shape}
+						onClick={buttonNavigate(block.url)}
 					/>
 				);
 			}

@@ -622,7 +622,23 @@ export type PageBlock =
 			items?: ChildPageItem[];
 		}
 	| { id: string; type: 'about' }
-	| { id: string; type: 'button'; label: string; url: string; align?: TextAlign; appearance?: 'solid' | 'outline' }
+	| {
+			id: string;
+			type: 'button';
+			label: string;
+			url: string;
+			align?: TextAlign;
+			/** 'outline' = transparent fill with the accent (or chosen) color as the edge. */
+			appearance?: 'solid' | 'outline';
+			/** Fill (and edge) color. Absent = the theme accent. */
+			fillColor?: string;
+			/** Words color. Absent = the theme page color (solid) or accent (outline). */
+			textColor?: string;
+			/** Corner treatment. Absent = today's 4px radius. */
+			shape?: 'square' | 'rounded' | 'pill';
+			/** Freeform placement within its section canvas; buttons are born freeform. */
+			layout?: ImageLayout;
+		}
 	| {
 			id: string;
 			type: 'divider';
