@@ -32,8 +32,9 @@ function Feature({ children, note }: { children: ReactNode; note?: string }) {
 	);
 }
 
-/** Included by both plans, in the same order on both cards. */
-function SharedFeatures() {
+/** The base plan's included features. Monthly is the plan the lifetime card
+ * references with its "All of Monthly" row, so this list lives on monthly only. */
+function MonthlyFeatures() {
 	return (
 		<>
 			<Feature>Full visual editor</Feature>
@@ -103,26 +104,7 @@ export default function LicenseGateModal({
 			}
 		>
 			<div className="checkout-options">
-				<button
-					type="button"
-					className={`checkout-option${selectedPlan === 'lifetime' ? ' selected' : ''}`}
-					aria-pressed={selectedPlan === 'lifetime'}
-					onClick={() => setSelectedPlan('lifetime')}
-					disabled={busy}
-				>
-					<span className="checkout-option-heading">
-						<span>Lifetime access</span>
-						<span className="checkout-price">
-							<strong>{currentPlan === 'monthly' ? `$${upgradePrice}` : currentPriceText}</strong>
-							<small>{currentPlan === 'monthly' ? `${monthlyUpgradeCreditText} off` : 'once'}</small>
-						</span>
-					</span>
-					<span className="checkout-features">
-						<Feature>Pay once, yours forever</Feature>
-						<Feature>Site and backup downloads</Feature>
-						<SharedFeatures />
-					</span>
-				</button>
+				{/* Cheap-to-premium, left to right: monthly is the base plan, lifetime builds on it. */}
 				<button
 					type="button"
 					className={`checkout-option${selectedPlan === 'monthly' ? ' selected' : ''}`}
@@ -144,7 +126,30 @@ export default function LicenseGateModal({
 							</Feature>
 						)}
 						<Feature>Hosted while subscribed</Feature>
-						<SharedFeatures />
+						<MonthlyFeatures />
+					</span>
+				</button>
+				<button
+					type="button"
+					className={`checkout-option${selectedPlan === 'lifetime' ? ' selected' : ''}`}
+					aria-pressed={selectedPlan === 'lifetime'}
+					onClick={() => setSelectedPlan('lifetime')}
+					disabled={busy}
+				>
+					<span className="checkout-option-heading">
+						<span>Lifetime access</span>
+						<span className="checkout-price">
+							<strong>{currentPlan === 'monthly' ? `$${upgradePrice}` : currentPriceText}</strong>
+							<small>{currentPlan === 'monthly' ? `${monthlyUpgradeCreditText} off` : 'once'}</small>
+						</span>
+					</span>
+					{/* No free-trial row here: Polar trials are a recurring-price feature, and the
+					    worker only grants trial access from subscription webhooks (polar.js
+					    trialingSubscription). A one-time lifetime order can carry no trial. */}
+					<span className="checkout-features">
+						<Feature>All of Monthly</Feature>
+						<Feature>Site and backup downloads</Feature>
+						<Feature>Pay once, yours forever</Feature>
 					</span>
 				</button>
 			</div>

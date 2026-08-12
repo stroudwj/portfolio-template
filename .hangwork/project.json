@@ -98,6 +98,10 @@
       "sha256": "5451195b0ede1e419fe88e5e10772c82748505534c8313df422fb88b7ae65e56",
       "gitBlobSha": "a9036cc5fd80f443768413bc62e96c012685a33f"
     },
+    "src/editor/GateProbe.tsx": {
+      "sha256": "364e0d4cf3ccfa6d45be9b8f1d379abbf9b53eebaf22cd6a57867f7763101da2",
+      "gitBlobSha": "7dce8348ffc0b7c5a57ce2a2bb59b9f7672c4c01"
+    },
     "src/editor/components/AboutContentEditor.tsx": {
       "sha256": "e60f93eb12379084bffeb4d0d364ee70ba16f2948ea632005acd5723d46b3785",
       "gitBlobSha": "7a419a916cd41f5b20b0d0c1c290aabddd5da1b3"
@@ -175,8 +179,8 @@
       "gitBlobSha": "834530e9ae8e2074f4638bba5b75444e0ae92e19"
     },
     "src/editor/components/LicenseGateModal.tsx": {
-      "sha256": "7fce2c8b49072d0e73cc65211dd8e976c73f26b886c4ce8ae58d1fbb5800aa3d",
-      "gitBlobSha": "2c7caf366cb5dc64039b64eef59bac58fae5064f"
+      "sha256": "665fbcda6e6bb6a1147b1dbd2f6d49157b3e3be940ffb3d6a25598d58ac88f55",
+      "gitBlobSha": "83aa509e6b4781210416e78ec105e2e6a82ec384"
     },
     "src/editor/components/LoadPublishedModal.tsx": {
       "sha256": "170d7a0eb324c22f6c19c078762728bb4dd5c566c23aa77d375633e6ece975d8",
@@ -634,6 +638,10 @@
       "sha256": "d2e958ce4216874b267f3d536894e5690bde7657acd6795e07c0a87932dc6db3",
       "gitBlobSha": "62adf6a774be866b7e027907a7f9df9d46520c32"
     },
+    "src/pages/gate-probe.astro": {
+      "sha256": "a40d66d868a7b4d96f61b80fdbaf50942a87733a9ea92c8e1a3478d4811e40da",
+      "gitBlobSha": "842d0a004de4910dc1869f51db195e5cf891c6e2"
+    },
     "src/pages/guide/[...path].astro": {
       "sha256": "59255121391da1562ec88bc83dc2fe2e3580d1cc3f26b34792d84e353b25e31f",
       "gitBlobSha": "dc913f2720a59c6cf3ef2679cedcd3cc47b9a044"
@@ -967,8 +975,8 @@
       "gitBlobSha": "6e53ab4bc35e8e0c447c51111e513a04ecee71db"
     },
     ".hangwork/runtime-release.json": {
-      "sha256": "477543277fa414bfc558f041a7300263b209af5234b10f18602e1e979f223b93",
-      "gitBlobSha": "0cd6a2e3987dc6af4fa46c0b52949ebfdce88789"
+      "sha256": "fe25ad682472c67d2069c4635fcbc30e6e5b0f068842a63cc79f2660feb60a94",
+      "gitBlobSha": "20019166e012bec2227130610f0f29aacf9eeb47"
     }
   }
 }

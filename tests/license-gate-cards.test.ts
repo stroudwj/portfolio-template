@@ -32,6 +32,39 @@ describe('license gate plan cards', () => {
 		expect(modal.match(/Site and backup downloads/g)).toHaveLength(1);
 	});
 
+	it('orders the cards cheap-to-premium: monthly left, lifetime right', () => {
+		const monthly = modal.indexOf("aria-pressed={selectedPlan === 'monthly'}");
+		const lifetime = modal.indexOf("aria-pressed={selectedPlan === 'lifetime'}");
+		expect(monthly).toBeGreaterThan(-1);
+		expect(lifetime).toBeGreaterThan(monthly);
+		// The stacked (<=480px) layout is a one-column grid, so DOM order is the
+		// only thing deciding it — nothing may reorder the cards visually.
+		expect(css).not.toMatch(/\.checkout-option[^{]*\{[^}]*(^|[\s;])order:/m);
+		expect(css).not.toMatch(/\.checkout-options\s*\{[^}]*(row|column)-reverse/);
+	});
+
+	it('references monthly from the lifetime card instead of repeating its rows', () => {
+		// Lifetime lists three rows only: the reference + its two extras.
+		const lifetimeCard = modal.slice(modal.indexOf("aria-pressed={selectedPlan === 'lifetime'}"));
+		expect(lifetimeCard).toContain('<Feature>All of Monthly</Feature>');
+		expect(lifetimeCard.match(/<Feature\b/g)).toHaveLength(3);
+		// The shared list belongs to monthly now and is rendered exactly once.
+		expect(modal).toContain('function MonthlyFeatures()');
+		expect(modal.match(/<MonthlyFeatures \/>/g)).toHaveLength(1);
+		expect(modal).not.toContain('SharedFeatures');
+	});
+
+	it('claims the free trial on monthly only — Polar trials are subscription-only', () => {
+		// oauth-proxy/polar.js grants trial access from subscription.* webhooks with
+		// status 'trialing'; a one-time lifetime order can never produce one, so a
+		// trial row on the lifetime card would be a promise the backend cannot keep.
+		const worker = readFileSync(new URL('../oauth-proxy/polar.js', import.meta.url), 'utf8');
+		expect(worker).toMatch(/status !== 'trialing' && status !== 'active'/);
+		expect(modal.match(/days free/g)).toHaveLength(1);
+		const lifetimeCard = modal.slice(modal.indexOf("aria-pressed={selectedPlan === 'lifetime'}"));
+		expect(lifetimeCard).not.toMatch(/days free|free trial/i);
+	});
+
 	it('keeps the trial cancellation caveat attached to the trial row', () => {
 		expect(modal).toMatch(/note="Cancel before they end and pay nothing\."/);
 		expect(modal).toContain('First {pricing.monthlyTrialDays} days free');
