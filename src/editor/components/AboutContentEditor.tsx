@@ -24,6 +24,7 @@ export default function AboutContentEditor() {
 		setProfileImagePresentation,
 		setResumeFile,
 		removeResume,
+		setResumeLabel,
 	} = useEditor();
 	const resumeInputRef = useRef<HTMLInputElement>(null);
 	const [resumeError, setResumeError] = useState<string | null>(null);
@@ -263,6 +264,16 @@ export default function AboutContentEditor() {
 					)}
 				</div>
 			</Field>
+
+			{resumeName && (
+				<Field label="Résumé link text" hint="What the link says beside your social links. Leave empty to hide the link.">
+					<TextInput
+						value={content.resume?.label ?? 'Résumé'}
+						placeholder="Résumé"
+						onChange={(event) => setResumeLabel(event.target.value)}
+					/>
+				</Field>
+			)}
 
 			<div className="about-social-fields">
 				<SocialLinksFields />

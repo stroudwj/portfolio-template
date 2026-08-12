@@ -134,13 +134,16 @@ export function emptyContent(input: Content, mode: EmptyMode = 'structure'): Con
 	delete content.profile.name; // AboutContentEditor → store.setProfileName()
 	content.contact.email = ''; // AboutContentEditor → store.setEmail()
 	content.social = []; // SocialLinksEditor → store.removeSocial()
-	if (content.resume) content.resume.url = ''; // PublishPanel/PageEditor → store.removeResume()
+	if (content.resume) content.resume.url = ''; // AboutContentEditor → store.removeResume()
+	// AboutContentEditor "Résumé link text" → store.setResumeLabel() (spec 36, row E8).
+	// An emptied label hides the link rather than falling back to "Résumé".
+	if (content.resume) content.resume.label = '';
 	if (content.store) content.store.products = []; // StoreEditor → store.removeProduct()
 
 	// NOTE what is deliberately NOT cleared here, because no control clears it:
-	//   * content.resume.label      — ships "Résumé" in all fourteen starters
-	//   * content.site.favicon      — "favicon.svg" (not visible text)
-	// Leaving them in is the point: if they surface as text, they are findings.
+	//   * content.site.favicon      — "favicon.svg" (a file name, never rendered as
+	//     text; spec 36 confirmed it is product chrome, not artist copy)
+	// Leaving it in is the point: if it surfaces as text, it is a finding.
 
 	return parseAndMigrateContent(content);
 }
@@ -161,6 +164,7 @@ function blankEveryString(content: Content): Content {
 	delete content.profile.name; // AboutContentEditor → setProfileName()
 	content.contact.email = ''; // AboutContentEditor → setEmail()
 	content.social = []; // SocialLinksEditor → removeSocial()
+	if (content.resume) content.resume.label = ''; // AboutContentEditor "Résumé link text" → setResumeLabel()
 	if (content.store) content.store.products = []; // StoreEditor → removeProduct()
 	content.nav = content.nav.map((item) => ({ ...item, label: '' })); // PageSettingsModal → page label
 
@@ -190,6 +194,11 @@ function blankEveryString(content: Content): Content {
 					break;
 				case 'images': // ImageCollectionEditor "Describe these images" → setGalleryConfig()
 					block.gallery.alt = '';
+					// PageEditor → Customize layout → Carousel settings → "Number count"
+					// checkbox → setGalleryConfig({ carouselShowCount: false }). The
+					// counter is the one piece of carousel chrome that is copy rather
+					// than a control, and it already has an off switch (spec 36, E5).
+					block.gallery.carouselShowCount = false;
 					break;
 				case 'button': // PageEditor button block → updateButtonBlock()
 					block.label = '';

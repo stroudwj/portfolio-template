@@ -325,8 +325,8 @@ operations the UI actually offers. That calibration mattered: see row E7.
 | B3 | Text-section distinctiveness — rich-text runs (pt size, bold/italic/link/align), per-block font, kinetic marquee, section color / full bleed / motion / height | build | `reproducible` | `RichTextEditor.tsx` pt input (6–144pt); `PageEditor.tsx` text font select + `setTextKinetic`; per-section chrome in `PreviewEditLayer.tsx` ("Published background color for Section 1…", "Full bleed…", "Scroll scene…"). Spec 31 already verified the kinetic control shipped. |
 | B4 | **Font stacks — 18 distinct stacks used by 13 of 14 starters are absent from the font menu** (all but `photographer` and `painter`) | build | `needs a control` | `FONT_OPTIONS` is 15 fixed stacks. A starter's stack (`"Gilda Display", Didot, "Bodoni MT", …`; also plain-system ones like `Optima, Candara, …`, `Verdana, Geneva, …`, `"American Typewriter", …`) matches none of them, so `ThemeEditor` falls to the opaque `Custom (…)` option — verified live: after applying the Conservatory Green preset the heading select reads `Custom ("Gilda Display", Didot, …)`, never a named entry. An artist starting blank cannot choose any of the ten bundled webfaces or the eight extra system stacks by name, and once they change the select they cannot get the starter's stack back. **Smallest fix:** have `fontOptionsForTheme()` emit each bundled `STARTER_FONT_FACES` entry with the catalog stack the starters actually use (and match the select by family name, not by exact string), so the ten template faces + the starter system stacks appear as named options. |
 | B5 | Bundled webfaces reachable only by applying a theme preset (10 starters) | build | `needs a control` (same fix as B4) | `contentWithThemePreset()` installs `theme.customFonts` from the preset, so the face arrives only as a side effect of a preset. There is no "template fonts" list; "Upload font…" is the only other route. |
-| B6 | Section names (`pages.*.sections[].name`, 82 strings, 14) | build | `needs a control` (cosmetic, editor-only) | `PreviewEditLayer` shows "Section 1 — Bio wall" but no rename control exists; a starter's section names cannot be reproduced. Never published, so the cost is orientation only. |
-| B7 | `site.favicon` (14, all `favicon.svg`) | build | `unverified` — no control found by grep and not driven; not user-visible text, so it was not worth live time. Spec 36 should confirm before touching. |
+| B6 | Section names (`pages.*.sections[].name`, 82 strings, 14) | build | ~~`needs a control`~~ → **`reproducible`** (spec 36 chunk 4) | The audit read `PreviewEditLayer`, where the name is display-only; the rename control lives in the **page editor** — `PageEditor.tsx`'s `.section-name-input` ("Name for Section N") commits on blur through `store.renameSection()`. No code change; row closed by verification. Like spec 31's row, the control had already shipped. |
+| B7 | `site.favicon` (14, all `favicon.svg`) | build | ~~`unverified`~~ → **`reproducible` (product chrome)** (spec 36 chunk 4) | Confirmed: `site.favicon` is a *file name*, set once in `content-init.ts` and never rendered as text — `staticgen/site.ts` copies the editor deploy's own `favicon.{ico,svg,png}` set alongside it. No artist string, so no control is owed. Left out of the empty harness deliberately (comment in `emptyContent()`). |
 | B8 | Everything else — page heading/label/title/description, nav labels + paths, image title/alt/description/link, crop aspect, gallery layout + carousel fit/frame/arrow, mobile arrangement, per-element mount/reveal/hover effects, section motion + colors + bleed + heights, theme colors/texture/nav style/logo placement/page-heading position, creative transitions, store products, about/contact/social | build | `reproducible` | Controls cited in `emptyContent()` in `tests/starter-empty-harness.ts` — every clear operation there names the store action and the component that calls it. |
 
 ### Direction B — template → blank ("can an artist delete this?")
@@ -345,7 +345,7 @@ no cleaner than an emptied starter.
 | E5 | Carousel chrome: `‹`, `›`, `1 / 4`, aria `carousel` / `Show previous image` / `Show next image` / `Image 1 of 4` — **photographer** (only carousel user) | empty | `hardcoded text` (accept, except the counter) | `Gallery.tsx`. Arrows and aria labels are functional. The visible `1 / 4` counter is the one an artist might want off; fix would be a gallery toggle. |
 | E6 | Sub-page card labels fall back to the raw page key (`figure-studies`, `field-notes`) — **works-on-paper** (only `children` user) | empty | `hardcoded text` **+** `needs a control` | Two separate problems. (a) `PortfolioPage.childItemsFor()` resolves `item.label \|\| pages[item.page].label \|\| item.page`, so clearing both labels publishes the slug. (b) `ChildPages.tsx`'s inline editor **refuses an empty value** — `onBlur` reverts unless `next` is truthy — so the card label cannot be emptied through the UI at all. Fix: allow an empty inline label, and render nothing rather than the page key. |
 | E7 | Footer guard renders a stray `0` when `site.footerColumns` is `[]` — **latent, 0 starters** | empty | `renderer special case` (latent) | `PortfolioPage.tsx` guards the footer with `content.site.footerColumns?.length &&`, which prints `0` for an empty array. **Not reachable today**: `store.setFooterColumns()` normalises `[]` → `undefined`, confirmed by driving the real editor (add a column, remove it, clear the footer text → no `0` in the preview). The harness reproduced it only because it wrote the raw shape. Fix: `!!…?.length`, one character class of change, so the renderer stops depending on a store normalisation. |
-| E8 | `resume.label` — `Résumé`, **all 14** | empty | `needs a control` | No store action writes `content.resume.label`, and `PortfolioPage` falls back to `content.resume?.label \|\| 'Résumé'`. Invisible while the résumé URL is empty, so it never reached the harness output; it becomes an undeletable, unrenameable link label the moment an artist attaches a résumé. Fix: a label field beside the résumé upload. |
+| E8 | `resume.label` — `Résumé`, **all 14** | empty | ~~`needs a control`~~ → **fixed** (spec 36 chunk 4) | Was: no store action wrote `content.resume.label`, and `PortfolioPage` fell back to `\|\| 'Résumé'`. Now: `store.setResumeLabel()` + a "Résumé link text" field under the PDF upload in `AboutContentEditor` (shown once a PDF exists), and every fallback is `??` instead of `\|\|` — a cleared label stays cleared and `PortfolioPage` drops the link rather than relabelling it. No schema change (`resume.label` already existed); old drafts parse and render unchanged. Locked by `tests/staticgen.test.ts` ("publishes the résumé link with the artist's label…"). |
 | E9 | Page/section/block/image deletion, nav labels, footer, bio, contact, social, store, page heading/title/description | empty | `reproducible` | Structure pass: every page but home deleted, every block and section removed, every image removed, all site fields blanked → the emitted `index.html` contains **no visible text at all**, and `404.html` + `index.html` are the only pages left. Verified for all fourteen starters by the harness; deletion affordances verified live (`Delete <block> on <page>` buttons, "Remove section" in the section hover chrome, "Delete page…" in page settings). |
 | E10 | The page's **last section cannot be removed** (all 14 + blank) | empty | `reproducible` (by design) — recorded so spec 36 does not "fix" it | `store.removeSection` returns unchanged when `allSections.length <= 1`, and `PreviewEditLayer` hides the button. An empty last section renders an empty `div` with no text, so it does not break the empty direction. The harness models this floor rather than zeroing `sections`. |
 | E11 | The **home page cannot be deleted** (all 14) | empty | `reproducible` (by design) | `store.removePage` refuses `home`; the page-settings modal omits "Delete page…" for it. |
@@ -381,3 +381,42 @@ genuinely parallel. Each chunk's acceptance test is
 `HARNESS_STRICT=1 npx vitest run tests/starter-empty.test.ts` after deleting the
 matching lines from the baselines in `tests/starter-empty.test.ts`; the whole spec
 is done when strict mode passes with empty baselines.
+
+### Spec 36 chunk 4 — small missing fields (2026-08-11, branch `worktree-spec-36-small-fields`)
+
+Five rows, two of which needed no code — the audit's "no control exists" verdicts
+were read from the wrong component in both cases, the same failure mode spec 31
+recorded. Rows above are annotated; the summary:
+
+- **E8 résumé label — fixed.** `store.setResumeLabel()` + a "Résumé link text"
+  field in `AboutContentEditor` (appears once a PDF is attached). `||` → `??` in
+  the store's two résumé writers and in `PortfolioPage`, so a cleared label is an
+  empty label; an empty label hides the link instead of publishing an unlabelled
+  one. No schema change. Test: `tests/staticgen.test.ts`.
+- **E6b inline sub-page card label — fixed.** `ChildPages.tsx`'s `onBlur` reverted
+  any falsy value, so a card label could never be emptied; it now commits whenever
+  the value *changed*. `store.renameChildCard()` already accepted `''`. (E6a — the
+  slug fallback in `PortfolioPage.childItemsFor()` — belongs to chunk 1 and is
+  untouched here, so `visible: figure-studies` stays in the baseline for now.)
+- **E5 counter — no code; control already ships.** PageEditor → image group →
+  *Customize layout* → *Carousel settings* → the **"Number count"** checkbox writes
+  `gallery.carouselShowCount: false`, which `Gallery.tsx` already honours. The
+  harness now mirrors that control in its fields pass, so `visible: 1 / 4` (and the
+  aria label on the same element, `Image 1 of 4`) is gone from photographer's
+  baseline. The arrows and their aria labels stay — William's product decision.
+- **B6 section rename — no code; control already ships** (`PageEditor`, not
+  `PreviewEditLayer`). Section names are editor-only and never published. Its input
+  keeps the "reverts on empty" guard that E6b removed elsewhere: a nameless section
+  would leave the layers list and the section menus unlabelled, and no published
+  text depends on it.
+- **B7 favicon — no code; product chrome**, not artist copy.
+
+Harness deltas (all in `tests/starter-empty-harness.ts`, cited to their controls):
+`carouselShowCount: false` in the fields pass, `resume.label = ''` in both passes.
+Baseline delta: `visible: 1 / 4` and `assistive: Image 1 of 4` removed from
+`photographer`. Strict mode's remaining survivors for every starter are exactly the
+other chunks' rows (E1, E2, E3, E4, E5-aria, E6a) — none of chunk 4's.
+
+Deliberately not touched, per the audit's floors: last-section and home-page
+undeletability (by design), and the `footerColumns []` → `undefined` normalisation
+(latent; the `!!` hardening is chunk 1's `PortfolioPage` line).

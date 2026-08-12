@@ -90,8 +90,11 @@ export default function ChildPages({
 								}
 							}}
 							onBlur={(e) => {
+								// An empty value is a real edit: spec 36 (audit row E6b) — a card
+								// label the artist clears must stay cleared, not snap back to the
+								// template's words. Only an unchanged value is reverted.
 								const next = (e.currentTarget.textContent ?? '').trim();
-								if (next && next !== item.label) onEditLabel(item.id ?? item.key, next);
+								if (next !== item.label) onEditLabel(item.id ?? item.key, next);
 								else e.currentTarget.textContent = item.label;
 							}}
 						>

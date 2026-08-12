@@ -498,4 +498,38 @@ describe('staticgen', () => {
 		expect(home).toContain('--color-bg:#101014');
 		expect(home).not.toContain('--color-text:#f5f5f2');
 	});
+
+	// Spec 36, audit row E8: the résumé link label is a real field now. A draft
+	// saved before the control existed keeps its "Résumé" (the label was always in
+	// the content), and a label the artist clears stays cleared — the renderer drops
+	// the link rather than re-labelling it with the default.
+	it('publishes the résumé link with the artist’s label, and drops it when the label is cleared', async () => {
+		const base = testBundle();
+		const aboutHtml = async (resume: { label: string; url: string }) => {
+			const content = parseAndMigrateContent({ ...base.contentJson, resume });
+			const site = await generateStaticSite(
+				{ ...base, contentJson: content },
+				{ siteUrl: 'https://jane.hangwork.art', editorBase: 'https://hangwork.art/' },
+			);
+			return new TextDecoder().decode(
+				site.files.find((file) => file.path === 'about/index.html')!.bytes,
+			);
+		};
+
+		// Pre-control draft: label untouched, link rendered.
+		const legacy = await aboutHtml({ label: 'Résumé', url: 'cv.pdf' });
+		expect(legacy).toMatch(/href="[^"]*cv\.pdf"[^>]*>Résumé/);
+
+		// Renamed through AboutContentEditor → setResumeLabel().
+		const renamed = await aboutHtml({ label: 'Curriculum vitae', url: 'cv.pdf' });
+		expect(renamed).toMatch(/href="[^"]*cv\.pdf"[^>]*>Curriculum vitae/);
+		expect(renamed).not.toContain('>Résumé');
+
+		// Cleared: no link at all, and no fallback copy in the rendered markup. (The
+		// PDF's path still travels in the inlined hydration content — that is the
+		// document, not the page's words.)
+		const cleared = await aboutHtml({ label: '', url: 'cv.pdf' });
+		expect(cleared).not.toMatch(/href="[^"]*cv\.pdf"/);
+		expect(cleared).not.toContain('>Résumé');
+	});
 });

@@ -805,6 +805,8 @@ export interface EditorContextValue {
 	setResumeFile(file: File): void;
 	/** Remove the résumé entirely (no link shown on the site). */
 	removeResume(): void;
+	/** Rename the résumé link ("Résumé" by default; empty hides the link). */
+	setResumeLabel(value: string): void;
 	// theme
 	setTheme(patch: Partial<Theme>): void;
 	/** Replace factory theme tokens while preserving the document's uploaded font files. */
@@ -1506,7 +1508,7 @@ export function EditorProvider({
 				resumeFile: { filename: file.name, assetId, sampleAssetId: null },
 				content: {
 					...prev.content,
-					resume: { label: prev.content.resume?.label || 'Résumé', url: sanitizeFilename(file.name) },
+					resume: { label: prev.content.resume?.label ?? 'Résumé', url: sanitizeFilename(file.name) },
 				},
 			}));
 		},
@@ -1514,8 +1516,16 @@ export function EditorProvider({
 			commitDoc((prev) => ({
 				...prev,
 				resumeFile: { filename: '', assetId: null, sampleAssetId: null },
-				content: { ...prev.content, resume: { label: prev.content.resume?.label || 'Résumé', url: '' } },
+				content: { ...prev.content, resume: { label: prev.content.resume?.label ?? 'Résumé', url: '' } },
 			})),
+		// Spec 36 (audit row E8): the link label is a plain field. `??` keeps a
+		// deliberately emptied label empty instead of resurrecting the default.
+		setResumeLabel: (value) =>
+			patchContent(
+				(c) => ({ ...c, resume: { label: value, url: c.resume?.url ?? '' } }),
+				true,
+				'resume:label',
+			),
 
 		setTheme: (patch) =>
 			patchContent(

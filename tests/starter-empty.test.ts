@@ -19,6 +19,7 @@
 //   fields    — keep the starter's structure, blank only the strings. Survivors
 //               are text the RENDERER supplies once a field is empty: component
 //               defaults, empty-state copy, fallback labels. Invisible to greps.
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { blankContent } from '../src/editor/lib/content-init';
 import { emptyAndPublish, starterContent, starterIds } from './starter-empty-harness';
@@ -61,15 +62,17 @@ const BASELINE_FIELDS: Record<string, string[]> = {
 		'visible: This contact form isn’t ready yet. Please use another way to get in touch.',
 		'assistive: Contact form',
 	],
-	// Gallery.tsx carousel chrome: arrows, the "1 / 4" counter and its aria labels.
+	// Gallery.tsx carousel chrome: the arrows and their aria labels. Functional
+	// chrome, kept by William's product decision. The visible "1 / 4" counter (and
+	// the aria label on the same element) is gone from this baseline: spec 36
+	// confirmed the "Number count" checkbox in Carousel settings turns it off, and
+	// the harness now uses it.
 	photographer: [
 		'visible: ‹',
 		'visible: ›',
-		'visible: 1 / 4',
 		'assistive: carousel',
 		'assistive: Show previous image',
 		'assistive: Show next image',
-		'assistive: Image 1 of 4',
 	],
 	// PortfolioPage.tsx childItemsFor(): `item.label || page.label || item.page`
 	// falls all the way back to the raw page key once both labels are cleared.
@@ -124,5 +127,36 @@ describe('empty harness — a starter must be emptiable to a blank document', ()
 				]);
 			});
 		}
+	});
+});
+
+// Spec 36, chunk 4 — the small missing fields. The harness proves what survives a
+// publish; these lock the controls that clear them, which no published HTML shows.
+describe('spec 36 — the fields behind the audit’s small rows', () => {
+	const source = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+	it('E6b: a sub-page card label can be emptied — only an unchanged value reverts', () => {
+		const childPages = source('src/portfolio/ChildPages.tsx');
+		expect(childPages).toContain('if (next !== item.label) onEditLabel(');
+		// The old guard (`if (next && …`) silently restored the template's word.
+		expect(childPages).not.toContain('if (next && next !== item.label)');
+	});
+
+	it('E8: the résumé link label is a field, and no code resurrects the default', () => {
+		const about = source('src/editor/components/AboutContentEditor.tsx');
+		expect(about).toContain('setResumeLabel');
+		expect(about).toContain('Résumé link text');
+		// `||` would treat a cleared label as "unset" and hand back "Résumé".
+		for (const file of ['src/editor/store.tsx', 'src/portfolio/PortfolioPage.tsx'])
+			expect(source(file)).not.toContain("label || 'Résumé'");
+	});
+
+	it('E5: the carousel’s number counter has an off switch', () => {
+		expect(source('src/editor/components/PageEditor.tsx')).toContain('carouselShowCount: event.target.checked ? undefined : false');
+		expect(source('src/portfolio/Gallery.tsx')).toContain('settings?.carouselShowCount !== false');
+	});
+
+	it('B6: a section can be renamed from the page editor', () => {
+		expect(source('src/editor/components/PageEditor.tsx')).toContain('editor.renameSection(pageKey, section.id, name)');
 	});
 });

@@ -820,9 +820,13 @@ export default function PortfolioPage({
 				);
 			}
 			case 'about': {
+				// Spec 36 (audit row E8): `??`, not `||` — a label the artist cleared is a
+				// deliberate empty, and an unlabelled link is worse than no link, so the
+				// résumé link is dropped rather than relabelled with the default.
+				const resumeLabel = content.resume?.label ?? 'Résumé';
 				const resume =
-					resumeHref || (content.resume && content.resume.url)
-						? { label: content.resume?.label || 'Résumé', href: resumeHref ?? withBase(base, content.resume.url) }
+					resumeLabel && (resumeHref || (content.resume && content.resume.url))
+						? { label: resumeLabel, href: resumeHref ?? withBase(base, content.resume.url) }
 						: null;
 				const aboutContent = (
 					<About
