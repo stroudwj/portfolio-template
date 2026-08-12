@@ -4004,7 +4004,7 @@ a.resume-name:hover {
 	padding: 14px;
 	border: 1px solid var(--wall-2);
 	border-radius: 6px;
-	background: white;
+	background: var(--editor-panel);
 	color: var(--ink);
 	text-align: left;
 	font: inherit;
@@ -4029,9 +4029,38 @@ a.resume-name:hover {
 	border-color: var(--klein);
 	box-shadow: 0 0 0 1px var(--klein);
 }
-.checkout-option > span:last-child {
+/* Included-feature list on a plan card. Positive framing only: a row exists
+   because the plan includes it — there is no "not included" row to style. */
+.checkout-features {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	min-width: 0;
 	font-size: 13px;
-	line-height: 1.55;
+	line-height: 1.4;
+	color: var(--ink);
+}
+.checkout-feature {
+	display: flex;
+	align-items: flex-start;
+	gap: 7px;
+	min-width: 0;
+}
+.checkout-feature > .panel-icon {
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
+	color: var(--klein);
+}
+.checkout-feature > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.checkout-feature small {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	line-height: 1.4;
 	color: var(--ink-soft);
 }
 .checkout-option-heading {

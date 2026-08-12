@@ -1,8 +1,9 @@
 // The publishing license gate. Polar checkout is created server-side for the signed-in
 // account using the lifetime product; signed webhooks keep the
 // account entitlement in sync and the return flow resumes publishing.
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal } from './ui/Modal';
+import { PanelIcon } from './ui/panel-icons';
 import { AccountError } from '../lib/account/client';
 import {
 	clearResumePublish,
@@ -16,6 +17,32 @@ import {
 	monthlyUpgradeCreditText,
 	pricing,
 } from '../../lib/pricing';
+
+/** One included-feature row in a plan card. Plan cards list only what a plan
+ * INCLUDES — a feature a plan lacks is simply absent, never a struck-out row. */
+function Feature({ children, note }: { children: ReactNode; note?: string }) {
+	return (
+		<span className="checkout-feature">
+			<PanelIcon type="check" />
+			<span>
+				{children}
+				{note && <small>{note}</small>}
+			</span>
+		</span>
+	);
+}
+
+/** Included by both plans, in the same order on both cards. */
+function SharedFeatures() {
+	return (
+		<>
+			<Feature>Full visual editor</Feature>
+			<Feature>yourname.hangwork.art</Feature>
+			<Feature>Your own custom domain</Feature>
+			<Feature>Unlimited publishing</Feature>
+		</>
+	);
+}
 
 export default function LicenseGateModal({
 	onClose,
@@ -90,7 +117,11 @@ export default function LicenseGateModal({
 							<small>{currentPlan === 'monthly' ? `${monthlyUpgradeCreditText} off` : 'once'}</small>
 						</span>
 					</span>
-					<span>Every feature, including site and backup downloads. Pay once and keep access.</span>
+					<span className="checkout-features">
+						<Feature>Pay once, yours forever</Feature>
+						<Feature>Site and backup downloads</Feature>
+						<SharedFeatures />
+					</span>
 				</button>
 				<button
 					type="button"
@@ -106,10 +137,14 @@ export default function LicenseGateModal({
 							<small>/ month</small>
 						</span>
 					</span>
-					<span>
-						{currentPlan === 'monthly'
-							? 'Everything except downloads. Keep paying to retain access; your site goes offline if the subscription ends.'
-							: `First ${pricing.monthlyTrialDays} days free — cancel before they end and pay nothing. Then ${monthlyPriceText}/month; everything except downloads, and your site goes offline if the subscription ends.`}
+					<span className="checkout-features">
+						{currentPlan !== 'monthly' && (
+							<Feature note="Cancel before they end and pay nothing.">
+								First {pricing.monthlyTrialDays} days free
+							</Feature>
+						)}
+						<Feature>Hosted while subscribed</Feature>
+						<SharedFeatures />
 					</span>
 				</button>
 			</div>
@@ -121,7 +156,8 @@ export default function LicenseGateModal({
 						: 'Publishing needs an active plan. Polar handles the secure checkout and your work stays saved.'}
 			</p>
 			<p className="modal-note">
-				Both plans include the editor, yourname.hangwork.art, publishing, custom domains, and future editor updates.
+				{context === 'unlock' || currentPlan === 'monthly' ? '' : 'Building and previewing are free. '}
+				Future editor updates come with both plans.
 				{' '}{pricing.refundDays}-day refund, no questions asked.
 			</p>
 			{error && <p className="field-error">{error}</p>}
